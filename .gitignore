@@ -1,0 +1,32 @@
+# Dependencies & build
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS & tools
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+
+# Test & typecheck caches
+coverage/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.tsbuildinfo

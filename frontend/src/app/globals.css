@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "AlmaghribiWarch";
+  src: url("/Almaghribi-warch.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  --journal-ink: #17231c;
+  --journal-muted: #5b625c;
+  --journal-border: #eadfca;
+  --journal-accent: #1f5a46;
+  --journal-accent-strong: #123f33;
+  --journal-gold: #b7791f;
+  --journal-accent-soft: #f7efe0;
+  --journal-paper: #fffaf0;
+}
+
+body {
+  color: var(--journal-ink);
+  background: var(--journal-paper);
+}
