@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SimplePageFooter } from "@/components/simple-page-footer";
 
 export const metadata: Metadata = {
   title: "إرشادات المؤلفين | البيان",
@@ -84,7 +83,6 @@ export default function AuthorGuidelinesPage() {
           </p>
         </div>
       </main>
-      <SimplePageFooter />
     </div>
   );
 }

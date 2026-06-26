@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SecurityForm } from "@/components/settings/security-form";
-import { SimplePageFooter } from "@/components/simple-page-footer";
 
 export const metadata: Metadata = {
   title: "إعدادات الحساب | البيان",
@@ -27,7 +26,6 @@ export default function SettingsPage() {
           <SecurityForm />
         </div>
       </main>
-      <SimplePageFooter />
     </div>
   );
 }

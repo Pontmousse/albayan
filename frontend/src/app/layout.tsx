@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Amiri, Noto_Sans_Arabic } from "next/font/google";
 import { AppClerkProvider } from "@/components/app-clerk-provider";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
           <div className="flex flex-1 flex-col">
             <SiteHeader />
             {children}
+            <SiteFooter />
           </div>
         </AppClerkProvider>
       </body>

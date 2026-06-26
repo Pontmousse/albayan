@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
 import { FormEvent, useState } from "react";
-import { SimplePageFooter } from "@/components/simple-page-footer";
 import { EmailField } from "@/components/email-field";
 import { PasswordField } from "@/components/password-field";
 import { buttonClassName, cardClassName, translateClerkError } from "@/lib/auth-ui";
@@ -108,7 +107,6 @@ export default function SignInPage() {
           </p>
         </div>
       </main>
-      <SimplePageFooter />
     </div>
   );
 }

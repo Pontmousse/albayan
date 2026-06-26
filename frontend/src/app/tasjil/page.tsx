@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
 import { FormEvent, useState } from "react";
-import { SimplePageFooter } from "@/components/simple-page-footer";
 import { EmailField } from "@/components/email-field";
 import { PasswordField } from "@/components/password-field";
 import {
@@ -165,7 +164,6 @@ export default function SignUpPage() {
           </p>
         </div>
       </main>
-      <SimplePageFooter />
     </div>
   );
 }

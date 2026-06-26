@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SimplePageFooter } from "@/components/simple-page-footer";
 
 export const metadata: Metadata = {
   title: "سياسة النشر | البيان",
@@ -61,9 +60,9 @@ export default function PublishingPolicyPage() {
           <section>
             <h2 className="text-lg font-bold text-[var(--journal-accent)]">النشر والوصول</h2>
             <p className="mt-2 text-sm leading-7">
-              تتجه المجلة إلى نموذج وصول حر (مفتوح) قدر الإمكان. تفاصيل الترخيص
-              (مثل CC) ورسوم النشر إن وُجدت ستُعلَن بوضوح عند اكتمال الإطار القانوني
-              إن شاء الله.
+              تتجه المجلة إلى نموذج وصول حر (مفتوح) قدر الإمكان. النشر{" "}
+              <strong>مجاني</strong> للمؤلفين في هذه المرحلة. تفاصيل الترخيص (مثل
+              Creative Commons) ستُعلَن عند اكتمال الإطار القانوني إن شاء الله.
             </p>
           </section>
 
@@ -77,14 +76,12 @@ export default function PublishingPolicyPage() {
 
           <p className="rounded-lg border border-amber-200 bg-white/70 p-4 text-sm text-slate-700">
             لطلبات استثناء أو أسئلة حول السياسة، راجع صفحة{" "}
-            <Link href="#" className="font-semibold text-[var(--journal-accent)] hover:underline">
+            <Link href="/al-tawasul" className="font-semibold text-[var(--journal-accent)] hover:underline">
               التواصل
-            </Link>{" "}
-            عند تفعيلها إن شاء الله.
+            </Link>
           </p>
         </div>
       </main>
-      <SimplePageFooter />
     </div>
   );
 }
