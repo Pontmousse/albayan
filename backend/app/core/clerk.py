@@ -1,0 +1,59 @@
+from dataclasses import dataclass
+from typing import Annotated
+
+from clerk_backend_api import Clerk
+from clerk_backend_api.security.types import AuthenticateRequestOptions
+from fastapi import Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.database import get_db
+
+clerk_client = Clerk(bearer_auth=settings.clerk_secret_key)
+
+
+@dataclass
+class AuthContext:
+    clerk_id: str
+    email: str | None
+    full_name: str | None
+
+
+def get_auth_context(request: Request) -> AuthContext:
+    if not settings.clerk_secret_key:
+        raise HTTPException(
+            status_code=503,
+            detail="المصادقة غير مُهيّأة على الخادم.",
+        )
+
+    state = clerk_client.authenticate_request(
+        request,
+        AuthenticateRequestOptions(
+            authorized_parties=[
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            ],
+        ),
+    )
+
+    if not state.is_signed_in or not state.payload:
+        raise HTTPException(status_code=401, detail="انتهت الجلسة، سجّل دخولك مجدداً.")
+
+    payload = state.payload
+    clerk_id = payload.get("sub")
+    if not clerk_id:
+        raise HTTPException(status_code=401, detail="رمز المصادقة غير صالح.")
+
+    email = payload.get("email")
+    if isinstance(email, list):
+        email = email[0] if email else None
+
+    first_name = payload.get("first_name") or payload.get("given_name") or ""
+    last_name = payload.get("last_name") or payload.get("family_name") or ""
+    full_name = f"{first_name} {last_name}".strip() or None
+
+    return AuthContext(clerk_id=clerk_id, email=email, full_name=full_name)
+
+
+AuthDep = Annotated[AuthContext, Depends(get_auth_context)]
+DbDep = Annotated[Session, Depends(get_db)]

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SearchPanel } from "@/components/search-panel";
-import { SiteHeader } from "@/components/site-header";
 
 const articles = [
   {
@@ -54,9 +53,7 @@ const verses = [
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
-
+    <div className="flex flex-1 flex-col">
       <main className="flex-1">
         <section className="relative overflow-hidden border-b border-amber-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f7efe0_45%,#e9f1ec_100%)]">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-slate-900" />

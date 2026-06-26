@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthHeader } from "@/components/auth-header";
 import { navLinks } from "@/lib/nav-links";
 
 export function SiteHeader() {
@@ -16,27 +17,30 @@ export function SiteHeader() {
             مجلة علمية محكّمة · نشر مفتوح
           </span>
         </Link>
-        <nav
-          aria-label="التنقل الرئيسي"
-          className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm font-medium text-slate-700"
-        >
-          {navLinks.map((item) => {
-            const className =
-              "rounded-md px-1 py-0.5 text-slate-700 underline-offset-4 transition hover:text-[var(--journal-accent-strong)] hover:underline";
-            if (item.href.startsWith("/")) {
+        <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <nav
+            aria-label="التنقل الرئيسي"
+            className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm font-medium text-slate-700"
+          >
+            {navLinks.map((item) => {
+              const className =
+                "rounded-md px-1 py-0.5 text-slate-700 underline-offset-4 transition hover:text-[var(--journal-accent-strong)] hover:underline";
+              if (item.href.startsWith("/")) {
+                return (
+                  <Link key={item.label} href={item.href} className={className}>
+                    {item.label}
+                  </Link>
+                );
+              }
               return (
-                <Link key={item.label} href={item.href} className={className}>
+                <a key={item.label} href={item.href} className={className}>
                   {item.label}
-                </Link>
+                </a>
               );
-            }
-            return (
-              <a key={item.label} href={item.href} className={className}>
-                {item.label}
-              </a>
-            );
-          })}
-        </nav>
+            })}
+          </nav>
+          <AuthHeader />
+        </div>
       </div>
     </header>
   );

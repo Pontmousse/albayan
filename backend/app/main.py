@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routers import users
+
 app = FastAPI(
     title="البيان API",
     description="واجهة برمجة تطبيقات مجلة البيان العلمية (هيكل أولي للتطوير).",
@@ -17,6 +19,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(users.router)
 
 
 @app.get("/")

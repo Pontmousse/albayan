@@ -18,6 +18,7 @@
 
 | المجلد    | الأمر           |
 | --------- | --------------- |
+| جذر المستودع | `./launch.sh` (Docker DB + migrations + backend + frontend) |
 | `frontend/` | `npm run dev`   |
 | `frontend/` | `npm run lint`  |
 | `frontend/` | `npm run build` |

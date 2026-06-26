@@ -1,10 +1,25 @@
 # خادم «البيان» (FastAPI)
 
-هيكل أولي لواجهة برمجة التطبيقات لمجلة **البيان**. منطق قاعدة البيانات والمصادقة يُضاف لاحقًا في هذا المجلد وليس في تطبيق Next.js.
+واجهة برمجة التطبيقات لمجلة **البيان** — FastAPI مع PostgreSQL ومصادقة Clerk.
 
 ## المتطلبات
 
 - Python **3.11** أو أحدث
+- Docker (لقاعدة PostgreSQL المحلية)
+
+## قاعدة البيانات المحلية (Docker)
+
+من مجلد `backend/database/`:
+
+```bash
+docker compose up -d
+docker compose ps   # التحقق من healthcheck
+```
+
+- المنفذ الافتراضي على المضيف: **5434** (لتجنب التعارض مع مشاريع أخرى على 5433)
+- البيانات في `tmpfs` — تُمسح عند إيقاف الحاوية
+
+انسخ `backend/.env.example` إلى `backend/.env` وعدّل `DATABASE_URL` و`CLERK_SECRET_KEY`.
 
 ## الإعداد والتشغيل (تطوير)
 
@@ -12,25 +27,25 @@
 
 ```bash
 python -m venv .venv
-```
-
-تفعيل البيئة الافتراضية:
-
-- Windows (PowerShell): `.\.venv\Scripts\Activate.ps1`
-- macOS/Linux: `source .venv/bin/activate`
-
-ثم:
-
-```bash
+source .venv/bin/activate   # Windows: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 - التوثيق التفاعلي (Swagger): [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - فحص الصحة: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
-## ما يُضاف لاحقًا
+## مسارات API الرئيسية
 
-- طبقة **قاعدة بيانات** (مثل PostgreSQL) و**ORM** (مثل SQLAlchemy 2.0) وترحيلات **Alembic**
-- **المصادقة** والتفويض للمحررين والمحكمين
-- مخططات **Pydantic** ومسارات منظمة تحت `app/routers/`
+| Method | Path | الوصف |
+|--------|------|--------|
+| `GET` | `/api/v1/users/me` | الملف الشخصي (يتطلّب Bearer token من Clerk) |
+| `PATCH` | `/api/v1/users/me` | تحديث الاسم والانتماء والنبذة |
+
+## ترحيلات Alembic
+
+```bash
+alembic revision --autogenerate -m "وصف التغيير"
+alembic upgrade head
+```

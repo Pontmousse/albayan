@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SiteHeader } from "@/components/site-header";
 import { SimplePageFooter } from "@/components/simple-page-footer";
 
 export const metadata: Metadata = {
@@ -10,8 +9,7 @@ export const metadata: Metadata = {
 
 export default function AuthorGuidelinesPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--journal-paper)]">
-      <SiteHeader />
+    <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:py-12">
         <h1
           className="text-3xl font-bold text-slate-900"

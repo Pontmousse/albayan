@@ -1,0 +1,33 @@
+# Docker Compose for local PostgreSQL development
+# Usage: cd backend/database && docker compose up -d
+#
+# Host port 5434 by default (5433 if set via POSTGRES_PORT env).
+# Use 5434 when another project (e.g. burhan) already binds 5433.
+# Data is stored in tmpfs — local dev data is erased when the
+# container stops or restarts.
+# For production: use DATABASE_URL; no need to run PostgreSQL in Docker.
+name: albayan_database
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: albayan_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-albayan_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-albayan_password}
+      POSTGRES_DB: ${POSTGRES_DB:-albayan}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-albayan_user} -d ${POSTGRES_DB:-albayan}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - albayan_network
+networks:
+  albayan_network:
+    driver: bridge

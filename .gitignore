@@ -23,6 +23,7 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+.cursor/
 
 # Test & typecheck caches
 coverage/
