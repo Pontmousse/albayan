@@ -6,6 +6,13 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import settings
 from app.models.base import Base
 from app.models.user import User  # noqa: F401
+from app.models.article import (  # noqa: F401
+    Article,
+    ArticleAuthor,
+    ArticleReviewer,
+    ArticleVersion,
+    Review,
+)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

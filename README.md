@@ -60,7 +60,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ## هيكل المستودع
 
 - `frontend/` — واجهة المستخدم (App Router، عربي/RTL).
-- `backend/` — واجهة برمجة التطبيقات والمنطق الخادمي وقاعدة البيانات لاحقًا.
+- `backend/` — واجهة برمجة التطبيقات والمنطق الخادمي وقاعدة البيانات.
+- `documentation/` — توثيق التصميم؛ راجع [database-schema.md](documentation/database-schema.md) لمخطط PostgreSQL.
 
 ## Docker
 

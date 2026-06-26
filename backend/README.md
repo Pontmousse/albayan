@@ -43,6 +43,12 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `GET` | `/api/v1/users/me` | الملف الشخصي (يتطلّب Bearer token من Clerk) |
 | `PATCH` | `/api/v1/users/me` | تحديث الاسم والانتماء والنبذة |
 
+## قاعدة البيانات
+
+الجداول: `users`, `articles`, `article_versions`, `article_authors`, `article_reviewers`, `reviews`.
+
+الشرح الكامل للتصميم والعلاقات: [documentation/database-schema.md](../documentation/database-schema.md).
+
 ## ترحيلات Alembic
 
 ```bash

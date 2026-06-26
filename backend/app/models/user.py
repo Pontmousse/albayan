@@ -1,10 +1,14 @@
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, Text, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, String, Text, Uuid, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.article import Article, ArticleAuthor, ArticleReviewer
 
 
 class User(Base):
@@ -18,6 +22,7 @@ class User(Base):
     full_name: Mapped[str | None] = mapped_column(String(200))
     affiliation: Mapped[str | None] = mapped_column(String(300))
     bio: Mapped[str | None] = mapped_column(Text)
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -25,4 +30,14 @@ class User(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+    submitted_articles: Mapped[list["Article"]] = relationship(
+        back_populates="submitter"
+    )
+    authored_article_links: Mapped[list["ArticleAuthor"]] = relationship(
+        back_populates="user"
+    )
+    reviewer_assignments: Mapped[list["ArticleReviewer"]] = relationship(
+        back_populates="user"
     )
