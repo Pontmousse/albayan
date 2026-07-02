@@ -17,12 +17,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.enums import (
-    ArticleStatus,
     CompileStatus,
     ReviewRecommendation,
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
+    VersionStatus,
 )
 
 
@@ -37,11 +37,6 @@ class Article(Base):
     )
     title: Mapped[str] = mapped_column(String(500))
     abstract: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[ArticleStatus] = mapped_column(
-        Enum(ArticleStatus, native_enum=False),
-        default=ArticleStatus.DRAFT,
-        index=True,
-    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -79,7 +74,12 @@ class ArticleVersion(Base):
     storage_prefix: Mapped[str] = mapped_column(String(500))
     source_type: Mapped[SourceType] = mapped_column(
         Enum(SourceType, native_enum=False),
-        default=SourceType.ZIP_UPLOAD,
+        default=SourceType.WEB_EDITOR,
+    )
+    status: Mapped[VersionStatus] = mapped_column(
+        Enum(VersionStatus, native_enum=False),
+        default=VersionStatus.DRAFT,
+        index=True,
     )
     compile_status: Mapped[CompileStatus] = mapped_column(
         Enum(CompileStatus, native_enum=False),

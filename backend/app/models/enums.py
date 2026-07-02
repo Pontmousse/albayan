@@ -1,13 +1,17 @@
 import enum
 
 
-class ArticleStatus(str, enum.Enum):
+class VersionStatus(str, enum.Enum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
     UNDER_REVIEW = "under_review"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
     PUBLISHED = "published"
+
+
+# Deprecated alias — status lives on article_versions, not articles
+ArticleStatus = VersionStatus
 
 
 class ReviewerAssignmentStatus(str, enum.Enum):

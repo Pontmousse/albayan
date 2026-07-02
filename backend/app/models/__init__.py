@@ -12,6 +12,7 @@ from app.models.enums import (
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
+    VersionStatus,
 )
 from app.models.user import User
 
@@ -21,6 +22,7 @@ __all__ = [
     "ArticleReviewer",
     "ArticleVersion",
     "ArticleStatus",
+    "VersionStatus",
     "CompileStatus",
     "Review",
     "ReviewRecommendation",

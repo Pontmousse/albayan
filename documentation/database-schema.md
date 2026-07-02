@@ -24,10 +24,11 @@
 | 6 | **نص المراجعة** في `reviews` منفصل عن `article_reviewers` |
 | 7 | **`reviews.article_reviewer_id`** → `article_reviewers.id` (وليس مباشرة إلى `users`) |
 | 8 | **`reviews.article_version_id`** — المراجعة مرتبطة بنسخة محددة |
-| 9 | **ملفات LaTeX** — `storage_prefix` فقط؛ داخل S3: `source.zip`, `compiled.pdf`, `manifest.json` |
-| 10 | **المصدر الأساسي** — `source.zip` (من `zip_upload` أو `web_editor` لاحقاً) |
-| 11 | **Worker** — معالجة ZIP/PDF خارج قاعدة البيانات؛ `compile_status` على الإصدار |
+| 9 | **ملفات المخطوطة** — `storage_prefix` فقط؛ داخل S3: `document.json` (BuTeX), `compiled.pdf`, `manifest.json` |
+| 10 | **المصدر الأساسي** — `document.json` عبر `web_editor` (المسار v1 للتأليف) |
+| 11 | **Worker** — تجميع BuTeX → PDF خارج قاعدة البيانات؛ `compile_status` على الإصدار |
 | 12 | **المستخدم مؤلف/مراجع** فقط عند وجوده في جداول الربط المناسبة |
+| 13 | **حالة سير المخطوطة** على `article_versions.status` — `draft` = قابل للتحرير؛ غير ذلك = مجمّد (بدون عمود `is_editable`) |
 
 ---
 
@@ -78,7 +79,7 @@ reviews → article_versions → articles
 
 ### 4.2 `articles`
 
-المقال ككيان عام (ليس نسخة واحدة).
+حاوية المقال فقط — **بدون** حالة سير عمل (الحالة على الإصدارات).
 
 | العمود | النوع | ملاحظات |
 |--------|--------|---------|
@@ -86,11 +87,10 @@ reviews → article_versions → articles
 | `submitted_by` | UUID FK → `users.id` | RESTRICT |
 | `title` | string(500) | |
 | `abstract` | text, nullable | |
-| `status` | enum | حالة سير العمل (انظر §5) |
 | `created_at` | timestamptz | |
 | `updated_at` | timestamptz | |
 
-**فهارس:** `ix_articles_submitted_by`, `ix_articles_status`
+**فهارس:** `ix_articles_submitted_by`
 
 ---
 
@@ -104,7 +104,8 @@ reviews → article_versions → articles
 | `article_id` | UUID FK → `articles.id` | CASCADE |
 | `version_number` | integer | 1, 2, 3… |
 | `storage_prefix` | string(500) | بادئة S3، مثال: `articles/{id}/versions/v1/` |
-| `source_type` | enum | `zip_upload` \| `web_editor` |
+| `source_type` | enum | `zip_upload` \| `web_editor` (افتراضي: `web_editor`) |
+| `status` | enum | حالة الإصدار / سير المخطوطة (انظر §5) |
 | `compile_status` | enum | `pending` \| `processing` \| `success` \| `failed` |
 | `change_summary` | text, nullable | وصف التعديل عن النسخة السابقة |
 | `submitted_at` | timestamptz, nullable | تاريخ تقديم هذه النسخة |
@@ -112,9 +113,9 @@ reviews → article_versions → articles
 
 **قيود:** UNIQUE `(article_id, version_number)`
 
-**فهرس:** `ix_article_versions_article_id`
+**فهارس:** `ix_article_versions_article_id`, `ix_article_versions_status`
 
-**النسخة الحالية:**
+**النسخة الحالية** (مصدر الحقيقة لموقع المخطوطة):
 
 ```sql
 SELECT * FROM article_versions
@@ -122,6 +123,15 @@ WHERE article_id = :article_id
 ORDER BY version_number DESC
 LIMIT 1;
 ```
+
+**قابلية التحرير (منطق الواجهة — لا عمود DB):**
+
+| `status` | السلوك |
+|----------|--------|
+| `draft` | المؤلف يحرّر المحتوى تحت `storage_prefix` |
+| أي قيمة أخرى | المخطوطة **مجمّدة** — لا تعديل على المحتوى |
+
+**عند التقديم:** على الإصدار الحالي: `status = submitted`, `submitted_at = now()`.
 
 ---
 
@@ -185,12 +195,12 @@ LIMIT 1;
 
 ## 5. التعدادات (Enums)
 
-### `ArticleStatus` — حالة المقال
+### `VersionStatus` — حالة الإصدار / سير المخطوطة
 
 | القيمة | المعنى |
 |--------|--------|
-| `draft` | مسودة |
-| `submitted` | مُقدَّم |
+| `draft` | مسودة — قابلة للتحرير |
+| `submitted` | مُقدَّم — مجمّدة |
 | `under_review` | قيد المراجعة |
 | `accepted` | مقبول |
 | `rejected` | مرفوض |
@@ -209,8 +219,8 @@ LIMIT 1;
 
 | القيمة | المعنى |
 |--------|--------|
-| `zip_upload` | رفع ملف ZIP |
-| `web_editor` | محرر LaTeX داخل الموقع (لاحقاً) |
+| `zip_upload` | رفع ملف ZIP (لاحقاً) |
+| `web_editor` | محرر BuTeX داخل الموقع — **المسار الافتراضي v1** |
 
 ### `CompileStatus` — حالة تجميع PDF
 
@@ -244,8 +254,8 @@ LIMIT 1;
 ### إنشاء مقال جديد (إصدار أول)
 
 ```text
-1. INSERT INTO articles (submitted_by, title, abstract, status='draft')
-2. INSERT INTO article_versions (article_id, version_number=1, storage_prefix, compile_status='pending')
+1. INSERT INTO articles (submitted_by, title, abstract)
+2. INSERT INTO article_versions (article_id, version_number=1, storage_prefix, status='draft', source_type='web_editor', compile_status='pending')
 3. INSERT INTO article_authors (article_id, user_id, author_order=1, is_corresponding=true)
 ```
 
@@ -255,9 +265,17 @@ LIMIT 1;
 
 ```text
 1. SELECT MAX(version_number) + 1 FROM article_versions WHERE article_id = :id
-2. INSERT INTO article_versions (..., version_number=N, change_summary='...')
-3. رفع source.zip إلى storage_prefix الجديد
+2. INSERT INTO article_versions (..., version_number=N, status='draft', change_summary='...')
+3. حفظ document.json تحت storage_prefix الجديد
 4. compile_status = 'pending' → worker يعالج لاحقاً
+```
+
+### تقديم إصدار
+
+```text
+UPDATE article_versions
+SET status = 'submitted', submitted_at = now()
+WHERE id = :current_version_id AND status = 'draft';
 ```
 
 ### تعيين مراجع
@@ -286,7 +304,7 @@ articles/550e8400-e29b-41d4-a716-446655440000/versions/v1/
 محتويات المجلد المتوقعة:
 
 ```text
-source.zip      — مشروع LaTeX مضغوط (المصدر الأساسي)
+document.json   — مخطوطة BuTeX (المصدر الأساسي)
 compiled.pdf    — PDF الناتج بعد التجميع
 manifest.json   — بيانات وصفية (اختياري لاحقاً)
 ```
@@ -298,9 +316,9 @@ manifest.json   — بيانات وصفية (اختياري لاحقاً)
 ## 8. سير Worker المستقبلي (خارج DB)
 
 ```text
-رفع source.zip → حفظ في S3 تحت storage_prefix
+حفظ document.json → S3 تحت storage_prefix
 إنشاء article_version بـ compile_status = pending
-worker يفك ZIP → يجمع LaTeX → يرفع compiled.pdf
+worker يقرأ BuTeX → يجمع PDF → يرفع compiled.pdf
 تحديث compile_status = success | failed
 ```
 
@@ -360,6 +378,7 @@ WHERE r.article_version_id = :version_id;
 |----------|--------|
 | `001_create_users` | جدول `users` |
 | `002_create_articles` | `is_admin` + جداول المقالات الخمسة |
+| `003_version_status` | نقل `status` إلى `article_versions`؛ حذفه من `articles` |
 
 تشغيل:
 

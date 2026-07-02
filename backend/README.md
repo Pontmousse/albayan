@@ -47,6 +47,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 الجداول: `users`, `articles`, `article_versions`, `article_authors`, `article_reviewers`, `reviews`.
 
+**حالة المخطوطة** على `article_versions.status` (وليس `articles`): `draft` = قابل للتحرير؛ غير ذلك = مجمّد. آخر إصدار (`ORDER BY version_number DESC LIMIT 1`) هو مصدر الحقيقة.
+
 الشرح الكامل للتصميم والعلاقات: [documentation/database-schema.md](../documentation/database-schema.md).
 
 ## ترحيلات Alembic
