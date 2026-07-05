@@ -12,6 +12,10 @@ class Settings(BaseSettings):
         "postgresql://albayan_user:albayan_password@localhost:5434/albayan"
     )
     clerk_secret_key: str = ""
+    s3_bucket: str = ""
+    s3_endpoint_url: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
 
 
 settings = Settings()

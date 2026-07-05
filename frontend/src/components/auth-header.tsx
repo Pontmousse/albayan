@@ -33,6 +33,12 @@ export function AuthHeader() {
     <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
       <span className="font-medium text-slate-700">{displayName}</span>
       <Link
+        href="/maktabi"
+        className="rounded-md px-2 py-1 font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+      >
+        مكتبي
+      </Link>
+      <Link
         href="/al-idayat"
         className="rounded-md px-2 py-1 text-[var(--journal-accent)] underline-offset-4 hover:underline"
       >
