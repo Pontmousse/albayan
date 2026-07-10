@@ -32,6 +32,7 @@ def get_auth_context(request: Request) -> AuthContext:
             authorized_parties=[
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
+                "https://albayan-journal.org",
             ],
         ),
     )
