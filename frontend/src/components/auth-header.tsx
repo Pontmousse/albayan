@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useClerk, useUser } from "@clerk/nextjs";
+import { readClerkRole } from "@/lib/clerk-role";
 
 export function AuthHeader() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -28,10 +29,19 @@ export function AuthHeader() {
 
   const displayName =
     user.fullName || user.firstName || user.primaryEmailAddress?.emailAddress || "حسابي";
+  const isAdmin = readClerkRole(user.publicMetadata) === "admin";
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 text-xs">
       <span className="font-medium text-slate-700">{displayName}</span>
+      {isAdmin ? (
+        <Link
+          href="/admin"
+          className="rounded-md px-2 py-1 font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+        >
+          لوحة الإدارة
+        </Link>
+      ) : null}
       <Link
         href="/maktabi"
         className="rounded-md px-2 py-1 font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"

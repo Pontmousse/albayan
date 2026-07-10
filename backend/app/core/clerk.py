@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Any
 
 from clerk_backend_api import Clerk
 from clerk_backend_api.security.types import AuthenticateRequestOptions
@@ -55,5 +55,30 @@ def get_auth_context(request: Request) -> AuthContext:
     return AuthContext(clerk_id=clerk_id, email=email, full_name=full_name)
 
 
+def _admin_role_from_metadata(public_metadata: Any) -> str | None:
+    if not isinstance(public_metadata, dict):
+        return None
+
+    role = public_metadata.get("role")
+    return role if isinstance(role, str) else None
+
+
+def require_admin(auth: AuthContext = Depends(get_auth_context)) -> AuthContext:
+    try:
+        clerk_user = clerk_client.users.get(user_id=auth.clerk_id)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="تعذر التحقق من صلاحيات المدير حالياً.",
+        ) from exc
+
+    role = _admin_role_from_metadata(getattr(clerk_user, "public_metadata", None))
+    if role != "admin":
+        raise HTTPException(status_code=403, detail="هذه الصفحة مخصّصة للمدير فقط.")
+
+    return auth
+
+
 AuthDep = Annotated[AuthContext, Depends(get_auth_context)]
+AdminDep = Annotated[AuthContext, Depends(require_admin)]
 DbDep = Annotated[Session, Depends(get_db)]

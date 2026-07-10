@@ -1,6 +1,7 @@
 from app.models.article import (
     Article,
     ArticleAuthor,
+    ArticleEditor,
     ArticleReviewer,
     ArticleVersion,
     Review,
@@ -19,6 +20,7 @@ from app.models.user import User
 __all__ = [
     "Article",
     "ArticleAuthor",
+    "ArticleEditor",
     "ArticleReviewer",
     "ArticleVersion",
     "ArticleStatus",
