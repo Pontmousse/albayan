@@ -73,3 +73,56 @@ button:disabled,
 [aria-disabled="true"] {
   cursor: not-allowed;
 }
+
+/* ثيم BuTeX Document v2 — مربوط بهوية مجلة البيان */
+.albayan-butex-theme.butex-document2-widget {
+  --butex-bg: var(--journal-paper);
+  --butex-fg: var(--journal-ink);
+  --butex-muted: var(--journal-muted);
+  --butex-accent: var(--journal-accent);
+  --butex-border: var(--journal-border);
+  --butex-panel: #ffffff;
+  --butex-caret: var(--journal-accent);
+  --butex-selected: color-mix(in srgb, var(--journal-accent) 18%, transparent);
+  --butex-toolbar-hover-bg: color-mix(
+    in srgb,
+    var(--journal-accent) 10%,
+    transparent
+  );
+  --butex-focus-shadow: color-mix(
+    in srgb,
+    var(--journal-accent) 20%,
+    transparent
+  );
+  --butex-preview-bg: #ffffff;
+  --butex-preview-fg: var(--journal-ink);
+
+  --butex-document2-bg: var(--journal-paper);
+  --butex-document2-fg: var(--journal-ink);
+  --butex-document2-muted: var(--journal-muted);
+  --butex-document2-panel: #ffffff;
+  --butex-document2-border: var(--journal-border);
+  --butex-document2-accent: var(--journal-accent);
+  --butex-document2-accent-bg: color-mix(
+    in srgb,
+    var(--journal-accent) 10%,
+    var(--journal-accent-soft)
+  );
+  --butex-document2-focus-shadow: color-mix(
+    in srgb,
+    var(--journal-accent) 20%,
+    transparent
+  );
+  --butex-document2-preview-bg: #ffffff;
+  --butex-document2-preview-fg: var(--journal-ink);
+  --butex-document2-preview-font: var(--font-display-ar), "Amiri",
+    "Noto Serif Arabic", Georgia, serif;
+  --butex-document2-input-bg: #ffffff;
+  --butex-document2-raw-bg: var(--journal-accent-soft);
+  --butex-document2-math-border: color-mix(
+    in srgb,
+    var(--journal-accent) 35%,
+    var(--journal-border)
+  );
+  --butex-document2-collapse-bg: var(--journal-accent-soft);
+}

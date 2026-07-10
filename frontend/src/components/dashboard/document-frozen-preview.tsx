@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { Document2Json, Document2Node } from "@drghaliasri/butex/document2";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
+import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
 const ButexDocumentEditor2 = dynamic(
   () =>
@@ -65,6 +66,7 @@ export function DocumentFrozenPreview({ documentJson }: { documentJson: unknown 
   return (
     <div className="rounded-xl border border-amber-200 bg-white p-5">
       <ButexDocumentEditor2
+        className={ALBAYAN_BUTEX_THEME_CLASS}
         initialDocument={documentJson as Document2Json | Document2Node}
         previewOnly
         documentDirection="rtl"

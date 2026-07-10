@@ -15,6 +15,7 @@ import {
   type ArticleDetail,
 } from "@/lib/api/articles";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
+import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
 const ButexDocumentEditor2 = dynamic(
   () =>
@@ -222,6 +223,7 @@ export default function TahrirPage() {
 
         {phase === "ready" ? (
           <ButexDocumentEditor2
+            className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={
               initialDocument as
                 | import("@drghaliasri/butex/document2").Document2Json
