@@ -7,7 +7,7 @@
  * 3. حقن أنماط BuTeX وأنماط محرر المستندات v2
  */
 
-const MATHJAX_SRC = "https://cdn.jsdelivr.net/npm/mathjax@4/tex-svg.js";
+const MATHJAX_SRC = "https://cdn.jsdelivr.net/npm/mathjax@4.1/tex-svg.js";
 
 let bootPromise: Promise<void> | null = null;
 
