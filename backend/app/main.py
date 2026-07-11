@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import articles, users
+from app.routers import admin, articles, invitations, users
 
 app = FastAPI(
     title="البيان API",
@@ -20,6 +20,8 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(articles.router)
+app.include_router(admin.router)
+app.include_router(invitations.router)
 
 
 @app.get("/")

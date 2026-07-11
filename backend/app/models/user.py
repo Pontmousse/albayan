@@ -9,6 +9,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.article import Article, ArticleAuthor, ArticleEditor, ArticleReviewer
+    from app.models.invitation import Invitation
 
 
 class User(Base):
@@ -48,4 +49,7 @@ class User(Base):
     )
     reviewer_assignments: Mapped[list["ArticleReviewer"]] = relationship(
         back_populates="user"
+    )
+    sent_invitations: Mapped[list["Invitation"]] = relationship(
+        back_populates="inviter"
     )

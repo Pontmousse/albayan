@@ -1,16 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { EmailField } from "@/components/email-field";
 import { PasswordField } from "@/components/password-field";
 import { buttonClassName, cardClassName, translateClerkError } from "@/lib/auth-ui";
 
-export default function SignInPage() {
+function safeNextPath(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/";
+  }
+  return raw;
+}
+
+function SignInForm() {
   const { signIn, fetchStatus } = useSignIn();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +52,7 @@ export default function SignInPage() {
 
       const { error: finalizeError } = await signIn.finalize({
         navigate: async () => {
-          router.push("/");
+          router.push(nextPath);
         },
       });
 
@@ -88,25 +97,46 @@ export default function SignInPage() {
               minLength={1}
             />
 
-            {error && (
-              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            {error ? (
+              <p className="text-sm text-red-700" role="alert">
                 {error}
               </p>
-            )}
+            ) : null}
 
-            <button type="submit" disabled={loading || !isReady} className={`${buttonClassName} w-full`}>
-              {loading ? "جارٍ الدخول…" : "تسجيل الدخول"}
+            <button
+              type="submit"
+              className={buttonClassName}
+              disabled={!isReady || loading}
+            >
+              {loading ? "جارٍ الدخول..." : "دخول"}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-600">
             ليس لديك حساب؟{" "}
-            <Link href="/tasjil" className="font-semibold text-[var(--journal-accent)] hover:underline">
-              سجّل الآن
+            <Link
+              href="/tasjil"
+              className="font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+            >
+              إنشاء حساب
             </Link>
           </p>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+          جارٍ التحميل...
+        </div>
+      }
+    >
+      <SignInForm />
+    </Suspense>
   );
 }

@@ -59,6 +59,9 @@ class Article(Base):
     reviewer_assignments: Mapped[list["ArticleReviewer"]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
     )
+    invitations: Mapped[list["Invitation"]] = relationship(
+        back_populates="article", cascade="all, delete-orphan"
+    )
 
 
 class ArticleVersion(Base):
