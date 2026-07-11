@@ -4,7 +4,10 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { Document2Json, Document2Node } from "@drghaliasri/butex/document2";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
-import { useButexImageResolver } from "@/lib/butex-images";
+import {
+  useButexImageResolver,
+  type FetchAssetBlob,
+} from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
@@ -23,16 +26,19 @@ export function DocumentFrozenPreview({
   documentJson,
   articleId,
   getToken,
+  fetchAssetBlob,
 }: {
   documentJson: unknown;
   articleId: string;
   getToken: GetToken;
+  fetchAssetBlob?: FetchAssetBlob;
 }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { resolveImageUrl, prefetchFromDocument } = useButexImageResolver(
     articleId,
     getToken,
+    fetchAssetBlob,
   );
 
   useEffect(() => {

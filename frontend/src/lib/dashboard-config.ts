@@ -1,4 +1,4 @@
-export type DashboardRole = "author" | "reviewer" | "admin";
+export type DashboardRole = "author" | "reviewer" | "editor" | "admin";
 
 export type DashboardSection = {
   id: string;
@@ -8,15 +8,28 @@ export type DashboardSection = {
 };
 
 export const dashboardSections: DashboardSection[] = [
-  { id: "overview", label: "نظرة عامة", href: "/maktabi", roles: ["author"] },
+  {
+    id: "overview",
+    label: "نظرة عامة",
+    href: "/maktabi",
+    roles: ["author", "reviewer", "editor"],
+  },
   { id: "articles", label: "مقالاتي", href: "/maktabi/maqalati", roles: ["author"] },
-  // لاحقاً: { id: "reviews", label: "مراجعاتي", href: "/maktabi/murajaati", roles: ["reviewer"] }
+  {
+    id: "reviews",
+    label: "مراجعاتي",
+    href: "/maktabi/murajaati",
+    roles: ["reviewer"],
+  },
+  {
+    id: "editing",
+    label: "تحريري",
+    href: "/maktabi/tahriri",
+    roles: ["editor"],
+  },
 ];
 
-// v1: كل مستخدم مسجّل يُعامل كمؤلف — تتوسع لاحقاً عبر API
-export const currentRoles: DashboardRole[] = ["author"];
-
-export function visibleSections(roles: DashboardRole[] = currentRoles) {
+export function visibleSections(roles: DashboardRole[]) {
   return dashboardSections.filter((section) =>
     section.roles.some((role) => roles.includes(role)),
   );

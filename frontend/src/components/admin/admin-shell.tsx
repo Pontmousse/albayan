@@ -1,54 +1,30 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-import { listEditorArticles } from "@/lib/api/editor";
-import { listMyAssignments } from "@/lib/api/reviews";
-import {
-  visibleSections,
-  type DashboardRole,
-} from "@/lib/dashboard-config";
+import type { ReactNode } from "react";
+import { adminSections } from "@/lib/admin-config";
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/maktabi") return pathname === "/maktabi";
+  if (href === "/admin") return pathname === "/admin";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function DashboardShell({ children }: { children: ReactNode }) {
+export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { getToken } = useAuth();
-  const [roles, setRoles] = useState<DashboardRole[]>(["author"]);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      listMyAssignments(getToken).catch(() => []),
-      listEditorArticles(getToken).catch(() => []),
-    ]).then(([assignments, editorArticles]) => {
-      if (cancelled) return;
-      const next: DashboardRole[] = ["author"];
-      if (assignments.length > 0) next.push("reviewer");
-      if (editorArticles.length > 0) next.push("editor");
-      setRoles(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [getToken]);
-
-  const sections = visibleSections(roles);
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:gap-10 lg:py-12">
         <aside className="shrink-0 lg:w-52">
+          <p className="mb-3 px-1 text-xs font-semibold tracking-wide text-[var(--journal-accent)]">
+            لوحة الإدارة
+          </p>
           <nav
-            aria-label="أقسام المكتب"
+            aria-label="أقسام الإدارة"
             className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:gap-1 lg:pb-0"
           >
-            {sections.map((section) => {
+            {adminSections.map((section) => {
               const active = isActive(pathname, section.href);
               return (
                 <Link

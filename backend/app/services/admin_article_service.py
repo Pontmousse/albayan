@@ -114,8 +114,9 @@ def assign_reviewer(
     assignment = ArticleReviewer(
         article_id=article_id,
         user_id=user_id,
-        status=ReviewerAssignmentStatus.INVITED,
+        status=ReviewerAssignmentStatus.ACCEPTED,
         invited_at=now,
+        accepted_at=now,
     )
     db.add(assignment)
     db.commit()

@@ -1,9 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy.exc import OperationalError
+from fastapi import APIRouter, Query
 
 from app.core.clerk import AdminDep, DbDep
+from app.core.deps import current_user
 from app.models.enums import InvitationRole, VersionStatus
 from app.schemas.admin import (
     AdminArticleDetail,
@@ -22,18 +22,12 @@ from app.schemas.admin import (
 )
 from app.schemas.article import VersionRead
 from app.services import admin_article_service, admin_user_service, invitation_service
-from app.services.user_service import get_or_create_user
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
-_DB_UNAVAILABLE = HTTPException(status_code=503, detail="الخدمة غير متاحة مؤقتاً.")
-
 
 def _admin_user(auth: AdminDep, db: DbDep):
-    try:
-        return get_or_create_user(db, auth)
-    except OperationalError as exc:
-        raise _DB_UNAVAILABLE from exc
+    return current_user(auth, db)
 
 
 def _author_reads(article) -> list[AdminAuthorRead]:

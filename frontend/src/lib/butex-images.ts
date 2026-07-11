@@ -5,6 +5,12 @@ import { fetchArticleAssetBlob } from "@/lib/api/articles";
 
 type GetToken = () => Promise<string | null>;
 
+export type FetchAssetBlob = (
+  getToken: GetToken,
+  scopeId: string,
+  assetKey: string,
+) => Promise<Blob>;
+
 type ImageRef = {
   assetId?: string;
   value: string;
@@ -72,8 +78,9 @@ function collectAssetKeysFromDocument(documentJson: unknown): string[] {
  * يخزّن blob: URLs لأصول المقال ويوفّر resolveImageUrl المتزامن لـ BuTeX.
  */
 export function useButexImageResolver(
-  articleId: string | undefined,
+  scopeId: string | undefined,
   getToken: GetToken,
+  fetchAssetBlob: FetchAssetBlob = fetchArticleAssetBlob,
 ) {
   const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const urlMapRef = useRef(urlMap);
@@ -81,6 +88,8 @@ export function useButexImageResolver(
   const inflightRef = useRef(new Set<string>());
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
+  const fetchRef = useRef(fetchAssetBlob);
+  fetchRef.current = fetchAssetBlob;
 
   useEffect(() => {
     return () => {
@@ -92,15 +101,15 @@ export function useButexImageResolver(
 
   const ensureAsset = useCallback(
     async (assetKey: string) => {
-      if (!articleId) return;
+      if (!scopeId) return;
       if (urlMapRef.current[assetKey] || inflightRef.current.has(assetKey)) {
         return;
       }
       inflightRef.current.add(assetKey);
       try {
-        const blob = await fetchArticleAssetBlob(
+        const blob = await fetchRef.current(
           getTokenRef.current,
-          articleId,
+          scopeId,
           assetKey,
         );
         const objectUrl = URL.createObjectURL(blob);
@@ -117,7 +126,7 @@ export function useButexImageResolver(
         inflightRef.current.delete(assetKey);
       }
     },
-    [articleId],
+    [scopeId],
   );
 
   const prefetchFromDocument = useCallback(

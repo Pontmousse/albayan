@@ -4,12 +4,12 @@ from pathlib import PurePosixPath
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import func, update
-from sqlalchemy.exc import OperationalError
 
 from app.models.article import Article
 
 from app.core import s3
 from app.core.clerk import AuthDep, DbDep
+from app.core.deps import current_user
 from app.schemas.article import (
     ArticleCreate,
     ArticleDetail,
@@ -18,11 +18,8 @@ from app.schemas.article import (
     VersionRead,
 )
 from app.services import article_service
-from app.services.user_service import get_or_create_user
 
 router = APIRouter(prefix="/api/v1/articles", tags=["articles"])
-
-_DB_UNAVAILABLE = HTTPException(status_code=503, detail="الخدمة غير متاحة مؤقتاً.")
 
 _ALLOWED_IMAGE_TYPES = {
     "image/jpeg": ".jpg",
@@ -34,10 +31,7 @@ _MAX_ASSET_BYTES = 5 * 1024 * 1024
 
 
 def _current_user(auth: AuthDep, db: DbDep):
-    try:
-        return get_or_create_user(db, auth)
-    except OperationalError as exc:
-        raise _DB_UNAVAILABLE from exc
+    return current_user(auth, db)
 
 
 def _detail(db, article) -> ArticleDetail:

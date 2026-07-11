@@ -107,8 +107,21 @@ export default function DaawaPage() {
               تم قبول الدعوة بنجاح. دورك على المقال:{" "}
               <strong>{ROLE_LABELS[result.role]}</strong>.
             </p>
-            <Link href="/maktabi" className={buttonClassName}>
-              الانتقال إلى مكتبي
+            <Link
+              href={
+                result.role === "reviewer"
+                  ? "/maktabi/murajaati"
+                  : result.role === "editor"
+                    ? "/maktabi/tahriri"
+                    : "/maktabi"
+              }
+              className={buttonClassName}
+            >
+              {result.role === "reviewer"
+                ? "الانتقال إلى مراجعاتي"
+                : result.role === "editor"
+                  ? "الانتقال إلى تحريري"
+                  : "الانتقال إلى مكتبي"}
             </Link>
           </div>
         ) : null}
