@@ -1,6 +1,8 @@
 import uuid
+from pathlib import PurePosixPath
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import Response
 from sqlalchemy import func, update
 from sqlalchemy.exc import OperationalError
 
@@ -21,6 +23,14 @@ from app.services.user_service import get_or_create_user
 router = APIRouter(prefix="/api/v1/articles", tags=["articles"])
 
 _DB_UNAVAILABLE = HTTPException(status_code=503, detail="الخدمة غير متاحة مؤقتاً.")
+
+_ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
+_MAX_ASSET_BYTES = 5 * 1024 * 1024
 
 
 def _current_user(auth: AuthDep, db: DbDep):
@@ -98,6 +108,67 @@ def save_document(
     )
     db.commit()
     return {"ok": True}
+
+
+@router.post("/{article_id}/assets")
+async def upload_asset(
+    article_id: uuid.UUID,
+    auth: AuthDep,
+    db: DbDep,
+    file: UploadFile = File(...),
+) -> dict:
+    """يرفع صورة تحت storage_prefix/assets/ — مسودة فقط."""
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    article_service.assert_draft(version)
+
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    ext = _ALLOWED_IMAGE_TYPES.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=400,
+            detail="نوع الملف غير مدعوم. استخدم JPEG أو PNG أو GIF أو WebP.",
+        )
+
+    body = await file.read()
+    if not body:
+        raise HTTPException(status_code=400, detail="الملف فارغ.")
+    if len(body) > _MAX_ASSET_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="حجم الصورة يتجاوز الحد المسموح (5 ميغابايت).",
+        )
+
+    asset_id = f"assets/{uuid.uuid4().hex}{ext}"
+    s3.put_bytes(version.storage_prefix, asset_id, body, content_type)
+    return {"asset_id": asset_id, "content_type": content_type}
+
+
+@router.get("/{article_id}/assets/{filename}")
+def get_asset(
+    article_id: uuid.UUID,
+    filename: str,
+    auth: AuthDep,
+    db: DbDep,
+) -> Response:
+    """يبث صورة أصل من storage_prefix/assets/{filename}."""
+    # منع traversal — اسم ملف بسيط فقط
+    name = PurePosixPath(filename).name
+    if name != filename or not name or name in (".", ".."):
+        raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
+
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+
+    relative_key = f"assets/{name}"
+    body, content_type = s3.get_bytes(version.storage_prefix, relative_key)
+    return Response(
+        content=body,
+        media_type=content_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
 
 
 @router.post("/{article_id}/submit", response_model=VersionRead)

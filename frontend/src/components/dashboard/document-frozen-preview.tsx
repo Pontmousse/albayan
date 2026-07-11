@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { Document2Json, Document2Node } from "@drghaliasri/butex/document2";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
+import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
@@ -15,10 +16,24 @@ const ButexDocumentEditor2 = dynamic(
   { ssr: false },
 );
 
+type GetToken = () => Promise<string | null>;
+
 /** معاينة مجمّدة — ButexDocumentEditor2 مع previewOnly (BuTeX 4.3+). */
-export function DocumentFrozenPreview({ documentJson }: { documentJson: unknown }) {
+export function DocumentFrozenPreview({
+  documentJson,
+  articleId,
+  getToken,
+}: {
+  documentJson: unknown;
+  articleId: string;
+  getToken: GetToken;
+}) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { resolveImageUrl, prefetchFromDocument } = useButexImageResolver(
+    articleId,
+    getToken,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +48,12 @@ export function DocumentFrozenPreview({ documentJson }: { documentJson: unknown 
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (documentJson != null) {
+      prefetchFromDocument(documentJson);
+    }
+  }, [documentJson, prefetchFromDocument]);
 
   if (documentJson == null) {
     return (
@@ -72,6 +93,7 @@ export function DocumentFrozenPreview({ documentJson }: { documentJson: unknown 
         documentDirection="rtl"
         uiLocale="ar"
         mathOutput="svg"
+        resolveImageUrl={resolveImageUrl}
       />
     </div>
   );

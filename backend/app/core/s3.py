@@ -1,4 +1,4 @@
-"""عميل S3 بسيط لمخطوطات BuTeX — put/get لملف document.json فقط."""
+"""عميل S3 لمخطوطات BuTeX — document.json وأصول الصور تحت storage_prefix."""
 
 import json
 from functools import lru_cache
@@ -20,6 +20,10 @@ _FAILED = HTTPException(
     status_code=503,
     detail="تعذّر الوصول إلى خدمة التخزين، حاول مجدداً.",
 )
+_NOT_FOUND = HTTPException(
+    status_code=404,
+    detail="الملف غير موجود.",
+)
 
 
 @lru_cache(maxsize=1)
@@ -34,8 +38,12 @@ def _client():
     )
 
 
+def _object_key(storage_prefix: str, relative_key: str) -> str:
+    return f"{storage_prefix.rstrip('/')}/{relative_key.lstrip('/')}"
+
+
 def _document_key(storage_prefix: str) -> str:
-    return f"{storage_prefix.rstrip('/')}/{DOCUMENT_FILENAME}"
+    return _object_key(storage_prefix, DOCUMENT_FILENAME)
 
 
 def put_json(storage_prefix: str, data: Any) -> None:
@@ -64,6 +72,46 @@ def get_json(storage_prefix: str) -> Any:
     except ClientError as exc:
         if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
             return None
+        raise _FAILED from exc
+    except BotoCoreError as exc:
+        raise _FAILED from exc
+
+
+def put_bytes(
+    storage_prefix: str,
+    relative_key: str,
+    body: bytes,
+    content_type: str,
+) -> None:
+    """يكتب بايتات تحت storage_prefix/relative_key."""
+    client = _client()
+    try:
+        client.put_object(
+            Bucket=settings.s3_bucket,
+            Key=_object_key(storage_prefix, relative_key),
+            Body=body,
+            ContentType=content_type,
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise _FAILED from exc
+
+
+def get_bytes(
+    storage_prefix: str, relative_key: str
+) -> tuple[bytes, str | None]:
+    """يقرأ بايتات من storage_prefix/relative_key — يعيد (body, content_type)."""
+    client = _client()
+    try:
+        response = client.get_object(
+            Bucket=settings.s3_bucket,
+            Key=_object_key(storage_prefix, relative_key),
+        )
+        body = response["Body"].read()
+        content_type = response.get("ContentType")
+        return body, content_type
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            raise _NOT_FOUND from exc
         raise _FAILED from exc
     except BotoCoreError as exc:
         raise _FAILED from exc

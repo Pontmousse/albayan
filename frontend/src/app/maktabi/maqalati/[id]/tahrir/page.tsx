@@ -4,7 +4,11 @@ import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Document2Node } from "@drghaliasri/butex/document2";
+import {
+  addDocument2ImageBlock,
+  createEmptyDocument2,
+  type Document2Node,
+} from "@drghaliasri/butex/document2";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import {
@@ -12,8 +16,10 @@ import {
   getArticleDocument,
   saveArticleDocument,
   submitArticle,
+  uploadArticleAsset,
   type ArticleDetail,
 } from "@/lib/api/articles";
+import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
@@ -36,14 +42,20 @@ export default function TahrirPage() {
   const [phase, setPhase] = useState<EditorPhase>("loading");
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [initialDocument, setInitialDocument] = useState<unknown>(undefined);
+  const [editorKey, setEditorKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const latestDocument = useRef<Document2Node | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
+    useButexImageResolver(articleId, getToken);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +88,7 @@ export default function TahrirPage() {
         if (cancelled) return;
 
         setInitialDocument(doc ?? undefined);
+        if (doc) prefetchFromDocument(doc);
         setPhase("ready");
       } catch (err) {
         if (!cancelled) {
@@ -88,7 +101,7 @@ export default function TahrirPage() {
     return () => {
       cancelled = true;
     };
-  }, [getToken, articleId, router]);
+  }, [getToken, articleId, router, prefetchFromDocument]);
 
   useEffect(() => {
     function onBeforeUnload(event: BeforeUnloadEvent) {
@@ -98,11 +111,15 @@ export default function TahrirPage() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
 
-  const handleDocumentChange = useCallback((doc: Document2Node) => {
-    latestDocument.current = doc;
-    setDirty(true);
-    setSaveMessage(null);
-  }, []);
+  const handleDocumentChange = useCallback(
+    (doc: Document2Node) => {
+      latestDocument.current = doc;
+      setDirty(true);
+      setSaveMessage(null);
+      prefetchFromDocument(doc);
+    },
+    [prefetchFromDocument],
+  );
 
   async function handleSave(): Promise<boolean> {
     if (!latestDocument.current) {
@@ -152,6 +169,29 @@ export default function TahrirPage() {
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
+  async function handleImageFile(file: File | undefined) {
+    if (!file || phase !== "ready") return;
+    setUploading(true);
+    setError(null);
+    try {
+      const { asset_id } = await uploadArticleAsset(getToken, articleId, file);
+      await ensureAsset(asset_id);
+
+      const base = latestDocument.current ?? createEmptyDocument2();
+      const next = addDocument2ImageBlock(base, asset_id);
+      latestDocument.current = next;
+      setInitialDocument(next);
+      setEditorKey((k) => k + 1);
+      setDirty(true);
+      setSaveMessage("أُدرجت الصورة — احفظ المخطوطة.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <div className="sticky top-0 z-40 border-b border-amber-200 bg-[var(--journal-paper)]/95 backdrop-blur-sm">
@@ -181,6 +221,23 @@ export default function TahrirPage() {
                 تغييرات غير محفوظة
               </span>
             ) : null}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="sr-only"
+              onChange={(event) =>
+                void handleImageFile(event.target.files?.[0])
+              }
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || phase !== "ready"}
+              className="rounded-md border border-amber-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {uploading ? "جارٍ الرفع…" : "رفع صورة"}
+            </button>
             <button
               type="button"
               onClick={() => void handleSave()}
@@ -223,6 +280,7 @@ export default function TahrirPage() {
 
         {phase === "ready" ? (
           <ButexDocumentEditor2
+            key={editorKey}
             className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={
               initialDocument as
@@ -235,6 +293,7 @@ export default function TahrirPage() {
             equationSide="arabic"
             mathOutput="svg"
             editableEquations
+            resolveImageUrl={resolveImageUrl}
             onDocumentChange={handleDocumentChange}
           />
         ) : null}

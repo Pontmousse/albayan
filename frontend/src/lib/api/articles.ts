@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export type VersionStatus =
   | "draft"
@@ -80,6 +80,72 @@ export function submitArticle(getToken: GetToken, id: string) {
   return apiFetch<VersionRead>(`/api/v1/articles/${id}/submit`, getToken, {
     method: "POST",
   });
+}
+
+export type ArticleAssetUpload = {
+  asset_id: string;
+  content_type: string;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export async function uploadArticleAsset(
+  getToken: GetToken,
+  id: string,
+  file: File,
+): Promise<ArticleAssetUpload> {
+  const token = await getToken();
+  const form = new FormData();
+  form.append("file", file);
+
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE}/api/v1/articles/${id}/assets`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (!response.ok) {
+    let message = "تعذّر رفع الصورة.";
+    try {
+      const data = (await response.json()) as { detail?: string };
+      if (typeof data.detail === "string") message = data.detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return response.json() as Promise<ArticleAssetUpload>;
+}
+
+/** يجلب بايتات أصل صورة — assetKey مثل assets/uuid.jpg */
+export async function fetchArticleAssetBlob(
+  getToken: GetToken,
+  id: string,
+  assetKey: string,
+): Promise<Blob> {
+  const filename = assetKey.replace(/^assets\//, "");
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/articles/${id}/assets/${encodeURIComponent(filename)}`,
+    { headers },
+  );
+
+  if (!response.ok) {
+    throw new ApiError("تعذّر تحميل الصورة.", response.status);
+  }
+
+  return response.blob();
 }
 
 export const STATUS_LABELS: Record<VersionStatus, string> = {

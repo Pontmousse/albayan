@@ -208,7 +208,11 @@ export default function ArticleDetailPage() {
           معاينة المخطوطة
         </h2>
         <div className="mt-3">
-          <DocumentFrozenPreview documentJson={documentJson ?? null} />
+          <DocumentFrozenPreview
+            documentJson={documentJson ?? null}
+            articleId={articleId}
+            getToken={getToken}
+          />
         </div>
       </section>
 
