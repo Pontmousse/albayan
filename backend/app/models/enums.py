@@ -43,3 +43,15 @@ class ReviewRecommendation(str, enum.Enum):
 class ReviewStatus(str, enum.Enum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
+
+
+class InvitationRole(str, enum.Enum):
+    REVIEWER = "reviewer"
+    EDITOR = "editor"
+
+
+class InvitationStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"

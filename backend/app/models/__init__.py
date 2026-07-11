@@ -9,12 +9,15 @@ from app.models.article import (
 from app.models.enums import (
     ArticleStatus,
     CompileStatus,
+    InvitationRole,
+    InvitationStatus,
     ReviewRecommendation,
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
     VersionStatus,
 )
+from app.models.invitation import Invitation
 from app.models.user import User
 
 __all__ = [
@@ -26,6 +29,9 @@ __all__ = [
     "ArticleStatus",
     "VersionStatus",
     "CompileStatus",
+    "Invitation",
+    "InvitationRole",
+    "InvitationStatus",
     "Review",
     "ReviewRecommendation",
     "ReviewStatus",

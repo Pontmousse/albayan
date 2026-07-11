@@ -1,11 +1,22 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher(["/al-idayat(.*)", "/maktabi(.*)"]);
+const isProtectedRoute = createRouteMatcher([
+  "/al-idayat(.*)",
+  "/maktabi(.*)",
+  "/daawa(.*)",
+]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
+    const unauthenticatedUrl = new URL("/tawajjuh", req.url);
+    if (req.nextUrl.pathname.startsWith("/daawa")) {
+      unauthenticatedUrl.searchParams.set(
+        "next",
+        `${req.nextUrl.pathname}${req.nextUrl.search}`,
+      );
+    }
     await auth.protect({
-      unauthenticatedUrl: new URL("/tawajjuh", req.url).toString(),
+      unauthenticatedUrl: unauthenticatedUrl.toString(),
     });
   }
 });
