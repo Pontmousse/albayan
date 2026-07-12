@@ -36,7 +36,7 @@ export default function EditorialBoardPage() {
           {editors.map((editor) => (
             <li
               key={editor.name}
-              className="rounded-2xl border border-amber-200/80 bg-white/80 p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+              className="rounded-2xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
             >
               <p className="text-lg font-bold text-slate-900">{editor.name}</p>
               <p className="mt-1 text-sm font-medium text-[var(--journal-accent)]">

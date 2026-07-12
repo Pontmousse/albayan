@@ -63,7 +63,7 @@ export function DocumentFrozenPreview({
 
   if (documentJson == null) {
     return (
-      <p className="rounded-md border border-dashed border-amber-300 bg-white/60 px-4 py-6 text-center text-sm text-slate-500">
+      <p className="rounded-md border border-dashed border-[var(--journal-border)] bg-white/60 px-4 py-6 text-center text-sm text-slate-500">
         لا محتوى بعد — المخطوطة فارغة.
       </p>
     );
@@ -91,7 +91,7 @@ export function DocumentFrozenPreview({
   }
 
   return (
-    <div className="rounded-xl border border-amber-200 bg-white p-5">
+    <div className="overflow-x-auto rounded-xl border border-[var(--journal-border)] bg-white p-3 sm:p-5">
       <ButexDocumentEditor2
         className={ALBAYAN_BUTEX_THEME_CLASS}
         initialDocument={documentJson as Document2Json | Document2Node}

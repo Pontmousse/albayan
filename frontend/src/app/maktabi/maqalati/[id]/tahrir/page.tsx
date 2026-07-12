@@ -194,13 +194,13 @@ export default function TahrirPage() {
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
-      <div className="sticky top-0 z-40 border-b border-amber-200 bg-[var(--journal-paper)]/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-40 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={handleBack}
-              className="rounded-md border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
+              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
             >
               → رجوع
             </button>
@@ -234,7 +234,7 @@ export default function TahrirPage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || phase !== "ready"}
-              className="rounded-md border border-amber-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {uploading ? "جارٍ الرفع…" : "رفع صورة"}
             </button>
@@ -242,7 +242,7 @@ export default function TahrirPage() {
               type="button"
               onClick={() => void handleSave()}
               disabled={saving || phase !== "ready"}
-              className="rounded-md bg-[var(--journal-accent)] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-9 rounded-md bg-[var(--journal-accent)] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "جارٍ الحفظ…" : "حفظ"}
             </button>
@@ -250,7 +250,7 @@ export default function TahrirPage() {
               type="button"
               onClick={() => setDialogOpen(true)}
               disabled={phase !== "ready"}
-              className="rounded-md border border-[var(--journal-gold)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-9 rounded-md border border-[var(--journal-gold)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               تقديم
             </button>

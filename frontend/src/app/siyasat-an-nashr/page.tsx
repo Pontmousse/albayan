@@ -74,7 +74,7 @@ export default function PublishingPolicyPage() {
             </p>
           </section>
 
-          <p className="rounded-lg border border-amber-200 bg-white/70 p-4 text-sm text-slate-700">
+          <p className="rounded-lg border border-[var(--journal-border)] bg-white/70 p-4 text-sm text-slate-700">
             لطلبات استثناء أو أسئلة حول السياسة، راجع صفحة{" "}
             <Link href="/al-tawasul" className="font-semibold text-[var(--journal-accent)] hover:underline">
               التواصل

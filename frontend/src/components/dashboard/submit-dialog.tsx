@@ -30,7 +30,7 @@ export function SubmitDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="submit-dialog-title"
@@ -44,7 +44,7 @@ export function SubmitDialog({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="page-enter relative w-full max-w-md rounded-2xl border border-amber-200 bg-[var(--journal-paper)] p-6 shadow-xl outline-none"
+        className="page-enter relative w-full max-w-md rounded-t-2xl border border-[var(--journal-border)] bg-[var(--journal-paper)] p-5 shadow-xl outline-none sm:rounded-2xl sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
       >
         <h2
           id="submit-dialog-title"
@@ -60,12 +60,12 @@ export function SubmitDialog({
           </strong>
           . هل أنت متأكد؟
         </p>
-        <div className="mt-6 flex flex-wrap justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-md border border-amber-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:opacity-60"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-medium text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:opacity-60"
           >
             إلغاء
           </button>

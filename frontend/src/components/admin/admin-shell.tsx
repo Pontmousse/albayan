@@ -15,14 +15,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6 lg:flex-row lg:gap-10 lg:py-12">
-        <aside className="shrink-0 lg:w-52">
-          <p className="mb-3 px-1 text-xs font-semibold tracking-wide text-[var(--journal-accent)]">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:flex-row lg:gap-10 lg:px-6 lg:py-12">
+        <aside className="sticky top-[3.25rem] z-20 -mx-3 shrink-0 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 px-3 py-2 backdrop-blur-sm sm:top-[3.75rem] sm:-mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none lg:static lg:w-52">
+          <p className="mb-1.5 hidden px-1 text-xs font-semibold tracking-wide text-[var(--journal-muted)] sm:block lg:mb-2">
             لوحة الإدارة
           </p>
           <nav
             aria-label="أقسام الإدارة"
-            className="flex gap-1.5 overflow-x-auto pb-1 lg:flex-col lg:gap-1 lg:pb-0"
+            className="nav-scroll flex gap-1 overflow-x-auto pb-0.5 lg:flex-col lg:gap-0.5 lg:overflow-visible"
           >
             {adminSections.map((section) => {
               const active = isActive(pathname, section.href);
@@ -31,10 +31,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
                   key={section.id}
                   href={section.href}
                   aria-current={active ? "page" : undefined}
-                  className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
+                  className={`inline-flex min-h-10 shrink-0 snap-start items-center whitespace-nowrap rounded-md px-3 text-sm font-medium transition-colors duration-150 ${
                     active
-                      ? "bg-[var(--journal-accent)] text-white shadow-sm"
-                      : "text-slate-700 hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
+                      ? "bg-[var(--journal-accent)] text-white"
+                      : "text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
                   }`}
                 >
                   {section.label}

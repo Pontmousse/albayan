@@ -22,7 +22,7 @@ export default function ContactPage() {
           الإلكتروني.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-amber-200/80 bg-white/80 p-6 shadow-sm">
+        <div className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm">
           <p className="text-sm font-medium text-slate-500">البريد الإلكتروني</p>
           <a
             href={`mailto:${contactEmail}`}

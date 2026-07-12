@@ -166,7 +166,7 @@ export default function MurajaatiDetailPage() {
       </div>
 
       {assignment.article_abstract ? (
-        <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+        <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
           <p className="mt-2 text-sm leading-7 text-slate-700">
             {assignment.article_abstract}
@@ -191,7 +191,7 @@ export default function MurajaatiDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">
           تقرير المراجعة
         </h2>
@@ -216,7 +216,7 @@ export default function MurajaatiDetailPage() {
               onChange={(e) => setCommentsAuthor(e.target.value)}
               disabled={submitted}
               rows={5}
-              className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)] disabled:bg-slate-50"
+              className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)] disabled:bg-slate-50"
             />
           </label>
 
@@ -229,7 +229,7 @@ export default function MurajaatiDetailPage() {
               onChange={(e) => setCommentsEditor(e.target.value)}
               disabled={submitted}
               rows={4}
-              className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)] disabled:bg-slate-50"
+              className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)] disabled:bg-slate-50"
             />
           </label>
 
@@ -248,7 +248,7 @@ export default function MurajaatiDetailPage() {
                     className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                       active
                         ? "border-[var(--journal-accent)] bg-[var(--journal-accent)] text-white"
-                        : "border-amber-200 bg-white text-slate-600 hover:border-[var(--journal-accent)]"
+                        : "border-[var(--journal-border)] bg-white text-slate-600 hover:border-[var(--journal-accent)]"
                     }`}
                   >
                     {RECOMMENDATION_LABELS[value]}

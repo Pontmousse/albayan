@@ -13,10 +13,10 @@ export function EmptyState({
   actionHref?: string;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-amber-300 bg-white/60 px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--journal-border)] bg-white/60 px-4 py-10 text-center sm:px-6 sm:py-14">
       <svg
         aria-hidden
-        className="h-12 w-12 text-[var(--journal-gold)]"
+        className="h-10 w-10 text-[var(--journal-gold)] sm:h-12 sm:w-12"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -29,14 +29,19 @@ export function EmptyState({
         />
       </svg>
       <h3
-        className="mt-4 text-lg font-bold text-slate-900"
+        className="mt-4 text-base font-bold text-slate-900 sm:text-lg"
         style={{ fontFamily: "var(--font-display-ar), serif" }}
       >
         {title}
       </h3>
-      <p className="mt-1.5 max-w-md text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-1.5 max-w-md text-sm leading-6 text-slate-600">
+        {description}
+      </p>
       {actionLabel && actionHref ? (
-        <Link href={actionHref} className={`${buttonClassName} mt-6 inline-block`}>
+        <Link
+          href={actionHref}
+          className={`${buttonClassName} mt-5 inline-flex sm:mt-6`}
+        >
           {actionLabel}
         </Link>
       ) : null}

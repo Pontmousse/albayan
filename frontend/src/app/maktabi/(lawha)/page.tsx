@@ -33,7 +33,7 @@ function SummaryCard({
 }) {
   return (
     <div
-      className="stagger-item rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      className="stagger-item rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       style={{ "--stagger-index": index } as React.CSSProperties}
     >
       <p className="text-sm font-medium text-slate-600">{label}</p>
@@ -209,7 +209,7 @@ export default function MaktabiOverviewPage() {
                   >
                     <Link
                       href={`/maktabi/tahriri/${row.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--journal-border)] bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
                     >
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
                         {row.title}
@@ -254,7 +254,7 @@ export default function MaktabiOverviewPage() {
                   >
                     <Link
                       href={`/maktabi/murajaati/${row.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--journal-border)] bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
                     >
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
                         {row.article_title}
@@ -299,7 +299,7 @@ export default function MaktabiOverviewPage() {
                   >
                     <Link
                       href={`/maktabi/maqalati/${article.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--journal-border)] bg-white/80 px-4 py-3.5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
                     >
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
                         {article.title}

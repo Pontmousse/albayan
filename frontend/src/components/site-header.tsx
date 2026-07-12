@@ -4,24 +4,29 @@ import { MainNav } from "@/components/main-nav";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-amber-200/90 bg-[var(--journal-paper)]/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-3 lg:px-8">
         <Link
           href="/"
-          className="group inline-flex flex-col gap-0.5 transition-opacity duration-200 hover:opacity-90"
+          className="group min-w-0 shrink-0 transition-opacity duration-200 hover:opacity-90"
         >
           <span
-            className="text-2xl font-bold tracking-tight text-[var(--journal-accent)] transition-colors duration-200 group-hover:text-[var(--journal-accent-strong)] sm:text-3xl"
+            className="block text-xl font-bold tracking-tight text-[var(--journal-accent)] transition-colors duration-200 group-hover:text-[var(--journal-accent-strong)] sm:text-3xl"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
             البيان
           </span>
-          <span className="text-xs font-medium text-slate-500">
-            مجلة علمية محكّمة · نشر مفتوح مجاني
+          <span className="mt-0.5 hidden text-xs font-medium text-slate-500 sm:block">
+            مجلة علمية محكّمة
           </span>
         </Link>
-        <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center sm:gap-4">
+
+        <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-3">
           <MainNav />
+          <div
+            className="hidden h-5 w-px shrink-0 bg-[var(--journal-border)] sm:block"
+            aria-hidden
+          />
           <AuthHeader />
         </div>
       </div>

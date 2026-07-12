@@ -152,7 +152,7 @@ export default function ArticleDetailPage() {
         </p>
       ) : null}
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
           <WorkflowProgress status={current.status} />
@@ -165,19 +165,19 @@ export default function ArticleDetailPage() {
       </section>
 
       {article.abstract ? (
-        <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+        <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
           <p className="mt-2 text-sm leading-7 text-slate-700">{article.abstract}</p>
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">الإصدارات</h2>
         <ul className="mt-3 space-y-2">
           {article.versions.map((version) => (
             <li
               key={version.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
             >
               <span className="flex items-center gap-2.5">
                 <span className="font-semibold text-slate-800">

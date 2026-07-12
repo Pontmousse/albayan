@@ -76,7 +76,7 @@ export default function AdminUsersPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="اسم أو بريد أو دور…"
-          className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+          className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
         />
       </label>
 
@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
               className="stagger-item"
               style={{ "--stagger-index": index } as React.CSSProperties}
             >
-              <div className="rounded-xl border border-amber-200 bg-white/80 px-4 py-3.5 shadow-sm">
+              <div className="rounded-xl border border-[var(--journal-border)] bg-white/80 px-4 py-3.5 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-slate-800">
@@ -121,14 +121,14 @@ export default function AdminUsersPage() {
                 </div>
                 <p className="mt-2 flex flex-wrap gap-1.5">
                   {row.roles.length === 0 ? (
-                    <span className="rounded-full border border-amber-100 bg-white px-2.5 py-0.5 text-xs text-slate-500">
+                    <span className="rounded-full border border-[var(--journal-border)] bg-white px-2.5 py-0.5 text-xs text-slate-500">
                       بدون أدوار مرتبطة
                     </span>
                   ) : (
                     row.roles.map((role) => (
                       <span
                         key={role}
-                        className="rounded-full border border-amber-200 bg-[var(--journal-accent-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--journal-accent-strong)]"
+                        className="rounded-full border border-[var(--journal-border)] bg-[var(--journal-accent-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--journal-accent-strong)]"
                       >
                         {roleLabel(role)}
                       </span>

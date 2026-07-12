@@ -74,7 +74,7 @@ export default function AuthorGuidelinesPage() {
             </p>
           </section>
 
-          <p className="rounded-lg border border-amber-200 bg-white/70 p-4 text-sm text-slate-700">
+          <p className="rounded-lg border border-[var(--journal-border)] bg-white/70 p-4 text-sm text-slate-700">
             للاطلاع على الإطار العام للمجلة:{" "}
             <Link href="/siyasat-an-nashr" className="font-semibold text-[var(--journal-accent)] hover:underline">
               سياسة النشر

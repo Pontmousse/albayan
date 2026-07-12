@@ -170,16 +170,16 @@ export function setArabicFieldValidity(input: HTMLInputElement) {
 }
 
 export const inputClassName =
-  "w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-1 focus:ring-[var(--journal-accent)]";
+  "w-full rounded-md border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-1 focus:ring-[var(--journal-accent)]";
 
 export const passwordInputClassName =
-  "w-full rounded-md border border-amber-200 bg-white py-2 ps-3 pe-10 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-1 focus:ring-[var(--journal-accent)]";
+  "w-full rounded-md border border-[var(--journal-border)] bg-white py-2 ps-3 pe-10 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-1 focus:ring-[var(--journal-accent)]";
 
 export const buttonClassName =
-  "cursor-pointer rounded-md bg-[var(--journal-accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-md bg-[var(--journal-accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60";
 
 export const cardClassName =
-  "rounded-xl border border-amber-200 bg-white/80 p-6 shadow-sm";
+  "rounded-xl border border-[var(--journal-border)] bg-white/80 p-4 shadow-sm sm:p-6";
 
 export const PASSWORD_MIN_LENGTH_HINT =
   "يجب أن تكون كلمة المرور 8 أحرف على الأقل، وتتضمن أحرفاً كبيرة وصغيرة وأرقاماً ورموزاً حسب إعدادات الأمان.";

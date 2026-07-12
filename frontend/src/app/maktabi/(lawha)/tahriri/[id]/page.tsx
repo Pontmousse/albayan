@@ -179,13 +179,13 @@ export default function TahririDetailPage() {
       </div>
 
       {article.abstract ? (
-        <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+        <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
           <p className="mt-2 text-sm leading-7 text-slate-700">{article.abstract}</p>
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
           <WorkflowProgress status={current.status} />
@@ -195,13 +195,13 @@ export default function TahririDetailPage() {
         </p>
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">الإصدارات</h2>
         <ul className="mt-3 space-y-2">
           {article.versions.map((version) => (
             <li
               key={version.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
             >
               <span className="flex items-center gap-2.5">
                 <span className="font-semibold text-slate-800">
@@ -241,7 +241,7 @@ export default function TahririDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">
           تقارير المراجعين
         </h2>
@@ -254,7 +254,7 @@ export default function TahririDetailPage() {
             {article.reviews.map((review) => (
               <li
                 key={review.id}
-                className="rounded-lg border border-amber-100 bg-white px-4 py-3 text-sm"
+                className="rounded-lg border border-[var(--journal-border)] bg-white px-4 py-3 text-sm"
               >
                 <p className="font-semibold text-slate-800">
                   {review.reviewer_name || review.reviewer_email}
@@ -293,7 +293,7 @@ export default function TahririDetailPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">
           القرار التحريري
         </h2>
@@ -310,7 +310,7 @@ export default function TahririDetailPage() {
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             maxLength={2000}
-            className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+            className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
             placeholder="يُحفظ مع الإصدار ويظهر في ملخص التغيير."
           />
         </label>

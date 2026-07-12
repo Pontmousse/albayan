@@ -18,37 +18,44 @@ export function WorkflowProgress({ status }: { status: VersionStatus }) {
   const rejected = status === "rejected";
 
   return (
-    <ol className="flex flex-wrap items-center gap-y-2" aria-label="مسار المخطوطة">
-      {STEPS.map((step, index) => {
-        const reached = index <= current;
-        const isCurrent = index === current;
-        return (
-          <li key={step.id} className="flex items-center">
-            {index > 0 ? (
+    <div className="nav-scroll -mx-1 overflow-x-auto px-1">
+      <ol
+        className="flex min-w-min items-center gap-y-2"
+        aria-label="مسار المخطوطة"
+      >
+        {STEPS.map((step, index) => {
+          const reached = index <= current;
+          const isCurrent = index === current;
+          return (
+            <li key={step.id} className="flex shrink-0 items-center">
+              {index > 0 ? (
+                <span
+                  aria-hidden
+                  className={`mx-1 h-0.5 w-3 rounded-full transition-colors duration-300 sm:mx-1.5 sm:w-6 ${
+                    reached
+                      ? "bg-[var(--journal-accent)]"
+                      : "bg-[var(--journal-border)]"
+                  }`}
+                />
+              ) : null}
               <span
-                aria-hidden
-                className={`mx-1.5 h-0.5 w-5 rounded-full transition-colors duration-300 sm:w-8 ${
-                  reached ? "bg-[var(--journal-accent)]" : "bg-amber-200"
+                className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] font-semibold transition-colors duration-300 sm:px-2.5 sm:text-xs ${
+                  isCurrent
+                    ? rejected
+                      ? "border-rose-300 bg-rose-50 text-rose-700"
+                      : "border-[var(--journal-accent)] bg-[var(--journal-accent)] text-white"
+                    : reached
+                      ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]"
+                      : "border-[var(--journal-border)] bg-white/60 text-slate-400"
                 }`}
-              />
-            ) : null}
-            <span
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors duration-300 ${
-                isCurrent
-                  ? rejected
-                    ? "border-rose-300 bg-rose-50 text-rose-700"
-                    : "border-[var(--journal-accent)] bg-[var(--journal-accent)] text-white"
-                  : reached
-                    ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]"
-                    : "border-amber-200 bg-white/60 text-slate-400"
-              }`}
-              aria-current={isCurrent ? "step" : undefined}
-            >
-              {step.id === "decision" && rejected ? "مرفوض" : step.label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+                aria-current={isCurrent ? "step" : undefined}
+              >
+                {step.id === "decision" && rejected ? "مرفوض" : step.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

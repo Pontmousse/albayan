@@ -231,20 +231,20 @@ export default function AdminArticleDetailPage() {
       ) : null}
 
       {article.abstract ? (
-        <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+        <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
           <p className="mt-2 text-sm leading-7 text-slate-700">{article.abstract}</p>
         </section>
       ) : null}
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
           <WorkflowProgress status={current.status} />
         </div>
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">المؤلفون</h2>
         {article.authors.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">لا مؤلفين مرتبطين.</p>
@@ -253,7 +253,7 @@ export default function AdminArticleDetailPage() {
             {article.authors.map((author) => (
               <li
                 key={author.user.id}
-                className="rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+                className="rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
                 <span className="font-semibold text-slate-800">
                   {author.user.full_name || author.user.email}
@@ -268,7 +268,7 @@ export default function AdminArticleDetailPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">المراجعون</h2>
         {article.reviewers.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">لا مراجعين معيّنين.</p>
@@ -277,7 +277,7 @@ export default function AdminArticleDetailPage() {
             {article.reviewers.map((row) => (
               <li
                 key={row.user.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
                 <div>
                   <p className="font-semibold text-slate-800">
@@ -305,7 +305,7 @@ export default function AdminArticleDetailPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">المحررون</h2>
         {article.editors.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">لا محررين معيّنين.</p>
@@ -314,7 +314,7 @@ export default function AdminArticleDetailPage() {
             {article.editors.map((row) => (
               <li
                 key={row.user.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
                 <div>
                   <p className="font-semibold text-slate-800">
@@ -342,7 +342,7 @@ export default function AdminArticleDetailPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">
           تعيين أو دعوة
         </h2>
@@ -355,7 +355,7 @@ export default function AdminArticleDetailPage() {
               className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                 assignRole === role
                   ? "border-[var(--journal-accent)] bg-[var(--journal-accent)] text-white"
-                  : "border-amber-200 bg-white text-slate-600"
+                  : "border-[var(--journal-border)] bg-white text-slate-600"
               }`}
             >
               {INVITATION_ROLE_LABELS[role]}
@@ -369,7 +369,7 @@ export default function AdminArticleDetailPage() {
             className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
               assignMode === "user"
                 ? "border-[var(--journal-gold)] bg-[var(--journal-accent-soft)] text-[var(--journal-gold)]"
-                : "border-amber-200 bg-white text-slate-600"
+                : "border-[var(--journal-border)] bg-white text-slate-600"
             }`}
           >
             مستخدم موجود
@@ -380,7 +380,7 @@ export default function AdminArticleDetailPage() {
             className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
               assignMode === "email"
                 ? "border-[var(--journal-gold)] bg-[var(--journal-accent-soft)] text-[var(--journal-gold)]"
-                : "border-amber-200 bg-white text-slate-600"
+                : "border-[var(--journal-border)] bg-white text-slate-600"
             }`}
           >
             دعوة ببريد
@@ -394,7 +394,7 @@ export default function AdminArticleDetailPage() {
               <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+                className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
               >
                 <option value="">— اختر —</option>
                 {userOptions.map((u) => (
@@ -413,7 +413,7 @@ export default function AdminArticleDetailPage() {
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+                className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
                 placeholder="name@example.com"
               />
             </label>
@@ -429,7 +429,7 @@ export default function AdminArticleDetailPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">الدعوات</h2>
         {invitations.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">لا دعوات لهذا المقال.</p>
@@ -438,7 +438,7 @@ export default function AdminArticleDetailPage() {
             {invitations.map((inv) => (
               <li
                 key={inv.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-100 bg-white px-3.5 py-2.5 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
                 <div>
                   <p className="font-semibold text-slate-800">{inv.email}</p>
@@ -458,7 +458,7 @@ export default function AdminArticleDetailPage() {
                           resendInvitation(getToken, inv.id),
                         )
                       }
-                      className="rounded-md border border-amber-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:opacity-60"
+                      className="rounded-md border border-[var(--journal-border)] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:opacity-60"
                     >
                       إعادة إرسال
                     </button>
@@ -487,7 +487,7 @@ export default function AdminArticleDetailPage() {
         ) : null}
       </section>
 
-      <section className="rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm">
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">
           تجاوز القرار
         </h2>
@@ -503,7 +503,7 @@ export default function AdminArticleDetailPage() {
             onChange={(e) => setOverrideReason(e.target.value)}
             rows={2}
             maxLength={2000}
-            className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+            className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
           />
         </label>
         <div className="mt-4 flex flex-wrap gap-2.5">

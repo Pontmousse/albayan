@@ -55,35 +55,35 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
       <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-amber-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f7efe0_45%,#e9f1ec_100%)]">
+        <section className="relative overflow-hidden border-b border-[var(--journal-border)] bg-[linear-gradient(135deg,var(--journal-paper)_0%,var(--journal-accent-soft)_45%,#e9f1ec_100%)]">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-slate-900" />
-          <div className="mx-auto max-w-7xl px-3 py-8 sm:px-5 lg:px-8 lg:py-10">
-            <div className="rounded-[2rem] border border-amber-200/80 bg-white/70 p-5 shadow-sm backdrop-blur sm:p-7 lg:p-8">
+          <div className="mx-auto max-w-7xl px-3 py-6 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
+            <div className="rounded-2xl border border-[var(--journal-border)] bg-white/70 p-4 shadow-sm backdrop-blur sm:rounded-[2rem] sm:p-7 lg:p-8">
               <div
-                className="text-center text-2xl leading-relaxed text-emerald-950 sm:text-3xl lg:text-4xl"
+                className="text-center text-lg leading-relaxed text-emerald-950 sm:text-3xl lg:text-4xl"
                 style={{ fontFamily: "AlmaghribiWarch, var(--font-display-ar), serif" }}
               >
                 أعوذ بالله من الشيطان الرجيم
                 <br />
                 بسم الله الرحمن الرحيم
               </div>
-              <blockquote className="mt-6 text-pretty text-center text-xl font-bold leading-[2.05] text-slate-950 sm:text-2xl lg:text-3xl">
+              <blockquote className="mt-4 text-pretty text-center text-base font-bold leading-[1.95] text-slate-950 sm:mt-6 sm:text-2xl sm:leading-[2.05] lg:text-3xl">
                 {verses.map((verse, index) => (
                   <span key={verse}>
                     {verse}
                     {index < verses.length - 1 ? (
-                      <span className="mx-3 inline-block text-[var(--journal-gold)]">۞</span>
+                      <span className="mx-1.5 inline-block text-[var(--journal-gold)] sm:mx-3">۞</span>
                     ) : null}
                   </span>
                 ))}
               </blockquote>
               <p
-                className="mt-4 text-center text-lg font-bold text-[var(--journal-accent)] sm:text-xl"
+                className="mt-3 text-center text-base font-bold text-[var(--journal-accent)] sm:mt-4 sm:text-xl"
                 style={{ fontFamily: "var(--font-display-ar), serif" }}
               >
                 سورة فاطر [٢٧، ٢٨، ٢٩، ٣٠]
               </p>
-              <p className="mx-auto mt-5 max-w-4xl text-center text-sm leading-7 text-slate-700 sm:text-base">
+              <p className="mx-auto mt-4 max-w-4xl text-center text-sm leading-7 text-slate-700 sm:mt-5 sm:text-base">
                 تنطلق «البيان» من أن عقيدة التوحيد والنظر في آيات الله في الكون لا
                 ينفصلان عن البحث في العلوم التطبيقية؛ فالعلم الحق يزيد صاحبه خشية
                 وبصيرة. ومع ذلك فإنّ غاية البحث عندنا تبدأ بالتعبد لله تعالى،
@@ -95,33 +95,33 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-b border-amber-200 bg-[linear-gradient(180deg,#f7efe0_0%,#fffaf0_100%)]">
-          <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center lg:px-8 lg:py-14">
-            <div className="space-y-6">
+        <section className="border-b border-[var(--journal-border)] bg-[linear-gradient(180deg,var(--journal-accent-soft)_0%,var(--journal-paper)_100%)]">
+          <div className="mx-auto grid max-w-7xl gap-8 px-3 py-8 sm:gap-10 sm:px-6 sm:py-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center lg:px-8 lg:py-14">
+            <div className="space-y-5 sm:space-y-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 العدد الحالي · وضع تجريبي
               </p>
               <h1
-                className="text-balance text-3xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl"
+                className="text-balance text-2xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl"
                 style={{ fontFamily: "var(--font-display-ar), serif" }}
               >
                 منصة عربية للنشر العلمي الرصين والوصول الحر للمعرفة
               </h1>
-              <p className="max-w-2xl text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
+              <p className="max-w-2xl text-pretty text-sm leading-relaxed text-slate-600 sm:text-lg">
                 تهدف «البيان» إلى دعم الباحثين والمؤسسات الأكاديمية عبر تحكيم أقران صارم،
                 وسياسات نشر واضحة، وأرشفة دائمة للأبحاث المعتمدة وفق أعلى المعايير
                 الدولية في النزاهة العلمية.
               </p>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
                 <a
                   href="#"
-                  className="inline-flex items-center justify-center rounded-md bg-[var(--journal-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--journal-accent-strong)]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--journal-accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)]"
                 >
                   استعراض الأعداد
                 </a>
                 <Link
                   href="/irshadat-al-mualifin"
-                  className="inline-flex items-center justify-center rounded-md border border-amber-300 bg-white/80 px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-amber-400 hover:bg-white"
+                  className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-[var(--journal-accent)] hover:bg-white"
                 >
                   إرشادات المؤلفين
                 </Link>
@@ -131,7 +131,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-12 lg:px-8">
           <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2
@@ -156,7 +156,7 @@ export default function Home() {
             {articles.map((article) => (
               <article
                 key={article.id}
-                className="flex flex-col rounded-xl border border-amber-200 bg-white/80 p-5 shadow-sm transition hover:border-amber-300 hover:bg-white hover:shadow-md"
+                className="flex flex-col rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition hover:border-[var(--journal-accent)] hover:bg-white hover:shadow-md"
               >
                 <div className="mb-3 flex items-center justify-between gap-3 text-xs text-slate-500">
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700">

@@ -79,7 +79,7 @@ export default function JadidPage() {
           />
         </div>
 
-        <p className="rounded-md border border-amber-200 bg-[var(--journal-accent-soft)] px-3 py-2 text-xs leading-6 text-slate-600">
+        <p className="rounded-md border border-[var(--journal-border)] bg-[var(--journal-accent-soft)] px-3 py-2 text-xs leading-6 text-slate-600">
           ستُسجَّل كمؤلف مراسل لهذا المقال. يمكنك التحرير بحرية ما دامت المسودة لم
           تُقدَّم بعد.
         </p>

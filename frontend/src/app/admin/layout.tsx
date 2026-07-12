@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </p>
         <Link
           href="/"
-          className="rounded-md border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]"
+          className="rounded-md border border-[var(--journal-border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]"
         >
           العودة إلى الصفحة الرئيسية
         </Link>

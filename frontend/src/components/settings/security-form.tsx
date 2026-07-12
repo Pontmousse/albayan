@@ -119,7 +119,7 @@ export function SecurityForm() {
         </form>
       </div>
 
-      <div className="mt-8 border-t border-amber-100 pt-6">
+      <div className="mt-8 border-t border-[var(--journal-border)] pt-6">
         <h3 className="text-sm font-semibold text-slate-800">الجلسات النشطة</h3>
         {!isLoaded && <p className="mt-3 text-sm text-slate-500">جارٍ التحميل…</p>}
         {sessionError && (
@@ -135,7 +135,7 @@ export function SecurityForm() {
             return (
               <li
                 key={session.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-100 bg-white/60 px-3 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--journal-border)] bg-white/60 px-3 py-2 text-sm"
               >
                 <div>
                   <p className="font-medium text-slate-800">
