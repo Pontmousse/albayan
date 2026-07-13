@@ -98,10 +98,13 @@ button:disabled,
   --butex-fg: var(--journal-ink);
   --butex-muted: var(--journal-muted);
   --butex-accent: var(--journal-accent);
+  --butex-accent-hover: var(--journal-accent-strong);
   --butex-border: var(--journal-border);
   --butex-panel: #ffffff;
   --butex-caret: var(--journal-accent);
   --butex-selected: color-mix(in srgb, var(--journal-accent) 18%, transparent);
+  --butex-error: #9f3b2f;
+  --butex-error-bg: color-mix(in srgb, var(--butex-error) 12%, transparent);
   --butex-toolbar-hover-bg: color-mix(
     in srgb,
     var(--journal-accent) 10%,
@@ -112,8 +115,14 @@ button:disabled,
     var(--journal-accent) 20%,
     transparent
   );
+  --butex-shadow-sm: 0 1px 2px color-mix(in srgb, var(--journal-ink) 14%, transparent);
+  --butex-shadow-md: 0 8px 24px color-mix(in srgb, var(--journal-ink) 12%, transparent);
   --butex-preview-bg: #ffffff;
   --butex-preview-fg: var(--journal-ink);
+  --butex-dev-bg: var(--journal-accent-soft);
+  --butex-dev-border: var(--journal-border);
+  --butex-dev-badge: var(--journal-accent);
+  --butex-dev-muted: var(--journal-muted);
 
   --butex-document2-bg: var(--journal-paper);
   --butex-document2-fg: var(--journal-ink);
