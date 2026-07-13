@@ -14,6 +14,7 @@ from app.schemas.article import (
     ArticleCreate,
     ArticleDetail,
     ArticleSummary,
+    CompilePayload,
     DocumentPayload,
     VersionRead,
 )
@@ -147,7 +148,6 @@ def get_asset(
     db: DbDep,
 ) -> Response:
     """يبث صورة أصل من storage_prefix/assets/{filename}."""
-    # منع traversal — اسم ملف بسيط فقط
     name = PurePosixPath(filename).name
     if name != filename or not name or name in (".", ".."):
         raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
@@ -168,16 +168,27 @@ def get_asset(
 @router.post("/{article_id}/compile", response_model=VersionRead)
 def compile_article(
     article_id: uuid.UUID,
+    payload: CompilePayload,
     background_tasks: BackgroundTasks,
     auth: AuthDep,
     db: DbDep,
 ) -> VersionRead:
-    """يبدأ تجميع PDF للإصدار الحالي — مسموح في المسودة وبعد التقديم."""
+    """يبدأ إنشاء ملفّ المعاينة — LaTeX من الواجهة، الأصول من S3."""
     user = _current_user(auth, db)
     article_service.assert_is_author(db, article_id, user.id)
     version = article_service.current_version(db, article_id)
-    version = compile_service.begin_compile(db, version)
-    background_tasks.add_task(compile_service.schedule_compile, version.id)
+    asset_keys = compile_service.validate_asset_keys(payload.asset_keys)
+    version, compile_id = compile_service.begin_compile(
+        db, version, payload.document_hash
+    )
+    background_tasks.add_task(
+        compile_service.schedule_compile,
+        version.id,
+        compile_id,
+        payload.latex,
+        asset_keys,
+        payload.document_hash,
+    )
     return VersionRead.model_validate(version)
 
 
@@ -203,17 +214,12 @@ def get_article_pdf(
 @router.post("/{article_id}/submit", response_model=VersionRead)
 def submit_article(
     article_id: uuid.UUID,
-    background_tasks: BackgroundTasks,
     auth: AuthDep,
     db: DbDep,
 ) -> VersionRead:
     user = _current_user(auth, db)
     article = article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    compile_service.assert_fresh_preview_for_submit(version)
     version = article_service.submit_article(db, article)
-    # تجميع تلقائي بعد التقديم (لا نُفشل التقديم إن تعذّر بدء التجميع)
-    try:
-        version = compile_service.begin_compile(db, version)
-        background_tasks.add_task(compile_service.schedule_compile, version.id)
-    except HTTPException:
-        db.refresh(version)
     return VersionRead.model_validate(version)

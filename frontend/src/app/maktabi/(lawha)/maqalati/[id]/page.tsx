@@ -15,10 +15,16 @@ import {
   getArticle,
   getArticleDocument,
   requestArticleCompile,
+  saveArticleDocument,
   submitArticle,
   type ArticleDetail,
 } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
+import {
+  collectAssetKeys,
+  exportDocumentLatex,
+  hashDocument,
+} from "@/lib/butex-latex";
 import { formatDate } from "@/lib/format-date";
 
 export default function ArticleDetailPage() {
@@ -78,7 +84,29 @@ export default function ArticleDetailPage() {
   }
 
   async function handleCompile() {
-    const version = await requestArticleCompile(getToken, articleId);
+    if (documentJson == null) {
+      throw new Error("لا توجد مخطوطة محفوظة لإنشاء ملفّ المعاينة.");
+    }
+    if (article?.current_version.status === "draft") {
+      await saveArticleDocument(getToken, articleId, documentJson);
+    }
+    let latex: string;
+    try {
+      latex = exportDocumentLatex(documentJson);
+    } catch (err) {
+      throw new Error(
+        err instanceof Error
+          ? `تعذّر تصدير المخطوطة: ${err.message}`
+          : "تعذّر تصدير المخطوطة.",
+      );
+    }
+    const document_hash = await hashDocument(documentJson);
+    const asset_keys = collectAssetKeys(documentJson);
+    const version = await requestArticleCompile(getToken, articleId, {
+      latex,
+      asset_keys,
+      document_hash,
+    });
     setArticle((prev) =>
       prev
         ? {
@@ -248,7 +276,7 @@ export default function ArticleDetailPage() {
           className="text-lg font-bold text-[var(--journal-accent)]"
           style={{ fontFamily: "var(--font-display-ar), serif" }}
         >
-          معاينة PDF
+          ملفّ المعاينة
         </h2>
         <div className="mt-3">
           <CompiledPdfViewer

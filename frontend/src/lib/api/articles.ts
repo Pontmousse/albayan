@@ -23,6 +23,8 @@ export type VersionRead = {
   status: VersionStatus;
   source_type: "zip_upload" | "web_editor";
   compile_status: "pending" | "processing" | "success" | "failed";
+  active_compile_id?: string | null;
+  compiled_document_hash?: string | null;
   change_summary: string | null;
   submitted_at: string | null;
   created_at: string;
@@ -148,9 +150,18 @@ export async function fetchArticleAssetBlob(
   return response.blob();
 }
 
-export function requestArticleCompile(getToken: GetToken, id: string) {
+export function requestArticleCompile(
+  getToken: GetToken,
+  id: string,
+  payload: {
+    latex: string;
+    asset_keys: string[];
+    document_hash: string;
+  },
+) {
   return apiFetch<VersionRead>(`/api/v1/articles/${id}/compile`, getToken, {
     method: "POST",
+    body: JSON.stringify(payload),
   });
 }
 
@@ -170,7 +181,7 @@ export async function fetchArticlePdfBlob(
   });
 
   if (!response.ok) {
-    throw new ApiError("تعذّر تحميل ملف PDF.", response.status);
+    throw new ApiError("تعذّر تحميل ملفّ المعاينة.", response.status);
   }
 
   return response.blob();

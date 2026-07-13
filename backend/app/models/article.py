@@ -91,6 +91,8 @@ class ArticleVersion(Base):
         Enum(CompileStatus, native_enum=False),
         default=CompileStatus.PENDING,
     )
+    active_compile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    compiled_document_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     change_summary: Mapped[str | None] = mapped_column(Text)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

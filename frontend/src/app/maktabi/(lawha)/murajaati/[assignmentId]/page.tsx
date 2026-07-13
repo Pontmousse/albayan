@@ -198,7 +198,7 @@ export default function MurajaatiDetailPage() {
           className="text-lg font-bold text-[var(--journal-accent)]"
           style={{ fontFamily: "var(--font-display-ar), serif" }}
         >
-          معاينة PDF
+          ملفّ المعاينة
         </h2>
         <div className="mt-3">
           <CompiledPdfViewer

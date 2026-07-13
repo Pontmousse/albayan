@@ -106,7 +106,7 @@ export async function fetchEditorPdfBlob(
     { headers },
   );
   if (!response.ok) {
-    throw new ApiError("تعذّر تحميل ملف PDF.", response.status);
+    throw new ApiError("تعذّر تحميل ملفّ المعاينة.", response.status);
   }
   return response.blob();
 }

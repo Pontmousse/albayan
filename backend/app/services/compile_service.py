@@ -1,14 +1,13 @@
-"""تجميع BuTeX → PDF عبر المترجم المشترك (XeLaTeX) وتخزين compiled.pdf في S3."""
+"""تجميع PDF عبر المترجم المشترك — الـ LaTeX يأتي من الواجهة كـ string."""
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import mimetypes
 import re
-import subprocess
 import uuid
-from pathlib import Path
 
 import httpx
 from fastapi import HTTPException
@@ -22,8 +21,6 @@ from app.models.enums import CompileStatus
 
 logger = logging.getLogger(__name__)
 
-_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "document2_latex.mjs"
-_NODE_TIMEOUT = 60
 _COMPILER_TIMEOUT = 200
 _ASSET_KEY_RE = re.compile(
     r"^assets/[A-Za-z0-9._-]+\.(?:jpg|jpeg|png|pdf|gif|webp)$",
@@ -37,103 +34,56 @@ _COMPILER_UNAVAILABLE = HTTPException(
 )
 _ALREADY_PROCESSING = HTTPException(
     status_code=409,
-    detail="تجميع قيد التنفيذ بالفعل.",
+    detail="إنشاء ملفّ المعاينة قيد التنفيذ بالفعل.",
 )
 _NO_DOCUMENT = HTTPException(
     status_code=400,
     detail="لا توجد مخطوطة محفوظة للتجميع.",
 )
+_HASH_MISMATCH = HTTPException(
+    status_code=409,
+    detail="احفظ المخطوطة ثم أعد إنشاء ملفّ المعاينة.",
+)
+_STALE_PREVIEW = HTTPException(
+    status_code=409,
+    detail="يجب إنشاء ملفّ معاينة حديث بعد آخر تعديل قبل إرسال المقال.",
+)
 
 
-def _normalize_asset_key(raw: str | None) -> str | None:
-    if not raw:
+def hash_document(document: object) -> str:
+    """SHA-256 لـ JSON المعياري (مفاتيح مرتّبة، بدون مسافات زائدة)."""
+    payload = json.dumps(
+        document, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def current_document_hash(storage_prefix: str) -> str | None:
+    document = s3.get_json(storage_prefix)
+    if document is None:
         return None
-    trimmed = raw.strip()
-    if not trimmed or trimmed.startswith(("http://", "https://", "blob:")):
-        return None
-    if not trimmed.startswith("assets/"):
-        return None
-    name = trimmed[len("assets/") :]
-    if not name or "/" in name or ".." in name:
-        return None
-    key = f"assets/{name}"
-    if not _ASSET_KEY_RE.match(key):
-        return None
-    return key
+    return hash_document(document)
 
 
-def collect_asset_keys(document: object) -> list[str]:
-    """يجمع مفاتيح assets/... من كتل \\includegraphics في document.json."""
-    keys: set[str] = set()
-
-    def visit_blocks(blocks: object) -> None:
-        if not isinstance(blocks, list):
-            return
-        for block in blocks:
-            if not isinstance(block, dict):
-                continue
-            command = block.get("command")
-            kind = block.get("kind")
-            if kind == "image" or command == "\\includegraphics":
-                for candidate in (
-                    block.get("asset_id"),
-                    block.get("assetId"),
-                    block.get("value"),
-                    block.get("src"),
-                ):
-                    if isinstance(candidate, str):
-                        key = _normalize_asset_key(candidate)
-                        if key:
-                            keys.add(key)
-            items = block.get("items")
-            if isinstance(items, list):
-                for item in items:
-                    if isinstance(item, dict):
-                        visit_blocks(item.get("blocks"))
-
-    if isinstance(document, dict):
-        visit_blocks(document.get("blocks"))
-    return sorted(keys)
-
-
-def document_to_latex(document: object) -> str:
-    """يستدعي سكربت Node لتصدير XeLaTeX كامل من document.json."""
-    if not _SCRIPT.is_file():
+def validate_asset_keys(keys: list[str]) -> list[str]:
+    if len(keys) > _MAX_ASSETS:
         raise HTTPException(
-            status_code=503,
-            detail="سكربت تصدير LaTeX غير موجود على الخادم.",
+            status_code=400,
+            detail=f"عدد الصور يتجاوز الحد المسموح ({_MAX_ASSETS}).",
         )
-    payload = json.dumps(document, ensure_ascii=False).encode("utf-8")
-    try:
-        result = subprocess.run(
-            ["node", str(_SCRIPT)],
-            input=payload,
-            capture_output=True,
-            timeout=_NODE_TIMEOUT,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail="Node.js غير متاح على الخادم لتصدير المخطوطة.",
-        ) from exc
-    except subprocess.TimeoutExpired as exc:
-        raise HTTPException(
-            status_code=504,
-            detail="انتهت مهلة تصدير المخطوطة إلى LaTeX.",
-        ) from exc
-
-    if result.returncode != 0:
-        err = (result.stderr or b"").decode("utf-8", errors="replace").strip()
-        logger.error("document2_latex failed: %s", err)
-        raise HTTPException(
-            status_code=500,
-            detail=err or "تعذّر تصدير المخطوطة إلى LaTeX.",
-        )
-    tex = (result.stdout or b"").decode("utf-8")
-    if not tex.strip():
-        raise HTTPException(status_code=500, detail="ناتج تصدير LaTeX فارغ.")
-    return tex
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw in keys:
+        key = raw.strip()
+        if not _ASSET_KEY_RE.match(key) or ".." in key:
+            raise HTTPException(
+                status_code=400,
+                detail=f"مفتاح صورة غير صالح: {raw}",
+            )
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(key)
+    return cleaned
 
 
 def _content_type_for_key(key: str) -> str:
@@ -192,11 +142,6 @@ def _call_compiler(tex: str, job_name: str, assets: list[tuple[str, bytes, str]]
     raise HTTPException(status_code=502, detail=detail)
 
 
-def _mark_status(db: Session, version: ArticleVersion, status: CompileStatus) -> None:
-    version.compile_status = status
-    db.commit()
-
-
 def _store_log(storage_prefix: str, text: str) -> None:
     try:
         s3.put_bytes(
@@ -209,28 +154,37 @@ def _store_log(storage_prefix: str, text: str) -> None:
         logger.exception("failed to store compile.log")
 
 
-def compile_version(db: Session, version: ArticleVersion) -> None:
-    """يجمّع إصدارًا واحدًا ويحدّث compile_status + يخزّن compiled.pdf."""
-    if not (settings.compiler_url or "").strip():
-        _mark_status(db, version, CompileStatus.FAILED)
-        _store_log(version.storage_prefix, "COMPILER_URL غير مُعدّ.")
+def _is_active(db: Session, version: ArticleVersion, compile_id: uuid.UUID) -> bool:
+    db.refresh(version)
+    return version.active_compile_id == compile_id
+
+
+def compile_version(
+    db: Session,
+    version_id: uuid.UUID,
+    compile_id: uuid.UUID,
+    latex: str,
+    asset_keys: list[str],
+    document_hash: str,
+) -> None:
+    version = db.get(ArticleVersion, version_id)
+    if version is None:
+        logger.error("compile_version: version %s not found", version_id)
         return
 
-    document = s3.get_json(version.storage_prefix)
-    if document is None:
-        _mark_status(db, version, CompileStatus.FAILED)
-        _store_log(version.storage_prefix, "document.json غير موجود.")
+    if not _is_active(db, version, compile_id):
+        logger.info("skip stale compile %s for version %s", compile_id, version_id)
+        return
+
+    if not (settings.compiler_url or "").strip():
+        if _is_active(db, version, compile_id):
+            version.compile_status = CompileStatus.FAILED
+            db.commit()
+            _store_log(version.storage_prefix, "COMPILER_URL غير مُعدّ.")
         return
 
     try:
-        tex = document_to_latex(document)
-        keys = collect_asset_keys(document)
-        if len(keys) > _MAX_ASSETS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"عدد الصور يتجاوز الحد المسموح ({_MAX_ASSETS}).",
-            )
-
+        keys = validate_asset_keys(asset_keys)
         assets: list[tuple[str, bytes, str]] = []
         for key in keys:
             try:
@@ -245,40 +199,63 @@ def compile_version(db: Session, version: ArticleVersion) -> None:
             assets.append((key, body, content_type or _content_type_for_key(key)))
 
         job_name = f"article-v{version.version_number}-{version.id.hex[:8]}"
-        pdf = _call_compiler(tex, job_name, assets)
+        pdf = _call_compiler(latex, job_name, assets)
+
+        if not _is_active(db, version, compile_id):
+            logger.info(
+                "discard PDF for superseded compile %s version %s",
+                compile_id,
+                version_id,
+            )
+            return
+
         s3.put_bytes(
             version.storage_prefix,
             s3.COMPILED_PDF,
             pdf,
             "application/pdf",
         )
-        _mark_status(db, version, CompileStatus.SUCCESS)
+        version.compile_status = CompileStatus.SUCCESS
+        version.compiled_document_hash = document_hash
+        db.commit()
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
-        logger.warning("compile failed for %s: %s", version.id, detail)
-        _mark_status(db, version, CompileStatus.FAILED)
-        _store_log(version.storage_prefix, detail)
+        logger.warning("compile failed for %s: %s", version_id, detail)
+        if _is_active(db, version, compile_id):
+            version.compile_status = CompileStatus.FAILED
+            db.commit()
+            _store_log(version.storage_prefix, detail)
     except Exception:
-        logger.exception("unexpected compile failure for %s", version.id)
-        _mark_status(db, version, CompileStatus.FAILED)
-        _store_log(version.storage_prefix, "خطأ غير متوقع أثناء التجميع.")
+        logger.exception("unexpected compile failure for %s", version_id)
+        if _is_active(db, version, compile_id):
+            version.compile_status = CompileStatus.FAILED
+            db.commit()
+            _store_log(version.storage_prefix, "خطأ غير متوقع أثناء التجميع.")
 
 
-def schedule_compile(version_id: uuid.UUID) -> None:
-    """يُستدعى من BackgroundTasks — جلسة DB مستقلة."""
+def schedule_compile(
+    version_id: uuid.UUID,
+    compile_id: uuid.UUID,
+    latex: str,
+    asset_keys: list[str],
+    document_hash: str,
+) -> None:
+    """يُستدعى من BackgroundTasks — جلسة DB مستقلة؛ latex في الذاكرة فقط."""
     db = SessionLocal()
     try:
-        version = db.get(ArticleVersion, version_id)
-        if version is None:
-            logger.error("schedule_compile: version %s not found", version_id)
-            return
-        compile_version(db, version)
+        compile_version(
+            db, version_id, compile_id, latex, asset_keys, document_hash
+        )
     finally:
         db.close()
 
 
-def begin_compile(db: Session, version: ArticleVersion) -> ArticleVersion:
-    """يضع processing ويرفض إن كان التجميع جاريًا. يُستدعى قبل BackgroundTasks."""
+def begin_compile(
+    db: Session,
+    version: ArticleVersion,
+    document_hash: str,
+) -> tuple[ArticleVersion, uuid.UUID]:
+    """يضع processing + active_compile_id بعد التحقق من hash المستند."""
     if not (settings.compiler_url or "").strip():
         raise _COMPILER_UNAVAILABLE
 
@@ -286,15 +263,27 @@ def begin_compile(db: Session, version: ArticleVersion) -> ArticleVersion:
     if version.compile_status == CompileStatus.PROCESSING:
         raise _ALREADY_PROCESSING
 
-    # تحقق مبكر من وجود مستند
-    document = s3.get_json(version.storage_prefix)
-    if document is None:
+    current = current_document_hash(version.storage_prefix)
+    if current is None:
         raise _NO_DOCUMENT
+    if current != document_hash:
+        raise _HASH_MISMATCH
 
+    compile_id = uuid.uuid4()
+    version.active_compile_id = compile_id
     version.compile_status = CompileStatus.PROCESSING
     db.commit()
     db.refresh(version)
-    return version
+    return version, compile_id
+
+
+def assert_fresh_preview_for_submit(version: ArticleVersion) -> None:
+    """يرفض التقديم إن لم يكن ملفّ المعاينة ناجحًا ومطابقًا للمستند الحالي."""
+    if version.compile_status != CompileStatus.SUCCESS:
+        raise _STALE_PREVIEW
+    current = current_document_hash(version.storage_prefix)
+    if current is None or version.compiled_document_hash != current:
+        raise _STALE_PREVIEW
 
 
 def get_compiled_pdf(storage_prefix: str) -> bytes:

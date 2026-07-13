@@ -21,10 +21,10 @@ export type CompiledPdfViewerProps = {
 };
 
 const STATUS_COPY: Record<CompileStatus, string> = {
-  pending: "لم يُنشأ ملف PDF بعد.",
-  processing: "جارٍ تجميع ملف PDF… قد يستغرق ذلك دقيقة أو أكثر.",
+  pending: "لم يُنشأ ملفّ المعاينة بعد.",
+  processing: "جارٍ إنشاء ملفّ المعاينة… قد يستغرق ذلك دقيقة أو أكثر.",
   success: "",
-  failed: "فشل تجميع PDF. يمكنك إعادة المحاولة بعد مراجعة المخطوطة.",
+  failed: "تعذّر إنشاء ملفّ المعاينة. يمكنك إعادة المحاولة بعد مراجعة المخطوطة.",
 };
 
 function PdfPages({ fileUrl }: { fileUrl: string }) {
@@ -64,7 +64,7 @@ function PdfPages({ fileUrl }: { fileUrl: string }) {
   if (!mods) {
     return (
       <p className="px-4 py-8 text-center text-sm text-slate-500">
-        جارٍ تحميل عارض PDF…
+        جارٍ تحميل عارض ملفّ المعاينة…
       </p>
     );
   }
@@ -101,7 +101,7 @@ function PdfPages({ fileUrl }: { fileUrl: string }) {
           download="compiled.pdf"
           className="text-xs font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
         >
-          تنزيل PDF
+          تنزيل ملفّ المعاينة
         </a>
       </div>
       <div className="overflow-x-auto px-2 pb-4">
@@ -114,7 +114,7 @@ function PdfPages({ fileUrl }: { fileUrl: string }) {
           }
           error={
             <p className="px-4 py-8 text-center text-sm text-red-700">
-              تعذّر عرض ملف PDF.
+              تعذّر عرض ملفّ المعاينة.
             </p>
           }
           onLoadSuccess={({ numPages: n }) => {
@@ -176,7 +176,7 @@ export function CompiledPdfViewer({
       } catch (err) {
         if (!cancelled) {
           setLoadError(
-            err instanceof Error ? err.message : "تعذّر تحميل ملف PDF.",
+            err instanceof Error ? err.message : "تعذّر تحميل ملفّ المعاينة.",
           );
         }
       }
@@ -202,7 +202,7 @@ export function CompiledPdfViewer({
       await onRequestCompile();
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : "تعذّر بدء التجميع.",
+        err instanceof Error ? err.message : "تعذّر بدء إنشاء ملفّ المعاينة.",
       );
     } finally {
       setCompiling(false);
@@ -217,7 +217,7 @@ export function CompiledPdfViewer({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--journal-border)] px-4 py-3">
         <div>
           <h3 className="text-sm font-bold text-[var(--journal-accent)]">
-            ملف PDF
+            ملفّ المعاينة
           </h3>
           {statusText ? (
             <p className="mt-1 text-xs leading-6 text-slate-500">{statusText}</p>
@@ -231,10 +231,10 @@ export function CompiledPdfViewer({
             className="min-h-10 rounded-md bg-[var(--journal-accent)] px-4 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy
-              ? "جارٍ التجميع…"
+              ? "جارٍ الإنشاء…"
               : compileStatus === "success"
-                ? "إعادة التجميع"
-                : "إنشاء PDF"}
+                ? "إعادة إنشاء ملفّ المعاينة"
+                : "إنشاء ملفّ المعاينة"}
           </button>
         ) : null}
       </div>
@@ -252,13 +252,13 @@ export function CompiledPdfViewer({
         <PdfPages fileUrl={blobUrl} />
       ) : compileStatus === "processing" ? (
         <p className="px-4 py-10 text-center text-sm text-slate-500">
-          يُرجى الانتظار أثناء التجميع…
+          يُرجى الانتظار أثناء إنشاء ملفّ المعاينة…
         </p>
       ) : (
         <p className="px-4 py-10 text-center text-sm text-slate-500">
           {onRequestCompile
-            ? "اضغط «إنشاء PDF» لمعاينة المخطوطة كملف مطبوع."
-            : "لا يتوفر ملف PDF لهذا الإصدار بعد."}
+            ? "اضغط «إنشاء ملفّ المعاينة» لمعاينة المخطوطة كملف مطبوع."
+            : "لا يتوفر ملفّ معاينة لهذا الإصدار بعد."}
         </p>
       )}
     </div>
