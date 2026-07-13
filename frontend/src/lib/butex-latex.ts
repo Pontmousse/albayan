@@ -31,6 +31,8 @@ export async function hashDocument(documentJson: unknown): Promise<string> {
     .join("");
 }
 
+const LATEX_EXPORT_OPTIONS = { twocolumn: true } as const;
+
 export function exportDocumentLatex(documentJson: unknown): string {
   // قد يُخزَّن كـ Document2Node (nodeType) أو كـ wire JSON (node_type)
   if (
@@ -39,9 +41,9 @@ export function exportDocumentLatex(documentJson: unknown): string {
     (documentJson as { nodeType?: string }).nodeType === "DocumentObject" &&
     Array.isArray((documentJson as { blocks?: unknown }).blocks)
   ) {
-    return document2Latex(documentJson as Document2Node);
+    return document2Latex(documentJson as Document2Node, LATEX_EXPORT_OPTIONS);
   }
-  return document2Latex(fromDocumentJson2(documentJson));
+  return document2Latex(fromDocumentJson2(documentJson), LATEX_EXPORT_OPTIONS);
 }
 
 export function collectAssetKeys(documentJson: unknown): string[] {
