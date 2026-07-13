@@ -45,6 +45,7 @@ export type AssignmentDetail = {
   version_status: VersionStatus;
   version_number: number;
   version_id: string;
+  compile_status: "pending" | "processing" | "success" | "failed";
   review: ReviewRead | null;
   invited_at: string;
   accepted_at: string | null;
@@ -114,6 +115,24 @@ export async function fetchAssignmentAssetBlob(
   );
   if (!response.ok) {
     throw new ApiError("تعذّر تحميل الصورة.", response.status);
+  }
+  return response.blob();
+}
+
+export async function fetchAssignmentPdfBlob(
+  getToken: GetToken,
+  assignmentId: string,
+): Promise<Blob> {
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/reviews/assignments/${assignmentId}/pdf`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new ApiError("تعذّر تحميل ملف PDF.", response.status);
   }
   return response.blob();
 }

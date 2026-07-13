@@ -13,7 +13,7 @@ from app.schemas.review import (
     ReviewRead,
     ReviewWrite,
 )
-from app.services import article_service, review_service
+from app.services import article_service, compile_service, review_service
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 
@@ -28,6 +28,19 @@ def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
         content=body,
         media_type=content_type or "application/octet-stream",
         headers={"Cache-Control": "private, max-age=3600"},
+    )
+
+
+def _pdf_response(article_id: uuid.UUID, db) -> Response:
+    version = article_service.current_version(db, article_id)
+    body = compile_service.get_compiled_pdf(version.storage_prefix)
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, max-age=60",
+            "Content-Disposition": 'inline; filename="compiled.pdf"',
+        },
     )
 
 
@@ -71,6 +84,7 @@ def _detail(assignment) -> AssignmentDetail:
         version_status=version.status,
         version_number=version.version_number,
         version_id=version.id,
+        compile_status=version.compile_status,
         review=ReviewRead.model_validate(review) if review else None,
         invited_at=assignment.invited_at,
         accepted_at=assignment.accepted_at,
@@ -114,6 +128,15 @@ def get_assignment_asset(
     user = current_user(auth, db)
     assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
     return _asset_response(assignment.article_id, filename, db)
+
+
+@router.get("/assignments/{assignment_id}/pdf")
+def get_assignment_pdf(
+    assignment_id: uuid.UUID, auth: AuthDep, db: DbDep
+) -> Response:
+    user = current_user(auth, db)
+    assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
+    return _pdf_response(assignment.article_id, db)
 
 
 @router.put("/assignments/{assignment_id}/review", response_model=ReviewRead)

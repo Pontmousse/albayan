@@ -92,3 +92,21 @@ export async function fetchEditorAssetBlob(
   }
   return response.blob();
 }
+
+export async function fetchEditorPdfBlob(
+  getToken: GetToken,
+  articleId: string,
+): Promise<Blob> {
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/editor/articles/${articleId}/pdf`,
+    { headers },
+  );
+  if (!response.ok) {
+    throw new ApiError("تعذّر تحميل ملف PDF.", response.status);
+  }
+  return response.blob();
+}

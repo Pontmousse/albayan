@@ -14,7 +14,7 @@ from app.schemas.editor import (
     EditorDecisionPayload,
     EditorReviewReport,
 )
-from app.services import article_service, editor_service
+from app.services import article_service, compile_service, editor_service
 
 router = APIRouter(prefix="/api/v1/editor", tags=["editor"])
 
@@ -29,6 +29,19 @@ def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
         content=body,
         media_type=content_type or "application/octet-stream",
         headers={"Cache-Control": "private, max-age=3600"},
+    )
+
+
+def _pdf_response(article_id: uuid.UUID, db) -> Response:
+    version = article_service.current_version(db, article_id)
+    body = compile_service.get_compiled_pdf(version.storage_prefix)
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, max-age=60",
+            "Content-Disposition": 'inline; filename="compiled.pdf"',
+        },
     )
 
 
@@ -108,6 +121,15 @@ def get_editor_asset(
     user = current_user(auth, db)
     editor_service.assert_is_editor(db, article_id, user.id)
     return _asset_response(article_id, filename, db)
+
+
+@router.get("/articles/{article_id}/pdf")
+def get_editor_pdf(
+    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+) -> Response:
+    user = current_user(auth, db)
+    editor_service.assert_is_editor(db, article_id, user.id)
+    return _pdf_response(article_id, db)
 
 
 @router.post("/articles/{article_id}/decision", response_model=VersionRead)

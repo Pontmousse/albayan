@@ -7,4 +7,5 @@ pydantic-settings>=2.0.0,<3.0.0
 clerk-backend-api>=5.0.0,<7.0.0
 boto3>=1.35.0,<2.0.0
 python-multipart>=0.0.9,<1.0.0
+httpx>=0.27.0,<1.0.0
 # البريد يُرسل عبر Resend REST API (urllib) — لا حاجة لحزمة resend في وقت التشغيل

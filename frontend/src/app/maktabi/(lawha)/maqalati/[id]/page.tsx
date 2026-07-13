@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
+import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import { WorkflowProgress } from "@/components/dashboard/workflow-progress";
 import {
+  fetchArticlePdfBlob,
   getArticle,
   getArticleDocument,
+  requestArticleCompile,
   submitArticle,
   type ArticleDetail,
 } from "@/lib/api/articles";
@@ -47,6 +50,15 @@ export default function ArticleDetailPage() {
     }
   }, [getToken, articleId]);
 
+  const refreshStatus = useCallback(async () => {
+    try {
+      const data = await getArticle(getToken, articleId);
+      setArticle(data);
+    } catch {
+      // تجاهل أخطاء الاستطلاع المؤقتة
+    }
+  }, [getToken, articleId]);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -63,6 +75,21 @@ export default function ArticleDetailPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  async function handleCompile() {
+    const version = await requestArticleCompile(getToken, articleId);
+    setArticle((prev) =>
+      prev
+        ? {
+            ...prev,
+            current_version: version,
+            versions: prev.versions.map((v) =>
+              v.id === version.id ? version : v,
+            ),
+          }
+        : prev,
+    );
   }
 
   if (error) {
@@ -212,6 +239,25 @@ export default function ArticleDetailPage() {
             documentJson={documentJson ?? null}
             articleId={articleId}
             getToken={getToken}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2
+          className="text-lg font-bold text-[var(--journal-accent)]"
+          style={{ fontFamily: "var(--font-display-ar), serif" }}
+        >
+          معاينة PDF
+        </h2>
+        <div className="mt-3">
+          <CompiledPdfViewer
+            compileStatus={current.compile_status}
+            getToken={getToken}
+            scopeId={articleId}
+            fetchPdfBlob={fetchArticlePdfBlob}
+            onRequestCompile={handleCompile}
+            onRefreshStatus={refreshStatus}
           />
         </div>
       </section>

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = ""
     frontend_base_url: str = "http://localhost:3000"
+    compiler_url: str = ""
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
@@ -11,6 +12,7 @@ import { buttonClassName } from "@/lib/auth-ui";
 import { formatDate } from "@/lib/format-date";
 import {
   fetchAssignmentAssetBlob,
+  fetchAssignmentPdfBlob,
   getAssignment,
   getAssignmentDocument,
   RECOMMENDATION_LABELS,
@@ -187,6 +189,23 @@ export default function MurajaatiDetailPage() {
             articleId={assignmentId}
             getToken={getToken}
             fetchAssetBlob={fetchAssignmentAssetBlob}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2
+          className="text-lg font-bold text-[var(--journal-accent)]"
+          style={{ fontFamily: "var(--font-display-ar), serif" }}
+        >
+          معاينة PDF
+        </h2>
+        <div className="mt-3">
+          <CompiledPdfViewer
+            compileStatus={assignment.compile_status}
+            getToken={getToken}
+            scopeId={assignmentId}
+            fetchPdfBlob={fetchAssignmentPdfBlob}
           />
         </div>
       </section>

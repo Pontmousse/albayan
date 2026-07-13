@@ -11,6 +11,8 @@ from fastapi import HTTPException
 from app.core.config import settings
 
 DOCUMENT_FILENAME = "document.json"
+COMPILED_PDF = "compiled.pdf"
+COMPILE_LOG = "compile.log"
 
 _UNAVAILABLE = HTTPException(
     status_code=503,

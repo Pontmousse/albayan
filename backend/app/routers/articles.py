@@ -1,7 +1,7 @@
 import uuid
 from pathlib import PurePosixPath
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import func, update
 
@@ -17,7 +17,7 @@ from app.schemas.article import (
     DocumentPayload,
     VersionRead,
 )
-from app.services import article_service
+from app.services import article_service, compile_service
 
 router = APIRouter(prefix="/api/v1/articles", tags=["articles"])
 
@@ -165,9 +165,55 @@ def get_asset(
     )
 
 
+@router.post("/{article_id}/compile", response_model=VersionRead)
+def compile_article(
+    article_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    auth: AuthDep,
+    db: DbDep,
+) -> VersionRead:
+    """يبدأ تجميع PDF للإصدار الحالي — مسموح في المسودة وبعد التقديم."""
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    version = compile_service.begin_compile(db, version)
+    background_tasks.add_task(compile_service.schedule_compile, version.id)
+    return VersionRead.model_validate(version)
+
+
+@router.get("/{article_id}/pdf")
+def get_article_pdf(
+    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+) -> Response:
+    """يبث compiled.pdf للإصدار الحالي."""
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    body = compile_service.get_compiled_pdf(version.storage_prefix)
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "private, max-age=60",
+            "Content-Disposition": 'inline; filename="compiled.pdf"',
+        },
+    )
+
+
 @router.post("/{article_id}/submit", response_model=VersionRead)
-def submit_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> VersionRead:
+def submit_article(
+    article_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    auth: AuthDep,
+    db: DbDep,
+) -> VersionRead:
     user = _current_user(auth, db)
     article = article_service.assert_is_author(db, article_id, user.id)
     version = article_service.submit_article(db, article)
+    # تجميع تلقائي بعد التقديم (لا نُفشل التقديم إن تعذّر بدء التجميع)
+    try:
+        version = compile_service.begin_compile(db, version)
+        background_tasks.add_task(compile_service.schedule_compile, version.id)
+    except HTTPException:
+        db.refresh(version)
     return VersionRead.model_validate(version)

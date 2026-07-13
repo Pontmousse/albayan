@@ -24,6 +24,8 @@
 | `frontend/` | `npm run build` |
 | `backend/`  | `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000` (بعد تفعيل venv وتثبيت المتطلبات) |
 
+لتجميع PDF عيّن `COMPILER_URL` (مثال `http://localhost:8082`) في بيئة الخلفية، مع تشغيل المترجم المشترك. التصدير عبر Node و`@drghaliasri/butex` (من `frontend/node_modules` أو بعد `npm install` في `backend/`).
+
 ## CORS
 
 الخلفية تسمح حاليًا بأصل التطوير `http://localhost:3000`. عند النشر، حدّث القائمة في `backend/app/main.py` أو استخدم متغيرات بيئة.

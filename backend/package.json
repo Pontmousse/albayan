@@ -1,0 +1,8 @@
+{
+  "name": "albayan-backend-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@drghaliasri/butex": "^5.0.0"
+  }
+}

@@ -148,6 +148,34 @@ export async function fetchArticleAssetBlob(
   return response.blob();
 }
 
+export function requestArticleCompile(getToken: GetToken, id: string) {
+  return apiFetch<VersionRead>(`/api/v1/articles/${id}/compile`, getToken, {
+    method: "POST",
+  });
+}
+
+/** يجلب compiled.pdf للإصدار الحالي */
+export async function fetchArticlePdfBlob(
+  getToken: GetToken,
+  id: string,
+): Promise<Blob> {
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE}/api/v1/articles/${id}/pdf`, {
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new ApiError("تعذّر تحميل ملف PDF.", response.status);
+  }
+
+  return response.blob();
+}
+
 export const STATUS_LABELS: Record<VersionStatus, string> = {
   draft: "مسودة",
   submitted: "مُقدَّم",

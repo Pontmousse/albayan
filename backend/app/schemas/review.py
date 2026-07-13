@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.enums import (
+    CompileStatus,
     ReviewRecommendation,
     ReviewerAssignmentStatus,
     ReviewStatus,
@@ -49,6 +50,7 @@ class AssignmentDetail(BaseModel):
     version_status: VersionStatus
     version_number: int
     version_id: UUID
+    compile_status: CompileStatus
     review: ReviewRead | None
     invited_at: datetime
     accepted_at: datetime | None

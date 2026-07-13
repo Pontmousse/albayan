@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
+import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
@@ -13,6 +14,7 @@ import { buttonClassName } from "@/lib/auth-ui";
 import { formatDate } from "@/lib/format-date";
 import {
   fetchEditorAssetBlob,
+  fetchEditorPdfBlob,
   getEditorArticle,
   getEditorDocument,
   postEditorDecision,
@@ -237,6 +239,23 @@ export default function TahririDetailPage() {
             articleId={articleId}
             getToken={getToken}
             fetchAssetBlob={fetchEditorAssetBlob}
+          />
+        </div>
+      </section>
+
+      <section>
+        <h2
+          className="text-lg font-bold text-[var(--journal-accent)]"
+          style={{ fontFamily: "var(--font-display-ar), serif" }}
+        >
+          معاينة PDF
+        </h2>
+        <div className="mt-3">
+          <CompiledPdfViewer
+            compileStatus={current.compile_status}
+            getToken={getToken}
+            scopeId={articleId}
+            fetchPdfBlob={fetchEditorPdfBlob}
           />
         </div>
       </section>
