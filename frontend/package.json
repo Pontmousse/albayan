@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.9",
-    "@drghaliasri/butex": "^5.3.3",
+    "@drghaliasri/butex": "^5.4.0",
     "next": "^15.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
