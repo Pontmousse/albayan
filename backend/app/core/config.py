@@ -1,4 +1,16 @@
+from typing import Any
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _parse_dev_mode(value: Any) -> bool:
+    """يقبل true/1/yes (بلا حساسية لحالة الأحرف)؛ أي شيء آخر = False."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in ("true", "1", "yes")
 
 
 class Settings(BaseSettings):
@@ -21,6 +33,13 @@ class Settings(BaseSettings):
     email_from: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
+    # من DEV_MODE — يفعّل endpoints التشخيص فقط؛ لا تفعّله في الإنتاج.
+    dev_mode: bool = False
+
+    @field_validator("dev_mode", mode="before")
+    @classmethod
+    def validate_dev_mode(cls, value: Any) -> bool:
+        return _parse_dev_mode(value)
 
     @property
     def cors_origins_list(self) -> list[str]:

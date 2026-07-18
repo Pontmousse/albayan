@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
+import { ExportedTexDevPanel } from "@/components/dashboard/exported-tex-dev-panel";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
@@ -25,6 +26,7 @@ import {
   exportDocumentLatex,
   hashDocument,
 } from "@/lib/butex-latex";
+import { isDevMode } from "@/lib/dev-mode";
 import { formatDate } from "@/lib/format-date";
 
 export default function ArticleDetailPage() {
@@ -39,6 +41,8 @@ export default function ArticleDetailPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  /** لقطة TeX كما أُرسلت لـ /compile — للوحة DEV_MODE فقط. */
+  const [texSnapshot, setTexSnapshot] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -99,6 +103,9 @@ export default function ArticleDetailPage() {
           ? `تعذّر تصدير المخطوطة: ${err.message}`
           : "تعذّر تصدير المخطوطة.",
       );
+    }
+    if (isDevMode()) {
+      setTexSnapshot(latex);
     }
     const document_hash = await hashDocument(documentJson);
     const asset_keys = collectAssetKeys(documentJson);
@@ -287,6 +294,15 @@ export default function ArticleDetailPage() {
             onRequestCompile={handleCompile}
             onRefreshStatus={refreshStatus}
           />
+          {isDevMode() ? (
+            <ExportedTexDevPanel
+              documentJson={documentJson}
+              texSnapshot={texSnapshot}
+              compileStatus={current.compile_status}
+              articleId={articleId}
+              getToken={getToken}
+            />
+          ) : null}
         </div>
       </section>
 

@@ -9,6 +9,7 @@ from app.models.article import Article
 
 from app.core import s3
 from app.core.clerk import AuthDep, DbDep
+from app.core.config import settings
 from app.core.deps import current_user
 from app.schemas.article import (
     ArticleCreate,
@@ -209,6 +210,20 @@ def get_article_pdf(
             "Content-Disposition": 'inline; filename="compiled.pdf"',
         },
     )
+
+
+@router.get("/{article_id}/compile-log")
+def get_article_compile_log(
+    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+) -> dict[str, str]:
+    """يرجع compile.log — متاح فقط عند DEV_MODE=true."""
+    if not settings.dev_mode:
+        raise HTTPException(status_code=404, detail="غير موجود.")
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    log = compile_service.get_compile_log(version.storage_prefix)
+    return {"log": log}
 
 
 @router.post("/{article_id}/submit", response_model=VersionRead)

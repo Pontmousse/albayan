@@ -289,3 +289,9 @@ def assert_fresh_preview_for_submit(version: ArticleVersion) -> None:
 def get_compiled_pdf(storage_prefix: str) -> bytes:
     body, _ = s3.get_bytes(storage_prefix, s3.COMPILED_PDF)
     return body
+
+
+def get_compile_log(storage_prefix: str) -> str:
+    """يقرأ compile.log من التخزين — يرفع 404 إن غاب."""
+    body, _ = s3.get_bytes(storage_prefix, s3.COMPILE_LOG)
+    return body.decode("utf-8", errors="replace")

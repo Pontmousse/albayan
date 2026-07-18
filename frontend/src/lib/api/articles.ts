@@ -187,6 +187,13 @@ export async function fetchArticlePdfBlob(
   return response.blob();
 }
 
+/** يجلب compile.log — متاح فقط عند DEV_MODE على الخادم. */
+export function fetchArticleCompileLog(getToken: GetToken, id: string) {
+  return apiFetch<{ log: string }>(
+    `/api/v1/articles/${id}/compile-log`,
+    getToken,
+  );
+}
 export const STATUS_LABELS: Record<VersionStatus, string> = {
   draft: "مسودة",
   submitted: "مُقدَّم",

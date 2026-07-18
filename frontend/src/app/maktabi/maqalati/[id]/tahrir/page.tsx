@@ -9,6 +9,7 @@ import {
   createEmptyDocument2,
   type Document2Node,
 } from "@drghaliasri/butex/document2";
+import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import {
@@ -22,6 +23,7 @@ import {
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
+import { isDevMode } from "@/lib/dev-mode";
 
 const ButexDocumentEditor2 = dynamic(
   () =>
@@ -50,9 +52,13 @@ export default function TahrirPage() {
   const [dirty, setDirty] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
+  /** نسخة حيّة للمستند — للوحة DEV JSON فقط. */
+  const [liveDocument, setLiveDocument] = useState<unknown>(null);
 
   const latestDocument = useRef<Document2Node | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const showDevJson = isDevMode();
 
   const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
     useButexImageResolver(articleId, getToken);
@@ -88,6 +94,9 @@ export default function TahrirPage() {
         if (cancelled) return;
 
         setInitialDocument(doc ?? undefined);
+        if (isDevMode()) {
+          setLiveDocument(doc ?? createEmptyDocument2());
+        }
         if (doc) prefetchFromDocument(doc);
         setPhase("ready");
       } catch (err) {
@@ -117,6 +126,9 @@ export default function TahrirPage() {
       setDirty(true);
       setSaveMessage(null);
       prefetchFromDocument(doc);
+      if (isDevMode()) {
+        setLiveDocument(doc);
+      }
     },
     [prefetchFromDocument],
   );
@@ -181,6 +193,9 @@ export default function TahrirPage() {
       const next = addDocument2ImageBlock(base, asset_id);
       latestDocument.current = next;
       setInitialDocument(next);
+      if (isDevMode()) {
+        setLiveDocument(next);
+      }
       setEditorKey((k) => k + 1);
       setDirty(true);
       setSaveMessage("أُدرجت الصورة — احفظ المخطوطة.");
@@ -230,6 +245,16 @@ export default function TahrirPage() {
                 void handleImageFile(event.target.files?.[0])
               }
             />
+            {showDevJson ? (
+              <button
+                type="button"
+                onClick={() => setJsonDialogOpen(true)}
+                disabled={phase !== "ready"}
+                className="min-h-9 rounded-md border border-amber-400 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                See JSON
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -305,6 +330,14 @@ export default function TahrirPage() {
         onConfirm={handleSubmit}
         onCancel={() => setDialogOpen(false)}
       />
+
+      {showDevJson ? (
+        <DocumentJsonDevDialog
+          open={jsonDialogOpen}
+          value={liveDocument}
+          onClose={() => setJsonDialogOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
