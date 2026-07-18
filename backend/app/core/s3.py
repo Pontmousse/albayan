@@ -117,3 +117,36 @@ def get_bytes(
         raise _FAILED from exc
     except BotoCoreError as exc:
         raise _FAILED from exc
+
+
+def delete_prefix(prefix: str) -> None:
+    """يحذف كل الكائنات تحت البادئة (مثل articles/{id}/). لا خطأ إن لم يوجد شيء."""
+    client = _client()
+    normalized = prefix if prefix.endswith("/") else f"{prefix}/"
+    try:
+        continuation: str | None = None
+        while True:
+            kwargs: dict[str, Any] = {
+                "Bucket": settings.s3_bucket,
+                "Prefix": normalized,
+            }
+            if continuation:
+                kwargs["ContinuationToken"] = continuation
+            response = client.list_objects_v2(**kwargs)
+            objects = response.get("Contents") or []
+            if objects:
+                # S3 يسمح حتى 1000 مفتاحاً في delete_objects
+                for start in range(0, len(objects), 1000):
+                    chunk = objects[start : start + 1000]
+                    client.delete_objects(
+                        Bucket=settings.s3_bucket,
+                        Delete={
+                            "Objects": [{"Key": obj["Key"]} for obj in chunk],
+                            "Quiet": True,
+                        },
+                    )
+            if not response.get("IsTruncated"):
+                break
+            continuation = response.get("NextContinuationToken")
+    except (BotoCoreError, ClientError) as exc:
+        raise _FAILED from exc

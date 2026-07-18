@@ -2,15 +2,19 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.article import Article, ArticleAuthor, ArticleVersion
+from app.core import s3
+from app.models.article import Article, ArticleAuthor, ArticleVersion, Review
 from app.models.enums import SourceType, VersionStatus
 
 _FROZEN = HTTPException(status_code=409, detail="المخطوطة مجمّدة — لا يمكن تعديلها بعد التقديم.")
 _ALREADY_SUBMITTED = HTTPException(status_code=409, detail="المقال مُقدَّم بالفعل.")
 _NOT_FOUND = HTTPException(status_code=404, detail="المقال غير موجود.")
+_NOT_DRAFT = HTTPException(
+    status_code=409, detail="لا يمكن حذف مقال مُقدَّم."
+)
 
 
 def assert_is_author(db: Session, article_id: uuid.UUID, user_id: uuid.UUID) -> Article:
@@ -104,3 +108,29 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
     db.commit()
     db.refresh(version)
     return version
+
+
+def delete_draft_article(
+    db: Session, article_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
+    """يحذف مسودة المؤلف مع ملفات التخزين — يرفض غير المسودات."""
+    article = assert_is_author(db, article_id, user_id)
+    version = current_version(db, article_id)
+    if version.status != VersionStatus.DRAFT:
+        raise _NOT_DRAFT
+
+    version_ids = [
+        row.id
+        for row in db.scalars(
+            select(ArticleVersion).where(ArticleVersion.article_id == article_id)
+        ).all()
+    ]
+    if version_ids:
+        db.execute(delete(Review).where(Review.article_version_id.in_(version_ids)))
+        db.flush()
+
+    # أولاً التخزين — إن فشل لا نحذف صف DB
+    s3.delete_prefix(f"articles/{article_id}/")
+
+    db.delete(article)
+    db.commit()

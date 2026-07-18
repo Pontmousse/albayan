@@ -2,11 +2,13 @@
 
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import {
+  deleteArticle,
   listMyArticles,
   type ArticleSummary,
   type VersionStatus,
@@ -26,6 +28,9 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 const FINISHED: VersionStatus[] = ["accepted", "rejected", "published"];
 
+const DELETE_CONFIRM =
+  "حذف هذه المسودة نهائياً مع المخطوطة والصور وملف المعاينة؟ لا يمكن التراجع.";
+
 function matchesFilter(article: ArticleSummary, filter: Filter): boolean {
   if (filter === "all") return true;
   if (filter === "finished") return FINISHED.includes(article.status);
@@ -37,6 +42,21 @@ export default function MaqalatiPage() {
   const [articles, setArticles] = useState<ArticleSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [pendingDelete, setPendingDelete] = useState<ArticleSummary | null>(
+    null,
+  );
+  const [deleting, setDeleting] = useState(false);
+
+  const load = useCallback(() => {
+    return listMyArticles(getToken)
+      .then((data) => {
+        setArticles(data);
+        setError(null);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "تعذّر تحميل المقالات.");
+      });
+  }, [getToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +73,22 @@ export default function MaqalatiPage() {
       cancelled = true;
     };
   }, [getToken]);
+
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteArticle(getToken, pendingDelete.id);
+      setPendingDelete(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "تعذّر حذف المسودة.");
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const filtered = articles?.filter((a) => matchesFilter(a, filter)) ?? [];
 
@@ -107,21 +143,23 @@ export default function MaqalatiPage() {
         >
           {error}
         </p>
-      ) : articles === null ? (
+      ) : null}
+
+      {articles === null && !error ? (
         <RowsSkeleton count={5} />
-      ) : articles.length === 0 ? (
+      ) : articles !== null && articles.length === 0 ? (
         <EmptyState
           title="لا مقالات بعد"
           description="ابدأ رحلتك في النشر العلمي — أنشئ مقالك الأول وحرّره عبر محرر البيان."
           actionLabel="ابدأ مقالك الأول"
           actionHref="/maktabi/maqalati/jadid"
         />
-      ) : filtered.length === 0 ? (
+      ) : articles !== null && filtered.length === 0 ? (
         <EmptyState
           title="لا نتائج لهذا الفلتر"
           description="جرّب فلتراً آخر، أو أنشئ مقالاً جديداً."
         />
-      ) : (
+      ) : articles !== null ? (
         <ul className="space-y-2.5">
           {filtered.map((article, index) => (
             <li
@@ -143,15 +181,24 @@ export default function MaqalatiPage() {
                     <span>آخر تحديث: {formatDate(article.updated_at)}</span>
                   </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex shrink-0 flex-wrap items-center gap-2 sm:gap-3">
                   <StatusBadge status={article.status} />
                   {article.status === "draft" ? (
-                    <Link
-                      href={`/maktabi/maqalati/${article.id}/tahrir`}
-                      className="rounded-md border border-[var(--journal-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent)] hover:text-white"
-                    >
-                      تحرير
-                    </Link>
+                    <>
+                      <Link
+                        href={`/maktabi/maqalati/${article.id}/tahrir`}
+                        className="rounded-md border border-[var(--journal-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent)] hover:text-white"
+                      >
+                        تحرير
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setPendingDelete(article)}
+                        className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                      >
+                        حذف
+                      </button>
+                    </>
                   ) : (
                     <Link
                       href={`/maktabi/maqalati/${article.id}`}
@@ -165,7 +212,19 @@ export default function MaqalatiPage() {
             </li>
           ))}
         </ul>
-      )}
+      ) : null}
+
+      <ConfirmDialog
+        open={pendingDelete != null}
+        title="حذف المسودة"
+        description={DELETE_CONFIRM}
+        confirmLabel="حذف نهائياً"
+        submitting={deleting}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

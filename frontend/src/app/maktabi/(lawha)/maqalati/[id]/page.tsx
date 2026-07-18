@@ -6,12 +6,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { ExportedTexDevPanel } from "@/components/dashboard/exported-tex-dev-panel";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import { WorkflowProgress } from "@/components/dashboard/workflow-progress";
 import {
+  deleteArticle,
   fetchArticlePdfBlob,
   getArticle,
   getArticleDocument,
@@ -41,6 +43,8 @@ export default function ArticleDetailPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   /** لقطة TeX كما أُرسلت لـ /compile — للوحة DEV_MODE فقط. */
   const [texSnapshot, setTexSnapshot] = useState<string | null>(null);
 
@@ -84,6 +88,21 @@ export default function ArticleDetailPage() {
       setSubmitError(err instanceof Error ? err.message : "تعذّر تقديم المقال.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setSubmitError(null);
+    try {
+      await deleteArticle(getToken, articleId);
+      setDeleteDialogOpen(false);
+      router.push("/maktabi/maqalati");
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "تعذّر حذف المسودة.");
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -199,6 +218,13 @@ export default function ArticleDetailPage() {
                 >
                   تقديم المقال
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="rounded-md border border-red-300 bg-white px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                >
+                  حذف المسودة
+                </button>
               </>
             ) : null}
           </div>
@@ -311,6 +337,18 @@ export default function ArticleDetailPage() {
         submitting={submitting}
         onConfirm={handleSubmit}
         onCancel={() => setDialogOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="حذف المسودة"
+        description="حذف هذه المسودة نهائياً مع المخطوطة والصور وملف المعاينة؟ لا يمكن التراجع."
+        confirmLabel="حذف نهائياً"
+        submitting={deleting}
+        onConfirm={() => void handleDelete()}
+        onCancel={() => {
+          if (!deleting) setDeleteDialogOpen(false);
+        }}
       />
     </div>
   );

@@ -80,6 +80,13 @@ def get_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> ArticleDetai
     return _detail(db, article)
 
 
+@router.delete("/{article_id}", status_code=204)
+def delete_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> None:
+    """يحذف مسودة المؤلف مع المخطوطة والأصول وملف المعاينة."""
+    user = _current_user(auth, db)
+    article_service.delete_draft_article(db, article_id, user.id)
+
+
 @router.get("/{article_id}/document")
 def get_document(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> dict:
     user = _current_user(auth, db)

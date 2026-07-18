@@ -84,6 +84,13 @@ export function submitArticle(getToken: GetToken, id: string) {
   });
 }
 
+/** يحذف مسودة المؤلف نهائياً (مع الملفات المرتبطة). */
+export function deleteArticle(getToken: GetToken, id: string) {
+  return apiFetch<void>(`/api/v1/articles/${id}`, getToken, {
+    method: "DELETE",
+  });
+}
+
 export type ArticleAssetUpload = {
   asset_id: string;
   content_type: string;
