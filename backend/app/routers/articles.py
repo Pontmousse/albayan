@@ -15,6 +15,7 @@ from app.schemas.article import (
     ArticleCreate,
     ArticleDetail,
     ArticleSummary,
+    ArticleUpdate,
     CompilePayload,
     DocumentPayload,
     VersionRead,
@@ -77,6 +78,21 @@ def create_article(payload: ArticleCreate, auth: AuthDep, db: DbDep) -> ArticleD
 def get_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> ArticleDetail:
     user = _current_user(auth, db)
     article = article_service.assert_is_author(db, article_id, user.id)
+    return _detail(db, article)
+
+
+@router.patch("/{article_id}", response_model=ArticleDetail)
+def update_article(
+    article_id: uuid.UUID,
+    payload: ArticleUpdate,
+    auth: AuthDep,
+    db: DbDep,
+) -> ArticleDetail:
+    user = _current_user(auth, db)
+    article = article_service.assert_is_author(db, article_id, user.id)
+    article = article_service.update_draft_metadata(
+        db, article, payload.title, payload.abstract
+    )
     return _detail(db, article)
 
 
@@ -242,6 +258,8 @@ def submit_article(
     user = _current_user(auth, db)
     article = article_service.assert_is_author(db, article_id, user.id)
     version = article_service.current_version(db, article_id)
+    article_service.assert_draft(version)
+    article_service.assert_document_metadata_matches(article, version)
     compile_service.assert_fresh_preview_for_submit(version)
     version = article_service.submit_article(db, article)
     return VersionRead.model_validate(version)

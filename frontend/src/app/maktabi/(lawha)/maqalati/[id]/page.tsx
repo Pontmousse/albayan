@@ -3,7 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
@@ -21,8 +21,9 @@ import {
   saveArticleDocument,
   submitArticle,
   type ArticleDetail,
+  updateArticle,
 } from "@/lib/api/articles";
-import { buttonClassName } from "@/lib/auth-ui";
+import { buttonClassName, inputClassName } from "@/lib/auth-ui";
 import {
   collectAssetKeys,
   exportDocumentLatex,
@@ -45,6 +46,11 @@ export default function ArticleDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingMetadata, setEditingMetadata] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("");
+  const [draftAbstract, setDraftAbstract] = useState("");
+  const [metadataSaving, setMetadataSaving] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   /** لقطة TeX كما أُرسلت لـ /compile — للوحة DEV_MODE فقط. */
   const [texSnapshot, setTexSnapshot] = useState<string | null>(null);
 
@@ -103,6 +109,46 @@ export default function ArticleDetailPage() {
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function beginMetadataEdit() {
+    if (!article) return;
+    setDraftTitle(article.title);
+    setDraftAbstract(article.abstract ?? "");
+    setMetadataError(null);
+    setEditingMetadata(true);
+  }
+
+  function cancelMetadataEdit() {
+    if (metadataSaving) return;
+    setEditingMetadata(false);
+    setMetadataError(null);
+  }
+
+  async function handleMetadataSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = draftTitle.trim();
+    if (!title) {
+      setMetadataError("عنوان المقال مطلوب.");
+      return;
+    }
+
+    setMetadataSaving(true);
+    setMetadataError(null);
+    try {
+      const updated = await updateArticle(getToken, articleId, {
+        title,
+        abstract: draftAbstract.trim() || null,
+      });
+      setArticle(updated);
+      setEditingMetadata(false);
+    } catch (err) {
+      setMetadataError(
+        err instanceof Error ? err.message : "تعذّر حفظ بيانات المسودة.",
+      );
+    } finally {
+      setMetadataSaving(false);
     }
   }
 
@@ -189,12 +235,23 @@ export default function ArticleDetailPage() {
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h1
-              className="text-2xl font-bold leading-relaxed text-slate-900 sm:text-3xl"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              {article.title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1
+                className="text-2xl font-bold leading-relaxed text-slate-900 sm:text-3xl"
+                style={{ fontFamily: "var(--font-display-ar), serif" }}
+              >
+                {article.title}
+              </h1>
+              {isDraft && !editingMetadata ? (
+                <button
+                  type="button"
+                  onClick={beginMetadataEdit}
+                  className="rounded-md border border-[var(--journal-border)] bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent)]"
+                >
+                  تعديل البيانات
+                </button>
+              ) : null}
+            </div>
             <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
               <StatusBadge status={current.status} />
               <span>الإصدار v{current.version_number}</span>
@@ -229,6 +286,73 @@ export default function ArticleDetailPage() {
             ) : null}
           </div>
         </div>
+        {editingMetadata ? (
+          <form
+            onSubmit={handleMetadataSave}
+            className="mt-5 space-y-4 rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm"
+          >
+            <div>
+              <label
+                htmlFor="draft-title"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                عنوان المقال <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="draft-title"
+                type="text"
+                required
+                maxLength={500}
+                value={draftTitle}
+                onChange={(event) => setDraftTitle(event.target.value)}
+                className={inputClassName}
+                disabled={metadataSaving}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="draft-abstract"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                الملخص <span className="text-xs text-slate-400">(اختياري)</span>
+              </label>
+              <textarea
+                id="draft-abstract"
+                rows={5}
+                maxLength={5000}
+                value={draftAbstract}
+                onChange={(event) => setDraftAbstract(event.target.value)}
+                className={inputClassName}
+                disabled={metadataSaving}
+              />
+            </div>
+            {metadataError ? (
+              <p
+                className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                role="alert"
+              >
+                {metadataError}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2.5">
+              <button
+                type="submit"
+                disabled={metadataSaving || !draftTitle.trim()}
+                className={`${buttonClassName} disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {metadataSaving ? "جارٍ الحفظ…" : "حفظ البيانات"}
+              </button>
+              <button
+                type="button"
+                onClick={cancelMetadataEdit}
+                disabled={metadataSaving}
+                className="rounded-md border border-[var(--journal-border)] bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                إلغاء
+              </button>
+            </div>
+          </form>
+        ) : null}
       </div>
 
       {submitError ? (
@@ -252,10 +376,12 @@ export default function ArticleDetailPage() {
         ) : null}
       </section>
 
-      {article.abstract ? (
+      {isDraft || article.abstract ? (
         <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-700">{article.abstract}</p>
+          <p className="mt-2 text-sm leading-7 text-slate-700">
+            {article.abstract || "لا يوجد ملخص لبيانات المسودة بعد."}
+          </p>
         </section>
       ) : null}
 

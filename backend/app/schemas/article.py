@@ -12,6 +12,16 @@ class ArticleCreate(BaseModel):
     abstract: str | None = Field(default=None, max_length=5000)
 
 
+class ArticleUpdate(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    abstract: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("title", "abstract", mode="before")
+    @classmethod
+    def _strip_surrounding_whitespace(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+
 class VersionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

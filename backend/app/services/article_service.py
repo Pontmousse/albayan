@@ -16,6 +16,21 @@ _NOT_DRAFT = HTTPException(
     status_code=409, detail="لا يمكن حذف مقال مُقدَّم."
 )
 
+_METADATA_MISMATCH_MESSAGES = {
+    ("title",): (
+        "عنوان المقال في بيانات المسودة لا يطابق العنوان داخل المحرر. "
+        "عدّلهما يدويًا ثم أعد المحاولة."
+    ),
+    ("abstract",): (
+        "ملخص المقال في بيانات المسودة لا يطابق الملخص داخل المحرر. "
+        "عدّلهما يدويًا ثم أعد المحاولة."
+    ),
+    ("title", "abstract"): (
+        "عنوان المقال وملخصه في بيانات المسودة لا يطابقان العنوان والملخص "
+        "داخل المحرر. عدّلهما يدويًا ثم أعد المحاولة."
+    ),
+}
+
 
 def assert_is_author(db: Session, article_id: uuid.UUID, user_id: uuid.UUID) -> Article:
     """يعيد المقال إذا كان المستخدم مؤلفاً عليه، وإلا 404 (لا نكشف الوجود)."""
@@ -97,6 +112,57 @@ def create_article(
 def assert_draft(version: ArticleVersion) -> None:
     if version.status != VersionStatus.DRAFT:
         raise _FROZEN
+
+
+def update_draft_metadata(
+    db: Session,
+    article: Article,
+    title: str,
+    abstract: str | None,
+) -> Article:
+    """يحدّث بيانات صف المقال فقط؛ لا يقرأ أو يكتب مستند BuTeX."""
+    version = current_version(db, article.id)
+    assert_draft(version)
+    article.title = title
+    article.abstract = abstract
+    article.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(article)
+    return article
+
+
+def _normalized_metadata(value: object) -> str:
+    """يوحّد الفراغات الطرفية فقط، ويعامل القيم غير النصية كقيمة مفقودة."""
+    return value.strip() if isinstance(value, str) else ""
+
+
+def document_metadata_mismatches(article: Article, document: object) -> list[str]:
+    """يعيد حقول بيانات المقال غير المطابقة لـ document.meta."""
+    meta = document.get("meta") if isinstance(document, dict) else None
+    if not isinstance(meta, dict):
+        meta = {}
+
+    mismatches: list[str] = []
+    if _normalized_metadata(article.title) != _normalized_metadata(meta.get("title")):
+        mismatches.append("title")
+    if _normalized_metadata(article.abstract) != _normalized_metadata(
+        meta.get("abstract")
+    ):
+        mismatches.append("abstract")
+    return mismatches
+
+
+def assert_document_metadata_matches(
+    article: Article, version: ArticleVersion
+) -> None:
+    """يفرض التطابق وقت التقديم بلا أي مزامنة بين المصدرين."""
+    document = s3.get_json(version.storage_prefix)
+    mismatches = tuple(document_metadata_mismatches(article, document))
+    if mismatches:
+        raise HTTPException(
+            status_code=409,
+            detail=_METADATA_MISMATCH_MESSAGES[mismatches],
+        )
 
 
 def submit_article(db: Session, article: Article) -> ArticleVersion:

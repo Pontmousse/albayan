@@ -60,6 +60,17 @@ export function getArticle(getToken: GetToken, id: string) {
   return apiFetch<ArticleDetail>(`/api/v1/articles/${id}`, getToken);
 }
 
+export function updateArticle(
+  getToken: GetToken,
+  id: string,
+  input: { title: string; abstract: string | null },
+) {
+  return apiFetch<ArticleDetail>(`/api/v1/articles/${id}`, getToken, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
 export function getArticleDocument(getToken: GetToken, id: string) {
   return apiFetch<{ document: unknown | null }>(
     `/api/v1/articles/${id}/document`,
