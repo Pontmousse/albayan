@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import type { Document2Json } from "@drghaliasri/butex/document2";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { CompiledPdfViewer } from "@/components/dashboard/compiled-pdf-viewer";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
@@ -39,7 +40,9 @@ export default function ArticleDetailPage() {
   const articleId = params.id;
 
   const [article, setArticle] = useState<ArticleDetail | null>(null);
-  const [documentJson, setDocumentJson] = useState<unknown>(undefined);
+  const [documentJson, setDocumentJson] = useState<
+    Document2Json | null | undefined
+  >(undefined);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);

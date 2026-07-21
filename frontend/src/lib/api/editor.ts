@@ -100,10 +100,15 @@ export async function fetchEditorPdfBlob(
   const token = await getToken();
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);
+  headers.set("Cache-Control", "no-cache");
 
+  const cacheBust = encodeURIComponent(`${Date.now()}`);
   const response = await fetch(
-    `${API_BASE}/api/v1/editor/articles/${articleId}/pdf`,
-    { headers },
+    `${API_BASE}/api/v1/editor/articles/${articleId}/pdf?ts=${cacheBust}`,
+    {
+      cache: "no-store",
+      headers,
+    },
   );
   if (!response.ok) {
     throw new ApiError("تعذّر تحميل ملفّ المعاينة.", response.status);

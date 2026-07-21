@@ -1,4 +1,5 @@
 import { apiFetch, ApiError } from "@/lib/api";
+import type { Document2Json } from "@drghaliasri/butex/document2";
 
 export type VersionStatus =
   | "draft"
@@ -72,7 +73,7 @@ export function updateArticle(
 }
 
 export function getArticleDocument(getToken: GetToken, id: string) {
-  return apiFetch<{ document: unknown | null }>(
+  return apiFetch<{ document: Document2Json | null }>(
     `/api/v1/articles/${id}/document`,
     getToken,
   );
@@ -81,7 +82,7 @@ export function getArticleDocument(getToken: GetToken, id: string) {
 export function saveArticleDocument(
   getToken: GetToken,
   id: string,
-  document: unknown,
+  document: Document2Json,
 ) {
   return apiFetch<{ ok: boolean }>(`/api/v1/articles/${id}/document`, getToken, {
     method: "PUT",
@@ -194,9 +195,16 @@ export async function fetchArticlePdfBlob(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE}/api/v1/articles/${id}/pdf`, {
-    headers,
-  });
+  headers.set("Cache-Control", "no-cache");
+
+  const cacheBust = encodeURIComponent(`${Date.now()}`);
+  const response = await fetch(
+    `${API_BASE}/api/v1/articles/${id}/pdf?ts=${cacheBust}`,
+    {
+      cache: "no-store",
+      headers,
+    },
+  );
 
   if (!response.ok) {
     throw new ApiError("تعذّر تحميل ملفّ المعاينة.", response.status);

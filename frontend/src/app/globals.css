@@ -40,6 +40,18 @@ body {
   display: none;
 }
 
+/* مكدس الأشرطة الثابتة في صفحة تحرير المقال */
+.article-editor__actions {
+  top: var(--article-editor-site-header-height, 0px);
+}
+
+.article-editor .butex-document2-widget__toolbar {
+  top: calc(
+    var(--article-editor-site-header-height, 0px) +
+      var(--article-editor-actions-height, 0px)
+  );
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;

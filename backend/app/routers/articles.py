@@ -6,6 +6,7 @@ from fastapi.responses import Response
 from sqlalchemy import func, update
 
 from app.models.article import Article
+from app.models.enums import CompileStatus
 
 from app.core import s3
 from app.core.clerk import AuthDep, DbDep
@@ -121,6 +122,11 @@ def save_document(
     version = article_service.current_version(db, article_id)
     article_service.assert_draft(version)
     s3.put_json(version.storage_prefix, payload.document)
+    document_hash = compile_service.hash_document(payload.document)
+    if version.compiled_document_hash != document_hash:
+        version.compile_status = CompileStatus.PENDING
+        version.active_compile_id = None
+        version.compiled_document_hash = None
     # نلمس updated_at ليعكس «آخر تحديث» في القائمة
     db.execute(
         update(Article).where(Article.id == article.id).values(updated_at=func.now())
@@ -229,7 +235,9 @@ def get_article_pdf(
         content=body,
         media_type="application/pdf",
         headers={
-            "Cache-Control": "private, max-age=60",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
             "Content-Disposition": 'inline; filename="compiled.pdf"',
         },
     )

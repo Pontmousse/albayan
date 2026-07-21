@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addDocument2ImageBlock,
   createEmptyDocument2,
+  toDocumentJson2,
+  type Document2Json,
   type Document2Node,
 } from "@drghaliasri/butex/document2";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
@@ -43,7 +45,9 @@ export default function TahrirPage() {
 
   const [phase, setPhase] = useState<EditorPhase>("loading");
   const [article, setArticle] = useState<ArticleDetail | null>(null);
-  const [initialDocument, setInitialDocument] = useState<unknown>(undefined);
+  const [initialDocument, setInitialDocument] = useState<
+    Document2Json | Document2Node | undefined
+  >(undefined);
   const [editorKey, setEditorKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -53,10 +57,14 @@ export default function TahrirPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
-  /** نسخة حيّة للمستند — للوحة DEV JSON فقط. */
-  const [liveDocument, setLiveDocument] = useState<unknown>(null);
+  /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
+  const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
 
-  const latestDocument = useRef<Document2Node | null>(null);
+  const latestDocumentNode = useRef<Document2Node | null>(null);
+  const latestDocumentJson = useRef<Document2Json | null>(null);
+  const savedDocumentSnapshot = useRef<string | null>(null);
+  const editorRootRef = useRef<HTMLDivElement>(null);
+  const actionBarRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const showDevJson = isDevMode();
 
@@ -80,7 +88,7 @@ export default function TahrirPage() {
 
         setArticle(data);
 
-        let doc: unknown = null;
+        let doc: Document2Json | null = null;
         try {
           const payload = await getArticleDocument(getToken, articleId);
           doc = payload.document;
@@ -93,9 +101,11 @@ export default function TahrirPage() {
         await ensureButexMathJax();
         if (cancelled) return;
 
+        latestDocumentJson.current = doc;
+        savedDocumentSnapshot.current = null;
         setInitialDocument(doc ?? undefined);
         if (isDevMode()) {
-          setLiveDocument(doc ?? createEmptyDocument2());
+          setLiveDocument(doc);
         }
         if (doc) prefetchFromDocument(doc);
         setPhase("ready");
@@ -113,6 +123,35 @@ export default function TahrirPage() {
   }, [getToken, articleId, router, prefetchFromDocument]);
 
   useEffect(() => {
+    const root = editorRootRef.current;
+    const actionBar = actionBarRef.current;
+    const siteHeader = document.querySelector<HTMLElement>("[data-site-header]");
+    if (!root || !actionBar) return;
+
+    const updateStickyOffsets = () => {
+      root.style.setProperty(
+        "--article-editor-site-header-height",
+        `${siteHeader?.getBoundingClientRect().height ?? 0}px`,
+      );
+      root.style.setProperty(
+        "--article-editor-actions-height",
+        `${actionBar.getBoundingClientRect().height}px`,
+      );
+    };
+
+    updateStickyOffsets();
+    const observer = new ResizeObserver(updateStickyOffsets);
+    observer.observe(actionBar);
+    if (siteHeader) observer.observe(siteHeader);
+    window.addEventListener("resize", updateStickyOffsets);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateStickyOffsets);
+    };
+  }, []);
+
+  useEffect(() => {
     function onBeforeUnload(event: BeforeUnloadEvent) {
       if (dirty) event.preventDefault();
     }
@@ -122,29 +161,58 @@ export default function TahrirPage() {
 
   const handleDocumentChange = useCallback(
     (doc: Document2Node) => {
-      latestDocument.current = doc;
-      setDirty(true);
-      setSaveMessage(null);
-      prefetchFromDocument(doc);
-      if (isDevMode()) {
-        setLiveDocument(doc);
+      latestDocumentNode.current = doc;
+    },
+    [],
+  );
+
+  const handleDocumentJsonChange = useCallback(
+    (doc: Document2Json) => {
+      latestDocumentJson.current = doc;
+      const snapshot = JSON.stringify(doc);
+
+      if (savedDocumentSnapshot.current === null) {
+        savedDocumentSnapshot.current = snapshot;
+        setDirty(false);
+      } else {
+        const changed = snapshot !== savedDocumentSnapshot.current;
+        setDirty(changed);
+        if (changed) setSaveMessage(null);
       }
+
+      prefetchFromDocument(doc);
+      if (isDevMode()) setLiveDocument(doc);
     },
     [prefetchFromDocument],
   );
 
   async function handleSave(): Promise<boolean> {
-    if (!latestDocument.current) {
+    if (!latestDocumentJson.current) {
       setSaveMessage("لا تغييرات للحفظ.");
       return true;
     }
+    const documentToSave = latestDocumentJson.current;
+    const snapshotToSave = JSON.stringify(documentToSave);
     setSaving(true);
     setError(null);
     try {
-      await saveArticleDocument(getToken, articleId, latestDocument.current);
-      setDirty(false);
-      setSaveMessage("تم الحفظ.");
-      return true;
+      await saveArticleDocument(getToken, articleId, documentToSave);
+      savedDocumentSnapshot.current = snapshotToSave;
+
+      const currentSnapshot = latestDocumentJson.current
+        ? JSON.stringify(latestDocumentJson.current)
+        : snapshotToSave;
+      const changedWhileSaving = currentSnapshot !== snapshotToSave;
+      setDirty(changedWhileSaving);
+      setSaveMessage(
+        changedWhileSaving
+          ? "تم حفظ النسخة السابقة — توجد تغييرات أحدث غير محفوظة."
+          : "تم الحفظ.",
+      );
+      if (changedWhileSaving) {
+        setError("تغيّر المستند أثناء الحفظ؛ احفظ التغييرات الأحدث قبل التقديم.");
+      }
+      return !changedWhileSaving;
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر حفظ المخطوطة.");
       return false;
@@ -189,12 +257,14 @@ export default function TahrirPage() {
       const { asset_id } = await uploadArticleAsset(getToken, articleId, file);
       await ensureAsset(asset_id);
 
-      const base = latestDocument.current ?? createEmptyDocument2();
+      const base = latestDocumentNode.current ?? createEmptyDocument2();
       const next = addDocument2ImageBlock(base, asset_id);
-      latestDocument.current = next;
+      const nextJson = toDocumentJson2(next);
+      latestDocumentNode.current = next;
+      latestDocumentJson.current = nextJson;
       setInitialDocument(next);
       if (isDevMode()) {
-        setLiveDocument(next);
+        setLiveDocument(nextJson);
       }
       setEditorKey((k) => k + 1);
       setDirty(true);
@@ -208,8 +278,14 @@ export default function TahrirPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
-      <div className="sticky top-0 z-40 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm">
+    <div
+      ref={editorRootRef}
+      className="article-editor flex flex-1 flex-col bg-[var(--journal-paper)]"
+    >
+      <div
+        ref={actionBarRef}
+        className="article-editor__actions sticky z-30 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm"
+      >
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <button
@@ -307,12 +383,7 @@ export default function TahrirPage() {
           <ButexDocumentEditor2
             key={editorKey}
             className={ALBAYAN_BUTEX_THEME_CLASS}
-            initialDocument={
-              initialDocument as
-                | import("@drghaliasri/butex/document2").Document2Json
-                | Document2Node
-                | undefined
-            }
+            initialDocument={initialDocument}
             uiLocale="ar"
             documentDirection="rtl"
             equationSide="arabic"
@@ -320,6 +391,7 @@ export default function TahrirPage() {
             editableEquations
             resolveImageUrl={resolveImageUrl}
             onDocumentChange={handleDocumentChange}
+            onDocumentJsonChange={handleDocumentJsonChange}
           />
         ) : null}
       </main>

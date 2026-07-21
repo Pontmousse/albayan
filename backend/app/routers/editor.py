@@ -39,7 +39,9 @@ def _pdf_response(article_id: uuid.UUID, db) -> Response:
         content=body,
         media_type="application/pdf",
         headers={
-            "Cache-Control": "private, max-age=60",
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
             "Content-Disposition": 'inline; filename="compiled.pdf"',
         },
     )
