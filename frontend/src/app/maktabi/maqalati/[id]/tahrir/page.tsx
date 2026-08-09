@@ -4,13 +4,8 @@ import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  addDocument2ImageBlock,
-  createEmptyDocument2,
-  toDocumentJson2,
-  type Document2Json,
-  type Document2Node,
-} from "@drghaliasri/butex/document2";
+import type { Document2Json } from "@drghaliasri/butex/document2";
+import type { ButexDocumentEditor2Ref } from "@drghaliasri/butex/react-document2";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
@@ -46,9 +41,8 @@ export default function TahrirPage() {
   const [phase, setPhase] = useState<EditorPhase>("loading");
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [initialDocument, setInitialDocument] = useState<
-    Document2Json | Document2Node | undefined
+    Document2Json | undefined
   >(undefined);
-  const [editorKey, setEditorKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -60,9 +54,9 @@ export default function TahrirPage() {
   /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
   const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
 
-  const latestDocumentNode = useRef<Document2Node | null>(null);
   const latestDocumentJson = useRef<Document2Json | null>(null);
   const savedDocumentSnapshot = useRef<string | null>(null);
+  const editorRef = useRef<ButexDocumentEditor2Ref>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,13 +153,6 @@ export default function TahrirPage() {
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
 
-  const handleDocumentChange = useCallback(
-    (doc: Document2Node) => {
-      latestDocumentNode.current = doc;
-    },
-    [],
-  );
-
   const handleDocumentJsonChange = useCallback(
     (doc: Document2Json) => {
       latestDocumentJson.current = doc;
@@ -257,17 +244,7 @@ export default function TahrirPage() {
       const { asset_id } = await uploadArticleAsset(getToken, articleId, file);
       await ensureAsset(asset_id);
 
-      const base = latestDocumentNode.current ?? createEmptyDocument2();
-      const next = addDocument2ImageBlock(base, asset_id);
-      const nextJson = toDocumentJson2(next);
-      latestDocumentNode.current = next;
-      latestDocumentJson.current = nextJson;
-      setInitialDocument(next);
-      if (isDevMode()) {
-        setLiveDocument(nextJson);
-      }
-      setEditorKey((k) => k + 1);
-      setDirty(true);
+      editorRef.current?.insertImageBlock(asset_id);
       setSaveMessage("أُدرجت الصورة — احفظ المخطوطة.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
@@ -381,7 +358,7 @@ export default function TahrirPage() {
 
         {phase === "ready" ? (
           <ButexDocumentEditor2
-            key={editorKey}
+            ref={editorRef}
             className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={initialDocument}
             uiLocale="ar"
@@ -390,7 +367,6 @@ export default function TahrirPage() {
             mathOutput="svg"
             editableEquations
             resolveImageUrl={resolveImageUrl}
-            onDocumentChange={handleDocumentChange}
             onDocumentJsonChange={handleDocumentJsonChange}
           />
         ) : null}
