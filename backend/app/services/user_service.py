@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,9 +7,15 @@ from app.models.user import User
 
 
 def get_or_create_user(db: Session, auth: AuthContext) -> User:
+    if not auth.email:
+        raise HTTPException(
+            status_code=400,
+            detail="يلزم وجود بريد إلكتروني للحساب.",
+        )
+
     user = db.scalar(select(User).where(User.clerk_id == auth.clerk_id))
     if user:
-        if auth.email and user.email != auth.email:
+        if user.email != auth.email:
             user.email = auth.email
             db.commit()
             db.refresh(user)
@@ -16,7 +23,7 @@ def get_or_create_user(db: Session, auth: AuthContext) -> User:
 
     user = User(
         clerk_id=auth.clerk_id,
-        email=auth.email or f"{auth.clerk_id}@unknown.local",
+        email=auth.email,
         full_name=auth.full_name,
     )
     db.add(user)

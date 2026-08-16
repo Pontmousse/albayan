@@ -1,13 +1,12 @@
 "use client";
 
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { getCurrentUser, updateCurrentUser } from "@/lib/api";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
 
 export function ProfileForm() {
   const { getToken } = useAuth();
-  const { user } = useUser();
   const [fullName, setFullName] = useState("");
   const [affiliation, setAffiliation] = useState("");
   const [bio, setBio] = useState("");
@@ -36,12 +35,6 @@ export function ProfileForm() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
-
-  useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress && !email) {
-      setEmail(user.primaryEmailAddress.emailAddress);
-    }
-  }, [user, email]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

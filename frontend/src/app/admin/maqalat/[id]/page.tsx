@@ -233,7 +233,9 @@ export default function AdminArticleDetailPage() {
       {article.abstract ? (
         <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-700">{article.abstract}</p>
+          <p className="mt-2 text-sm leading-7 text-slate-700 [overflow-wrap:anywhere]">
+            {article.abstract}
+          </p>
         </section>
       ) : null}
 
@@ -253,12 +255,12 @@ export default function AdminArticleDetailPage() {
             {article.authors.map((author) => (
               <li
                 key={author.user.id}
-                className="rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
+                className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
-                <span className="font-semibold text-slate-800">
+                <span className="min-w-0 font-semibold text-slate-800 [overflow-wrap:anywhere]">
                   {author.user.full_name || author.user.email}
                 </span>
-                <span className="ms-2 text-xs text-slate-500">
+                <span className="min-w-0 text-xs text-slate-500 [overflow-wrap:anywhere]">
                   {author.user.email}
                   {author.is_corresponding ? " · مراسل" : ""}
                 </span>
@@ -279,11 +281,11 @@ export default function AdminArticleDetailPage() {
                 key={row.user.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
-                <div>
-                  <p className="font-semibold text-slate-800">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 [overflow-wrap:anywhere]">
                     {row.user.full_name || row.user.email}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">
                     {row.user.email} · {REVIEWER_STATUS_LABELS[row.status]}
                   </p>
                 </div>
@@ -316,11 +318,11 @@ export default function AdminArticleDetailPage() {
                 key={row.user.id}
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
               >
-                <div>
-                  <p className="font-semibold text-slate-800">
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 [overflow-wrap:anywhere]">
                     {row.user.full_name || row.user.email}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">
                     {row.user.email} · عُيِّن في {formatDate(row.assigned_at)}
                   </p>
                 </div>
