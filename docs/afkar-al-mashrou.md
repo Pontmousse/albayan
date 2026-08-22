@@ -2,7 +2,7 @@
 
 > **الغرض:** حفظ الأفكار والتحديثات المخططة للمشروع قبل تنفيذها. يُحدَّث هذا الملف تدريجياً مع كل مرحلة أو حدث تطوير جديد.
 
-**آخر تحديث:** ٢١ أغسطس ٢٠٢٦
+**آخر تحديث:** ٢٢ أغسطس ٢٠٢٦
 
 ---
 
@@ -12,6 +12,7 @@
 2. [تقرير BuTeX — الاستخدام الحالي والمتطلبات لتحرير الكتب](#2-تقرير-butex--الاستخدام-الحالي-والمتطلبات-لتحرير-الكتب)
 3. [قائمة فيديوهات التعليم (Tutorials)](#3-قائمة-فيديوهات-التعليم-tutorials)
 4. [صفحة الإبلاغ عن المشاكل وآراء المستخدمين](#4-صفحة-الإبلاغ-عن-المشاكل-وآراء-المستخدمين)
+5. [خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية](#5-خادم-mcp--التفاعل-مع-المنصة-عبر-الوكلاء-الذكية)
 
 ---
 
@@ -342,11 +343,400 @@ created_at      timestamptz
 
 ---
 
+## 5. خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية
+
+> **الغرض:** تمكين مستخدمي المنصة من التفاعل مع «البيان» عبر وكلائهم الذكية (Cursor، Claude Desktop، وغيرهما) من خلال خادم **MCP** (Model Context Protocol).  
+> **الحالة:** فكرة مخططة — لم يُنفَّذ بعد.  
+> **تاريخ الدراسة:** ٢٢ أغسطس ٢٠٢٦
+
+### 5.1 ملخص تنفيذي
+
+منصة البيان لديها اليوم واجهة **Next.js** وخلفية **FastAPI** منظّمة جيداً (~٤٠ endpoint تحت `/api/v1/`)، مع مصادقة **Clerk** وأدوار (مؤلف، مراجع، محرر، مدير). هذا يجعلها **جاهزة تقنياً** لخادم MCP يغلّف الـ API الحالي دون إعادة بناء المنطق.
+
+**ما ينقص:** مسار مصادقة مخصّص للوكلاء (ليست جلسات المتصفح)، خادم MCP منفصل، طبقة تجريد لتحرير `document.json` (BuTeX)، وحواجز أمان للإجراءات الحساسة.
+
+### 5.2 كيف يعمل التطبيق اليوم (سياق للتصميم)
+
+#### مخطط عام
+
+```text
+المتصفح (Next.js + BuTeX)
+    ↓  Authorization: Bearer <Clerk JWT>
+FastAPI (/api/v1/*)
+    ↓
+PostgreSQL + S3 (document.json, assets, PDF) + مترجم LaTeX خارجي
+```
+
+#### الطبقات الرئيسية
+
+| الطبقة | التقنية | ملاحظة |
+|--------|---------|--------|
+| الواجهة | Next.js 15، Clerk | لا يوجد BFF — المتصفح يتصل مباشرة بـ FastAPI |
+| الخلفية | FastAPI، SQLAlchemy، Alembic | خدمات: article, review, editor, admin, compile, invitation |
+| المصادقة | Clerk JWT | `authenticate_request` + `authorized_parties` محددة |
+| الأدوار | مزيج | **admin** من Clerk `publicMetadata.role`؛ author/reviewer/editor من جداول الربط |
+| المحتوى | BuTeX `document.json` في S3 | مقال واحد = ملف JSON واحد لكل إصدار |
+| سير العمل | draft → submitted → under_review → accepted/rejected → published | المسودة فقط قابلة للتحرير |
+
+#### نقاط مهمة لـ MCP
+
+- المنصة ليست CRUD بسيطاً: التحرير يمر عبر `document.json` (BuTeX Document v2).
+- التقديم يتطلب تطابق العنوان/الملخص مع المستند + تجميع PDF ناجح (`compile_status=success`).
+- الصلاحيات تُفرض في الخلفية؛ الوصول غير المصرّح يُرجع **404** (وليس 403) لإخفاء وجود المورد.
+- المسودة المجمّدة (`status != draft`) ترفض أي تعديل (409).
+
+### 5.3 ما هو MCP في سياقنا؟
+
+خادم MCP يعرض على الوكيل الذكي ثلاثة أنواع من الواجهات:
+
+| النوع | الغرض | مثال في البيان |
+|-------|--------|----------------|
+| **Tools** | إجراءات يستدعيها الوكيل | `create_article`، `save_review` |
+| **Resources** | بيانات للقراءة عبر URI | `albayan://articles/{id}/document` |
+| **Prompts** | قوالب جاهزة | «ساعدني في صياغة ملخص المقال» |
+
+المستخدم يضيف خادم MCP في إعدادات وكيله، فيصبح الوكيل قادراً على التفاعل مع المنصة **نيابة عنه** — بشرط أن يكون **مصادقاً كمستخدم حقيقي** وبنفس صلاحياته.
+
+### 5.4 التوصية المعمارية
+
+#### الخيار الموصى به: خادم MCP منفصل يغلّف الـ API الحالي
+
+```text
+mcp-server/          ← مشروع Python مستقل (نفس لغة الخلفية)
+    ↓ يستدعي HTTP
+backend FastAPI      ← نفس الـ endpoints والصلاحيات
+    ↓
+PostgreSQL + S3
+```
+
+**لماذا منفصل وليس داخل FastAPI مباشرة؟**
+
+- بروتوكول MCP (stdio / Streamable HTTP / SSE) مختلف عن REST.
+- يمكن نشره على Railway كخدمة مستقلة.
+- يعيد استخدام الـ API دون تغيير المنطق الحالي.
+- عزل أسهل: rate limiting، audit log، تعطيل MCP دون المساس بالواجهة.
+
+**البديل لاحقاً:** دمج MCP داخل FastAPI عبر mount إذا أردنا تقليل عدد الخدمات.
+
+#### ما لا ننصح به
+
+1. فتح FastAPI بدون مصادقة للوكلاء.
+2. إعطاء الوكيل وصول admin افتراضياً.
+3. تخطي طبقة التجريد النصي لـ `document.json`.
+4. بناء MCP داخل Next.js (يجب أن يكون خدمة خلفية).
+5. تكرار منطق الصلاحيات — MCP يستدعي نفس API؛ لا يتصل بـ PostgreSQL مباشرة.
+
+### 5.5 المصادقة — أهم قرار تصميمي
+
+#### المشكلة
+
+Clerk اليوم مُصمَّم لجلسات المتصفح (`authorized_parties` = `localhost:3000`، `albayan-journal.org`). وكلاء MCP **ليسوا متصفحاً** — يحتاجون مسار مصادقة خاصاً.
+
+#### الخيار الموصى به: مفاتيح وكيل شخصية (Personal Agent Tokens)
+
+```text
+المستخدم → صفحة في /al-idayat → «إنشاء مفتاح وكيل»
+    ↓
+يُنشأ token (يُعرض مرة واحدة) مرتبط بـ user_id + نطاق صلاحيات (scopes)
+    ↓
+المستخدم يضعه في إعدادات MCP client
+    ↓
+خادم MCP يتحقق منه ويمرّر Authorization إلى FastAPI
+```
+
+**جدول مقترح:**
+
+```sql
+agent_tokens
+  id            UUID PK
+  user_id       UUID FK → users.id
+  token_hash    varchar(64)    -- SHA-256 للمفتاح؛ لا يُخزَّن النص الصريح
+  label         varchar(100)   -- مثال: «Cursor على جهازي»
+  scopes        text[]         -- انظر الجدول أدناه
+  expires_at    timestamptz    -- nullable = بلا انتهاء (أو 90 يوماً افتراضياً)
+  last_used_at  timestamptz
+  revoked_at    timestamptz    -- nullable
+  created_at    timestamptz
+```
+
+**النطاقات (scopes) المقترحة:**
+
+| Scope | ماذا يسمح |
+|-------|-----------|
+| `profile:read` | قراءة الملف الشخصي |
+| `articles:read` | قراءة مقالاتي وحالتها ومستنداتها |
+| `articles:write` | إنشاء/تحرير مسودات |
+| `articles:submit` | تقديم المقال (خطير — يتطلب تأكيداً) |
+| `reviews:read` | قراءة تعيينات المراجعة |
+| `reviews:write` | حفظ/إرسال تقرير المراجعة |
+| `editor:read` | قراءة مقالات التحرير |
+| `editor:write` | قرارات تحريرية |
+| `admin:*` | أدوات الإدارة (للمديرين فقط) |
+
+**تعديل مطلوب في الخلفية (لاحقاً):**
+
+- middleware يقبل إما Clerk JWT **أو** Agent Token.
+- Agent Token يُحوَّل إلى `AuthContext` نفسه (`clerk_id` / `user_id`).
+- التحقق من `scopes` قبل تنفيذ كل أداة MCP.
+
+#### لماذا ليس Clerk OAuth مباشرة في المرحلة الأولى؟
+
+- OAuth 2.1 لـ MCP Remote موجود لكنه أعقد (authorization server، consent screen، token refresh).
+- مفاتيح شخصية أبسط وأشبه بـ GitHub PAT — مناسبة لمرحلة تجريبية.
+- يمكن إضافة OAuth لاحقاً للمستخدمين الذين لا يريدون نسخ مفاتيح يدوياً.
+
+### 5.6 نقل البيانات (Transport)
+
+| النمط | مناسب لـ | ملاحظة |
+|-------|----------|--------|
+| **stdio** | Cursor محلي، تطوير | المستخدم يشغّل الخادم على جهازه؛ الـ token في متغير بيئة |
+| **Streamable HTTP** | إنتاج على Railway | المستخدمون يضيفون URL في إعدادات الوكيل |
+| **SSE** | بديل قديم | MCP يتجه نحو HTTP |
+
+**للإنتاج على Railway:** Streamable HTTP على مسار مثل `https://mcp.albayan-journal.org/mcp` مع HTTPS إلزامي.
+
+**مثال إعداد في Cursor (محلي):**
+
+```json
+{
+  "mcpServers": {
+    "albayan": {
+      "command": "python",
+      "args": ["-m", "albayan_mcp"],
+      "env": {
+        "ALBAYAN_API_URL": "https://api.albayan-journal.org",
+        "ALBAYAN_AGENT_TOKEN": "alb_xxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+**مثال إعداد عن بُعد (إنتاج):**
+
+```json
+{
+  "mcpServers": {
+    "albayan": {
+      "url": "https://mcp.albayan-journal.org/mcp",
+      "headers": {
+        "Authorization": "Bearer alb_xxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+### 5.7 تصميم الأدوات (Tools) — مقترح مرحلي
+
+#### المرحلة 1 — قراءة فقط (آمنة للتجربة)
+
+| Tool | يستدعي (API) | الغرض |
+|------|--------------|--------|
+| `get_my_profile` | `GET /api/v1/users/me` | معلومات الحساب |
+| `list_my_articles` | `GET /api/v1/articles/me` | قائمة المقالات |
+| `get_article` | `GET /api/v1/articles/{id}` | تفاصيل + حالة سير العمل |
+| `get_article_document` | `GET /api/v1/articles/{id}/document` | محتوى BuTeX JSON |
+| `get_article_as_text` | تحويل محلي | نص/markdown مبسّط من document.json |
+| `list_my_reviews` | `GET /api/v1/reviews/me` | تعيينات المراجعة |
+| `get_review_assignment` | `GET /api/v1/reviews/assignments/{id}` | تفاصيل تعيين |
+| `list_editor_articles` | `GET /api/v1/editor/articles` | مقالات التحرير |
+
+#### المرحلة 2 — كتابة المسودات
+
+| Tool | يستدعي (API) | تحذير |
+|------|--------------|--------|
+| `create_article` | `POST /api/v1/articles` | إنشاء مقال جديد |
+| `update_article_metadata` | `PATCH /api/v1/articles/{id}` | عنوان/ملخص — مسودة فقط |
+| `save_article_document` | `PUT /api/v1/articles/{id}/document` | حفظ document.json |
+| `update_article_from_text` | تحويل + PUT | طبقة تجريد نصية (موصى بها) |
+| `upload_article_image` | `POST /api/v1/articles/{id}/assets` | رفع صورة (base64 في الأداة) |
+| `request_compile` | `POST /api/v1/articles/{id}/compile` | طلب تجميع PDF |
+| `save_review_draft` | `PUT /api/v1/reviews/assignments/{id}/review` | للمراجعين |
+
+#### المرحلة 3 — إجراءات حساسة (تتطلب تأكيداً)
+
+| Tool | حماية مقترحة |
+|------|--------------|
+| `submit_article` | معامل `confirm: true` إلزامي + scope `articles:submit` |
+| `submit_review` | `confirm: true` + scope `reviews:write` |
+| `post_editor_decision` | للمحررين فقط + `confirm: true` |
+| `assign_reviewer` / `assign_editor` | scope `admin:*` + تأكيد |
+| `override_decision` | scope `admin:*` + تأكيد مزدوج |
+
+### 5.8 التحدي الأكبر: تحرير `document.json` عبر الوكيل
+
+BuTeX Document v2 JSON معقد (كتل، معادلات، صور). الوكيل لا يستطيع «كتابة مقال» بسهولة عبر JSON خام.
+
+#### ثلاثة مسارات (يمكن الجمع بينها)
+
+**أ) طبقة تجريد نصية (موصى بها للمؤلفين)**
+
+```text
+get_article_as_text(article_id)     → نص/markdown مبسّط
+update_article_from_text(...)       → يحوّل إلى document.json داخلياً
+```
+
+يحتاج محوّل BuTeX ↔ نص (قد يطلب توسيع الحزمة أو بناء طبقة في MCP).
+
+**ب) أدوات دقيقة على البنية (أكثر أماناً)**
+
+```text
+insert_paragraph(article_id, after_block_id, text)
+insert_equation(article_id, latex)
+update_block(article_id, block_id, content)
+```
+
+يتطلب فهم بنية BuTeX من الوكيل — أصعب على المستخدم العادي.
+
+**ج) تمرير JSON كاملاً (للمطورين فقط)**
+
+`save_article_document_raw` يقبل JSON كاملاً — **خطر**: الوكيل قد يفسد البنية. مناسب لبيئة التطوير مع تحذير صريح في وصف الأداة.
+
+**التوصية:** ابدأ بـ **(أ)** للمؤلفين، واحتفظ بـ **(ج)** كأداة `save_article_document_raw` للمطورين.
+
+### 5.9 Resources (للقراءة السريعة)
+
+```
+albayan://profile
+albayan://articles
+albayan://articles/{id}
+albayan://articles/{id}/document
+albayan://articles/{id}/status
+albayan://reviews/assignments
+albayan://reviews/assignments/{id}
+albayan://editor/articles
+```
+
+الوكيل يقرأ Resource قبل استدعاء Tool — يقلل الأخطاء ويوفّر سياقاً دون استهلاك tokens زائد.
+
+### 5.10 Prompts مفيدة (قوالب جاهزة)
+
+| Prompt | الغرض |
+|--------|--------|
+| `draft-abstract` | صياغة ملخص من محتوى المقال |
+| `review-checklist` | قائمة تحقق للمراجع قبل كتابة التقرير |
+| `status-summary` | ملخص حالة جميع مقالاتي |
+| `prepare-submission` | التحقق قبل التقديم (عنوان، ملخص، compile) |
+| `explain-workflow` | شرح حالة مقال معيّن للمستخدم |
+
+### 5.11 الأمان
+
+| المخاطرة | الحل |
+|----------|------|
+| الوكيل يقدّم مقالاً بالخطأ | `submit_*` يتطلب `confirm: true` صريحاً في وصف الأداة |
+| تسريب مسودة مراجع | الإبقاء على سياسة 404 الحالية — لا تغيير في MCP |
+| token مسروق | انتهاء صلاحية، إلغاء من الإعدادات، scopes ضيقة |
+| إساءة استخدام API | rate limit لكل token (مثلاً ٦٠ طلب/دقيقة) |
+| لا مساءلة | **audit log**: `user_id, tool, args_hash, timestamp, ip` |
+| تحرير مسودة مجمّدة | الخلفية ترفض 409 — MCP يمرّر الخطأ كما هو |
+| admin عبر وكيل | scope منفصل + تأكيد مزدوج للقرارات الحساسة |
+| رفع صور ضارة | نفس قيود MIME والحجم (٥ م.ب) كالواجهة |
+
+**جدول audit log مقترح:**
+
+```sql
+mcp_audit_log
+  id          UUID PK
+  user_id     UUID FK → users.id
+  token_id    UUID FK → agent_tokens.id (nullable)
+  tool_name   varchar(100)
+  args_hash   varchar(64)    -- SHA-256 لمعاملات الطلب (بدون محتوى حساس)
+  status      varchar(20)    -- success | error
+  error_code  integer (nullable)
+  ip_address  inet (nullable)
+  created_at  timestamptz
+```
+
+### 5.12 هيكل مشروع MCP مقترح
+
+```text
+mcp-server/
+├── pyproject.toml
+├── README.md               # كيف يضيف المستخدم الخادم في Cursor / Claude
+├── Dockerfile
+└── src/albayan_mcp/
+    ├── __main__.py         # نقطة الدخول (stdio أو HTTP)
+    ├── server.py           # تهيئة خادم MCP
+    ├── auth.py             # التحقق من agent token → headers
+    ├── api_client.py       # عميل HTTP لـ FastAPI (مثل frontend/lib/api)
+    ├── tools/
+    │   ├── articles.py
+    │   ├── reviews.py
+    │   ├── editor.py
+    │   └── admin.py        # يُحمّل فقط إن scope يسمح
+    ├── resources/
+    │   └── articles.py
+    ├── prompts/
+    │   └── authoring.py
+    └── converters/
+        └── document_text.py  # BuTeX JSON ↔ نص
+```
+
+**Stack:** Python + حزمة `mcp` الرسمية — نفس لغة الخلفية، إمكانية مشاركة schemas لاحقاً.
+
+### 5.13 تجربة المستخدم النهائية (سيناريو كامل)
+
+```text
+1. المستخدم يسجّل دخوله في albayan-journal.org
+2. يذهب إلى الإعدادات (/al-idayat) → «مفاتيح الوكيل» → ينشئ مفتاحاً بصلاحيات «مؤلف»
+3. في Cursor: Settings → MCP → يضيف خادم albayan بالـ token
+4. يقول للوكيل: «أنشئ مقالاً بعنوان ... واكتب مقدمة»
+5. الوكيل يستدعي:
+   create_article → update_article_from_text → request_compile
+6. المستخدم يراجع في المتصفح ثم يقدّم يدوياً (أو يطلب من الوكيل مع confirm: true)
+```
+
+### 5.14 ربط الأدوات بـ API الحالي (مرجع سريع)
+
+| الدور | مسارات API ذات الصلة |
+|-------|----------------------|
+| **مؤلف** | `/api/v1/articles/*` |
+| **مراجع** | `/api/v1/reviews/*` |
+| **محرر** | `/api/v1/editor/*` |
+| **مدير** | `/api/v1/admin/*` |
+| **عام** | `/api/v1/users/me`، `/api/v1/invitations/{token}/accept` |
+
+خادم MCP **لا يكرر** منطق `article_service` أو `review_service` — يستدعي نفس الـ endpoints التي تستخدمها الواجهة (`frontend/src/lib/api/*`).
+
+### 5.15 خارطة تنفيذ مقترحة
+
+| المرحلة | المحتوى |
+|---------|---------|
+| **0 — تحضير** | جدول `agent_tokens` + middleware في الخلفية + صفحة إنشاء/إلغاء في `/al-idayat` |
+| **1 — MVP** | MCP read-only: profile, list articles, get document, resources |
+| **2** | create + update metadata + compile |
+| **3** | طبقة نصية لتحرير المحتوى (`get_article_as_text` / `update_article_from_text`) |
+| **4** | أدوات المراجعة والتحرير |
+| **5** | أدوات الإدارة + لوحة audit |
+| **6 — اختياري** | OAuth 2.1 بدل المفاتيح اليدوية |
+
+### 5.16 أسئلة مفتوحة (قرارات لاحقة)
+
+1. هل نسمح للزوار (غير المسجّلين) بأي أدوات MCP؟ (التوصية: لا)
+2. هل نضع حداً أقصى لعدد المفاتيح النشطة لكل مستخدم؟ (مثلاً ٥)
+3. هل نُنشئ واجهة «محادثة مع الوكيل» داخل المنصة أم نكتفي بـ MCP الخارجي؟
+4. كيف نتعامل مع رفع الصور عبر الوكيل — base64 في الأداة أم presigned URL؟
+5. هل نُصدِر MCP server كحزمة pip عامة (`albayan-mcp`) أم خاصة بالمستودع فقط؟
+
+### 5.17 الخلاصة
+
+| جاهز اليوم | ينقص |
+|------------|-------|
+| API منظّم وواضح | مسار مصادقة للوكلاء |
+| صلاحيات مُعرَّفة (author/reviewer/editor/admin) | خادم MCP منفصل |
+| تخزين S3 ومنطق services | طبقة تجريد لـ document.json |
+| سير عمل مقالات كامل | حواجز أمان للإجراءات الحساسة |
+| | audit log + rate limiting |
+
+---
+
 ## سجل التحديثات
 
 | التاريخ | التحديث |
 |---------|---------|
 | ٢١/٠٨/٢٠٢٦ | إنشاء الملف: حالة المشروع، تقرير BuTeX، قائمة الفيديوهات، صفحة الإبلاغ |
+| ٢٢/٠٨/٢٠٢٦ | إضافة القسم ٥: خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية |
 
 ---
 
