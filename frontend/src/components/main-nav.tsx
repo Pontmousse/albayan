@@ -15,6 +15,8 @@ import {
   primaryNavLink,
   type NavGroup,
 } from "@/lib/nav-config";
+import { isDevMode } from "@/lib/dev-mode";
+import { AgentsNavLink } from "@/components/agents-nav-link";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -144,6 +146,7 @@ function MobileNav() {
     primaryNavLink,
     ...navGroups.flatMap((g) => g.items),
     contactNavLink,
+    ...(isDevMode() ? [{ href: "/wukala", label: "وكلاء" }] : []),
   ];
 
   return (
@@ -204,6 +207,7 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
+        {isDevMode() ? <AgentsNavLink /> : null}
       </nav>
     </>
   );

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
 if TYPE_CHECKING:
+    from app.models.agent_token import AgentToken
     from app.models.article import Article, ArticleAuthor, ArticleEditor, ArticleReviewer
     from app.models.invitation import Invitation
 
@@ -52,4 +53,8 @@ class User(Base):
     )
     sent_invitations: Mapped[list["Invitation"]] = relationship(
         back_populates="inviter"
+    )
+    agent_tokens: Mapped[list["AgentToken"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
     )

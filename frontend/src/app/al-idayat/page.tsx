@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DevModeAgentsCard } from "@/components/settings/dev-mode-agents-card";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SecurityForm } from "@/components/settings/security-form";
 
@@ -20,6 +21,8 @@ export default function SettingsPage() {
         <p className="mt-2 text-sm text-slate-600">
           عدّل ملفك الشخصي وإعدادات الأمان المرتبطة بحسابك.
         </p>
+
+        <DevModeAgentsCard />
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <ProfileForm />
