@@ -155,7 +155,7 @@ def require_scope(principal: AuthPrincipal, scope: str) -> None:
 
 ## 5. Streamable HTTP + OAuth (Clerk)
 
-### اكتشاف OAuth — على `mcp-server` فقط
+### اكتشاف OAuth — على `mcp_server` فقط (HTTP)
 
 ```
 GET /.well-known/oauth-protected-resource
@@ -183,7 +183,7 @@ WWW-Authenticate: Bearer resource_metadata="https://mcp.albayan-journal.org/.wel
 2. يكتشف Clerk كـ Authorization Server (RFC 8414).
 3. PKCE flow → `access_token` (Clerk JWT).
 4. `POST /mcp` + `Authorization: Bearer <jwt>`.
-5. `mcp-server` يمرّر نفس التوكن إلى FastAPI.
+5. `mcp_server` يمرّر نفس التوكن إلى FastAPI.
 
 ### إعداد Clerk (يدوي — المرحلة ١)
 
@@ -370,14 +370,14 @@ DEV_MODE=true
 CLERK_SECRET_KEY=sk_...
 ```
 
-### mcp-server (stdio)
+### mcp_server (stdio)
 
 ```
 ALBAYAN_API_URL=http://localhost:8000
 ALBAYAN_AGENT_TOKEN=alb_...
 ```
 
-### mcp-server (Streamable HTTP / Railway)
+### mcp_server (Streamable HTTP / Railway)
 
 ```
 ALBAYAN_API_URL=https://api.albayan-journal.org

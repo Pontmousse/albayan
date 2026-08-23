@@ -7,7 +7,16 @@
 
 ---
 
-## قرار معماري ثابت: Thin Adapter
+### النشر على Railway (بدون Dockerfile)
+
+| الإعداد | القيمة |
+|---------|--------|
+| Root Directory | `mcp_server` |
+| Builder | Nixpacks (تلقائي من `pyproject.toml`) |
+| Start Command | `python -m albayan_mcp --transport streamable-http --host 0.0.0.0` |
+| `PORT` | يحقنه Railway تلقائياً |
+
+---
 
 `mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
 
@@ -72,12 +81,12 @@
 
 | البند | الحالة |
 |-------|--------|
-| خادم MCP (`mcp_server/`) | مخطّط |
-| مصادقة الطلبات بمفتاح الوكيل (middleware) | مخطّط |
+| خادم MCP (`mcp_server/`) | **منجز** (stdio + Streamable HTTP + `get_my_profile`) |
+| مصادقة الطلبات بمفتاح الوكيل (middleware) | **منجز** (`agent_auth.py` + `GET /users/me`) |
 | طبقة الجلسة المشتركة (`session/document.json`) | مخطّط |
 | أدوات MCP (tools / resources / prompts) | مخطّط |
 | مزامنة المحرر مع الجلسة | مخطّط |
-| OAuth 2.1 للوكلاء | لاحقاً |
+| OAuth Clerk عبر Streamable HTTP | **جزئي** (metadata + تمرير JWT؛ إعداد Clerk يدوي) |
 
 ---
 

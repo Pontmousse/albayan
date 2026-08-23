@@ -147,3 +147,43 @@ def delete_agent_token(
     row = get_agent_token_for_user(db, user_id, token_id)
     db.delete(row)
     db.commit()
+
+
+def authenticate_agent_token(
+    db: Session,
+    plaintext: str,
+) -> tuple[AgentToken, "User"]:
+    from app.models.user import User
+
+    if not plaintext.startswith("alb_"):
+        raise HTTPException(status_code=401, detail="مفتاح الوكيل غير صالح.")
+
+    token_hash = _hash_token(plaintext)
+    row = db.scalar(
+        select(AgentToken).where(
+            AgentToken.token_hash == token_hash,
+            AgentToken.revoked_at.is_(None),
+        )
+    )
+    if not row:
+        raise HTTPException(status_code=401, detail="مفتاح الوكيل غير صالح.")
+
+    if row.expires_at is not None:
+        from datetime import UTC, datetime
+
+        expires = row.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=UTC)
+        if expires < datetime.now(UTC):
+            raise HTTPException(status_code=401, detail="انتهت صلاحية مفتاح الوكيل.")
+
+    user = db.get(User, row.user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="مفتاح الوكيل غير صالح.")
+
+    from datetime import UTC, datetime
+
+    row.last_used_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(row)
+    return row, user
