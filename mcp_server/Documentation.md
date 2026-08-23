@@ -18,6 +18,8 @@
 
 ---
 
+## قرار معماري ثابت: Thin Adapter
+
 `mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
 
 - كل أدوات MCP تستدعي `GET/POST /api/v1/...` مع تمرير credential المستخدم كما هو (`alb_...` أو Clerk OAuth JWT).
