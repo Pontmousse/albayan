@@ -2,7 +2,36 @@
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
 > **آخر تحديث:** ٢٣ أغسطس ٢٠٢٦  
+> **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
+
+---
+
+### النشر على Railway (بدون Dockerfile)
+
+| الإعداد | القيمة |
+|---------|--------|
+| Root Directory | `mcp_server` |
+| Builder | Nixpacks (تلقائي من `pyproject.toml`) |
+| Start Command | `python -m albayan_mcp --transport streamable-http --host 0.0.0.0` |
+| `PORT` | يحقنه Railway تلقائياً |
+
+---
+
+## قرار معماري ثابت: Thin Adapter
+
+`mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
+
+- كل أدوات MCP تستدعي `GET/POST /api/v1/...` مع تمرير credential المستخدم كما هو (`alb_...` أو Clerk OAuth JWT).
+- **FastAPI** هو المسؤول النهائي عن: المصادقة، التفويض، منطق الأعمال، والوصول إلى قاعدة البيانات.
+- **ممنوع** داخل `mcp_server/`: اتصال DB مباشر، استيراد نماذج SQLAlchemy، أو تكرار business logic.
+
+```text
+عميل AI → mcp_server (بروتوكول MCP فقط)
+              │  Authorization: Bearer <credential>
+              ▼
+          FastAPI /api/v1/...  ← المصدر الوحيد للحقيقة
+```
 
 ---
 
@@ -54,12 +83,12 @@
 
 | البند | الحالة |
 |-------|--------|
-| خادم MCP (`mcp-server/`) | مخطّط |
-| مصادقة الطلبات بمفتاح الوكيل (middleware) | مخطّط |
+| خادم MCP (`mcp_server/`) | **منجز** (stdio + Streamable HTTP + `get_my_profile`) |
+| مصادقة الطلبات بمفتاح الوكيل (middleware) | **منجز** (`agent_auth.py` + `GET /users/me`) |
 | طبقة الجلسة المشتركة (`session/document.json`) | مخطّط |
 | أدوات MCP (tools / resources / prompts) | مخطّط |
 | مزامنة المحرر مع الجلسة | مخطّط |
-| OAuth 2.1 للوكلاء | لاحقاً |
+| OAuth Clerk عبر Streamable HTTP | **جزئي** (metadata + تمرير JWT؛ إعداد Clerk يدوي) |
 
 ---
 
@@ -227,7 +256,7 @@ articles/{id}/versions/v{n}/
 #### خادم MCP منفصل + API جلسة في الخلفية
 
 ```text
-mcp-server/                    ← بروتوكول MCP
+mcp_server/                    ← بروتوكول MCP (thin adapter → FastAPI)
     ↓ HTTP
 backend FastAPI
     ├── /api/v1/articles/.../session   ← جديد: جلسة مشتركة
@@ -485,7 +514,7 @@ mcp_audit_log
 ### 1.14 هيكل مشروع MCP مقترح
 
 ```text
-mcp-server/
+mcp_server/
 └── src/albayan_mcp/
     ├── tools/
     │   ├── session.py          ← update_session_from_text، get_session_*
