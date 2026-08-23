@@ -1,8 +1,8 @@
 # تصميم: MCP Server — مصادقة موحّدة (API Key + Clerk OAuth) و Streamable HTTP
 
 **التاريخ:** 2026-08-23  
-**النطاق:** طبقة مصادقة موحّدة في FastAPI، خادم MCP (`mcp-server/`) بـ stdio + **Streamable HTTP**، أداة تجريبية `get_my_profile`.  
-**مرجع:** `MCP/Documentation.md` — الجلسة المشتركة والأدوات المستقبلية خارج هذا النطاق.
+**النطاق:** طبقة مصادقة موحّدة في FastAPI، خادم MCP (`mcp_server/`) بـ stdio + **Streamable HTTP**، أداة تجريبية `get_my_profile`.  
+**مرجع:** `mcp_server/Documentation.md` — الجلسة المشتركة والأدوات المستقبلية خارج هذا النطاق.
 
 ---
 
@@ -11,7 +11,7 @@
 المستخدمون يريدون ربط وكلاء ذكية (Cursor، Claude، ChatGPT) بمنصة البيان. اليوم:
 
 - مفاتيح الوكيل `alb_...` موجودة (فرع `cursor/agents-mcp-ui-f6d8`) لكن **لا middleware** يقبلها على الـ API.
-- لا يوجد `mcp-server/`.
+- لا يوجد `mcp_server/`.
 - OAuth عبر Clerk مطلوب كطريقة ثانية للمستخدمين النهائيين — بدون نسخ مفاتيح يدوياً.
 
 **الهدف:**
@@ -19,7 +19,7 @@
 1. **لا نلغي API Keys** — تبقى للمطورين والسكربتات.
 2. **نضيف Clerk OAuth** (Public Client + PKCE) لعملاء AI البعيدة.
 3. **نوحّد المصادقة** إلى `AuthPrincipal` واحد (`user_id` + `scopes`) قبل أي أداة MCP.
-4. **ننشر** `mcp-server/` كحاوية منفصلة على Railway (Streamable HTTP) مع stdio محلياً.
+4. **ننشر** `mcp_server/` كحاوية منفصلة على Railway (Streamable HTTP) مع stdio محلياً.
 
 **خارج النطاق (مؤجَّل):**
 
@@ -36,12 +36,13 @@
 | # | القرار |
 |---|--------|
 | 1 | **عملاء:** stdio (Cursor + `alb_`) **و** Streamable HTTP (Claude/ChatGPT + OAuth) — معاً من البداية |
-| 2 | **نشر:** كود في `mcp-server/`، **حاوية منفصلة** على Railway (`mcp.albayan-journal.org`) |
+| 2 | **نشر:** كود في `mcp_server/`، **حاوية منفصلة** على Railway (`mcp.albayan-journal.org`) |
 | 3 | **نقل HTTP:** **Streamable HTTP** فقط — لا HTTP+SSE القديم (2024-11-05) |
 | 4 | **نطاقات OAuth:** ثابتة — `profile:read` + `articles:read` فقط (قراءة) |
 | 5 | **نطاقات API Key:** مرنة من جدول `agent_tokens` (كما اليوم) |
-| 6 | **معمارية:** طبقة مصادقة موحّدة في **FastAPI**؛ `mcp-server` رفيع يمرّر `Bearer` |
-| 7 | **أداة تجريبية:** `get_my_profile` فقط في المرحلة الأولى |
+| 6 | **معمارية:** `mcp_server/` **thin adapter** فوق FastAPI فقط — يمرّر `Bearer` إلى `/api/v1/...`؛ **لا DB ولا business logic** داخل MCP |
+| 7 | **مصادقة/تفويض:** FastAPI فقط (`resolve_principal` + scopes) |
+| 8 | **أداة تجريبية:** `get_my_profile` فقط في المرحلة الأولى |
 
 ---
 
@@ -50,7 +51,7 @@
 ```text
 ┌─────────────────┐     stdio (محلي)      ┌──────────────────┐
 │  Cursor         │ ──────────────────────►│                  │
-└─────────────────┘                       │   mcp-server/    │
+└─────────────────┘                       │   mcp_server/    │
                                           │   (Python MCP    │
 ┌─────────────────┐  Streamable HTTP     │    SDK v2)       │
 │ Claude/ChatGPT  │ ─────────────────────►│                  │
@@ -90,6 +91,15 @@
 | إصدارات مواصفة MCP | تثبيت `mcp>=2,<3`؛ SDK v2 يدعم 2025 و2026 |
 | JWT OAuth ≠ JWT متصفح | OAuth app منفصل في Clerk؛ `authorized_parties` منفصلة |
 | عملاء قدامى (HTTP+SSE) | لا ندعمهم — نستهدف Claude/ChatGPT الحديثة |
+
+### قواعد `mcp_server/` (إلزامية)
+
+| مسموح | ممنوع |
+|-------|--------|
+| بروتوكول MCP (stdio / Streamable HTTP) | اتصال PostgreSQL أو SQLAlchemy |
+| OAuth metadata (RFC 9728) — HTTP فقط | تكرار `resolve_principal` أو التحقق من `alb_` |
+| `httpx` → `GET/POST /api/v1/...` | استيراد `app.models` أو `app.services` |
+| تمرير `Authorization: Bearer` كما ورد من العميل | قرارات تفويض (scopes) — تلك في FastAPI |
 
 ---
 
@@ -210,10 +220,10 @@ WWW-Authenticate: Bearer resource_metadata="https://mcp.albayan-journal.org/.wel
 
 ---
 
-## 6. هيكل `mcp-server/`
+## 6. هيكل `mcp_server/`
 
 ```text
-mcp-server/
+mcp_server/
 ├── pyproject.toml              # mcp>=2,<3 · httpx · uvicorn
 ├── Dockerfile
 └── src/albayan_mcp/
@@ -344,7 +354,7 @@ curl -X POST http://localhost:8080/mcp -H "Authorization: Bearer alb_..." ...
 |---------|---------|----------|
 | **0** | دمج `agent_tokens` من فرع الوكلاء | P0 |
 | **1** | `agent_auth.py` + `GET /users/me` للوكلاء | P0 — **الخطوة ٥** |
-| **2** | `mcp-server/` stdio + `get_my_profile` | P0 — **الخطوة ٦** |
+| **2** | `mcp_server/` stdio + `get_my_profile` | P0 — **الخطوة ٦** |
 | **3** | Streamable HTTP + OAuth metadata | P1 |
 | **4** | نشر Railway + إعداد Clerk OAuth app | P1 |
 | **5** | `list_my_articles` (نطاق `articles:read`) | P2 |
@@ -385,7 +395,7 @@ PORT=8080
 |------|----------------------|
 | Clerk JWT للمتصفح | `resolve_principal` موحّد |
 | `agent_tokens` (فرع dev) | middleware + دمج الفرع |
-| توثيق MCP | `mcp-server/` + Streamable HTTP |
+| توثيق MCP | `mcp_server/` + Streamable HTTP |
 | | OAuth metadata (RFC 9728) |
 | | `get_my_profile` |
 
