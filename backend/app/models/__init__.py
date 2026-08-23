@@ -1,3 +1,4 @@
+from app.models.agent_token import AgentToken
 from app.models.article import (
     Article,
     ArticleAuthor,
@@ -21,6 +22,7 @@ from app.models.invitation import Invitation
 from app.models.user import User
 
 __all__ = [
+    "AgentToken",
     "Article",
     "ArticleAuthor",
     "ArticleEditor",
