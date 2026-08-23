@@ -47,6 +47,7 @@ npm run dev
 
 ```bash
 cd backend
+cp .env.example .env
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1   # Windows PowerShell
 pip install -r requirements.txt
@@ -61,6 +62,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - `frontend/` — واجهة المستخدم (App Router، عربي/RTL).
 - `backend/` — واجهة برمجة التطبيقات والمنطق الخادمي وقاعدة البيانات.
+- `mcp_server/` — محوّل MCP رفيع فوق FastAPI؛ انسخ `mcp_server/.env.example` إلى `mcp_server/.env`.
 - `documentation/` — توثيق التصميم؛ راجع [database-schema.md](documentation/database-schema.md) لمخطط PostgreSQL.
 
 ## Docker
