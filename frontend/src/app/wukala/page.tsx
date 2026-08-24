@@ -4,17 +4,17 @@ import { McpClientCarousel } from "@/components/wukala/mcp-client-carousel";
 import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
 
 export const metadata: Metadata = {
-  title: "الوكلاء (MCP) | البيان",
+  title: "الوكلاء | البيان",
   description:
-    "اربط وكيلك الذكي بمجلة البيان عبر MCP — Cursor أو ChatGPT أو Claude.",
+    "اربط وكيلك الذكي بمجلة البيان — Cursor أو ChatGPT أو Claude.",
 };
 
 export default function WukalaPage() {
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:py-14">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
-          وضع تطوير · MCP
+        <p className="text-xs font-semibold text-emerald-700">
+          ربط الوكيل الذكي
         </p>
         <h1
           className="mt-3 text-balance text-3xl font-bold text-slate-900 sm:text-4xl"
@@ -23,14 +23,12 @@ export default function WukalaPage() {
           اربط وكيلك الذكي بمجلة البيان
         </h1>
         <p className="mt-4 text-pretty text-sm leading-7 text-slate-600 sm:text-base">
-          استخدم{" "}
+          اختر برنامجك (
           <strong className="font-semibold text-slate-800">Cursor</strong> أو{" "}
           <strong className="font-semibold text-slate-800">ChatGPT</strong> أو{" "}
-          <strong className="font-semibold text-slate-800">Claude</strong> عبر{" "}
-          <strong className="font-semibold text-slate-800">
-            Model Context Protocol (MCP)
-          </strong>{" "}
-          — الوكيل يساعدك في الكتابة، وأنت تحفظ وتقدّم من المنصة.
+          <strong className="font-semibold text-slate-800">Claude</strong>
+          ) واتبع الخطوات. البرنامج يساعدك في الكتابة، وأنت تحفظ وتقدّم من
+          منصة البيان.
         </p>
 
         <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -46,10 +44,11 @@ export default function WukalaPage() {
         <McpClientCarousel />
 
         <section className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900">ما هو MCP؟</h2>
+          <h2 className="text-lg font-bold text-slate-900">كيف يعمل الربط؟</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            بروتوكول مفتوح يربط الوكيل بتطبيقاتك بأمان. خادم البيان طبقة رفيعة
-            فوق واجهة الـ API — المصادقة والصلاحيات على الخادم الخلفي.
+            الربط يعني أن برنامج الذكاء الاصطناعي يرى ملفك في المجلة بعد أن
+            تسمح له. نسمّي هذه الصلة MCP. لا يقدّم المقال عنك ولا يتّخذ قرارات
+            التحرير.
           </p>
         </section>
 

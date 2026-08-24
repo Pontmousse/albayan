@@ -100,10 +100,10 @@ export function McpClientCarousel() {
             className="text-xl font-bold text-slate-900"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
-            تفعيل الخادم حسب عميلك
+            اختر برنامجك واتبع الخطوات
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            اسحب البطاقات يميناً ويساراً — أو اختر من الأزرار أدناه
+            اسحب البطاقات أو اضغط اسم البرنامج أعلاه
           </p>
         </div>
         <p className="text-xs text-slate-500">
@@ -260,11 +260,11 @@ export function McpClientCarousel() {
       {active.id === "cursor" && (
         <div className="mt-6">
           <h3 className="text-sm font-bold text-slate-900">
-            مثال إعداد Cursor (stdio)
+            مثال ملف الربط في Cursor
           </h3>
           <p className="mt-1 text-xs text-slate-600">
-            استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاحك
-            بعد إنشائه.
+            استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاح
+            الربط بعد إنشائه.
           </p>
           <pre
             dir="ltr"
@@ -277,7 +277,7 @@ export function McpClientCarousel() {
 
       {(active.id === "chatgpt" || active.id === "claude") && (
         <div className="mt-6 rounded-xl border border-[var(--journal-border)] bg-white/80 p-4">
-          <p className="text-sm font-semibold text-slate-800">عنوان الخادم (URL)</p>
+          <p className="text-sm font-semibold text-slate-800">عنوان الخادم</p>
           <p
             dir="ltr"
             className="mt-2 break-all rounded-md bg-slate-100 px-3 py-2 text-start text-sm font-mono text-slate-800"
@@ -285,7 +285,8 @@ export function McpClientCarousel() {
             {MCP_SERVER_URL}
           </p>
           <p className="mt-2 text-xs leading-5 text-slate-600">
-            Streamable HTTP — سجّل الدخول عند الطلب. لا حاجة لنسخ مفتاح يدوياً.
+            هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك —
+            دون نسخ مفتاح ربط.
           </p>
         </div>
       )}
