@@ -1,9 +1,9 @@
-import { DevModeGate } from "@/components/dev-mode-gate";
+import { McpGate } from "@/components/mcp-gate";
 
 export default function WukalaLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <DevModeGate>{children}</DevModeGate>;
+  return <McpGate>{children}</McpGate>;
 }

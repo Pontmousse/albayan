@@ -15,7 +15,7 @@ import {
   primaryNavLink,
   type NavGroup,
 } from "@/lib/nav-config";
-import { isDevMode } from "@/lib/dev-mode";
+import { isMcpEnabled } from "@/lib/mcp-enabled";
 import { AgentsNavLink } from "@/components/agents-nav-link";
 import { MobileSheet } from "@/components/mobile-sheet";
 
@@ -168,7 +168,7 @@ function MobileNav() {
       </button>
       <MobileSheet open={open} onClose={close} title="القائمة">
         <div id={panelId} className="flex flex-col">
-          {isDevMode() ? (
+          {isMcpEnabled() ? (
             <div className="border-b border-[var(--journal-border)] px-4 py-3">
               <AgentsNavLink onClick={close} />
             </div>
@@ -196,7 +196,7 @@ function MobileNav() {
 export function MainNav() {
   return (
     <>
-      {isDevMode() ? (
+      {isMcpEnabled() ? (
         <div className="md:hidden">
           <AgentsNavLink />
         </div>
@@ -211,7 +211,7 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
-        {isDevMode() ? <AgentsNavLink /> : null}
+        {isMcpEnabled() ? <AgentsNavLink /> : null}
       </nav>
     </>
   );

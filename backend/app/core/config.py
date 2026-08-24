@@ -4,7 +4,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def _parse_dev_mode(value: Any) -> bool:
+def _parse_bool_flag(value: Any) -> bool:
     """يقبل true/1/yes (بلا حساسية لحالة الأحرف)؛ أي شيء آخر = False."""
     if isinstance(value, bool):
         return value
@@ -33,13 +33,16 @@ class Settings(BaseSettings):
     email_from: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
-    # من DEV_MODE — يفعّل endpoints التشخيص فقط؛ لا تفعّله في الإنتاج.
+    # من DEV_MODE — يفعّل أدوات التشخيص (مثل compile.log)؛ لا تفعّله في الإنتاج.
     dev_mode: bool = False
 
-    @field_validator("dev_mode", mode="before")
+    # من MCP_ENABLED — يفعّل وكلاء MCP (مفاتيح الوكيل، مصادقة alb_، مسارات /wukala).
+    mcp_enabled: bool = False
+
+    @field_validator("dev_mode", "mcp_enabled", mode="before")
     @classmethod
-    def validate_dev_mode(cls, value: Any) -> bool:
-        return _parse_dev_mode(value)
+    def validate_bool_flags(cls, value: Any) -> bool:
+        return _parse_bool_flag(value)
 
     @property
     def cors_origins_list(self) -> list[str]:

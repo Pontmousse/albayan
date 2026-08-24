@@ -27,7 +27,7 @@ class AuthPrincipal:
 
 
 def _require_agent_auth_enabled() -> None:
-    if not settings.dev_mode:
+    if not settings.mcp_enabled:
         raise HTTPException(status_code=404, detail="غير موجود.")
 
 
@@ -42,7 +42,7 @@ def _extract_bearer_token(request: Request) -> str:
 
 
 def resolve_agent_principal(request: Request, db: Session) -> AuthPrincipal:
-    """يحلّ هوية الوكيل من alb_ أو Clerk JWT (OAuth). يتطلب DEV_MODE=true."""
+    """يحلّ هوية الوكيل من alb_ أو Clerk JWT (OAuth). يتطلب MCP_ENABLED=true."""
     _require_agent_auth_enabled()
     token = _extract_bearer_token(request)
 

@@ -18,14 +18,14 @@ router = APIRouter(
 )
 
 
-def _require_dev_mode() -> None:
-    if not settings.dev_mode:
+def _require_mcp_enabled() -> None:
+    if not settings.mcp_enabled:
         raise HTTPException(status_code=404, detail="غير موجود.")
 
 
 @router.get("", response_model=list[AgentTokenRead])
 def list_my_agent_tokens(auth: AuthDep, db: DbDep) -> list[AgentTokenRead]:
-    _require_dev_mode()
+    _require_mcp_enabled()
     user = current_user(auth, db)
     rows = agent_token_service.list_agent_tokens(db, user.id)
     return [AgentTokenRead.model_validate(row) for row in rows]
@@ -37,7 +37,7 @@ def create_my_agent_token(
     auth: AuthDep,
     db: DbDep,
 ) -> AgentTokenCreated:
-    _require_dev_mode()
+    _require_mcp_enabled()
     user = current_user(auth, db)
     row, plaintext = agent_token_service.create_agent_token(
         db,
@@ -56,7 +56,7 @@ def update_my_agent_token(
     auth: AuthDep,
     db: DbDep,
 ) -> AgentTokenRead:
-    _require_dev_mode()
+    _require_mcp_enabled()
     user = current_user(auth, db)
     row = agent_token_service.update_agent_token_label(
         db,
@@ -73,6 +73,6 @@ def delete_my_agent_token(
     auth: AuthDep,
     db: DbDep,
 ) -> None:
-    _require_dev_mode()
+    _require_mcp_enabled()
     user = current_user(auth, db)
     agent_token_service.delete_agent_token(db, user.id, token_id)

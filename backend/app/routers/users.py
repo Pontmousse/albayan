@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 def _read_user_me(request: Request, db: DbDep) -> UserRead:
     auth_header = request.headers.get("Authorization", "")
-    if settings.dev_mode and auth_header.startswith("Bearer "):
+    if settings.mcp_enabled and auth_header.startswith("Bearer "):
         principal = resolve_agent_principal(request, db)
         require_scope(principal, "profile:read")
         user = db.get(User, principal.user_id)
