@@ -1,4 +1,4 @@
-import { TUTORIALS_HREF } from "@/lib/tutorials";
+import { TUTORIALS_HREF, TUTORIALS_LABEL } from "@/lib/tutorials";
 
 export type NavLink = { href: string; label: string; description?: string };
 
@@ -25,7 +25,7 @@ export const navGroups: NavGroup[] = [
       },
       {
         href: TUTORIALS_HREF,
-        label: "فيديوهات تعليمية",
+        label: TUTORIALS_LABEL,
         description: "شروح قصيرة للحساب و«مكتبي» وكتابة المخطوطة",
       },
     ],
@@ -56,7 +56,7 @@ export const footerLinks = {
   authors: [
     { href: "/irshadat-al-mualifin", label: "إرشادات المؤلفين" },
     { href: "/siyasat-an-nashr", label: "سياسة النشر" },
-    { href: TUTORIALS_HREF, label: "فيديوهات تعليمية" },
+    { href: TUTORIALS_HREF, label: TUTORIALS_LABEL },
   ],
   about: [
     { href: "/hayat-at-tahrir", label: "هيئة التحرير" },
