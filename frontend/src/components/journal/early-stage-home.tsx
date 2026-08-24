@@ -80,7 +80,7 @@ export function EarlyStageHome() {
               >
                 إرشادات المؤلفين
               </Link>
-              . والنشر في هذه المرحلة بلا رسوم على المؤلفين، وبيان ذلك في{" "}
+              {". والنشر في هذه المرحلة بلا رسوم على المؤلفين، وبيان ذلك في "}
               <Link
                 href="/siyasat-an-nashr"
                 className="font-semibold text-[var(--journal-accent)] hover:underline"
