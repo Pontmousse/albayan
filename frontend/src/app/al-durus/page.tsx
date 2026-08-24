@@ -96,8 +96,7 @@ export default function TutorialsPage() {
           >
             إرشادات المؤلفين
           </Link>
-          {" و"}
-          <Link
+          {" و"}<Link
             href="/siyasat-an-nashr"
             className="font-semibold text-[var(--journal-accent)] hover:underline"
           >
