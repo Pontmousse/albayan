@@ -17,12 +17,12 @@ export default function EditorialBoardPage() {
           هيئة التحرير
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          القائمة الرسمية قيد الإعداد — لا نعرض أسماء وهمية.
+          تُعلن أسماء هيئة التحرير عند اكتمال تشكيلها.
         </p>
 
         <div className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 text-center shadow-sm">
           <p className="text-sm leading-7 text-slate-600">
-            ستُنشر أسماء هيئة التحرير هنا عند اعتمادها. للاستفسارات العامة، راجع{" "}
+            للاستفسارات المتعلقة بالمجلة، يُرجى مراجعة صفحة{" "}
             <Link href="/al-tawasul" className="font-semibold text-[var(--journal-accent)] hover:underline">
               التواصل
             </Link>

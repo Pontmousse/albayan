@@ -4,8 +4,8 @@ import { PublishedJournalHome } from "@/components/journal/published-journal-hom
 import { QuranicOpening } from "@/components/journal/quranic-opening";
 
 /**
- * الرئيسية العامة — تنتقل تلقائيًا بين واجهتين:
- * - published_count = 0 → EarlyStageHome (مرحلة مبكرة، بلا بيانات مختلقة)
+ * الرئيسية العامة — تنتقل تلقائيًا بين واجهتين (لا يظهر هذا للزوّار):
+ * - published_count = 0 → EarlyStageHome (مرحلة إعداد أولى الإصدارات)
  * - published_count > 0 → PublishedJournalHome (قائمة من API)
  *
  * مصدر الحقيقة: GET /api/v1/public/journal — لا تُضف مقالات ثابتة هنا.

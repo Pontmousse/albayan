@@ -23,7 +23,7 @@ export function PublishedJournalHome({ articles }: PublishedJournalHomeProps) {
               className="text-balance text-2xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl"
               style={{ fontFamily: "var(--font-display-ar), serif" }}
             >
-              منصة عربية للنشر العلمي الرصين والوصول الحر للمعرفة
+              مجلة علمية عربية للنشر الرصين والوصول الحر إلى المعرفة
             </h1>
             <p className="text-pretty text-sm leading-relaxed text-slate-600 sm:text-lg">
               تهدف «البيان» إلى دعم الباحثين والمؤسسات الأكاديمية عبر تحكيم أقران
