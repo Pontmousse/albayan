@@ -2,7 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import admin, agent_tokens, articles, editor, invitations, reviews, users
+from app.routers import (
+    admin,
+    agent_tokens,
+    articles,
+    editor,
+    invitations,
+    public,
+    reviews,
+    users,
+)
 
 app = FastAPI(
     title="البيان API",
@@ -18,6 +27,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(public.router)
 app.include_router(users.router)
 app.include_router(agent_tokens.router)
 app.include_router(articles.router)

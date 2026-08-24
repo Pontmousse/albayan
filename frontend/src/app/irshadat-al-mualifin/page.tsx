@@ -69,8 +69,15 @@ export default function AuthorGuidelinesPage() {
           <section>
             <h2 className="text-lg font-bold text-[var(--journal-accent)]">التقديم</h2>
             <p className="mt-2 text-sm leading-7">
-              بوابة الرفع والتتبع ستُفعَّل لاحقًا إن شاء الله. مؤقتًا يمكن التواصل
-              عبر قناة التواصل عندما تكون جاهزة.
+              يمكن للمؤلفين المسجّلين إنشاء مقالاتهم من{" "}
+              <Link href="/maktabi/maqalati/jadid" className="font-semibold text-[var(--journal-accent)] hover:underline">
+                مكتبي
+              </Link>
+              . إن لم يكن لديك حساب بعد،{" "}
+              <Link href="/tasjil" className="font-semibold text-[var(--journal-accent)] hover:underline">
+                أنشئ حسابًا
+              </Link>{" "}
+              ثم سجّل دخولك.
             </p>
           </section>
 

@@ -1,22 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "هيئة التحرير | البيان",
-  description: "أعضاء هيئة التحرير في مجلة البيان — نسخة أولية للعرض.",
+  description: "أعضاء هيئة التحرير في مجلة البيان.",
 };
-
-const editors = [
-  {
-    name: "د. أحمد الفلاح",
-    role: "رئيس التحرير",
-    affiliation: "قسم علوم الحاسوب — جامعة الأمثلة",
-  },
-  {
-    name: "د. فاطمة الزهراني",
-    role: "عضو هيئة التحرير",
-    affiliation: "معهد الدراسات الإسلامية والعلوم التطبيقية",
-  },
-];
 
 export default function EditorialBoardPage() {
   return (
@@ -29,23 +17,18 @@ export default function EditorialBoardPage() {
           هيئة التحرير
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          أسماء توضيحية للعرض — ستُستكمل القائمة الرسمية لاحقًا إن شاء الله.
+          القائمة الرسمية قيد الإعداد — لا نعرض أسماء وهمية.
         </p>
 
-        <ul className="mt-10 space-y-4">
-          {editors.map((editor) => (
-            <li
-              key={editor.name}
-              className="rounded-2xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
-            >
-              <p className="text-lg font-bold text-slate-900">{editor.name}</p>
-              <p className="mt-1 text-sm font-medium text-[var(--journal-accent)]">
-                {editor.role}
-              </p>
-              <p className="mt-2 text-sm text-slate-600">{editor.affiliation}</p>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 text-center shadow-sm">
+          <p className="text-sm leading-7 text-slate-600">
+            ستُنشر أسماء هيئة التحرير هنا عند اعتمادها. للاستفسارات العامة، راجع{" "}
+            <Link href="/al-tawasul" className="font-semibold text-[var(--journal-accent)] hover:underline">
+              التواصل
+            </Link>
+            .
+          </p>
+        </div>
       </main>
     </div>
   );
