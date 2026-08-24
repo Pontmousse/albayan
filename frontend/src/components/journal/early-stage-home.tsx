@@ -1,12 +1,17 @@
 import Link from "next/link";
+import { HomeHeroCtas } from "@/components/journal/home-hero-ctas";
 import { isMcpEnabled } from "@/lib/mcp-enabled";
+
+type EarlyStageHomeProps = {
+  signedIn: boolean;
+};
 
 /**
  * واجهة الرئيسية عندما published_count = 0.
  * للزوّار: مجلة في طور إعداد أولى إصداراتها — بلا بيانات مختلقة.
  * للوكلاء: لا تُذكر قاعدة البيانات أو التحويل التلقائي أو ISSN في النص الظاهر.
  */
-export function EarlyStageHome() {
+export function EarlyStageHome({ signedIn }: EarlyStageHomeProps) {
   const mcpEnabled = isMcpEnabled();
 
   return (
@@ -30,34 +35,11 @@ export function EarlyStageHome() {
               تسعى «البيان» إلى نشر بحث علمي رصين بالعربية، يراعي التوحيد والنزاهة،
               ويُحكَّم تحكيم أقران، ويُتاح للقارئ بلا رسوم على المؤلفين.
             </p>
-            <div className="flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-3">
-              <Link
-                href="/irshadat-al-mualifin"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--journal-accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)]"
-              >
-                إرشادات المؤلفين
-              </Link>
-              <Link
-                href="/tasjil"
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-[var(--journal-accent)]"
-              >
-                إنشاء حساب
-              </Link>
-              <Link
-                href="/tawajjuh"
-                className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-5 text-sm font-semibold text-slate-800 transition hover:border-[var(--journal-accent)]"
-              >
-                تسجيل الدخول
-              </Link>
-              {mcpEnabled ? (
-                <Link
-                  href="/wukala"
-                  className="inline-flex min-h-11 items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-5 text-sm font-semibold text-emerald-900 transition hover:border-emerald-300"
-                >
-                  الوكلاء الذكيون
-                </Link>
-              ) : null}
-            </div>
+            <HomeHeroCtas
+              variant="early"
+              mcpEnabled={mcpEnabled}
+              initialSignedIn={signedIn}
+            />
           </div>
         </div>
       </section>
