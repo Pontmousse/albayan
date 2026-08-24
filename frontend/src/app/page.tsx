@@ -1,3 +1,4 @@
+import { auth } from "@clerk/nextjs/server";
 import { fetchPublicJournal } from "@/lib/api/public";
 import { EarlyStageHome } from "@/components/journal/early-stage-home";
 import { PublishedJournalHome } from "@/components/journal/published-journal-home";
@@ -12,15 +13,20 @@ import { QuranicOpening } from "@/components/journal/quranic-opening";
  */
 export default async function Home() {
   const journal = await fetchPublicJournal();
+  const { isAuthenticated, userId } = await auth();
+  const signedIn = Boolean(isAuthenticated || userId);
 
   return (
     <div className="flex flex-1 flex-col">
       <main className="flex-1">
         <QuranicOpening />
         {journal.published_count === 0 ? (
-          <EarlyStageHome />
+          <EarlyStageHome signedIn={signedIn} />
         ) : (
-          <PublishedJournalHome articles={journal.articles} />
+          <PublishedJournalHome
+            articles={journal.articles}
+            signedIn={signedIn}
+          />
         )}
       </main>
     </div>
