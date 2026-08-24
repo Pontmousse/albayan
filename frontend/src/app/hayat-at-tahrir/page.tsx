@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { editorialMembers } from "@/lib/editorial-board";
 
 export const metadata: Metadata = {
   title: "هيئة التحرير | البيان",
@@ -16,19 +17,49 @@ export default function EditorialBoardPage() {
         >
           هيئة التحرير
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          تُعلن أسماء هيئة التحرير عند اكتمال تشكيلها.
+        <p className="mt-3 text-sm leading-8 text-slate-600 sm:text-base">
+          تشرف هيئة التحرير على المسار العلمي للمجلة: توجيه المخطوطات، ورعاية
+          التحكيم، واعتماد ما يصلح للنشر وفق معايير الرصانة والنزاهة.
         </p>
 
-        <div className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 text-center shadow-sm">
-          <p className="text-sm leading-7 text-slate-600">
-            للاستفسارات المتعلقة بالمجلة، يُرجى مراجعة صفحة{" "}
-            <Link href="/al-tawasul" className="font-semibold text-[var(--journal-accent)] hover:underline">
-              التواصل
-            </Link>
-            .
-          </p>
-        </div>
+        <ul className="mt-10 space-y-5">
+          {editorialMembers.map((member) => (
+            <li key={`${member.role}-${member.name}`}>
+              <article className="overflow-hidden rounded-2xl border border-[var(--journal-border)] bg-white/85 shadow-sm">
+                <div className="h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-[var(--journal-accent)]" />
+                <div className="px-6 py-6 sm:px-8 sm:py-7">
+                  <p className="text-xs font-semibold tracking-wide text-[var(--journal-accent)]">
+                    {member.role}
+                  </p>
+                  <h2
+                    className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl"
+                    style={{ fontFamily: "var(--font-display-ar), serif" }}
+                  >
+                    {member.name}
+                  </h2>
+                  <p className="mt-3 text-sm leading-8 text-slate-600 sm:text-[0.95rem]">
+                    {member.affiliation}
+                  </p>
+                </div>
+              </article>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-8 text-sm leading-8 text-slate-600">
+          يُعلن بقية أعضاء الهيئة عند اكتمال تشكيلها.
+        </p>
+
+        <p className="mt-8 rounded-xl border border-[var(--journal-border)] bg-white/70 p-4 text-sm leading-7 text-slate-700">
+          للاستفسارات المتعلقة بالمجلة، يُرجى مراجعة صفحة{" "}
+          <Link
+            href="/al-tawasul"
+            className="font-semibold text-[var(--journal-accent)] hover:underline"
+          >
+            التواصل
+          </Link>
+          .
+        </p>
       </main>
     </div>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import type { ReactNode } from "react";
-import { TUTORIALS_HREF } from "@/lib/tutorials";
+import { TUTORIALS_HREF, TUTORIALS_LABEL } from "@/lib/tutorials";
 
 const primaryClassName =
   "inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--journal-accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--journal-accent-strong)]";
@@ -65,7 +65,7 @@ export function HomeHeroCtas({
           مكتبي
         </CtaLink>
         <CtaLink href={TUTORIALS_HREF} className={secondaryClassName}>
-          فيديوهات تعليمية
+          {TUTORIALS_LABEL}
         </CtaLink>
         <CtaLink href="/siyasat-an-nashr" className={secondaryClassName}>
           سياسة النشر
@@ -88,7 +88,7 @@ export function HomeHeroCtas({
           سياسة النشر
         </CtaLink>
         <CtaLink href={TUTORIALS_HREF} className={secondaryClassName}>
-          فيديوهات تعليمية
+          {TUTORIALS_LABEL}
         </CtaLink>
         {mcpEnabled ? <McpCta /> : null}
       </div>
@@ -107,7 +107,7 @@ export function HomeHeroCtas({
         تسجيل الدخول
       </CtaLink>
       <CtaLink href={TUTORIALS_HREF} className={secondaryClassName}>
-        فيديوهات تعليمية
+        {TUTORIALS_LABEL}
       </CtaLink>
       {mcpEnabled ? <McpCta /> : null}
     </div>
