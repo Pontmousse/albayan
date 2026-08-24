@@ -16,6 +16,8 @@
 | Start Command | `python -m albayan_mcp --transport streamable-http --host 0.0.0.0` |
 | `PORT` | يحقنه Railway تلقائياً |
 
+للتشغيل المحلي انسخ `mcp_server/.env.example` إلى `mcp_server/.env` وعدّل `ALBAYAN_API_URL` و`ALBAYAN_AGENT_TOKEN`.
+
 ---
 
 ## قرار معماري ثابت: Thin Adapter
