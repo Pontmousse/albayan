@@ -170,7 +170,7 @@ function MobileNav() {
         <div id={panelId} className="flex flex-col">
           {isDevMode() ? (
             <div className="border-b border-[var(--journal-border)] px-4 py-3">
-              <AgentsNavLink />
+              <AgentsNavLink onClick={close} />
             </div>
           ) : null}
           <ul className="py-1">
