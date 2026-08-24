@@ -82,3 +82,17 @@ test("AgentsNavLink has no DEV or وضع تطوير badge", () => {
   assert.match(source, /agents-nav-link/);
   assert.match(source, /agents-nav-link__plus/);
 });
+
+test("MainNav renders AgentsNavLink on the mobile header, not as a plain list href", () => {
+  const source = readSrc("components/main-nav.tsx");
+  assert.match(source, /md:hidden[\s\S]*<AgentsNavLink/);
+  assert.equal(
+    /href:\s*"\/wukala"/.test(source),
+    false,
+    "do not keep a plain /wukala object inside flatLinks",
+  );
+  const hiddenDesktopNav = source.slice(
+    source.indexOf('className="hidden items-center'),
+  );
+  assert.match(hiddenDesktopNav, /<AgentsNavLink/);
+});

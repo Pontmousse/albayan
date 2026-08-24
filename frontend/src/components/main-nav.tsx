@@ -146,7 +146,6 @@ function MobileNav() {
     primaryNavLink,
     ...navGroups.flatMap((g) => g.items),
     contactNavLink,
-    ...(isDevMode() ? [{ href: "/wukala", label: "وكلاء" }] : []),
   ];
 
   return (
@@ -197,6 +196,11 @@ function MobileNav() {
 export function MainNav() {
   return (
     <>
+      {isDevMode() ? (
+        <div className="md:hidden">
+          <AgentsNavLink />
+        </div>
+      ) : null}
       <MobileNav />
       <nav
         aria-label="التنقل الرئيسي"
