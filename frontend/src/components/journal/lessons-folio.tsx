@@ -1,31 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type PointerEvent } from "react";
 import {
   toEasternNumeral,
   tutorialEpisodeLabel,
   type TutorialLesson,
 } from "@/lib/tutorials";
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+const SWIPE_THRESHOLD_PX = 48;
 
 function LessonAwaitingPanel({ title }: { title: string }) {
   return (
     <div
-      className="relative flex aspect-video flex-col items-center justify-center overflow-hidden bg-[linear-gradient(165deg,var(--journal-accent-soft)_0%,#fbf8f1_48%,#eef5f0_100%)] px-6 text-center"
+      className="relative flex aspect-video flex-col items-center justify-center overflow-hidden bg-[linear-gradient(165deg,var(--journal-accent-soft)_0%,#fbf8f1_48%,#eef5f0_100%)] ps-6 pe-6 text-center"
       aria-label={`${title} — يُستكمل عند تمام التسجيل`}
     >
       <div
         className="pointer-events-none absolute inset-x-8 top-6 h-px bg-gradient-to-l from-transparent via-[var(--journal-gold)]/70 to-transparent sm:inset-x-16"
         aria-hidden
       />
-      <p
-        className="text-2xl text-[var(--journal-gold)] sm:text-3xl"
-        aria-hidden
-      >
+      <p className="text-2xl text-[var(--journal-gold)] sm:text-3xl" aria-hidden>
         ۞
       </p>
       <p
@@ -54,7 +48,7 @@ function LessonStage({
   index: number;
 }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--journal-border)] bg-white/85 shadow-sm">
+    <article className="page-enter overflow-hidden rounded-2xl border border-[var(--journal-border)] bg-white/85 shadow-sm">
       <div className="h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-[var(--journal-accent)]" />
       {lesson.src ? (
         <video
@@ -69,7 +63,7 @@ function LessonStage({
       ) : (
         <LessonAwaitingPanel title={lesson.title} />
       )}
-      <div className="space-y-2 px-5 py-5 sm:px-7 sm:py-6">
+      <div className="space-y-2 ps-5 pe-5 py-5 sm:ps-7 sm:pe-7 sm:py-6">
         <p className="text-xs font-semibold tracking-wide text-[var(--journal-accent)]">
           {tutorialEpisodeLabel(index)}
         </p>
@@ -89,24 +83,17 @@ function LessonStage({
 
 export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const tablistId = useId();
+  const headingId = useId();
+  const pointerStartX = useRef<number | null>(null);
   const showSwitcher = lessons.length > 1;
   const active = lessons[activeIndex] ?? lessons[0];
 
-  const scrollToIndex = useCallback(
-    (index: number, { updateHash = true }: { updateHash?: boolean } = {}) => {
+  const goTo = useCallback(
+    (index: number) => {
       if (index < 0 || index >= lessons.length) return;
-      const el = scrollRef.current;
-      const child = el?.children[index] as HTMLElement | undefined;
-      child?.scrollIntoView({
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
-        inline: "center",
-        block: "nearest",
-      });
       setActiveIndex(index);
       const lesson = lessons[index];
-      if (updateHash && lesson && typeof window !== "undefined") {
+      if (lesson && typeof window !== "undefined") {
         const nextHash = `#${lesson.id}`;
         if (window.location.hash !== nextHash) {
           history.replaceState(null, "", nextHash);
@@ -121,57 +108,38 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
       const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
       if (!id) return;
       const index = lessons.findIndex((lesson) => lesson.id === id);
-      if (index >= 0) scrollToIndex(index, { updateHash: false });
+      if (index >= 0) setActiveIndex(index);
     }
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
-  }, [lessons, scrollToIndex]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || lessons.length < 2) return;
-
-    const onScroll = () => {
-      const container = scrollRef.current;
-      if (!container) return;
-      const center =
-        container.getBoundingClientRect().left + container.offsetWidth / 2;
-      let closest = 0;
-      let minDist = Infinity;
-      Array.from(container.children).forEach((child, i) => {
-        const rect = (child as HTMLElement).getBoundingClientRect();
-        const childCenter = rect.left + rect.width / 2;
-        const dist = Math.abs(center - childCenter);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = i;
-        }
-      });
-      setActiveIndex((current) => {
-        if (current === closest) return current;
-        const lesson = lessons[closest];
-        if (lesson && typeof window !== "undefined") {
-          const nextHash = `#${lesson.id}`;
-          if (window.location.hash !== nextHash) {
-            history.replaceState(null, "", nextHash);
-          }
-        }
-        return closest;
-      });
-    };
-
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
   }, [lessons]);
 
   if (lessons.length === 0 || !active) {
     return null;
   }
 
+  function onStagePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest("video, button, a, select")) {
+      pointerStartX.current = null;
+      return;
+    }
+    pointerStartX.current = event.clientX;
+  }
+
+  function onStagePointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (pointerStartX.current == null) return;
+    const deltaX = event.clientX - pointerStartX.current;
+    pointerStartX.current = null;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX) return;
+    // في RTL: الحركة نحو اليسار (نهاية الصفحة) = الدرس التالي.
+    if (deltaX < 0) goTo(activeIndex + 1);
+    else goTo(activeIndex - 1);
+  }
+
   return (
-    <section className="mt-8" aria-labelledby={tablistId}>
-      <h2 id={tablistId} className="sr-only">
+    <section className="mt-8" aria-labelledby={headingId}>
+      <h2 id={headingId} className="sr-only">
         فهرس الدروس
       </h2>
 
@@ -185,11 +153,13 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
           </label>
           <select
             id="lesson-select"
-            className="min-h-11 w-full rounded-xl border border-[var(--journal-border)] bg-white/90 px-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-[var(--journal-accent)]"
+            className="min-h-11 w-full rounded-xl border border-[var(--journal-border)] bg-white/90 ps-3 pe-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-[var(--journal-accent)]"
             value={active.id}
             onChange={(event) => {
-              const index = lessons.findIndex((lesson) => lesson.id === event.target.value);
-              if (index >= 0) scrollToIndex(index);
+              const index = lessons.findIndex(
+                (lesson) => lesson.id === event.target.value,
+              );
+              if (index >= 0) goTo(index);
             }}
           >
             {lessons.map((lesson, index) => (
@@ -217,16 +187,16 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
               onKeyDown={(event) => {
                 if (event.key === "ArrowLeft") {
                   event.preventDefault();
-                  scrollToIndex(Math.min(lessons.length - 1, activeIndex + 1));
+                  goTo(Math.min(lessons.length - 1, activeIndex + 1));
                 } else if (event.key === "ArrowRight") {
                   event.preventDefault();
-                  scrollToIndex(Math.max(0, activeIndex - 1));
+                  goTo(Math.max(0, activeIndex - 1));
                 } else if (event.key === "Home") {
                   event.preventDefault();
-                  scrollToIndex(0);
+                  goTo(0);
                 } else if (event.key === "End") {
                   event.preventDefault();
-                  scrollToIndex(lessons.length - 1);
+                  goTo(lessons.length - 1);
                 }
               }}
             >
@@ -239,9 +209,9 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
                     role="tab"
                     id={`lesson-tab-${lesson.id}`}
                     aria-selected={selected}
-                    aria-controls={`lesson-panel-${lesson.id}`}
+                    aria-controls="lesson-stage"
                     tabIndex={selected ? 0 : -1}
-                    onClick={() => scrollToIndex(index)}
+                    onClick={() => goTo(index)}
                     className={`shrink-0 rounded-xl border border-s-4 ps-3.5 pe-3.5 py-2.5 text-start transition lg:w-full ${
                       selected
                         ? "border-[var(--journal-accent)] border-s-[var(--journal-accent)] bg-[var(--journal-accent-soft)] shadow-sm"
@@ -280,45 +250,42 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
 
         <div>
           <div
-            ref={scrollRef}
-            className="flex snap-x snap-mandatory overflow-x-auto nav-scroll scroll-smooth"
-            style={{ scrollPaddingInline: "0.25rem" }}
+            id="lesson-stage"
+            role="tabpanel"
+            aria-labelledby={`lesson-tab-${active.id}`}
+            className="touch-pan-y"
+            onPointerDown={onStagePointerDown}
+            onPointerUp={onStagePointerUp}
+            onPointerCancel={() => {
+              pointerStartX.current = null;
+            }}
           >
-            {lessons.map((lesson, index) => (
-              <div
-                key={lesson.id}
-                id={`lesson-panel-${lesson.id}`}
-                role="tabpanel"
-                aria-labelledby={`lesson-tab-${lesson.id}`}
-                aria-hidden={index !== activeIndex}
-                className="w-full min-w-full shrink-0 snap-center snap-always"
-              >
-                <LessonStage lesson={lesson} index={index} />
-              </div>
-            ))}
+            <LessonStage
+              key={active.id}
+              lesson={active}
+              index={activeIndex}
+            />
           </div>
 
           {showSwitcher ? (
             <div className="mt-4 flex items-center justify-between gap-3">
               <button
                 type="button"
-                className="inline-flex min-h-10 items-center rounded-full border border-[var(--journal-border)] bg-white/95 px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--journal-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-10 items-center rounded-full border border-[var(--journal-border)] bg-white/95 ps-4 pe-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--journal-accent)] disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={activeIndex <= 0}
-                onClick={() => scrollToIndex(activeIndex - 1)}
+                onClick={() => goTo(activeIndex - 1)}
               >
                 السابق
               </button>
-              <p
-                className="text-xs font-medium text-slate-500"
-                aria-live="polite"
-              >
-                {toEasternNumeral(activeIndex + 1)} من {toEasternNumeral(lessons.length)}
+              <p className="text-xs font-medium text-slate-500" aria-live="polite">
+                {toEasternNumeral(activeIndex + 1)} من{" "}
+                {toEasternNumeral(lessons.length)}
               </p>
               <button
                 type="button"
-                className="inline-flex min-h-10 items-center rounded-full border border-[var(--journal-border)] bg-white/95 px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--journal-accent)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-10 items-center rounded-full border border-[var(--journal-border)] bg-white/95 ps-4 pe-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[var(--journal-accent)] disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={activeIndex >= lessons.length - 1}
-                onClick={() => scrollToIndex(activeIndex + 1)}
+                onClick={() => goTo(activeIndex + 1)}
               >
                 التالي
               </button>
