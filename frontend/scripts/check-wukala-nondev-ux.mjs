@@ -73,3 +73,12 @@ test("wukala page and carousel use the locked Arabic headings", () => {
   assert.match(carousel, /مثال ملف الربط في Cursor/);
   assert.match(carousel, /سجّل الدخول إلى التطبيق/);
 });
+
+test("AgentsNavLink has no DEV or وضع تطوير badge", () => {
+  const source = readSrc("components/agents-nav-link.tsx");
+  assert.equal(source.includes("DEV"), false);
+  assert.equal(source.includes("وضع تطوير"), false);
+  assert.match(source, /وكلاء/);
+  assert.match(source, /agents-nav-link/);
+  assert.match(source, /agents-nav-link__plus/);
+});
