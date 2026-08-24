@@ -90,6 +90,82 @@ body {
   }
 }
 
+/* MobileSheet — staggered nav rows on open */
+.mobile-sheet-stagger > *,
+.mobile-sheet-stagger li {
+  opacity: 0;
+  translate: 0 0.75rem;
+  transition:
+    opacity var(--mobile-sheet-enter-ms, 380ms) cubic-bezier(0.22, 1, 0.36, 1),
+    translate var(--mobile-sheet-enter-ms, 380ms) cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mobile-sheet-stagger[data-visible="true"] > * {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.mobile-sheet-stagger[data-visible="true"] > *:nth-child(1) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 1);
+}
+.mobile-sheet-stagger[data-visible="true"] > *:nth-child(2) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 2);
+}
+.mobile-sheet-stagger[data-visible="true"] > *:nth-child(3) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 3);
+}
+.mobile-sheet-stagger[data-visible="true"] > *:nth-child(4) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 4);
+}
+.mobile-sheet-stagger[data-visible="true"] > *:nth-child(5) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 5);
+}
+
+.mobile-sheet-stagger[data-visible="true"] li {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(1) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 2);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(2) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 3);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(3) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 4);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(4) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 5);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(5) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 6);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(6) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 7);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(7) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 8);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(8) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 9);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(9) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 10);
+}
+.mobile-sheet-stagger[data-visible="true"] li:nth-child(10) {
+  transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 11);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-sheet-stagger > *,
+  .mobile-sheet-stagger li {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+}
+
 a[href],
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
