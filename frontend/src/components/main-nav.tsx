@@ -17,6 +17,7 @@ import {
 } from "@/lib/nav-config";
 import { isDevMode } from "@/lib/dev-mode";
 import { AgentsNavLink } from "@/components/agents-nav-link";
+import { MobileSheet } from "@/components/mobile-sheet";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -165,30 +166,29 @@ function MobileNav() {
         القائمة
         <ChevronIcon open={open} />
       </button>
-      <div
-        id={panelId}
-        role="menu"
-        className={`absolute end-0 top-full z-50 mt-1.5 w-[min(18rem,calc(100vw-1.25rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md transition-all duration-150 ${
-          open
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-1 opacity-0"
-        }`}
-      >
-        <ul className="max-h-[min(70vh,24rem)] overflow-y-auto overscroll-contain py-1">
-          {flatLinks.map((item) => (
-            <li key={item.href} role="none">
-              <Link
-                href={item.href}
-                role="menuitem"
-                onClick={close}
-                className="flex min-h-11 items-center px-4 text-sm text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <MobileSheet open={open} onClose={close} title="القائمة">
+        <div id={panelId} className="flex flex-col">
+          {isDevMode() ? (
+            <div className="border-b border-[var(--journal-border)] px-4 py-3">
+              <AgentsNavLink />
+            </div>
+          ) : null}
+          <ul className="py-1">
+            {flatLinks.map((item) => (
+              <li key={item.href} role="none">
+                <Link
+                  href={item.href}
+                  role="menuitem"
+                  onClick={close}
+                  className="flex min-h-11 items-center px-4 text-sm text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </MobileSheet>
     </div>
   );
 }

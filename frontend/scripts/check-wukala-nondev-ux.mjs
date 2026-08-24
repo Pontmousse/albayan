@@ -96,3 +96,26 @@ test("MainNav renders AgentsNavLink on the mobile header, not as a plain list hr
   );
   assert.match(hiddenDesktopNav, /<AgentsNavLink/);
 });
+
+test("MobileSheet is a full-viewport dialog with logical positioning", () => {
+  const source = readSrc("components/mobile-sheet.tsx");
+  assert.match(source, /export function MobileSheet/);
+  assert.match(source, /fixed inset-0/);
+  assert.match(source, /role="dialog"/);
+  assert.match(source, /إغلاق/);
+  assert.equal(/\bleft-/.test(source), false);
+  assert.equal(/\bright-/.test(source), false);
+  assert.equal(source.includes("absolute end-0"), false);
+});
+
+test("MobileNav uses MobileSheet and not an end-0 popover", () => {
+  const source = readSrc("components/main-nav.tsx");
+  assert.match(source, /import \{ MobileSheet \} from "@\/components\/mobile-sheet"/);
+  assert.match(source, /<MobileSheet/);
+  assert.match(source, /title="القائمة"/);
+  const mobileNavStart = source.indexOf("function MobileNav");
+  const mobileNavEnd = source.indexOf("export function MainNav");
+  const mobileNav = source.slice(mobileNavStart, mobileNavEnd);
+  assert.equal(mobileNav.includes("absolute end-0"), false);
+  assert.match(mobileNav, /<AgentsNavLink/);
+});
