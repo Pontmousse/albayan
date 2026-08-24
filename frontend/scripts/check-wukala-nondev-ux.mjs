@@ -119,3 +119,13 @@ test("MobileNav uses MobileSheet and not an end-0 popover", () => {
   assert.equal(mobileNav.includes("absolute end-0"), false);
   assert.match(mobileNav, /<AgentsNavLink/);
 });
+
+test("AuthHeader uses MobileSheet on mobile and keeps the desktop popover", () => {
+  const source = readSrc("components/auth-header.tsx");
+  assert.match(source, /import \{ MobileSheet \} from "@\/components\/mobile-sheet"/);
+  assert.match(source, /<MobileSheet/);
+  assert.match(source, /title="الحساب"/);
+  assert.match(source, /hidden md:block/);
+  assert.match(source, /md:hidden/);
+  assert.match(source, /absolute end-0 top-full/);
+});

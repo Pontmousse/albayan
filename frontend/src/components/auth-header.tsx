@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { readClerkRole } from "@/lib/clerk-role";
+import { MobileSheet } from "@/components/mobile-sheet";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -96,6 +97,30 @@ export function AuthHeader() {
     "حسابي";
   const isAdmin = readClerkRole(user.publicMetadata) === "admin";
 
+  const menuLinks = (
+    <>
+      <MenuLink href="/maktabi" label="مكتبي" onClick={close} />
+      {isAdmin ? (
+        <MenuLink href="/admin" label="لوحة الإدارة" onClick={close} />
+      ) : null}
+      <MenuLink href="/al-idayat" label="إعدادات الحساب" onClick={close} />
+    </>
+  );
+
+  const signOutButton = (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() => {
+        close();
+        void signOut({ redirectUrl: "/" });
+      }}
+      className="flex min-h-11 w-full items-center px-4 text-start text-sm text-slate-600 transition-colors active:bg-rose-50 hover:bg-rose-50 hover:text-rose-800"
+    >
+      خروج
+    </button>
+  );
+
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -115,11 +140,30 @@ export function AuthHeader() {
         <ChevronIcon open={open} />
       </button>
 
+      <div className="md:hidden">
+        <MobileSheet open={open} onClose={close} title="الحساب">
+          <div className="border-b border-[var(--journal-border)] px-4 py-3">
+            <p className="truncate text-sm font-semibold text-slate-800">
+              {displayName}
+            </p>
+            {user.primaryEmailAddress?.emailAddress ? (
+              <p className="mt-0.5 truncate text-xs text-slate-500">
+                {user.primaryEmailAddress.emailAddress}
+              </p>
+            ) : null}
+          </div>
+          <div className="py-1">{menuLinks}</div>
+          <div className="border-t border-[var(--journal-border)] py-1">
+            {signOutButton}
+          </div>
+        </MobileSheet>
+      </div>
+
       <div
         id={panelId}
         role="menu"
         aria-label="قائمة الحساب"
-        className={`absolute end-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md transition-all duration-150 ease-out ${
+        className={`absolute end-0 top-full z-50 mt-1.5 hidden md:block w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md transition-all duration-150 ease-out ${
           open
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-1 opacity-0"
@@ -135,25 +179,9 @@ export function AuthHeader() {
             </p>
           ) : null}
         </div>
-        <div className="py-1">
-          <MenuLink href="/maktabi" label="مكتبي" onClick={close} />
-          {isAdmin ? (
-            <MenuLink href="/admin" label="لوحة الإدارة" onClick={close} />
-          ) : null}
-          <MenuLink href="/al-idayat" label="إعدادات الحساب" onClick={close} />
-        </div>
+        <div className="py-1">{menuLinks}</div>
         <div className="border-t border-[var(--journal-border)] py-1">
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => {
-              close();
-              void signOut({ redirectUrl: "/" });
-            }}
-            className="flex min-h-11 w-full items-center px-4 text-start text-sm text-slate-600 transition-colors active:bg-rose-50 hover:bg-rose-50 hover:text-rose-800"
-          >
-            خروج
-          </button>
+          {signOutButton}
         </div>
       </div>
     </div>
