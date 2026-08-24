@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { cardClassName } from "@/lib/auth-ui";
-import { isDevMode } from "@/lib/dev-mode";
+import { isMcpEnabled } from "@/lib/mcp-enabled";
 
 export function DevModeAgentsCard() {
-  if (!isDevMode()) {
+  if (!isMcpEnabled()) {
     return null;
   }
 

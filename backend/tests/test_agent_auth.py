@@ -53,8 +53,8 @@ class ResolveAgentPrincipalTests(unittest.TestCase):
         )
 
     @patch("app.core.agent_auth.settings")
-    def test_rejects_when_dev_mode_disabled(self, settings_mock: MagicMock) -> None:
-        settings_mock.dev_mode = False
+    def test_rejects_when_mcp_disabled(self, settings_mock: MagicMock) -> None:
+        settings_mock.mcp_enabled = False
         self.request.headers.get.return_value = "Bearer alb_abc"
         with self.assertRaises(HTTPException) as ctx:
             resolve_agent_principal(self.request, self.db)
@@ -67,7 +67,7 @@ class ResolveAgentPrincipalTests(unittest.TestCase):
         settings_mock: MagicMock,
         authenticate_mock: MagicMock,
     ) -> None:
-        settings_mock.dev_mode = True
+        settings_mock.mcp_enabled = True
         self.request.headers.get.return_value = "Bearer alb_secret"
         token_row = AgentToken(
             id=uuid.uuid4(),
@@ -94,7 +94,7 @@ class ResolveAgentPrincipalTests(unittest.TestCase):
         get_auth_mock: MagicMock,
         current_user_mock: MagicMock,
     ) -> None:
-        settings_mock.dev_mode = True
+        settings_mock.mcp_enabled = True
         self.request.headers.get.return_value = "Bearer clerk.jwt.token"
         auth_ctx = MagicMock(clerk_id="user_test")
         get_auth_mock.return_value = auth_ctx

@@ -9,6 +9,15 @@
 
 **قاعدة:** لا تضع منطق قاعدة بيانات أو أسرار خادمية داخل `frontend/`. استهلك الـ API من المتصفح عبر `NEXT_PUBLIC_API_URL` (انظر `frontend/.env.example`).
 
+## أعلام الميزات (feature flags)
+
+| العلم | الواجهة | الخلفية | يتحكم في |
+|-------|---------|---------|----------|
+| MCP | `NEXT_PUBLIC_MCP_ENABLED` | `MCP_ENABLED` | وكلاء MCP: زر «وكلاء»، `/wukala`، إدارة المفاتيح، مصادقة `alb_` |
+| تطوير | `NEXT_PUBLIC_DEV_MODE` | `DEV_MODE` | تشخيص التجميع: `compile.log`، لوحة TeX المُصدَّر، JSON حي في المحرر |
+
+الخلفية تحمي واجهات MCP بـ `MCP_ENABLED` — لا تعتمد على علم الواجهة وحده.
+
 ## العربية واتجاه النص
 
 - الجذر في الواجهة: `lang="ar"` و `dir="rtl"` في `frontend/src/app/layout.tsx`.

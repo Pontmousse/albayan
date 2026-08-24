@@ -40,14 +40,14 @@
 ## ما تم إنجازه حتى الآن
 
 > **الفرع:** `cursor/agents-mcp-ui-f6d8` (PR #4) — **لم يُدمَج في `main` بعد** (أغسطس ٢٠٢٦).  
-> **التفعيل:** `NEXT_PUBLIC_DEV_MODE=true` (واجهة) + `DEV_MODE=true` (خلفية) + `alembic upgrade head`.
+> **التفعيل:** `NEXT_PUBLIC_MCP_ENABLED=true` (واجهة) + `MCP_ENABLED=true` (خلفية) + `alembic upgrade head`.
 
 ### الواجهة (Next.js)
 
 | المكوّن / المسار | الوظيفة |
 |------------------|---------|
 | `AgentsNavLink` في `MainNav` | زر **«وكلاء»** في الهيدر (dev فقط) |
-| `DevModeGate` | إعادة توجيه `/` إن لم يكن dev mode |
+| `DevModeGate` / `McpGate` | إعادة توجيه `/` إن لم تكن MCP مفعّلة |
 | `/wukala` | صفحة شرح MCP + مثال إعداد Cursor |
 | `/al-idayat/wukala` | إدارة مفاتيح الوكيل (محمية — تسجيل دخول) |
 | `DevModeAgentsCard` في `/al-idayat` | بطاقة رابط سريع لمفاتيح الوكلاء |
@@ -62,7 +62,7 @@
 | `GET/POST/PATCH/DELETE /api/v1/users/me/agent-tokens` | CRUD مفاتيح الوكيل |
 | `agent_token_service.py` | إنشاء مفتاح `alb_...`، تخزين SHA-256 فقط، إلغاء، تحديث |
 | `AgentToken` model + schemas | التحقق من النطاقات والتسمية |
-| `_require_dev_mode()` | 404 عند `DEV_MODE=false` |
+| `_require_mcp_enabled()` | 404 عند `MCP_ENABLED=false` |
 
 ### قاعدة البيانات
 
