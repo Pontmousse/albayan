@@ -18,10 +18,12 @@ def create_server() -> MCPServer:
 
         # طبقة MCP OAuth تستخدم نطاقات هوية Clerk القياسية فقط؛
         # صلاحيات التطبيق (profile:read وغيرها) تُفرض في FastAPI.
+        # openid مطلوب: ChatGPT يطلبه دائماً عند authorize، وClerk يرفض
+        # أي نطاق لم يُسجَّل به العميل عبر DCR (invalid_scope).
         auth = AuthSettings(
             issuer_url=AnyHttpUrl(settings.clerk_issuer_url),
             resource_server_url=AnyHttpUrl(settings.mcp_resource_url),
-            required_scopes=["profile", "email"],
+            required_scopes=["openid", "profile", "email"],
         )
         token_verifier = PassThroughTokenVerifier()
 
