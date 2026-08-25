@@ -92,6 +92,15 @@ def _resolve_email(clerk_id: str, payload: dict[str, Any]) -> str | None:
 
 
 def get_auth_context(request: Request) -> AuthContext:
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.removeprefix("Bearer ").strip()
+        if token.startswith("alb_"):
+            raise HTTPException(
+                status_code=401,
+                detail="مفتاح الوكيل غير مسموح لهذا المسار.",
+            )
+
     if not settings.clerk_secret_key:
         raise HTTPException(
             status_code=503,

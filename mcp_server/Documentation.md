@@ -1,11 +1,26 @@
 # توثيق MCP — مجلة البيان
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
-> **آخر تحديث:** ٢٣ أغسطس ٢٠٢٦  
+> **آخر تحديث:** ٢٥ أغسطس ٢٠٢٦  
 > **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
 
 ---
+
+## البنية الحالية (Current Architecture)
+
+`mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
+
+- كل أدوات MCP تستدعي `GET/POST /api/v1/...` عبر `api_client.py` مع تمرير credential المستخدم كما هو (`alb_...` أو Clerk OAuth JWT).
+- **FastAPI** هو المسؤول النهائي عن: المصادقة، التفويض، منطق الأعمال، الملكية، حدود workflow، والوصول إلى قاعدة البيانات.
+- **ممنوع** داخل `mcp_server/`: اتصال DB مباشر، استيراد نماذج SQLAlchemy، الوصول المباشر إلى S3، أو تكرار business logic.
+
+```text
+عميل AI → mcp_server (بروتوكول MCP فقط)
+              │  Authorization: Bearer <credential>
+              ▼
+          FastAPI /api/v1/...  ← المصدر الوحيد للحقيقة
+```
 
 ### النشر على Railway (بدون Dockerfile)
 
@@ -20,26 +35,8 @@
 
 ---
 
-## قرار معماري ثابت: Thin Adapter
+## القدرات المنفذة حالياً (Current Implemented Capabilities)
 
-`mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
-
-- كل أدوات MCP تستدعي `GET/POST /api/v1/...` مع تمرير credential المستخدم كما هو (`alb_...` أو Clerk OAuth JWT).
-- **FastAPI** هو المسؤول النهائي عن: المصادقة، التفويض، منطق الأعمال، والوصول إلى قاعدة البيانات.
-- **ممنوع** داخل `mcp_server/`: اتصال DB مباشر، استيراد نماذج SQLAlchemy، أو تكرار business logic.
-
-```text
-عميل AI → mcp_server (بروتوكول MCP فقط)
-              │  Authorization: Bearer <credential>
-              ▼
-          FastAPI /api/v1/...  ← المصدر الوحيد للحقيقة
-```
-
----
-
-## ما تم إنجازه حتى الآن
-
-> **الفرع:** `cursor/agents-mcp-ui-f6d8` (PR #4) — **لم يُدمَج في `main` بعد** (أغسطس ٢٠٢٦).  
 > **التفعيل:** `NEXT_PUBLIC_MCP_ENABLED=true` (واجهة) + `MCP_ENABLED=true` (خلفية) + `alembic upgrade head`.
 
 ### الواجهة (Next.js)
@@ -61,16 +58,27 @@
 |---------|---------|
 | `GET/POST/PATCH/DELETE /api/v1/users/me/agent-tokens` | CRUD مفاتيح الوكيل |
 | `agent_token_service.py` | إنشاء مفتاح `alb_...`، تخزين SHA-256 فقط، إلغاء، تحديث |
-| `AgentToken` model + schemas | التحقق من النطاقات والتسمية |
-| `_require_mcp_enabled()` | 404 عند `MCP_ENABLED=false` |
+| `ActorDep` في `backend/app/core/actor.py` | هوية موحدة لمسارات human-or-agent الآمنة |
+| `GET /api/v1/users/me` | Agent-safe: قراءة الملف الشخصي |
+| `GET /api/v1/articles/me` | Agent-safe: قراءة مقالات المستخدم |
+| `AuthDep` | يبقى مسار المصادقة البشري فقط لمسارات submit/review/editor/admin |
+
+### خادم MCP
+
+| المكوّن | الحالة |
+|---------|--------|
+| stdio transport | منجز |
+| Streamable HTTP transport | منجز |
+| `api_client.py` | تمرير Bearer إلى FastAPI، معالجة HTTP مركزية، helpers للـ object/list |
+| `tools/profile.py` | أداة `get_my_profile` |
+| `tools/articles.py` | أداة `read_articles` |
+| `server.py` | تركيب الخادم وتسجيل الأدوات فقط |
 
 ### قاعدة البيانات
 
 | الجدول | الحقول الرئيسية |
 |--------|-----------------|
 | `agent_tokens` (migration `007_agent_tokens`) | `user_id`, `token_hash`, `label`, `scopes` (JSONB), `expires_at`, `last_used_at`, `revoked_at` |
-
-**اختبارات:** `backend/tests/test_agent_tokens.py` (٤ اختبارات).
 
 ### النطاقات (scopes) المعرّفة في الواجهة
 
@@ -81,22 +89,47 @@
 - `reviews:draft:write` — مسودة ملاحظات المراجعة
 - `editor:read` — قراءة مقالات التحرير
 
-### ما لم يُنفَّذ بعد
+---
 
-| البند | الحالة |
-|-------|--------|
-| خادم MCP (`mcp_server/`) | **منجز** (stdio + Streamable HTTP + `get_my_profile`) |
-| مصادقة الطلبات بمفتاح الوكيل (middleware) | **منجز** (`agent_auth.py` + `GET /users/me`) |
-| طبقة الجلسة المشتركة (`session/document.json`) | مخطّط |
-| أدوات MCP (tools / resources / prompts) | مخطّط |
-| مزامنة المحرر مع الجلسة | مخطّط |
-| OAuth Clerk عبر Streamable HTTP | **جزئي** (metadata + تمرير JWT؛ إعداد Clerk يدوي) |
+## حد قدرات الوكيل (Agent Capability Boundary)
+
+الوكلاء حالياً يقرأون فقط:
+
+- `get_my_profile` → `GET /api/v1/users/me`
+- `read_articles` → `GET /api/v1/articles/me`
+
+القاعدة الثابتة:
+
+> الوكيل قد يساعد في القراءة وعمليات مسودة/جلسة قابلة للمراجعة لاحقاً. الإجراءات المعتمدة والنهائية تبقى بشرية فقط.
+
+Authoritative actions تبقى human-only داخل FastAPI، وليس فقط لأنها غير موجودة كأدوات MCP:
+
+- تقديم المقال.
+- إرسال المراجعة.
+- اتخاذ قرار تحريري.
+- النشر.
+- إجراءات الإدارة.
+- أي commit أو save يحول مسودة الجلسة إلى محتوى معتمد.
+
+لا يكفي حذف أداة MCP مثل `submit_article`. يجب أن يبقى endpoint نفسه على `AuthDep` أو اعتماد بشري صريح، وألا يستخدم `ActorDep` إلا إذا صُنّف المسار بأنه agent-safe.
 
 ---
 
-## التصميم والخطة الكاملة
+## البنية المخططة للكتابة والجلسات (Planned Writing/Session Architecture)
 
-<!-- المحتوى التالي منقول من أفكار المشروع — القسم ٥ -->
+لم تُنفّذ بعد أدوات الكتابة أو طبقة الجلسة المشتركة. الاتجاه المعماري المعتمد عند إضافتها لاحقاً:
+
+- الوكيل لا يكتب مباشرة إلى `document.json` المعتمد.
+- الكتابة المستقبلية تستهدف `session/document.json` أو endpoint جلسة في FastAPI.
+- المستخدم يراجع تغييرات الجلسة داخل المنصة.
+- المستخدم وحده يعتمد الجلسة أو يقدّم المقال أو يرسل المراجعة.
+- مراجعات المستقبل يمكن أن تسمح بمسودة مراجعة فقط، لا إرسال المراجعة.
+
+---
+
+## ملاحظات التصميم التاريخية (Historical Design Notes)
+
+النص التالي منقول من دراسة ٢٢ أغسطس ٢٠٢٦. يحتوي أسماء أدوات ومسارات وحالات كانت مخططة أو تاريخية، مثل `list_my_articles` وبعض عبارات “لم يُنفَّذ بعد”. المرجع الحالي الموثوق هو الأقسام أعلاه؛ هذا القسم يحفظ سياق التصميم طويل المدى فقط.
 
 ## 1. خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية
 
@@ -599,3 +632,4 @@ mcp_server/
 |---------|---------|
 | ٢٣/٠٨/٢٠٢٦ | إنشاء المجلد والملف؛ نقل توثيق MCP من `docs/afkar-al-mashrou.md` |
 | ٢٣/٠٨/٢٠٢٦ | إضافة ملخص ما تم إنجازه (واجهة، خلفية، قاعدة بيانات) |
+| ٢٥/٠٨/٢٠٢٦ | تحديث الحالة الحالية بعد Batch 1-3؛ إضافة حد قدرات الوكيل؛ ووسم التصميم القديم كتاريخي/مخطط |

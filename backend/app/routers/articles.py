@@ -9,6 +9,7 @@ from app.models.article import Article
 from app.models.enums import CompileStatus
 
 from app.core import s3
+from app.core.actor import ActorDep
 from app.core.clerk import AuthDep, DbDep
 from app.core.config import settings
 from app.core.deps import current_user
@@ -52,9 +53,9 @@ def _detail(db, article) -> ArticleDetail:
 
 
 @router.get("/me", response_model=list[ArticleSummary])
-def list_my_articles(auth: AuthDep, db: DbDep) -> list[ArticleSummary]:
-    user = _current_user(auth, db)
-    rows = article_service.list_articles_for_author(db, user.id)
+def list_my_articles(actor: ActorDep, db: DbDep) -> list[ArticleSummary]:
+    # Read-only article listing is agent-safe; mutations remain human-only.
+    rows = article_service.list_articles_for_author(db, actor.user_id)
     return [
         ArticleSummary(
             id=article.id,
@@ -263,6 +264,7 @@ def submit_article(
     auth: AuthDep,
     db: DbDep,
 ) -> VersionRead:
+    # Authoritative submission must stay human-only; do not switch to ActorDep.
     user = _current_user(auth, db)
     article = article_service.assert_is_author(db, article_id, user.id)
     version = article_service.current_version(db, article_id)

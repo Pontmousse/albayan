@@ -166,6 +166,7 @@ def save_review_draft(
 def submit_review(
     assignment_id: uuid.UUID, auth: AuthDep, db: DbDep
 ) -> ReviewRead:
+    # Review submission is authoritative and must stay human-only.
     user = current_user(auth, db)
     assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
     review = review_service.submit_review(db, assignment)

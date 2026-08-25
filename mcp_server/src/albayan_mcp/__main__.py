@@ -26,10 +26,6 @@ def main() -> None:
     server = create_server()
 
     if args.transport == "stdio":
-        from albayan_mcp.api_client import set_current_bearer
-
-        if settings.albayan_agent_token.strip():
-            set_current_bearer(settings.albayan_agent_token.strip())
         server.run("stdio")
         return
 

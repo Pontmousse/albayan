@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
-
 from mcp.server.mcpserver import MCPServer
 from pydantic import AnyHttpUrl
 
-from albayan_mcp.api_client import api_get
 from albayan_mcp.settings import settings
 from albayan_mcp.token_verifier import PassThroughTokenVerifier
+from albayan_mcp.tools.articles import register_article_tools
+from albayan_mcp.tools.profile import register_profile_tools
 
 
 def create_server() -> MCPServer:
@@ -35,19 +34,8 @@ def create_server() -> MCPServer:
         token_verifier=token_verifier,
     )
 
-    @server.tool(
-        name="get_my_profile",
-        title="ملفي الشخصي",
-        description="قراءة الملف الشخصي للمستخدم الحالي من مجلة البيان.",
-    )
-    async def get_my_profile() -> str:
-        profile = await api_get("/api/v1/users/me")
-        summary = {
-            "id": profile.get("id"),
-            "email": profile.get("email"),
-            "full_name": profile.get("full_name"),
-            "affiliation": profile.get("affiliation"),
-        }
-        return json.dumps(summary, ensure_ascii=False)
+    # Tool implementations belong under tools/; keep this module composition-only.
+    register_profile_tools(server)
+    register_article_tools(server)
 
     return server

@@ -141,6 +141,7 @@ def editor_decision(
     auth: AuthDep,
     db: DbDep,
 ) -> VersionRead:
+    # Editorial decisions are authoritative and must stay human-only.
     user = current_user(auth, db)
     version = editor_service.apply_decision(
         db,

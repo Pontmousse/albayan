@@ -1,33 +1,18 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter
 
-from app.core.agent_auth import require_scope, resolve_agent_principal
-from app.core.clerk import AuthDep, DbDep, get_auth_context
-from app.core.config import settings
+from app.core.actor import ActorDep, current_actor_user
+from app.core.clerk import AuthDep, DbDep
 from app.core.deps import current_user
-from app.models.user import User
 from app.schemas.user import UserRead, UserUpdate
 from app.services.user_service import sync_clerk_name
 
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
-def _read_user_me(request: Request, db: DbDep) -> UserRead:
-    auth_header = request.headers.get("Authorization", "")
-    if settings.mcp_enabled and auth_header.startswith("Bearer "):
-        principal = resolve_agent_principal(request, db)
-        require_scope(principal, "profile:read")
-        user = db.get(User, principal.user_id)
-        if not user:
-            raise HTTPException(status_code=401, detail="مفتاح الوكيل غير صالح.")
-        return UserRead.model_validate(user)
-
-    auth = get_auth_context(request)
-    return UserRead.model_validate(current_user(auth, db))
-
-
 @router.get("/me", response_model=UserRead)
-def read_current_user(request: Request, db: DbDep) -> UserRead:
-    return _read_user_me(request, db)
+def read_current_user(actor: ActorDep, db: DbDep) -> UserRead:
+    # Read-only profile access is agent-safe.
+    return UserRead.model_validate(current_actor_user(actor, db))
 
 
 @router.patch("/me", response_model=UserRead)
