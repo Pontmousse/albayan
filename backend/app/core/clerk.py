@@ -91,6 +91,20 @@ def _resolve_email(clerk_id: str, payload: dict[str, Any]) -> str | None:
     return _primary_email_from_clerk_user(clerk_user)
 
 
+def _context_from_payload(payload: dict[str, Any]) -> AuthContext:
+    clerk_id = payload.get("sub")
+    if not clerk_id:
+        raise HTTPException(status_code=401, detail="رمز المصادقة غير صالح.")
+
+    email = _resolve_email(clerk_id, payload)
+
+    first_name = payload.get("first_name") or payload.get("given_name") or ""
+    last_name = payload.get("last_name") or payload.get("family_name") or ""
+    full_name = f"{first_name} {last_name}".strip() or None
+
+    return AuthContext(clerk_id=clerk_id, email=email, full_name=full_name)
+
+
 def get_auth_context(request: Request) -> AuthContext:
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
@@ -121,18 +135,30 @@ def get_auth_context(request: Request) -> AuthContext:
     if not state.is_signed_in or not state.payload:
         raise HTTPException(status_code=401, detail="انتهت الجلسة، سجّل دخولك مجدداً.")
 
-    payload = state.payload
-    clerk_id = payload.get("sub")
-    if not clerk_id:
-        raise HTTPException(status_code=401, detail="رمز المصادقة غير صالح.")
+    return _context_from_payload(state.payload)
 
-    email = _resolve_email(clerk_id, payload)
 
-    first_name = payload.get("first_name") or payload.get("given_name") or ""
-    last_name = payload.get("last_name") or payload.get("family_name") or ""
-    full_name = f"{first_name} {last_name}".strip() or None
+def get_oauth_auth_context(request: Request) -> AuthContext:
+    """توكنات OAuth القادمة من وكلاء MCP (مثل ChatGPT).
 
-    return AuthContext(clerk_id=clerk_id, email=email, full_name=full_name)
+    التحقق عبر audience = عنوان مورد MCP، لا عبر authorized_parties:
+    معرّفات عملاء DCR (azp) تتغيّر مع كل إعادة تسجيل، بينما aud ثابت.
+    """
+    if not settings.clerk_secret_key:
+        raise HTTPException(
+            status_code=503,
+            detail="المصادقة غير مُهيّأة على الخادم.",
+        )
+
+    state = clerk_client.authenticate_request(
+        request,
+        AuthenticateRequestOptions(audience=settings.mcp_resource_url),
+    )
+
+    if not state.is_signed_in or not state.payload:
+        raise HTTPException(status_code=401, detail="رمز الوكيل غير صالح أو منتهي.")
+
+    return _context_from_payload(state.payload)
 
 
 def _admin_role_from_metadata(public_metadata: Any) -> str | None:

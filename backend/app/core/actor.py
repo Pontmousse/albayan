@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import uuid
 from dataclasses import dataclass
 from typing import Annotated, Literal
@@ -10,7 +12,7 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from app.core.clerk import get_auth_context
+from app.core.clerk import get_auth_context, get_oauth_auth_context
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import DB_UNAVAILABLE, current_user
@@ -35,6 +37,34 @@ def _bearer_token(request: Request) -> str | None:
     return token or None
 
 
+def _unverified_aud(token: str) -> str | list[str] | None:
+    """قراءة aud من JWT بلا تحقق — للتوجيه فقط؛ التحقق الفعلي عند Clerk."""
+    parts = token.split(".")
+    if len(parts) != 3:
+        return None
+    try:
+        raw = parts[1] + "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(raw))
+    except (ValueError, TypeError):
+        return None
+    aud = payload.get("aud")
+    if isinstance(aud, (str, list)):
+        return aud
+    return None
+
+
+def _is_mcp_oauth_token(token: str) -> bool:
+    resource = settings.mcp_resource_url.strip()
+    if not resource:
+        return False
+    aud = _unverified_aud(token)
+    if isinstance(aud, str):
+        return aud == resource
+    if isinstance(aud, list):
+        return resource in aud
+    return False
+
+
 def get_current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
     # Use ActorDep only on endpoints explicitly classified as agent-safe.
     token = _bearer_token(request)
@@ -49,6 +79,15 @@ def get_current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
             auth_method="agent",
             token_id=row.id,
         )
+
+    # توكن OAuth من وكيل MCP (aud = عنوان المورد) — لا يمرّ بفحص azp الخاص بالمتصفح.
+    if token and _is_mcp_oauth_token(token):
+        if not settings.mcp_enabled:
+            raise HTTPException(status_code=404, detail="غير موجود.")
+
+        auth = get_oauth_auth_context(request)
+        user = current_user(auth, db)
+        return Actor(user_id=user.id, clerk_id=user.clerk_id, auth_method="agent")
 
     auth = get_auth_context(request)
     user = current_user(auth, db)
