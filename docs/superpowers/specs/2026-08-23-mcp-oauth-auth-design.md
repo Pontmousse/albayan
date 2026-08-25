@@ -38,7 +38,7 @@
 | 1 | **عملاء:** stdio (Cursor + `alb_`) **و** Streamable HTTP (Claude/ChatGPT + OAuth) — معاً من البداية |
 | 2 | **نشر:** كود في `mcp_server/`، **حاوية منفصلة** على Railway (`mcp.albayan-journal.org`) |
 | 3 | **نقل HTTP:** **Streamable HTTP** فقط — لا HTTP+SSE القديم (2024-11-05) |
-| 4 | **نطاقات OAuth:** ثابتة — `profile:read` + `articles:read` فقط (قراءة) |
+| 4 | **نطاقات OAuth:** ~~`profile:read` + `articles:read`~~ — **مُحدَّث 2026-08-25:** طبقة MCP OAuth تطلب نطاقات هوية Clerk القياسية `profile` + `email` فقط (Clerk لا يُصدر نطاقات تطبيق مخصّصة عبر DCR)؛ صلاحيات التطبيق تبقى في FastAPI |
 | 5 | **نطاقات API Key:** مرنة من جدول `agent_tokens` (كما اليوم) |
 | 6 | **معمارية:** `mcp_server/` **thin adapter** فوق FastAPI فقط — يمرّر `Bearer` إلى `/api/v1/...`؛ **لا DB ولا business logic** داخل MCP |
 | 7 | **مصادقة/تفويض:** FastAPI فقط (`resolve_principal` + scopes) |
@@ -122,7 +122,7 @@ class AuthPrincipal:
 | المصدر | الكشف | التحقق | النطاقات |
 |--------|-------|--------|----------|
 | API Key | `Bearer alb_...` | SHA-256 → `agent_tokens` (غير ملغى، غير منتهٍ) | من عمود `scopes` |
-| OAuth | `Bearer <jwt>` (لا `alb_`) | Clerk JWT + audience OAuth app | ثابتة: `profile:read`, `articles:read` |
+| OAuth | `Bearer <jwt>` (لا `alb_`) | Clerk JWT + audience OAuth app | نطاقات هوية Clerk: `profile`, `email` (مُحدَّث 2026-08-25؛ صلاحيات التطبيق في FastAPI) |
 | جلسة متصفح | Clerk JWT (المسار الحالي) | `get_auth_context` دون تغيير سلوك | كامل (لا يتغير) |
 
 ### `resolve_principal` — موقع الملف
@@ -165,7 +165,7 @@ GET /.well-known/oauth-protected-resource
 {
   "resource": "https://mcp.albayan-journal.org/mcp",
   "authorization_servers": ["https://<clerk-issuer>"],
-  "scopes_supported": ["profile:read", "articles:read"],
+  "scopes_supported": ["profile", "email"],
   "bearer_methods_supported": ["header"]
 }
 ```
@@ -197,7 +197,7 @@ WWW-Authenticate: Bearer resource_metadata="https://mcp.albayan-journal.org/.wel
 | `CLERK_OAUTH_CLIENT_ID` | OAuth app للـ MCP |
 | `CLERK_ISSUER_URL` | issuer لـ metadata |
 | `MCP_RESOURCE_URL` | `https://mcp.albayan-journal.org/mcp` |
-| `MCP_OAUTH_SCOPES` | `profile:read,articles:read` (ثابت) |
+| `MCP_OAUTH_SCOPES` | `profile:read,articles:read` (ثابت — نطاقات **تطبيق** يمنحها FastAPI لمبدأ OAuth؛ لا علاقة لها بنطاقات هوية Clerk `profile`/`email` المطلوبة في طبقة MCP منذ 2026-08-25) |
 
 **لا DCR** في المرحلة الأولى — العميل يُسجَّل يدوياً في Clerk.
 

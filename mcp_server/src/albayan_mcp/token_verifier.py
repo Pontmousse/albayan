@@ -12,8 +12,10 @@ class PassThroughTokenVerifier:
         cleaned = token.strip()
         if not cleaned:
             return None
+        # نطاقات هوية Clerk القياسية (superset يغطي required_scopes)؛
+        # صلاحيات التطبيق الفعلية تُفرض في FastAPI لا هنا.
         return AccessToken(
             token=cleaned,
             client_id="mcp-client",
-            scopes=["profile:read", "articles:read"],
+            scopes=["openid", "profile", "email", "offline_access"],
         )

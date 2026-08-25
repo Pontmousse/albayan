@@ -82,6 +82,8 @@
 
 ### النطاقات (scopes) المعرّفة في الواجهة
 
+> **ملاحظة (2026-08-25):** هذه نطاقات **تطبيق** تُفرض في FastAPI فقط. طبقة MCP OAuth (`server.py`) تطلب نطاقات هوية Clerk القياسية `profile` + `email` — لأن Clerk يُصدر نطاقات هوية (`openid`, `profile`, `email`, `offline_access`) وليس نطاقات تطبيق مخصّصة.
+
 - `profile:read` — قراءة الملف الشخصي
 - `articles:read` — قراءة المقالات
 - `articles:session:write` — كتابة مسودة الجلسة (مستقبلاً)
