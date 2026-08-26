@@ -1,10 +1,80 @@
 "use client";
 
 import { useState } from "react";
-import {
-  CHATGPT_DETAILED_GUIDE,
-  type ChatGptDetailedStep,
-} from "@/lib/mcp-client-guides";
+import { MCP_SERVER_URL } from "@/lib/mcp-client-guides";
+
+/* بيانات الدليل التفصيلي هنا (لا في mcp-client-guides.ts) عمداً:
+   الأدلة الأساسية خالية من مسميات إنجليزية، بينما هذا القسم المتقدم
+   المطويّ يسمّي عناصر واجهة ChatGPT كما تظهر فعلاً (OAuth, DCR...). */
+
+export const CHATGPT_CONNECTOR_NAME = "البيان";
+export const CHATGPT_CONNECTOR_DESCRIPTION =
+  "الوصول إلى ملفي ومقالاتي في مجلة البيان عبر MCP.";
+
+type ChatGptDetailedStep = {
+  text: string;
+  /** قيمة تُعرض مع زر نسخ */
+  copyValue?: string;
+  copyLabel?: string;
+};
+
+type ChatGptDetailedSection = {
+  title: string;
+  steps: ChatGptDetailedStep[];
+};
+
+const CHATGPT_DETAILED_GUIDE: ChatGptDetailedSection[] = [
+  {
+    title: "أولاً — تفعيل وضع المطوّر (مرة واحدة)",
+    steps: [
+      {
+        text: "افتح chatgpt.com من متصفح الحاسوب. وضع المطوّر لا يُفعَّل من تطبيق الجوال.",
+      },
+      { text: "اضغط صورتك أو اسمك في أسفل الشريط، ثم اختر «الإعدادات»." },
+      { text: "افتح «التطبيقات والموصلات» (Apps & Connectors)." },
+      {
+        text: "انزل إلى «الإعدادات المتقدمة» وفعّل «وضع المطوّر» (Developer mode).",
+      },
+    ],
+  },
+  {
+    title: "ثانياً — إنشاء الموصل",
+    steps: [
+      { text: "ارجع إلى «الموصلات» واضغط زر «إنشاء» (Create)." },
+      {
+        text: "في خانة الاسم الصق:",
+        copyValue: CHATGPT_CONNECTOR_NAME,
+        copyLabel: "نسخ الاسم",
+      },
+      {
+        text: "في خانة الوصف الصق:",
+        copyValue: CHATGPT_CONNECTOR_DESCRIPTION,
+        copyLabel: "نسخ الوصف",
+      },
+      {
+        text: "في خانة عنوان خادم MCP الصق:",
+        copyValue: MCP_SERVER_URL,
+        copyLabel: "نسخ العنوان",
+      },
+      { text: "في خيار المصادقة اترك OAuth كما هو (الافتراضي)." },
+    ],
+  },
+  {
+    title: "ثالثاً — التحقق والاعتماد",
+    steps: [
+      {
+        text: "(اختياري) افتح «إعدادات OAuth المتقدمة» وتأكد أنها تعرض النطاقات openid وprofile وemail وأن التسجيل التلقائي للعميل (DCR) ظاهر — هذه تصل تلقائياً من خادمنا.",
+      },
+      { text: "علّم خانة الإقرار ثم اضغط «إنشاء»." },
+      {
+        text: "يُفتح تبويب جديد بصفحة تفويض باسم البيان: سجّل دخول التطبيق إن طُلب منك، ثم اضغط «السماح».",
+      },
+      {
+        text: "عد إلى ChatGPT — الموصل جاهز. جرّب: «استخدم أداة البيان وأعطني ملفي الشخصي».",
+      },
+    ],
+  },
+];
 
 function CopyValue({ step }: { step: ChatGptDetailedStep }) {
   const [copied, setCopied] = useState(false);
