@@ -123,9 +123,29 @@ test("MobileNav uses MobileSheet and not an end-0 popover", () => {
 test("AuthHeader uses MobileSheet on mobile and keeps the desktop popover", () => {
   const source = readSrc("components/auth-header.tsx");
   assert.match(source, /import \{ MobileSheet \} from "@\/components\/mobile-sheet"/);
+  assert.match(source, /import \{ useMdUp \} from "@\/hooks\/use-md-up"/);
   assert.match(source, /<MobileSheet/);
+  assert.match(source, /open=\{sheetOpen\}/);
+  assert.match(source, /open && !mdUp/);
   assert.match(source, /title="الحساب"/);
   assert.match(source, /hidden md:block/);
   assert.match(source, /md:hidden/);
   assert.match(source, /absolute end-0 top-full/);
+});
+
+test("agent token create UI has no scope checkboxes", () => {
+  const source = readSrc("components/settings/agent-tokens-panel.tsx");
+  assert.equal(source.includes("الصلاحيات"), false);
+  assert.equal(source.includes("toggleScope"), false);
+  assert.equal(source.includes("type=\"checkbox\""), false);
+  assert.match(source, /scopes: \[\.\.\.ALLOWED_AGENT_SCOPES\]/);
+});
+
+test("ChatGPT guide uses accordion motion and a wide connector description", () => {
+  const source = readSrc("components/wukala/chatgpt-detailed-guide.tsx");
+  assert.match(source, /accordion-panel/);
+  assert.match(source, /useOpenTransition/);
+  assert.match(source, /صياغة المسودات/);
+  assert.match(source, /دون تقديم المقال/);
+  assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
 });

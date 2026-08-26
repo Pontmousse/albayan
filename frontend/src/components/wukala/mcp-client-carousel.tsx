@@ -258,41 +258,43 @@ export function McpClientCarousel() {
         </div>
       </div>
 
-      {active.id === "cursor" && (
-        <div className="mt-6">
-          <h3 className="text-sm font-bold text-slate-900">
-            مثال ملف الربط في Cursor
-          </h3>
-          <p className="mt-1 text-xs text-slate-600">
-            استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاح
-            الربط بعد إنشائه.
-          </p>
-          <pre
-            dir="ltr"
-            className="mt-2 overflow-x-auto rounded-lg border border-[var(--journal-border)] bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
-          >
-            {CURSOR_MCP_STDIO_SNIPPET}
-          </pre>
-        </div>
-      )}
+      <div key={active.id} className="panel-crossfade">
+        {active.id === "cursor" && (
+          <div className="mt-6">
+            <h3 className="text-sm font-bold text-slate-900">
+              مثال ملف الربط في Cursor
+            </h3>
+            <p className="mt-1 text-xs text-slate-600">
+              استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاح
+              الربط بعد إنشائه.
+            </p>
+            <pre
+              dir="ltr"
+              className="mt-2 overflow-x-auto rounded-lg border border-[var(--journal-border)] bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
+            >
+              {CURSOR_MCP_STDIO_SNIPPET}
+            </pre>
+          </div>
+        )}
 
-      {(active.id === "chatgpt" || active.id === "claude") && (
-        <div className="mt-6 rounded-xl border border-[var(--journal-border)] bg-white/80 p-4">
-          <p className="text-sm font-semibold text-slate-800">عنوان الخادم</p>
-          <p
-            dir="ltr"
-            className="mt-2 break-all rounded-md bg-slate-100 px-3 py-2 text-start text-sm font-mono text-slate-800"
-          >
-            {MCP_SERVER_URL}
-          </p>
-          <p className="mt-2 text-xs leading-5 text-slate-600">
-            هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك —
-            دون نسخ مفتاح ربط.
-          </p>
-        </div>
-      )}
+        {(active.id === "chatgpt" || active.id === "claude") && (
+          <div className="mt-6 rounded-xl border border-[var(--journal-border)] bg-white/80 p-4">
+            <p className="text-sm font-semibold text-slate-800">عنوان الخادم</p>
+            <p
+              dir="ltr"
+              className="mt-2 break-all rounded-md bg-slate-100 px-3 py-2 text-start text-sm font-mono text-slate-800"
+            >
+              {MCP_SERVER_URL}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-slate-600">
+              هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك —
+              دون نسخ مفتاح ربط.
+            </p>
+          </div>
+        )}
 
-      {active.id === "chatgpt" && <ChatGptDetailedGuide />}
+        {active.id === "chatgpt" && <ChatGptDetailedGuide />}
+      </div>
     </section>
   );
 }

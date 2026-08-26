@@ -92,7 +92,7 @@ function NavDropdown({ group }: { group: NavGroup }) {
       <div
         id={panelId}
         role="menu"
-        className={`absolute start-0 top-full z-50 mt-1.5 min-w-[14rem] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md transition-all duration-150 ease-out ${
+        className={`dropdown-panel absolute start-0 top-full z-50 mt-1.5 min-w-[14rem] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md ${
           open
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-1 opacity-0"
