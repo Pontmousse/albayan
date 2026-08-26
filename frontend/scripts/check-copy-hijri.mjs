@@ -17,3 +17,20 @@ test("CopyButton is an icon-only clipboard control", () => {
   assert.match(source, /copy-button/);
   assert.equal(source.includes("نسخ المفتاح"), false);
 });
+
+const COPY_SITES = [
+  "components/settings/agent-tokens-panel.tsx",
+  "components/wukala/chatgpt-detailed-guide.tsx",
+  "components/dashboard/document-json-dev-dialog.tsx",
+  "components/dashboard/exported-tex-dev-panel.tsx",
+];
+
+test("copy sites use CopyButton and not text copy labels", () => {
+  for (const rel of COPY_SITES) {
+    const source = readSrc(rel);
+    assert.match(source, /CopyButton/, `missing CopyButton in ${rel}`);
+    assert.equal(source.includes("نسخ المفتاح"), false, rel);
+    assert.equal(source.includes("نسخ TeX"), false, rel);
+    assert.equal(source.includes('copied ? "تم النسخ"'), false, rel);
+  }
+});

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CopyButton } from "@/components/ui/copy-button";
 import { MCP_SERVER_URL } from "@/lib/mcp-client-guides";
 import { useOpenTransition } from "@/hooks/use-open-transition";
 
@@ -80,20 +81,7 @@ const CHATGPT_DETAILED_GUIDE: ChatGptDetailedSection[] = [
 ];
 
 function CopyValue({ step }: { step: ChatGptDetailedStep }) {
-  const [copied, setCopied] = useState(false);
-
   if (!step.copyValue) return null;
-
-  async function handleCopy() {
-    if (!step.copyValue) return;
-    try {
-      await navigator.clipboard.writeText(step.copyValue);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   return (
     <span className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -103,13 +91,10 @@ function CopyValue({ step }: { step: ChatGptDetailedStep }) {
       >
         {step.copyValue}
       </code>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="shrink-0 rounded-md border border-[var(--journal-border)] bg-white px-2.5 py-1 text-xs font-semibold text-[var(--journal-accent-strong)] transition hover:border-[var(--journal-accent)]"
-      >
-        {copied ? "تم النسخ" : step.copyLabel ?? "نسخ"}
-      </button>
+      <CopyButton
+        value={step.copyValue}
+        ariaLabel={step.copyLabel ?? "نسخ"}
+      />
     </span>
   );
 }
