@@ -5,15 +5,17 @@ const isProtectedRoute = createRouteMatcher([
   "/maktabi(.*)",
   "/daawa(.*)",
   "/admin(.*)",
+  "/oauth-consent(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtectedRoute(req)) {
     const unauthenticatedUrl = new URL("/tawajjuh", req.url);
-    if (req.nextUrl.pathname.startsWith("/daawa")) {
+    const path = req.nextUrl.pathname;
+    if (path.startsWith("/daawa") || path.startsWith("/oauth-consent")) {
       unauthenticatedUrl.searchParams.set(
         "next",
-        `${req.nextUrl.pathname}${req.nextUrl.search}`,
+        `${path}${req.nextUrl.search}`,
       );
     }
     await auth.protect({

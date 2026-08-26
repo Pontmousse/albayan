@@ -411,3 +411,112 @@ button:disabled,
     animation: none;
   }
 }
+
+/* —— OAuth consent (custom Arabic page) —— */
+.oauth-consent-atmosphere {
+  background:
+    radial-gradient(ellipse 90% 55% at 50% -10%, color-mix(in srgb, var(--journal-accent) 18%, transparent), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 80%, color-mix(in srgb, var(--journal-gold) 14%, transparent), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 0% 70%, color-mix(in srgb, var(--journal-accent-strong) 12%, transparent), transparent 50%),
+    linear-gradient(180deg, #f7f3ea 0%, var(--journal-paper) 45%, #f3eee4 100%);
+}
+
+.oauth-consent-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.oauth-consent-brand {
+  animation: oauth-consent-brand-in var(--motion-enter-ms) var(--motion-ease-out) both;
+}
+
+.oauth-consent-panel {
+  animation: oauth-consent-panel-in 480ms var(--motion-ease-out) both;
+}
+
+.oauth-consent-scope {
+  animation: oauth-consent-scope-in 420ms var(--motion-ease-out) both;
+}
+
+.oauth-consent-logo {
+  animation: oauth-consent-logo-in 520ms var(--motion-ease-out) both;
+}
+
+.oauth-consent-pulse {
+  animation: oauth-consent-spin 0.9s linear infinite;
+}
+
+.oauth-consent-warning {
+  animation: oauth-consent-scope-in 500ms var(--motion-ease-out) both;
+}
+
+@keyframes oauth-consent-brand-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oauth-consent-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes oauth-consent-scope-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oauth-consent-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes oauth-consent-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oauth-consent-brand,
+  .oauth-consent-panel,
+  .oauth-consent-scope,
+  .oauth-consent-logo,
+  .oauth-consent-warning {
+    animation: none;
+  }
+
+  .oauth-consent-pulse {
+    animation: none;
+    border-color: var(--journal-accent);
+  }
+}
+
