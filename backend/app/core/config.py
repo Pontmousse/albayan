@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # من MCP_ENABLED — يفعّل وكلاء MCP (مفاتيح الوكيل، مصادقة alb_، مسارات /wukala).
     mcp_enabled: bool = False
 
+    # من MCP_RESOURCE_URL — عنوان مورد MCP العام (نفس قيمة خادم mcp_server).
+    # توكنات OAuth من وكلاء MCP تحمل aud بهذه القيمة؛ بها نميّزها عن جلسات المتصفح.
+    mcp_resource_url: str = ""
+
     @field_validator("dev_mode", "mcp_enabled", mode="before")
     @classmethod
     def validate_bool_flags(cls, value: Any) -> bool:

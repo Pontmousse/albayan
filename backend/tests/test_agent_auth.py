@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import unittest
 import uuid
 from datetime import UTC, datetime
@@ -10,6 +12,18 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 
 from app.core.actor import Actor, current_actor_user, get_current_actor
+
+
+def _fake_jwt(payload: dict) -> str:
+    """JWT شكلي (غير موقّع) لاختبار قراءة aud فقط."""
+    header = base64.urlsafe_b64encode(b'{"alg":"RS256"}').rstrip(b"=").decode()
+    body = (
+        base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
+    )
+    return f"{header}.{body}.sig"
+
+
+MCP_RESOURCE = "https://albayan-mcp-production.up.railway.app/mcp"
 from app.core.agent_auth import (
     MCP_OAUTH_SCOPES,
     require_scope,
@@ -198,6 +212,97 @@ class CurrentActorTests(unittest.TestCase):
             get_current_actor(self.request, self.db)
 
         self.assertEqual(ctx.exception.status_code, 404)
+
+    @patch("app.core.actor.current_user")
+    @patch("app.core.actor.get_oauth_auth_context")
+    @patch("app.core.actor.settings")
+    def test_mcp_oauth_token_returns_agent_actor(
+        self,
+        settings_mock: MagicMock,
+        get_oauth_mock: MagicMock,
+        current_user_mock: MagicMock,
+    ) -> None:
+        settings_mock.mcp_enabled = True
+        settings_mock.mcp_resource_url = MCP_RESOURCE
+        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
+        self.request.headers.get.return_value = f"Bearer {token}"
+        get_oauth_mock.return_value = AuthContext(
+            clerk_id="user_test",
+            email="test@example.com",
+            full_name=None,
+        )
+        current_user_mock.return_value = self.user
+
+        actor = get_current_actor(self.request, self.db)
+
+        self.assertEqual(actor.auth_method, "agent")
+        self.assertEqual(actor.user_id, self.user_id)
+        self.assertIsNone(actor.token_id)
+        get_oauth_mock.assert_called_once()
+
+    @patch("app.core.actor.settings")
+    def test_mcp_oauth_token_rejected_when_mcp_disabled(
+        self,
+        settings_mock: MagicMock,
+    ) -> None:
+        settings_mock.mcp_enabled = False
+        settings_mock.mcp_resource_url = MCP_RESOURCE
+        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
+        self.request.headers.get.return_value = f"Bearer {token}"
+
+        with self.assertRaises(HTTPException) as ctx:
+            get_current_actor(self.request, self.db)
+
+        self.assertEqual(ctx.exception.status_code, 404)
+
+    @patch("app.core.actor.current_user")
+    @patch("app.core.actor.get_auth_context")
+    @patch("app.core.actor.settings")
+    def test_wrong_aud_falls_back_to_browser_path(
+        self,
+        settings_mock: MagicMock,
+        get_auth_mock: MagicMock,
+        current_user_mock: MagicMock,
+    ) -> None:
+        settings_mock.mcp_enabled = True
+        settings_mock.mcp_resource_url = MCP_RESOURCE
+        token = _fake_jwt({"sub": "user_test", "aud": "https://other.example.org"})
+        self.request.headers.get.return_value = f"Bearer {token}"
+        get_auth_mock.return_value = AuthContext(
+            clerk_id="user_test",
+            email="test@example.com",
+            full_name=None,
+        )
+        current_user_mock.return_value = self.user
+
+        actor = get_current_actor(self.request, self.db)
+
+        self.assertEqual(actor.auth_method, "human")
+        get_auth_mock.assert_called_once()
+
+    @patch("app.core.actor.current_user")
+    @patch("app.core.actor.get_auth_context")
+    @patch("app.core.actor.settings")
+    def test_no_resource_url_keeps_browser_path(
+        self,
+        settings_mock: MagicMock,
+        get_auth_mock: MagicMock,
+        current_user_mock: MagicMock,
+    ) -> None:
+        settings_mock.mcp_enabled = True
+        settings_mock.mcp_resource_url = ""
+        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
+        self.request.headers.get.return_value = f"Bearer {token}"
+        get_auth_mock.return_value = AuthContext(
+            clerk_id="user_test",
+            email="test@example.com",
+            full_name=None,
+        )
+        current_user_mock.return_value = self.user
+
+        actor = get_current_actor(self.request, self.db)
+
+        self.assertEqual(actor.auth_method, "human")
 
     def test_current_actor_user_returns_resolved_user(self) -> None:
         actor = Actor(
