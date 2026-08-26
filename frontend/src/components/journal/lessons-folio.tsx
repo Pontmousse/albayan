@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
+import { useOpenTransition } from "@/hooks/use-open-transition";
 import {
   toEasternNumeral,
   tutorialEpisodeLabel,
@@ -8,6 +16,24 @@ import {
 } from "@/lib/tutorials";
 
 const SWIPE_THRESHOLD_PX = 48;
+const PICKER_EXIT_MS = 220;
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      className={`h-4 w-4 shrink-0 text-[var(--journal-accent)] transition-transform duration-200 ${
+        open ? "rotate-180" : ""
+      }`}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={2}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
 
 function LessonAwaitingPanel({ title }: { title: string }) {
   return (
@@ -81,6 +107,141 @@ function LessonStage({
   );
 }
 
+/** قائمة اختيار الدروس على الجوال — بدل `<select>` الافتراضي للمتصفح. */
+function MobileLessonPicker({
+  lessons,
+  activeIndex,
+  onSelect,
+}: {
+  lessons: TutorialLesson[];
+  activeIndex: number;
+  onSelect: (index: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const { mounted, visible } = useOpenTransition(open, PICKER_EXIT_MS);
+  const active = lessons[activeIndex] ?? lessons[0];
+
+  const close = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: globalThis.PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) close();
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") close();
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, close]);
+
+  if (!active) return null;
+
+  return (
+    <div ref={rootRef} className="relative mb-4 sm:hidden">
+      <p className="mb-1.5 text-xs font-semibold text-[var(--journal-accent)]">
+        فهرس الدروس
+      </p>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((value) => !value)}
+        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-s-4 bg-white/95 ps-3.5 pe-3.5 py-2.5 text-start shadow-sm outline-none transition duration-200 ${
+          open
+            ? "border-[var(--journal-accent)] border-s-[var(--journal-accent)] bg-[var(--journal-accent-soft)]"
+            : "border-[var(--journal-border)] border-s-[var(--journal-accent)] hover:border-[var(--journal-accent)]/60"
+        }`}
+      >
+        <span className="flex min-w-0 items-baseline gap-2">
+          <span
+            className="shrink-0 text-sm font-bold text-[var(--journal-gold)]"
+            style={{ fontFamily: "var(--font-display-ar), serif" }}
+          >
+            {toEasternNumeral(activeIndex + 1)}
+          </span>
+          <span className="truncate text-sm font-semibold text-slate-900">
+            {active.title}
+          </span>
+        </span>
+        <ChevronIcon open={open} />
+      </button>
+
+      {mounted ? (
+        <div
+          id={listId}
+          role="listbox"
+          aria-label="فهرس الدروس"
+          data-visible={visible ? "true" : "false"}
+          className={`lesson-mobile-picker absolute inset-x-0 top-[calc(100%+0.4rem)] z-30 origin-top overflow-hidden rounded-xl border border-[var(--journal-border)] bg-[var(--journal-paper)]/95 shadow-lg backdrop-blur-md ${
+            visible
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0"
+          }`}
+        >
+          <ul
+            className="mobile-sheet-stagger max-h-[min(22rem,55vh)] overflow-y-auto p-1.5"
+            data-visible={visible ? "true" : "false"}
+          >
+            {lessons.map((lesson, index) => {
+              const selected = index === activeIndex;
+              return (
+                <li key={lesson.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => {
+                      onSelect(index);
+                      close();
+                    }}
+                    className={`flex w-full items-start gap-2.5 rounded-lg border border-s-4 px-3 py-2.5 text-start transition duration-200 ${
+                      selected
+                        ? "border-[var(--journal-accent)]/30 border-s-[var(--journal-accent)] bg-[var(--journal-accent-soft)]"
+                        : "border-transparent border-s-transparent hover:bg-white/80"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 shrink-0 text-sm font-bold ${
+                        selected
+                          ? "text-[var(--journal-gold)]"
+                          : "text-[var(--journal-accent)]"
+                      }`}
+                      style={{ fontFamily: "var(--font-display-ar), serif" }}
+                    >
+                      {toEasternNumeral(index + 1)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block text-sm font-semibold leading-6 ${
+                          selected ? "text-slate-900" : "text-slate-700"
+                        }`}
+                      >
+                        {lesson.title}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-slate-500">
+                        {tutorialEpisodeLabel(index)}
+                        {lesson.src ? "" : " · يُستكمل"}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const headingId = useId();
@@ -120,7 +281,11 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
   }
 
   function onStagePointerDown(event: PointerEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest("video, button, a, select")) {
+    if (
+      (event.target as HTMLElement).closest(
+        "video, button, a, select, [role='listbox']",
+      )
+    ) {
       pointerStartX.current = null;
       return;
     }
@@ -144,31 +309,11 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
       </h2>
 
       {showSwitcher ? (
-        <div className="mb-4 sm:hidden">
-          <label
-            htmlFor="lesson-select"
-            className="mb-1.5 block text-xs font-semibold text-[var(--journal-accent)]"
-          >
-            فهرس الدروس
-          </label>
-          <select
-            id="lesson-select"
-            className="min-h-11 w-full rounded-xl border border-[var(--journal-border)] bg-white/90 ps-3 pe-3 py-2 text-sm text-slate-800 shadow-sm outline-none transition focus:border-[var(--journal-accent)]"
-            value={active.id}
-            onChange={(event) => {
-              const index = lessons.findIndex(
-                (lesson) => lesson.id === event.target.value,
-              );
-              if (index >= 0) goTo(index);
-            }}
-          >
-            {lessons.map((lesson, index) => (
-              <option key={lesson.id} value={lesson.id}>
-                {toEasternNumeral(index + 1)} — {lesson.title}
-              </option>
-            ))}
-          </select>
-        </div>
+        <MobileLessonPicker
+          lessons={lessons}
+          activeIndex={activeIndex}
+          onSelect={goTo}
+        />
       ) : null}
 
       <div className="lg:grid lg:grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)] lg:items-start lg:gap-6">

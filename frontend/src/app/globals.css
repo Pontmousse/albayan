@@ -244,12 +244,29 @@ body {
   transition-delay: calc(var(--mobile-sheet-stagger-step, 65ms) * 11);
 }
 
+/* Mobile lesson index panel — open/close like nav menus */
+.lesson-mobile-picker {
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateY(-0.35rem) scale(0.98);
+}
+
+.lesson-mobile-picker[data-visible="true"] {
+  transform: translateY(0) scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mobile-sheet-stagger > *,
   .mobile-sheet-stagger li {
     opacity: 1;
     translate: none;
     transition: none;
+  }
+
+  .lesson-mobile-picker {
+    transition: none;
+    transform: none;
   }
 }
 
