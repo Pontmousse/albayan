@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { McpClientCarousel } from "@/components/wukala/mcp-client-carousel";
@@ -43,27 +44,36 @@ export default function WukalaPage() {
 
         <McpClientCarousel />
 
-        <section className="mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm">
+        <section
+          className="stagger-item mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm"
+          style={{ "--stagger-index": 0 } as CSSProperties}
+        >
           <h2 className="text-lg font-bold text-slate-900">كيف يعمل الربط؟</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            الربط يعني أن برنامج الذكاء الاصطناعي يرى ملفك في المجلة بعد أن
-            تسمح له. نسمّي هذه الصلة MCP. لا يقدّم المقال عنك ولا يتّخذ قرارات
-            التحرير.
+            الربط يعني أن برنامج الذكاء الاصطناعي يرى عملك في المجلة بعد أن
+            تسمح له — للمؤلفين والمراجعين والمحررين. نسمّي هذه الصلة MCP. لا
+            يقدّم المقال عنك ولا يتّخذ قرارات التحرير.
           </p>
         </section>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <section className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5">
+          <section
+            className="stagger-item rounded-xl border border-emerald-200 bg-emerald-50/50 p-5"
+            style={{ "--stagger-index": 1 } as CSSProperties}
+          >
             <h2 className="text-sm font-bold text-emerald-900">ما يفعله الوكيل</h2>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-emerald-950/80">
-              <li>قراءة ملفك ومقالاتك</li>
-              <li>مساعدة في الكتابة (مسودة الجلسة — قريباً)</li>
+            <ul className="mt-2 list-outside list-disc space-y-1 ps-5 text-sm text-emerald-950/80">
+              <li>قراءة ملفك ومخطوطاتك وتعيينات المراجعة والتحرير</li>
+              <li>مساعدة في الكتابة وصياغة المسودات</li>
               <li>مسودة ملاحظات المراجعة</li>
             </ul>
           </section>
-          <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+          <section
+            className="stagger-item rounded-xl border border-amber-200 bg-amber-50/50 p-5"
+            style={{ "--stagger-index": 2 } as CSSProperties}
+          >
             <h2 className="text-sm font-bold text-amber-900">ما لا يفعله</h2>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-amber-950/80">
+            <ul className="mt-2 list-outside list-disc space-y-1 ps-5 text-sm text-amber-950/80">
               <li>تقديم المقال نيابة عنك</li>
               <li>إرسال تقرير المراجعة</li>
               <li>قرارات التحرير أو الإدارة</li>

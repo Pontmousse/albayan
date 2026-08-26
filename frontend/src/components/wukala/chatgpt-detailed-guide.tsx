@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MCP_SERVER_URL } from "@/lib/mcp-client-guides";
+import { useOpenTransition } from "@/hooks/use-open-transition";
 
 /* بيانات الدليل التفصيلي هنا (لا في mcp-client-guides.ts) عمداً:
    الأدلة الأساسية خالية من مسميات إنجليزية، بينما هذا القسم المتقدم
@@ -9,7 +10,9 @@ import { MCP_SERVER_URL } from "@/lib/mcp-client-guides";
 
 export const CHATGPT_CONNECTOR_NAME = "البيان";
 export const CHATGPT_CONNECTOR_DESCRIPTION =
-  "الوصول إلى ملفي ومقالاتي في مجلة البيان عبر MCP.";
+  "مساعدة في العمل العلمي بمجلة البيان: قراءة المخطوطات، صياغة المسودات، ومساندة المراجعة والتحرير — دون تقديم المقال أو اتخاذ قرارات نهائية.";
+
+const ACCORDION_EXIT_MS = 280;
 
 type ChatGptDetailedStep = {
   text: string;
@@ -70,7 +73,7 @@ const CHATGPT_DETAILED_GUIDE: ChatGptDetailedSection[] = [
         text: "يُفتح تبويب جديد بصفحة تفويض باسم البيان: سجّل دخول التطبيق إن طُلب منك، ثم اضغط «السماح».",
       },
       {
-        text: "عد إلى ChatGPT — الموصل جاهز. جرّب: «استخدم أداة البيان وأعطني ملفي الشخصي».",
+        text: "عد إلى ChatGPT — الموصل جاهز. جرّب: «استخدم أداة البيان وأعطني ملفي الشخصي» أو «اعرض مقالاتي».",
       },
     ],
   },
@@ -114,9 +117,10 @@ function CopyValue({ step }: { step: ChatGptDetailedStep }) {
 /** دليل ChatGPT التفصيلي — مطويّ افتراضياً حتى لا يُثقل الصفحة على غير المتقدمين. */
 export function ChatGptDetailedGuide() {
   const [open, setOpen] = useState(false);
+  const { mounted, visible } = useOpenTransition(open, ACCORDION_EXIT_MS);
 
   return (
-    <div className="mt-4 rounded-xl border border-[var(--journal-border)] bg-white/80">
+    <div className="mt-4 overflow-hidden rounded-xl border border-[var(--journal-border)] bg-white/80">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -133,7 +137,7 @@ export function ChatGptDetailedGuide() {
         </span>
         <span
           aria-hidden
-          className={`shrink-0 text-slate-500 transition-transform ${
+          className={`shrink-0 text-slate-500 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
             open ? "rotate-90" : ""
           }`}
         >
@@ -141,27 +145,35 @@ export function ChatGptDetailedGuide() {
         </span>
       </button>
 
-      {open && (
-        <div className="border-t border-[var(--journal-border)] px-4 py-4">
-          <ol className="space-y-5">
-            {CHATGPT_DETAILED_GUIDE.map((section) => (
-              <li key={section.title}>
-                <h4 className="text-sm font-bold text-[var(--journal-accent-strong)]">
-                  {section.title}
-                </h4>
-                <ol className="mt-2 list-decimal space-y-2.5 ps-5 text-sm leading-6 text-slate-700">
-                  {section.steps.map((step) => (
-                    <li key={step.text}>
-                      {step.text}
-                      <CopyValue step={step} />
-                    </li>
-                  ))}
-                </ol>
-              </li>
-            ))}
-          </ol>
+      {mounted ? (
+        <div
+          className="accordion-panel motion-reduce:transition-none"
+          data-visible={visible ? "true" : "false"}
+        >
+          <div className="accordion-panel-inner">
+            <ol
+              className="accordion-stagger space-y-5 border-t border-[var(--journal-border)] px-4 py-4"
+              data-visible={visible ? "true" : "false"}
+            >
+              {CHATGPT_DETAILED_GUIDE.map((section) => (
+                <li key={section.title}>
+                  <h4 className="text-sm font-bold text-[var(--journal-accent-strong)]">
+                    {section.title}
+                  </h4>
+                  <ol className="mt-2 list-decimal space-y-2.5 ps-5 text-sm leading-6 text-slate-700">
+                    {section.steps.map((step) => (
+                      <li key={step.text}>
+                        {step.text}
+                        <CopyValue step={step} />
+                      </li>
+                    ))}
+                  </ol>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

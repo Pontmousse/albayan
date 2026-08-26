@@ -6,12 +6,10 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
+import { AnimatedOverlay } from "@/components/ui/animated-overlay";
 import {
-  AGENT_SCOPE_LABELS,
   ALLOWED_AGENT_SCOPES,
-  DEFAULT_AGENT_SCOPES,
   MAX_AGENT_TOKENS,
-  type AgentScope,
 } from "@/lib/agent-token-config";
 import {
   createAgentToken,
@@ -30,8 +28,8 @@ export function AgentTokensPanel() {
   const [tokens, setTokens] = useState<AgentTokenSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalMode>("closed");
+  const [surface, setSurface] = useState<"create" | "edit" | "reveal">("create");
   const [label, setLabel] = useState("");
-  const [scopes, setScopes] = useState<AgentScope[]>([...DEFAULT_AGENT_SCOPES]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -60,15 +58,16 @@ export function AgentTokensPanel() {
 
   function openCreate() {
     setLabel("");
-    setScopes([...DEFAULT_AGENT_SCOPES]);
     setEditingId(null);
     setRevealedToken(null);
+    setSurface("create");
     setModal("create");
   }
 
   function openEdit(token: AgentTokenSummary) {
     setLabel(token.label);
     setEditingId(token.id);
+    setSurface("edit");
     setModal("edit");
   }
 
@@ -76,14 +75,6 @@ export function AgentTokensPanel() {
     setModal("closed");
     setRevealedToken(null);
     setCopied(false);
-  }
-
-  function toggleScope(scope: AgentScope) {
-    setScopes((prev) =>
-      prev.includes(scope)
-        ? prev.filter((s) => s !== scope)
-        : [...prev, scope],
-    );
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -97,16 +88,12 @@ export function AgentTokensPanel() {
         closeModal();
         await load();
       } else if (modal === "create") {
-        if (scopes.length === 0) {
-          setError("اختر صلاحية واحدة على الأقل.");
-          setSaving(false);
-          return;
-        }
         const created = await createAgentToken(getToken, {
           label: label.trim(),
-          scopes,
+          scopes: [...ALLOWED_AGENT_SCOPES],
         });
         setRevealedToken(created.token);
+        setSurface("reveal");
         setModal("reveal");
         await load();
       }
@@ -150,7 +137,7 @@ export function AgentTokensPanel() {
           href="/al-idayat"
           className="text-sm font-medium text-[var(--journal-accent)] hover:underline"
         >
-          → العودة إلى الإعدادات
+          العودة إلى الإعدادات
         </Link>
         <button
           type="button"
@@ -207,16 +194,6 @@ export function AgentTokensPanel() {
                       ? ` · آخر استخدام ${formatDate(token.last_used_at)}`
                       : " · لم يُستخدم بعد"}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {token.scopes.map((scope) => (
-                      <span
-                        key={scope}
-                        className="rounded-full bg-[var(--journal-accent-soft)] px-2 py-0.5 text-[10px] font-semibold text-[var(--journal-accent-strong)]"
-                      >
-                        {AGENT_SCOPE_LABELS[scope as AgentScope] ?? scope}
-                      </span>
-                    ))}
-                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -240,100 +217,18 @@ export function AgentTokensPanel() {
         </ul>
       )}
 
-      {(modal === "create" || modal === "edit") && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <button
-            type="button"
-            aria-label="إغلاق"
-            onClick={closeModal}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
-          />
-          <form
-            onSubmit={handleSubmit}
-            className="relative w-full max-w-md rounded-t-2xl border border-[var(--journal-border)] bg-[var(--journal-paper)] p-5 shadow-xl sm:rounded-2xl sm:p-6"
-          >
+      <AnimatedOverlay
+        open={modal !== "closed"}
+        onClose={closeModal}
+        labelledBy="token-modal-title"
+        panelClassName={
+          surface === "reveal" ? "border-emerald-300 bg-white" : ""
+        }
+      >
+        {surface === "reveal" && revealedToken ? (
+          <>
             <h2
-              className="text-xl font-bold text-slate-900"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              {modal === "edit" ? "تعديل اسم المفتاح" : "مفتاح وكيل جديد"}
-            </h2>
-            <div className="mt-4 space-y-4">
-              <div>
-                <label
-                  htmlFor="token-label"
-                  className="mb-1 block text-sm font-medium text-slate-700"
-                >
-                  اسم المفتاح
-                </label>
-                <input
-                  id="token-label"
-                  type="text"
-                  required
-                  maxLength={100}
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="مثال: Cursor على جهازي"
-                  className={inputClassName}
-                />
-              </div>
-              {modal === "create" ? (
-                <fieldset>
-                  <legend className="text-sm font-medium text-slate-700">
-                    الصلاحيات
-                  </legend>
-                  <ul className="mt-2 space-y-2">
-                    {ALLOWED_AGENT_SCOPES.map((scope) => (
-                      <li key={scope}>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={scopes.includes(scope)}
-                            onChange={() => toggleScope(scope)}
-                            className="rounded border-[var(--journal-border)] text-[var(--journal-accent)]"
-                          />
-                          {AGENT_SCOPE_LABELS[scope]}
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </fieldset>
-              ) : null}
-            </div>
-            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="min-h-11 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-medium text-slate-600"
-              >
-                إلغاء
-              </button>
-              <button type="submit" disabled={saving} className={buttonClassName}>
-                {saving ? "جارٍ الحفظ…" : modal === "edit" ? "حفظ" : "إنشاء"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {modal === "reveal" && revealedToken ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-        >
-          <button
-            type="button"
-            aria-label="إغلاق"
-            onClick={closeModal}
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
-          />
-          <div className="relative w-full max-w-md rounded-t-2xl border border-emerald-300 bg-white p-5 shadow-xl sm:rounded-2xl sm:p-6">
-            <h2
+              id="token-modal-title"
               className="text-xl font-bold text-slate-900"
               style={{ fontFamily: "var(--font-display-ar), serif" }}
             >
@@ -364,9 +259,55 @@ export function AgentTokensPanel() {
                 تمّ
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+          </>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <h2
+              id="token-modal-title"
+              className="text-xl font-bold text-slate-900"
+              style={{ fontFamily: "var(--font-display-ar), serif" }}
+            >
+              {surface === "edit" ? "تعديل اسم المفتاح" : "مفتاح وكيل جديد"}
+            </h2>
+            <div className="mt-4">
+              <label
+                htmlFor="token-label"
+                className="mb-1 block text-sm font-medium text-slate-700"
+              >
+                اسم المفتاح
+              </label>
+              <input
+                id="token-label"
+                type="text"
+                required
+                maxLength={100}
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="مثال: Cursor على جهازي"
+                className={inputClassName}
+              />
+              {surface === "create" ? (
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  المفتاح يتيح للوكيل المساعدة في القراءة والصياغة؛ التقديم
+                  والقرارات تبقى من المنصة.
+                </p>
+              ) : null}
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="min-h-11 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-medium text-slate-600"
+              >
+                إلغاء
+              </button>
+              <button type="submit" disabled={saving} className={buttonClassName}>
+                {saving ? "جارٍ الحفظ…" : surface === "edit" ? "حفظ" : "إنشاء"}
+              </button>
+            </div>
+          </form>
+        )}
+      </AnimatedOverlay>
 
       <ConfirmDialog
         open={deleteTarget !== null}

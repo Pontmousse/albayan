@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import { readClerkRole } from "@/lib/clerk-role";
 import { MobileSheet } from "@/components/mobile-sheet";
+import { useMdUp } from "@/hooks/use-md-up";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -48,8 +49,10 @@ export function AuthHeader() {
   const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const [open, setOpen] = useState(false);
+  const mdUp = useMdUp();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const sheetOpen = open && !mdUp;
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -141,7 +144,7 @@ export function AuthHeader() {
       </button>
 
       <div className="md:hidden">
-        <MobileSheet open={open} onClose={close} title="الحساب">
+        <MobileSheet open={sheetOpen} onClose={close} title="الحساب">
           <div className="border-b border-[var(--journal-border)] px-4 py-3">
             <p className="truncate text-sm font-semibold text-slate-800">
               {displayName}
@@ -163,7 +166,7 @@ export function AuthHeader() {
         id={panelId}
         role="menu"
         aria-label="قائمة الحساب"
-        className={`absolute end-0 top-full z-50 mt-1.5 hidden md:block w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md transition-all duration-150 ease-out ${
+        className={`dropdown-panel absolute end-0 top-full z-50 mt-1.5 hidden md:block w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md ${
           open
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-1 opacity-0"
