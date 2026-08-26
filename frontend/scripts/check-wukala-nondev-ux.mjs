@@ -130,7 +130,7 @@ test("AuthHeader uses MobileSheet on mobile and keeps the desktop popover", () =
   assert.match(source, /title="الحساب"/);
   assert.match(source, /hidden md:block/);
   assert.match(source, /md:hidden/);
-  assert.match(source, /absolute end-0 top-full/);
+  assert.match(source, /absolute start-0 top-full/);
 });
 
 test("agent token create UI has no scope checkboxes", () => {
@@ -148,4 +148,13 @@ test("ChatGPT guide uses accordion motion and a wide connector description", () 
   assert.match(source, /صياغة المسودات/);
   assert.match(source, /دون تقديم المقال/);
   assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
+});
+
+test("MCP server URL default is the Railway production endpoint", () => {
+  const source = readSrc("lib/mcp-client-guides.ts");
+  assert.match(
+    source,
+    /https:\/\/albayan-mcp-production\.up\.railway\.app\/mcp/,
+  );
+  assert.equal(source.includes("mcp.albayan-journal.org"), false);
 });

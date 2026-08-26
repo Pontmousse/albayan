@@ -166,7 +166,7 @@ export function AuthHeader() {
         id={panelId}
         role="menu"
         aria-label="قائمة الحساب"
-        className={`dropdown-panel absolute end-0 top-full z-50 mt-1.5 hidden md:block w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md ${
+        className={`dropdown-panel absolute start-0 top-full z-50 mt-1.5 hidden md:block w-[min(16rem,calc(100vw-1.5rem))] overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white shadow-md ${
           open
             ? "pointer-events-auto translate-y-0 opacity-100"
             : "pointer-events-none -translate-y-1 opacity-0"
