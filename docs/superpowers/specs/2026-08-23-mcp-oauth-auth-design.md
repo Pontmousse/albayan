@@ -36,7 +36,7 @@
 | # | القرار |
 |---|--------|
 | 1 | **عملاء:** stdio (Cursor + `alb_`) **و** Streamable HTTP (Claude/ChatGPT + OAuth) — معاً من البداية |
-| 2 | **نشر:** كود في `mcp_server/`، **حاوية منفصلة** على Railway (`mcp.albayan-journal.org`) |
+| 2 | **نشر:** كود في `mcp_server/`، **حاوية منفصلة** على Railway (`albayan-mcp-production.up.railway.app`) |
 | 3 | **نقل HTTP:** **Streamable HTTP** فقط — لا HTTP+SSE القديم (2024-11-05) |
 | 4 | **نطاقات OAuth:** ~~`profile:read` + `articles:read`~~ — **مُحدَّث 2026-08-25:** طبقة MCP OAuth تطلب نطاقات هوية Clerk القياسية `profile` + `email` فقط (Clerk لا يُصدر نطاقات تطبيق مخصّصة عبر DCR)؛ صلاحيات التطبيق تبقى في FastAPI |
 | 5 | **نطاقات API Key:** مرنة من جدول `agent_tokens` (كما اليوم) |
@@ -73,7 +73,7 @@
 | الخدمة | URL | النقل |
 |--------|-----|-------|
 | FastAPI | `api.albayan-journal.org` | REST (موجود) |
-| MCP | `mcp.albayan-journal.org/mcp` | **Streamable HTTP** |
+| MCP | `albayan-mcp-production.up.railway.app/mcp` | **Streamable HTTP** |
 | تطوير محلي | `localhost` | stdio |
 
 ### Streamable HTTP — لماذا وليس «HTTP عام»
@@ -163,7 +163,7 @@ GET /.well-known/oauth-protected-resource
 
 ```json
 {
-  "resource": "https://mcp.albayan-journal.org/mcp",
+  "resource": "https://albayan-mcp-production.up.railway.app/mcp",
   "authorization_servers": ["https://<clerk-issuer>"],
   "scopes_supported": ["profile", "email"],
   "bearer_methods_supported": ["header"]
@@ -174,7 +174,7 @@ GET /.well-known/oauth-protected-resource
 
 ```
 HTTP/1.1 401 Unauthorized
-WWW-Authenticate: Bearer resource_metadata="https://mcp.albayan-journal.org/.well-known/oauth-protected-resource"
+WWW-Authenticate: Bearer resource_metadata="https://albayan-mcp-production.up.railway.app/.well-known/oauth-protected-resource"
 ```
 
 ### تدفق OAuth
@@ -196,7 +196,7 @@ WWW-Authenticate: Bearer resource_metadata="https://mcp.albayan-journal.org/.wel
 | `CLERK_SECRET_KEY` | تحقق JWT (موجود) |
 | `CLERK_OAUTH_CLIENT_ID` | OAuth app للـ MCP |
 | `CLERK_ISSUER_URL` | issuer لـ metadata |
-| `MCP_RESOURCE_URL` | `https://mcp.albayan-journal.org/mcp` |
+| `MCP_RESOURCE_URL` | `https://albayan-mcp-production.up.railway.app/mcp` |
 | `MCP_OAUTH_SCOPES` | `profile:read,articles:read` (ثابت — نطاقات **تطبيق** يمنحها FastAPI لمبدأ OAuth؛ لا علاقة لها بنطاقات هوية Clerk `profile`/`email` المطلوبة في طبقة MCP منذ 2026-08-25) |
 
 **لا DCR** في المرحلة الأولى — العميل يُسجَّل يدوياً في Clerk.
@@ -342,7 +342,7 @@ curl -X POST http://localhost:8080/mcp -H "Authorization: Bearer alb_..." ...
 
 ### OAuth (يدوي)
 
-1. ربط Claude بـ `https://mcp.albayan-journal.org/mcp`
+1. ربط Claude بـ `https://albayan-mcp-production.up.railway.app/mcp`
 2. إكمال تسجيل الدخول Clerk
 3. «أعطني ملفي الشخصي»
 
@@ -383,7 +383,7 @@ ALBAYAN_AGENT_TOKEN=alb_...
 ALBAYAN_API_URL=https://api.albayan-journal.org
 CLERK_SECRET_KEY=sk_...
 CLERK_ISSUER_URL=https://...
-MCP_RESOURCE_URL=https://mcp.albayan-journal.org/mcp
+MCP_RESOURCE_URL=https://albayan-mcp-production.up.railway.app/mcp
 PORT=8080
 ```
 

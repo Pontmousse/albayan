@@ -494,7 +494,7 @@ agent_tokens
 | **Streamable HTTP** | إنتاج على Railway | المستخدمون يضيفون URL في إعدادات الوكيل |
 | **SSE** | بديل قديم | MCP يتجه نحو HTTP |
 
-**للإنتاج على Railway:** Streamable HTTP على مسار مثل `https://mcp.albayan-journal.org/mcp` مع HTTPS إلزامي.
+**للإنتاج على Railway:** Streamable HTTP على مسار مثل `https://albayan-mcp-production.up.railway.app/mcp` مع HTTPS إلزامي.
 
 **مثال إعداد في Cursor (محلي):**
 
@@ -519,7 +519,7 @@ agent_tokens
 {
   "mcpServers": {
     "albayan": {
-      "url": "https://mcp.albayan-journal.org/mcp",
+      "url": "https://albayan-mcp-production.up.railway.app/mcp",
       "headers": {
         "Authorization": "Bearer alb_xxxxxxxx"
       }

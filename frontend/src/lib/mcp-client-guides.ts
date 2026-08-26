@@ -18,7 +18,8 @@ export type McpClientGuide = {
 };
 
 export const MCP_SERVER_URL =
-  process.env.NEXT_PUBLIC_MCP_SERVER_URL ?? "https://mcp.albayan-journal.org/mcp";
+  process.env.NEXT_PUBLIC_MCP_SERVER_URL ??
+  "https://albayan-mcp-production.up.railway.app/mcp";
 
 export const MCP_API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://api.albayan-journal.org";
