@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Amiri, Noto_Sans_Arabic } from "next/font/google";
+import { AppChrome } from "@/components/app-chrome";
 import { AppClerkProvider } from "@/components/app-clerk-provider";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 const notoSansArabic = Noto_Sans_Arabic({
@@ -36,11 +35,7 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-sans-ar), system-ui, sans-serif" }}
       >
         <AppClerkProvider>
-          <div className="flex flex-1 flex-col">
-            <SiteHeader />
-            {children}
-            <SiteFooter />
-          </div>
+          <AppChrome>{children}</AppChrome>
         </AppClerkProvider>
       </body>
     </html>
