@@ -28,6 +28,8 @@
 - كل تاريخ يظهر للمستخدم في الواجهة هجري أم القرى عبر `formatDate` / `formatDateTime` / `formatHijriYear` في `frontend/src/lib/format-date.ts` (`ar-SA-u-ca-islamic-umalqura`).
 - لا تستدعِ `Intl.DateTimeFormat` لتواريخ الواجهة خارج هذا الملف.
 - أبقِ `dateTime` على `<time>` (وأي حمولة API) بالميلادي ISO.
+- النص الظاهر للمستخدم من الخادم (مثل بريد الدعوات) يمر عبر `app.core.dates` (`hijridate` أم القرى).
+- طوابع التخزين وحمولات API تبقى ميلادية ISO.
 
 ## النسخ إلى الحافظة
 
