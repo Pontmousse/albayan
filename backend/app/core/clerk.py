@@ -141,8 +141,9 @@ def get_auth_context(request: Request) -> AuthContext:
 def get_oauth_auth_context(request: Request) -> AuthContext:
     """توكنات OAuth القادمة من وكلاء MCP (مثل ChatGPT).
 
-    التحقق عبر audience = عنوان مورد MCP، لا عبر authorized_parties:
-    معرّفات عملاء DCR (azp) تتغيّر مع كل إعادة تسجيل، بينما aud ثابت.
+    بلا audience وبلا authorized_parties: توكنات ChatGPT من Clerk غالباً
+    تصل بـ aud=None، وفحص azp الخاص بالمتصفح يرفض عملاء DCR المتغيّرة.
+    نكتفي بتوقيع/صلاحية Clerk.
     """
     if not settings.clerk_secret_key:
         raise HTTPException(
@@ -152,7 +153,7 @@ def get_oauth_auth_context(request: Request) -> AuthContext:
 
     state = clerk_client.authenticate_request(
         request,
-        AuthenticateRequestOptions(audience=settings.mcp_resource_url),
+        AuthenticateRequestOptions(),
     )
 
     if not state.is_signed_in or not state.payload:

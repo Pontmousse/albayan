@@ -135,11 +135,14 @@ class CurrentActorTests(unittest.TestCase):
 
     @patch("app.core.actor.current_user")
     @patch("app.core.actor.get_auth_context")
+    @patch("app.core.actor.settings")
     def test_valid_clerk_user_returns_human_actor(
         self,
+        settings_mock: MagicMock,
         get_auth_mock: MagicMock,
         current_user_mock: MagicMock,
     ) -> None:
+        settings_mock.mcp_enabled = False
         self.request.headers.get.return_value = "Bearer clerk.jwt.token"
         get_auth_mock.return_value = AuthContext(
             clerk_id="user_test",
@@ -223,7 +226,6 @@ class CurrentActorTests(unittest.TestCase):
         current_user_mock: MagicMock,
     ) -> None:
         settings_mock.mcp_enabled = True
-        settings_mock.mcp_resource_url = MCP_RESOURCE
         token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
         self.request.headers.get.return_value = f"Bearer {token}"
         get_oauth_mock.return_value = AuthContext(
@@ -240,33 +242,42 @@ class CurrentActorTests(unittest.TestCase):
         self.assertIsNone(actor.token_id)
         get_oauth_mock.assert_called_once()
 
+    @patch("app.core.actor.current_user")
+    @patch("app.core.actor.get_oauth_auth_context")
     @patch("app.core.actor.settings")
-    def test_mcp_oauth_token_rejected_when_mcp_disabled(
+    def test_mcp_oauth_token_without_aud_returns_agent_actor(
         self,
         settings_mock: MagicMock,
+        get_oauth_mock: MagicMock,
+        current_user_mock: MagicMock,
     ) -> None:
-        settings_mock.mcp_enabled = False
-        settings_mock.mcp_resource_url = MCP_RESOURCE
-        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
+        """ChatGPT/Clerk غالباً يصدران JWT بلا aud — يجب قبولها على مسار OAuth."""
+        settings_mock.mcp_enabled = True
+        token = _fake_jwt({"sub": "user_test", "iss": "https://clerk.albayan-journal.org"})
         self.request.headers.get.return_value = f"Bearer {token}"
+        get_oauth_mock.return_value = AuthContext(
+            clerk_id="user_test",
+            email="test@example.com",
+            full_name=None,
+        )
+        current_user_mock.return_value = self.user
 
-        with self.assertRaises(HTTPException) as ctx:
-            get_current_actor(self.request, self.db)
+        actor = get_current_actor(self.request, self.db)
 
-        self.assertEqual(ctx.exception.status_code, 404)
+        self.assertEqual(actor.auth_method, "agent")
+        get_oauth_mock.assert_called_once()
 
     @patch("app.core.actor.current_user")
     @patch("app.core.actor.get_auth_context")
     @patch("app.core.actor.settings")
-    def test_wrong_aud_falls_back_to_browser_path(
+    def test_jwt_falls_back_to_browser_when_mcp_disabled(
         self,
         settings_mock: MagicMock,
         get_auth_mock: MagicMock,
         current_user_mock: MagicMock,
     ) -> None:
-        settings_mock.mcp_enabled = True
-        settings_mock.mcp_resource_url = MCP_RESOURCE
-        token = _fake_jwt({"sub": "user_test", "aud": "https://other.example.org"})
+        settings_mock.mcp_enabled = False
+        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
         self.request.headers.get.return_value = f"Bearer {token}"
         get_auth_mock.return_value = AuthContext(
             clerk_id="user_test",
@@ -281,19 +292,19 @@ class CurrentActorTests(unittest.TestCase):
         get_auth_mock.assert_called_once()
 
     @patch("app.core.actor.current_user")
-    @patch("app.core.actor.get_auth_context")
+    @patch("app.core.actor.get_oauth_auth_context")
     @patch("app.core.actor.settings")
-    def test_no_resource_url_keeps_browser_path(
+    def test_any_jwt_uses_oauth_path_when_mcp_enabled(
         self,
         settings_mock: MagicMock,
-        get_auth_mock: MagicMock,
+        get_oauth_mock: MagicMock,
         current_user_mock: MagicMock,
     ) -> None:
+        """أقل أمناً عمداً: أي JWT يُوجَّه لمسار OAuth عند تفعيل MCP (لا فحص aud)."""
         settings_mock.mcp_enabled = True
-        settings_mock.mcp_resource_url = ""
-        token = _fake_jwt({"sub": "user_test", "aud": MCP_RESOURCE})
+        token = _fake_jwt({"sub": "user_test", "aud": "https://other.example.org"})
         self.request.headers.get.return_value = f"Bearer {token}"
-        get_auth_mock.return_value = AuthContext(
+        get_oauth_mock.return_value = AuthContext(
             clerk_id="user_test",
             email="test@example.com",
             full_name=None,
@@ -302,7 +313,8 @@ class CurrentActorTests(unittest.TestCase):
 
         actor = get_current_actor(self.request, self.db)
 
-        self.assertEqual(actor.auth_method, "human")
+        self.assertEqual(actor.auth_method, "agent")
+        get_oauth_mock.assert_called_once()
 
     def test_current_actor_user_returns_resolved_user(self) -> None:
         actor = Actor(
