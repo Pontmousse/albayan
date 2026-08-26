@@ -117,6 +117,111 @@ Authoritative actions تبقى human-only داخل FastAPI، وليس فقط ل�
 
 ---
 
+## ربط ChatGPT — الدليل الكامل
+
+> ثمرة تشخيص فعلي (٢٥ أغسطس ٢٠٢٦) انتهى بربط ناجح. كل خطوة هنا جُرّبت على الإنتاج.
+
+### الصورة الكبيرة
+
+```text
+ChatGPT (عميل OAuth) ──1── يكتشف metadata من mcp_server
+        │                   /.well-known/oauth-protected-resource/mcp
+        ├─2── يسجّل نفسه تلقائياً لدى Clerk (DCR)
+        ├─3── المستخدم يوافق على شاشة تفويض Clerk
+        ├─4── يحصل على JWT (aud = عنوان مورد MCP)
+        ├─5── POST /mcp + Bearer JWT ──→ mcp_server (تحقق شكلي)
+        └─6── mcp_server يمرر نفس JWT ──→ FastAPI (تحقق فعلي عبر aud)
+```
+
+لا حاجة لإنشاء تطبيق OAuth يدوي في Clerk — **ChatGPT هو العميل** ويسجّل نفسه عبر
+Dynamic Client Registration، و**mcp_server هو المورد** (resource server) فقط.
+
+### ١. إعدادات Clerk Dashboard
+
+| الإعداد | القيمة | أين |
+|---------|--------|-----|
+| Dynamic Client Registration | **مفعّل** | OAuth Applications → إعدادات |
+| JWT access tokens | **مفعّل** | OAuth Applications → إعدادات |
+| شاشة الموافقة (consent) | مفعّلة (الافتراضي — لا تعطّلها) | لكل تطبيق OAuth |
+| تطبيق OAuth يدوي | **غير مطلوب** | — |
+
+بعد أول محاولة ربط ناجحة سترى في OAuth Applications عميلاً باسم «ChatGPT»
+سجّله DCR تلقائياً بنطاقات `openid email offline_access profile`.
+
+### ٢. النطاقات — لماذا نطاقات الهوية القياسية؟
+
+طبقة MCP OAuth تستخدم **نطاقات هوية Clerk القياسية** فقط:
+
+```text
+openid  profile  email  (+ offline_access يضيفه العميل)
+```
+
+- Clerk **لا يُصدر** نطاقات تطبيق مخصّصة (مثل `profile:read`) لعملاء DCR.
+- ChatGPT يطلب `openid` **دائماً** عند authorize؛ وClerk يرفض أي نطاق لم
+  يُسجَّل به العميل → خطأ `invalid_scope` الشهير:
+  «The OAuth 2.0 Client is not allowed to request scope 'openid'».
+- لذلك `required_scopes` في `server.py` هي `["openid", "profile", "email"]` —
+  وهي ما يظهر في metadata فيسجّل ChatGPT عميله بها.
+- **صلاحيات التطبيق** (قراءة المقالات، الملف الشخصي…) تُفرض في FastAPI،
+  لا علاقة لها بنطاقات OAuth هذه.
+
+### ٣. متغيرات البيئة (Railway)
+
+**خدمة mcp_server:**
+
+| المتغير | مثال | ملاحظة |
+|---------|-------|--------|
+| `MCP_RESOURCE_URL` | `https://albayan-mcp-production.up.railway.app/mcp` | **مطابقة حرفية** للعنوان العام الذي يستدعيه ChatGPT (البروتوكول والمضيف والمسار) |
+| `CLERK_ISSUER_URL` | `https://clerk.albayan-journal.org` | يساوي `iss` في JWT |
+| `ALBAYAN_API_URL` | `https://albayan-backend-production.up.railway.app` | عنوان FastAPI |
+
+**خدمة الخلفية (FastAPI):**
+
+| المتغير | القيمة |
+|---------|--------|
+| `MCP_ENABLED` | `true` |
+| `MCP_RESOURCE_URL` | نفس قيمة mcp_server — بها تُقبل توكنات OAuth (تحقق `aud`) |
+
+**خدمة الواجهة (Next.js):** `NEXT_PUBLIC_MCP_ENABLED=true` — **قبل البناء**
+(المتغير يُخبز وقت `next build`؛ ضبطه بعد البناء بلا أثر حتى إعادة النشر).
+
+### ٤. خطوات المستخدم في ChatGPT
+
+1. افتح ChatGPT من **المتصفح** (وضع المطوّر لا يُفعَّل من تطبيق الجوال).
+2. الإعدادات → **التطبيقات والموصلات** → إعدادات متقدمة → فعّل **وضع المطوّر**.
+3. ارجع إلى الموصلات → **إنشاء** (Create).
+4. املأ: الاسم «البيان»، وصفاً قصيراً، وعنوان خادم MCP:
+   `https://albayan-mcp-production.up.railway.app/mcp`
+5. (اختياري) افتح إعدادات OAuth المتقدمة وتحقق أن النطاقات المدعومة
+   والـ DCR ظاهرة كما في metadata.
+6. وافق على الإقرار ثم **إنشاء** → يُفتح تبويب جديد بشاشة تفويض Clerk → **السماح**.
+7. عد إلى ChatGPT — الموصل جاهز، وأدوات `get_my_profile` و`read_articles` تعمل.
+
+### ٥. دليل استكشاف الأخطاء (من التجربة الفعلية)
+
+| العرض | التشخيص | السبب/الحل |
+|-------|---------|------------|
+| `POST /mcp → 401` ثم `GET /.well-known/... → 200` في سجلات Railway | **طبيعي** | أول طلب بلا توكن؛ هكذا يبدأ اكتشاف OAuth |
+| `curl -H "Authorization: Bearer test123"` على `/mcp` يرجع 401 | Railway يحذف الترويسة أو خطأ بيئة | مع التحقق الشكلي الحالي أي توكن غير فارغ يجب أن يرجع 200 |
+| `oauth_authorization.failed` في سجلات Clerk بسبب `code_challenge_missing` | طلب authorize بلا PKCE | طبيعي في الاختبار اليدوي؛ ChatGPT يرسل PKCE دائماً |
+| `invalid_scope … scope 'openid'` في رابط العودة إلى ChatGPT | العميل سُجّل بلا `openid` | أضف `openid` إلى `required_scopes` واحذف الموصل وأعد إنشاءه (DCR جديد) |
+| الأدوات ترجع 401 من FastAPI بعد نجاح `/mcp` | فحص `azp` الخاص بالمتصفح يرفض توكن الوكيل | اضبط `MCP_RESOURCE_URL` في الخلفية — التحقق عبر `aud` في مسار `ActorDep` |
+| `Could not resolve host` عند curl | نطاق DNS غير موجود | استخدم عنوان Railway حتى يُضبط النطاق المخصص |
+| لقراءة سبب فشل authorize | سجلات Clerk → Logs → افتح الحدث | حقل `reason` في payload، أو راقب `?error=` في رابط العودة |
+
+**نصيحة تشخيص ذهبية:** أعد محاولة الربط ثم افتح أحدث حدث
+`oauth_authorization.failed` في Clerk واقرأ `reason` — أو انسخ رابط العودة
+إلى ChatGPT من شريط العنوان وافحص `?error=&error_description=`.
+
+### ٦. ملاحظة مستقبلية — تخصيص شاشة الموافقة
+
+شاشة التفويض التي يراها المستخدم هي Account Portal الافتراضي من Clerk.
+منذ يونيو ٢٠٢٦ يدعم Clerk استضافتها على نطاقنا عبر مكوّن `OAuthConsent`
+(مع `appearance` للتخصيص البصري، أو مسار كامل في تطبيقنا يُضبط من
+Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موصى به رسمياً.
+
+---
+
 ## البنية المخططة للكتابة والجلسات (Planned Writing/Session Architecture)
 
 لم تُنفّذ بعد أدوات الكتابة أو طبقة الجلسة المشتركة. الاتجاه المعماري المعتمد عند إضافتها لاحقاً:
@@ -635,3 +740,4 @@ mcp_server/
 | ٢٣/٠٨/٢٠٢٦ | إنشاء المجلد والملف؛ نقل توثيق MCP من `docs/afkar-al-mashrou.md` |
 | ٢٣/٠٨/٢٠٢٦ | إضافة ملخص ما تم إنجازه (واجهة، خلفية، قاعدة بيانات) |
 | ٢٥/٠٨/٢٠٢٦ | تحديث الحالة الحالية بعد Batch 1-3؛ إضافة حد قدرات الوكيل؛ ووسم التصميم القديم كتاريخي/مخطط |
+| ٢٥/٠٨/٢٠٢٦ | إضافة «ربط ChatGPT — الدليل الكامل»: DCR، النطاقات، متغيرات Railway، خطوات الواجهة، واستكشاف الأخطاء من التجربة الفعلية |
