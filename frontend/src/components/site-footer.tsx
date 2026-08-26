@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { contactEmail, footerLinks } from "@/lib/nav-config";
+import { formatHijriYear } from "@/lib/format-date";
 
 export function SiteFooter() {
   return (
@@ -67,7 +68,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-[var(--journal-border)] bg-[var(--journal-footer-bar)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p>© ١٤٤٧ هـ مجلة البيان. جميع الحقوق محفوظة.</p>
+          <p>© {formatHijriYear()} مجلة البيان. جميع الحقوق محفوظة.</p>
           <Link
             href="/al-siyasat-wal-shurut"
             className="transition-colors hover:text-[var(--journal-accent-strong)]"

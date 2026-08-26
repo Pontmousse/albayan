@@ -412,6 +412,31 @@ button:disabled,
   }
 }
 
+.copy-button[data-copied="true"] {
+  border-color: color-mix(in srgb, var(--journal-accent) 55%, var(--journal-border));
+  color: var(--journal-accent-strong);
+  background: var(--journal-accent-soft);
+  animation: copy-pop 420ms var(--motion-ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+@keyframes copy-pop {
+  0% {
+    scale: 1;
+  }
+  40% {
+    scale: 1.12;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy-button[data-copied="true"] {
+    animation: none;
+  }
+}
+
 /* —— OAuth consent (custom Arabic page) —— */
 .oauth-consent-atmosphere {
   background:
@@ -519,4 +544,3 @@ button:disabled,
     border-color: var(--journal-accent);
   }
 }
-

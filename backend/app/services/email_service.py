@@ -8,6 +8,7 @@ from datetime import datetime
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.core.dates import format_date_time
 from app.models.enums import InvitationRole
 
 _ROLE_LABELS = {
@@ -32,7 +33,7 @@ def send_invitation_email(
 
     role_label = _ROLE_LABELS.get(role, role.value)
     link = f"{settings.frontend_base_url.rstrip('/')}/daawa/{token}"
-    expires_text = expires_at.strftime("%Y-%m-%d %H:%M UTC")
+    expires_text = format_date_time(expires_at)
 
     subject = f"دعوة للمشاركة في مقال «{article_title}» — مجلة البيان"
     html = f"""

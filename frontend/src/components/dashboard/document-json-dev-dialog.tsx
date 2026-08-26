@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { CopyButton } from "@/components/ui/copy-button";
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
@@ -162,7 +163,6 @@ export function DocumentJsonDevDialog({
   }, [value]);
 
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(["$"]));
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -195,16 +195,6 @@ export function DocumentJsonDevDialog({
       return next;
     });
   }, []);
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(prettyText);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
 
   if (!open) return null;
 
@@ -243,13 +233,7 @@ export function DocumentJsonDevDialog({
             >
               طي الكل
             </button>
-            <button
-              type="button"
-              onClick={() => void handleCopy()}
-              className="min-h-8 rounded-md border border-amber-400 bg-white px-2.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
-            >
-              {copied ? "تم النسخ" : "نسخ"}
-            </button>
+            <CopyButton value={prettyText} />
             <button
               type="button"
               onClick={onClose}
