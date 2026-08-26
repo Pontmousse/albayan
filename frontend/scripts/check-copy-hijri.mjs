@@ -34,3 +34,23 @@ test("copy sites use CopyButton and not text copy labels", () => {
     assert.equal(source.includes('copied ? "تم النسخ"'), false, rel);
   }
 });
+
+test("Umm al-Qura formats 2026-08-26 as ١٣ ربيع الأول ١٤٤٨ هـ", () => {
+  const formatter = new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  assert.equal(formatter.resolvedOptions().calendar, "islamic-umalqura");
+  assert.equal(
+    formatter.format(new Date("2026-08-26T12:00:00Z")),
+    "١٣ ربيع الأول ١٤٤٨ هـ",
+  );
+});
+
+test("format-date.ts uses ar-SA islamic-umalqura", () => {
+  const source = readSrc("lib/format-date.ts");
+  assert.match(source, /ar-SA-u-ca-islamic-umalqura/);
+  assert.match(source, /export function formatDateTime/);
+  assert.match(source, /export function formatHijriYear/);
+});
