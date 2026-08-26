@@ -23,6 +23,16 @@
 - الجذر في الواجهة: `lang="ar"` و `dir="rtl"` في `frontend/src/app/layout.tsx`.
 - فضّل في Tailwind الأدوات المنطقية (`ms-`, `me-`, `ps-`, `pe-`, `start`, `end`) بدلًا من `left`/`right` حيث أمكن.
 
+## التواريخ الظاهرة
+
+- كل تاريخ يظهر للمستخدم في الواجهة هجري أم القرى عبر `formatDate` / `formatDateTime` / `formatHijriYear` في `frontend/src/lib/format-date.ts` (`ar-SA-u-ca-islamic-umalqura`).
+- لا تستدعِ `Intl.DateTimeFormat` لتواريخ الواجهة خارج هذا الملف.
+- أبقِ `dateTime` على `<time>` (وأي حمولة API) بالميلادي ISO.
+
+## النسخ إلى الحافظة
+
+- أزرار النسخ أيقونة الحافظة المشتركة `CopyButton` في `frontend/src/components/ui/copy-button.tsx` — بلا نص «نسخ» ظاهر.
+
 ## أوامر مفيدة
 
 | المجلد    | الأمر           |

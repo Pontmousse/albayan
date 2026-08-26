@@ -3,14 +3,7 @@
 import { useSession, useSessionList, useUser } from "@clerk/nextjs";
 import { FormEvent, useState } from "react";
 import { buttonClassName, cardClassName, inputClassName, translateClerkError } from "@/lib/auth-ui";
-
-function formatSessionDate(value: Date | null | undefined): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("ar", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
-}
+import { formatDateTime } from "@/lib/format-date";
 
 export function SecurityForm() {
   const { user } = useUser();
@@ -147,7 +140,7 @@ export function SecurityForm() {
                     )}
                   </p>
                   <p className="text-xs text-slate-500">
-                    آخر نشاط: {formatSessionDate(session.lastActiveAt)}
+                    آخر نشاط: {session.lastActiveAt ? formatDateTime(session.lastActiveAt) : "—"}
                   </p>
                 </div>
                 {!isCurrent && (

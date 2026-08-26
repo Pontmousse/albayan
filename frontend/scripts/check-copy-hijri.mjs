@@ -54,3 +54,12 @@ test("format-date.ts uses ar-SA islamic-umalqura", () => {
   assert.match(source, /export function formatDateTime/);
   assert.match(source, /export function formatHijriYear/);
 });
+
+test("security-form and site-footer do not use Gregorian Intl", () => {
+  const security = readSrc("components/settings/security-form.tsx");
+  const footer = readSrc("components/site-footer.tsx");
+  assert.equal(security.includes("Intl.DateTimeFormat"), false);
+  assert.match(security, /formatDateTime/);
+  assert.equal(footer.includes("١٤٤٧"), false);
+  assert.match(footer, /formatHijriYear/);
+});
