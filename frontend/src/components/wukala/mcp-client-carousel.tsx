@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChatGptDetailedGuide } from "@/components/wukala/chatgpt-detailed-guide";
 import {
   CURSOR_MCP_STDIO_SNIPPET,
   MCP_CLIENT_GUIDES,
@@ -290,6 +291,8 @@ export function McpClientCarousel() {
           </p>
         </div>
       )}
+
+      {active.id === "chatgpt" && <ChatGptDetailedGuide />}
     </section>
   );
 }
