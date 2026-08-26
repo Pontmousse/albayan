@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
+import { CopyButton } from "@/components/ui/copy-button";
 import {
   fetchArticleCompileLog,
   type VersionRead,
@@ -29,7 +30,6 @@ export function ExportedTexDevPanel({
 }: Props) {
   const [liveTex, setLiveTex] = useState("");
   const [exportError, setExportError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [compileLog, setCompileLog] = useState<string | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
   const [jsonOpen, setJsonOpen] = useState(false);
@@ -87,17 +87,6 @@ export function ExportedTexDevPanel({
   const tex =
     texSnapshot != null && texSnapshot.length > 0 ? texSnapshot : liveTex;
 
-  async function handleCopy() {
-    if (!tex) return;
-    try {
-      await navigator.clipboard.writeText(tex);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
-    }
-  }
-
   return (
     <div className="mt-4 rounded-xl border border-amber-300/80 bg-amber-50/60 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 px-4 py-3">
@@ -112,14 +101,7 @@ export function ExportedTexDevPanel({
           >
             See JSON
           </button>
-          <button
-            type="button"
-            disabled={!tex}
-            onClick={() => void handleCopy()}
-            className="min-h-9 rounded-md border border-amber-400 bg-white px-3 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {copied ? "تم النسخ" : "نسخ TeX"}
-          </button>
+          <CopyButton value={tex} />
         </div>
       </div>
 

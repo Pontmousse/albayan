@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
 import { AnimatedOverlay } from "@/components/ui/animated-overlay";
+import { CopyButton } from "@/components/ui/copy-button";
 import {
   ALLOWED_AGENT_SCOPES,
   MAX_AGENT_TOKENS,
@@ -33,7 +34,6 @@ export function AgentTokensPanel() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AgentTokenSummary | null>(
     null,
   );
@@ -74,7 +74,6 @@ export function AgentTokensPanel() {
   function closeModal() {
     setModal("closed");
     setRevealedToken(null);
-    setCopied(false);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -101,17 +100,6 @@ export function AgentTokensPanel() {
       setError(err instanceof Error ? err.message : "تعذّر حفظ المفتاح.");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleCopy() {
-    if (!revealedToken) return;
-    try {
-      await navigator.clipboard.writeText(revealedToken);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
     }
   }
 
@@ -237,20 +225,19 @@ export function AgentTokensPanel() {
             <p className="mt-2 text-sm text-amber-800">
               لن نعرض هذا المفتاح مرة أخرى. احفظه في مكان آمن.
             </p>
-            <pre
-              dir="ltr"
-              className="mt-4 overflow-x-auto rounded-lg border border-[var(--journal-border)] bg-slate-950 p-3 text-start text-xs text-emerald-100"
-            >
-              {revealedToken}
-            </pre>
-            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={handleCopy}
-                className={buttonClassName}
+            <div className="relative mt-4">
+              <pre
+                dir="ltr"
+                className="overflow-x-auto rounded-lg border border-[var(--journal-border)] bg-slate-950 p-3 pe-12 text-start text-xs text-emerald-100"
               >
-                {copied ? "تم النسخ" : "نسخ المفتاح"}
-              </button>
+                {revealedToken}
+              </pre>
+              <CopyButton
+                value={revealedToken}
+                className="absolute end-2 top-2 border-white/20 bg-slate-900 text-emerald-100 hover:border-emerald-300 hover:text-white"
+              />
+            </div>
+            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeModal}
