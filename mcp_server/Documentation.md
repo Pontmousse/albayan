@@ -1,7 +1,7 @@
 # توثيق MCP — مجلة البيان
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
-> **آخر تحديث:** ٢٥ أغسطس ٢٠٢٦  
+> **آخر تحديث:** ٢٧ أغسطس ٢٠٢٦  
 > **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
 
@@ -733,6 +733,204 @@ mcp_server/
 
 ---
 
+## 2. استنتاجات تحليل BuTeX والتحرير عبر MCP
+
+> **التاريخ:** ٢٧ أغسطس ٢٠٢٦  
+> **السياق:** مراجعة `@drghaliasri/butex@5.6.1` (`ButexDocumentEditor2` + `document2`)، تكامل مجلة البيان، ومتطلبات الكتابة عبر الوكيل.  
+> **مرجع أصول الصور (منفّذ في المنصة):** `docs/butex-figure-host-contract.md` — PR #26.
+
+هذا القسم يجمع قرارات التصميم الناتجة عن التحليل. **ليس** كل ما هنا منفّذاً بعد؛ يوضّح ما يُبنى في المنصة مقابل ما يُطلب من حزمة BuTeX.
+
+### 2.1 فصل المسؤوليات: بروتوكول MCP ≠ حزمة BuTeX
+
+| الطبقة | المسؤولية |
+|--------|-----------|
+| **`mcp_server/`** | محوّل بروتوكول رفيع: أدوات MCP → استدعاءات HTTP لـ FastAPI فقط |
+| **FastAPI** | مصادقة، تفويض (agent-safe vs human-only)، جلسة، أوامر المستند، رفع/سرد الأصول |
+| **S3** | `document.json` المعتمد، `session/document.json`، `assets/*`، `session/revisions/*` |
+| **`@drghaliasri/butex` (headless `document2`)** | نموذج المستند، تحويلات JSON، دوال mutation صافية |
+| **`ButexDocumentEditor2` (React)** | تجربة المؤلف؛ تركيز المؤشر (caret) للإدراج التفاعلي فقط |
+| **Next.js** | مزامنة المحرر مع الجلسة، معرض الصور، `resolveImageUrl` |
+
+**قاعدة ثابتة:** لا يكتب الوكيل مباشرة على S3 ولا يستدعي مراجع React في المحرر. لا يُضاف بروتوكول MCP داخل حزمة BuTeX.
+
+```text
+عميل AI
+   │
+   ▼
+mcp_server (أدوات MCP)
+   │
+   ▼
+FastAPI  POST /articles/{id}/session/commands  (وما شابه)
+   │
+   ├── applyDocument2Command / mutators من butex/document2
+   └── PUT session/document.json (+ revision)
+   │
+   ▼
+المحرر (polling) يعيد تحميل الجلسة — اختياري commit → document.json المعتمد (بشري فقط)
+```
+
+### 2.2 أين يقع «موضع الإدراج» اليوم — ولماذا لا يكفي للوكيل
+
+في `ButexDocumentEditor2`، موضع إدراج كتلة جديدة (فقرة، قسم، شكل، …) يعتمد على **حالة تركيز React داخلية** (`editorFocus`: `blockId`, `fieldId`, `caretOffset`, …) وليس على `Document2Json` المحفوظ.
+
+قواعد الإدراج (مختصرة):
+
+1. إن وُجد `blockId` مركّز → أدرج **بعد** ذلك الكتلة.
+2. وإلا استنتج الكتلة من `fieldId`.
+3. وإلا أدرج بعد آخر كتلة في المستند.
+
+هذا مناسب للمؤلف في المتصفح (يضغط زر الإدراج بعد وضع المؤشر). **الوكيل لا يرى هذا التركيز** — يحتاج **عنواناً صريحاً** في طلب HTTP:
+
+```json
+{ "anchor": { "after_block_id": "block_3" } }
+{ "anchor": { "end": true } }
+{ "block_id": "block_5", "text": "" }
+```
+
+`insertImageBlock` على `ButexDocumentEditor2Ref` يتبع نفس قاعدة التركيز؛ مناسب للواجهة بعد رفع صورة من المعرض، **ليس** لمسار MCP.
+
+### 2.3 الصور: رفع ≠ إدراج (منفّذ في المنصة — بدون migration)
+
+**قرار:** مخزون الأصول منفصل عن عقدة الشكل في JSON.
+
+| العملية | أين | ماذا يحدث |
+|---------|-----|-----------|
+| **رفع** | `POST /api/v1/articles/{id}/assets` | بايتات → S3 `assets/{uuid}.ext` — **لا يغيّر المستند** |
+| **سرد** | `GET /api/v1/articles/{id}/assets` | قائمة من S3 (`list_prefix`) — **لا جدول `assets` في PostgreSQL** |
+| **معاينة** | `GET .../assets/{filename}` + `resolveImageUrl` | blob URL في المتصفح |
+| **إدراج** | `insertImageBlock(asset_id)` أو أمر جلسة لاحقاً | عقدة `\includegraphics` في `document.json` / جلسة |
+
+واجهة المحرر: لوحة **«صور المقال»** — رفع يملأ المعرض فقط؛ **«إدراج في المستند»** يستدعي `insertImageBlock`.
+
+**فجوة BuTeX (للفريق):** المحرر ما زال يعرض textarea لمسار الصورة في كتلة الشكل؛ العقد المطلوب في `docs/butex-figure-host-contract.md` (`onRequestImagePick`, شكل فارغ «لا صورة محددة»، `asset_id` + `value` عند الإنشاء). بعد شحن الحزمة نربط المعرض بـ `onRequestImagePick`.
+
+### 2.4 هل نحتاج تغييرات في BuTeX **قبل** MCP؟
+
+| هدف MCP | هل يتطلب إصدار BuTeX؟ |
+|---------|------------------------|
+| قراءة المقالات، الملف، القوائم | لا |
+| كتابة جلسة عبر **طبقة نصية** (`update_session_from_text`) | لا — محوّل في FastAPI |
+| إدراج/تحرير/مسح فقرات وأقسام **بموضع دقيق** | **نعم** — انظر 2.5 |
+| إدراج أشكال بـ `asset_id` من جلسة الوكيل | **جزئياً** — الإدراج عبر mutation headless؛ عرض المعرض في المحرر يحتاج عقد الصور |
+| تراجع/إعادة جلسة | **لا** — تخزين المنصة (2.6) |
+| محرر المعادلات | خارج نطاق MCP v1 |
+
+**خلاصة:** يمكن البدء بـ MCP + جلسة + نص مبسّط **بدون** انتظار BuTeX. للأدوات الهيكلية (`insert_paragraph`, `edit_paragraph`, `insert_figure` بموضع محدد) نحتاج توسيعات الحزمة أدناه.
+
+### 2.5 ما يجب إضافته في BuTeX لتحرير متوافق مع MCP
+
+الطبقة headless `butex/document2` تحتوي أغلب دوال الـ mutation (`addDocument2TextBlock`, `addDocument2ImageBlock`, `updateTextToken`, `removeDocument2BlockById`, …). الفجوات الحرجة:
+
+#### أ) معرّفات ثابتة في `Document2Json`
+
+اليوم: الكتل والرموز لها `id` في الذاكرة (`block_1`, …) لكن **`toDocumentJson2` لا يصدّرها** — إعادة التحميل تولّد ids جديدة. الوكيل لا يستطيع قول «عدّل الكتلة X» عبر قراءات متتالية للجلسة.
+
+**مطلوب:** حقل `id` مستقر على الكتل (ولاحقاً الرموز إن لزم) في JSON السلكي، مع الحفاظ عند `fromDocumentJson2`.
+
+#### ب) API أوامر موحّد على JSON
+
+**مطلوب:** نقطة دخول واحدة (مثال):
+
+```ts
+applyDocument2Command(json: Document2Json, cmd: Document2Command): Document2Json
+```
+
+أو مجموعة دوال موثّقة تستدعيها FastAPI فقط. أمثلة أوامر:
+
+```json
+{ "op": "upsert_block", "kind": "paragraph", "text": "…", "anchor": { "after_block_id": "…" } }
+{ "op": "upsert_block", "block_id": "…", "text": "" }
+{ "op": "insert_figure", "asset_id": "assets/….jpg", "anchor": { "end": true }, "caption": "…" }
+{ "op": "remove_block", "block_id": "…" }
+```
+
+**إدراج ومسح بنفس الأداة:** `text: ""` أو سياسة `remove` واضحة — لا أدوات منفصلة `delete_paragraph` إن أمكن تجنّبها.
+
+#### ج) `document2Outline(json)`
+
+ملخص رخيص للقراءة: `id`, نوع الكتلة، مقتطف نص — لأداة MCP `get_session_outline` دون إغراق الوكيل بـ JSON كامل.
+
+#### د) أشكال و`asset_id`
+
+`insertImageBlock` / `addDocument2ImageBlock` يجب أن يضبط **`asset_id` و`value`** معاً (اليوم غالباً `value` فقط). مرجع العقد: `docs/butex-figure-host-contract.md`.
+
+**ما لا يُبنى في BuTeX:** جلسة، تراجع، MCP، رفع S3، معرض الصور.
+
+### 2.6 تراجع وإعادة الجلسة (للوكيل) — جلسة واحدة، ليس «جلسات متعددة»
+
+لا ننشئ جلسة وكيل منفصلة عن جلسة المستخدم — ذلك يشتت مصدر الحقيقة.
+
+| المستوى | الآلية | الاستعمال |
+|---------|--------|-----------|
+| **1 — تراجع للمعتمد** | `DELETE /session` أو نسخ من `document.json` | «الوكيل أفسد المسودة» — إعادة ضبط كاملة |
+| **2 — مكدس revisions** | قبل كل كتابة: `session/revisions/{n}.json` + `meta.revision` | `POST /session/undo` و`redo` |
+| **3 — تراجع BuTeX في المتصفح** | Ctrl+Z داخل المحرر | **محلي فقط** — لا يتراجع عن تعديل الوكيل |
+
+كل revision يُوسَم بـ `source: "agent" | "user"` لتمكين «تراجع عن آخر تعديل للوكيل».
+
+**BuTeX:** لا تغيير مطلوب لمكدس الجلسة — يستهلك/ينتج `Document2Json` صالحاً فقط.
+
+### 2.7 مسار REST الموصى به لأوامر الكتابة (FastAPI)
+
+الوكيل **لا يستدعي الحزمة مباشرة**. FastAPI يحمّل الجلسة، يطبّق mutation، يحفظ revision، يرفع `meta.revision`.
+
+```http
+POST /api/v1/articles/{id}/session/commands
+Content-Type: application/json
+
+{ "op": "upsert_block", "kind": "section", "text": "المقدمة", "anchor": { "after_block_id": "block_intro" } }
+```
+
+| أداة MCP (مقترحة) | HTTP |
+|-------------------|------|
+| `get_session_outline` | `GET /session` + outline |
+| `get_session_document` | `GET /session` |
+| `update_session_command` | `POST /session/commands` |
+| `list_article_assets` | `GET /assets` |
+| `upload_article_asset` | `POST /assets` |
+| `insert_figure` | `POST /session/commands` (`insert_figure`) |
+| `undo_session` / `redo_session` | `POST /session/undo` / `redo` |
+| `revert_session_to_authoritative` | `DELETE /session` |
+
+**محظور من MCP:** `POST .../submit`، `POST .../session/commit` (الاعتماد = زر «حفظ» بشري في المحرر).
+
+### 2.8 مراحل التنفيذ المقترحة (تقنية)
+
+```text
+1. طبقة session/ في S3 + GET/PUT + revisions + undo/redo + revert
+2. POST /session/commands → butex/document2 mutators (بعد stable ids في الحزمة)
+3. mcp_server: أدوات رفيعة → تلك المسارات
+4. المحرر: تحميل من session، polling، commit بشري
+5. (موازٍ) أصول: GET /assets + معرض — منجز جزئياً في المنصة
+6. (بعد BuTeX) onRequestImagePick + stable asset_id على الأشكال
+7. لاحقاً: معادلات، أدوات مراجعة، SSE
+```
+
+### 2.9 تسلسل الكتابة النصية vs الهيكلية
+
+| المرحلة | مسار الوكيل | متى |
+|---------|-------------|-----|
+| **أولى** | `get_session_as_text` + `update_session_from_text` | قبل stable ids؛ مقالات بسيطة |
+| **ثانية** | `update_session_command` + outline | تحرير موضعي (فقرات، عناوين، أشكال) |
+
+لا نمنع الطبقة النصية عند وجود الأوامر الهيكلية — تبقى مفيدة للملخصات والمسودات السريعة.
+
+### 2.10 خلاصة القرارات
+
+| السؤال | القرار |
+|--------|--------|
+| أين يعيش MCP؟ | `mcp_server/` → FastAPI فقط |
+| أين تُحفظ مسودة الوكيل؟ | `session/document.json` — ليس المعتمد |
+| كيف يُحدَّد موضع الإدراج للوكيل؟ | `anchor` / `block_id` في API — ليس caret React |
+| رفع صورة vs إدراج شكل؟ | منفصلان؛ S3 inventory vs عقدة JSON |
+| جدول assets في DB؟ | **لا** — S3 فقط |
+| تراجع الوكيل؟ | revision stack + revert للمعتمد؛ جلسة واحدة |
+| ماذا نطلب من BuTeX؟ | stable ids، command API، outline، عقد أشكال للواجهة |
+| ماذا لا نطلب من BuTeX؟ | MCP، session storage، undo على الخادم |
+
+---
+
 ## سجل التحديثات
 
 | التاريخ | التحديث |
@@ -741,3 +939,4 @@ mcp_server/
 | ٢٣/٠٨/٢٠٢٦ | إضافة ملخص ما تم إنجازه (واجهة، خلفية، قاعدة بيانات) |
 | ٢٥/٠٨/٢٠٢٦ | تحديث الحالة الحالية بعد Batch 1-3؛ إضافة حد قدرات الوكيل؛ ووسم التصميم القديم كتاريخي/مخطط |
 | ٢٥/٠٨/٢٠٢٦ | إضافة «ربط ChatGPT — الدليل الكامل»: DCR، النطاقات، متغيرات Railway، خطوات الواجهة، واستكشاف الأخطاء من التجربة الفعلية |
+| ٢٧/٠٨/٢٠٢٦ | إضافة القسم ٢: استنتاجات تحليل BuTeX (موضع الإدراج، فصل رفع/إدراج الأصول، متطلبات الحزمة، تراجع الجلسة، مسار REST/MCP) |
