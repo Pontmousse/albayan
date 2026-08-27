@@ -108,6 +108,20 @@ export type ArticleAssetUpload = {
   content_type: string;
 };
 
+export type ArticleAssetSummary = {
+  asset_id: string;
+  content_type: string | null;
+  size: number;
+  updated_at: string | null;
+};
+
+export function listArticleAssets(getToken: GetToken, id: string) {
+  return apiFetch<{ assets: ArticleAssetSummary[] }>(
+    `/api/v1/articles/${id}/assets`,
+    getToken,
+  );
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function uploadArticleAsset(

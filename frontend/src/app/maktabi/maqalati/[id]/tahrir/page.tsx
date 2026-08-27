@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Document2Json } from "@drghaliasri/butex/document2";
 import type { ButexDocumentEditor2Ref } from "@drghaliasri/butex/react-document2";
+import { ArticleAssetsPanel } from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
@@ -14,7 +15,6 @@ import {
   getArticleDocument,
   saveArticleDocument,
   submitArticle,
-  uploadArticleAsset,
   type ArticleDetail,
 } from "@/lib/api/articles";
 import { useButexImageResolver } from "@/lib/butex-images";
@@ -45,7 +45,8 @@ export default function TahrirPage() {
   >(undefined);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [assetsPanelOpen, setAssetsPanelOpen] = useState(false);
+  const [assetsUploading, setAssetsUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -59,7 +60,6 @@ export default function TahrirPage() {
   const editorRef = useRef<ButexDocumentEditor2Ref>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const showDevJson = isDevMode();
 
   const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
@@ -236,23 +236,20 @@ export default function TahrirPage() {
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
-  async function handleImageFile(file: File | undefined) {
-    if (!file || phase !== "ready") return;
-    setUploading(true);
-    setError(null);
-    try {
-      const { asset_id } = await uploadArticleAsset(getToken, articleId, file);
-      await ensureAsset(asset_id);
-
-      editorRef.current?.insertImageBlock(asset_id);
-      setSaveMessage("أُدرجت الصورة — احفظ المخطوطة.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
+  const handleInsertFigure = useCallback(
+    async (assetId: string) => {
+      if (phase !== "ready") return;
+      setError(null);
+      try {
+        await ensureAsset(assetId);
+        editorRef.current?.insertImageBlock(assetId);
+        setSaveMessage("أُدرجت الصورة في المستند — احفظ المخطوطة.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "تعذّر إدراج الصورة.");
+      }
+    },
+    [ensureAsset, phase],
+  );
 
   return (
     <div
@@ -289,15 +286,6 @@ export default function TahrirPage() {
                 تغييرات غير محفوظة
               </span>
             ) : null}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              className="sr-only"
-              onChange={(event) =>
-                void handleImageFile(event.target.files?.[0])
-              }
-            />
             {showDevJson ? (
               <button
                 type="button"
@@ -310,11 +298,11 @@ export default function TahrirPage() {
             ) : null}
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || phase !== "ready"}
+              onClick={() => setAssetsPanelOpen(true)}
+              disabled={assetsUploading || phase !== "ready"}
               className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {uploading ? "جارٍ الرفع…" : "رفع صورة"}
+              {assetsUploading ? "جارٍ الرفع…" : "صور المقال"}
             </button>
             <button
               type="button"
@@ -386,6 +374,17 @@ export default function TahrirPage() {
           onClose={() => setJsonDialogOpen(false)}
         />
       ) : null}
+
+      <ArticleAssetsPanel
+        open={assetsPanelOpen}
+        articleId={articleId}
+        getToken={getToken}
+        resolveImageUrl={resolveImageUrl}
+        ensureAsset={ensureAsset}
+        onClose={() => setAssetsPanelOpen(false)}
+        onInsertFigure={(assetId) => void handleInsertFigure(assetId)}
+        onUploadingChange={setAssetsUploading}
+      />
     </div>
   );
 }
