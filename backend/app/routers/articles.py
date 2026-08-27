@@ -14,6 +14,8 @@ from app.core.clerk import AuthDep, DbDep
 from app.core.config import settings
 from app.core.deps import current_user
 from app.schemas.article import (
+    ArticleAssetRead,
+    ArticleAssetsList,
     ArticleCreate,
     ArticleDetail,
     ArticleSummary,
@@ -134,6 +136,52 @@ def save_document(
     )
     db.commit()
     return {"ok": True}
+
+
+def _guess_image_content_type(asset_id: str) -> str | None:
+    ext = PurePosixPath(asset_id).suffix.lower()
+    return {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+    }.get(ext)
+
+
+@router.get("/{article_id}/assets", response_model=ArticleAssetsList)
+def list_assets(
+    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+) -> ArticleAssetsList:
+    """يسرد صور المقال من S3 تحت storage_prefix/assets/ — بدون جدول أصول."""
+    user = _current_user(auth, db)
+    article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+
+    rows = s3.list_prefix(version.storage_prefix, "assets")
+    assets: list[ArticleAssetRead] = []
+    for row in rows:
+        relative_key = row["relative_key"]
+        if "/" in relative_key or relative_key.startswith("."):
+            continue
+        asset_id = f"assets/{relative_key}"
+        content_type = row["content_type"] or _guess_image_content_type(asset_id)
+        if content_type is None:
+            continue
+        assets.append(
+            ArticleAssetRead(
+                asset_id=asset_id,
+                content_type=content_type,
+                size=row["size"],
+                updated_at=row["last_modified"],
+            )
+        )
+
+    assets.sort(
+        key=lambda item: item.updated_at.timestamp() if item.updated_at else 0,
+        reverse=True,
+    )
+    return ArticleAssetsList(assets=assets)
 
 
 @router.post("/{article_id}/assets")

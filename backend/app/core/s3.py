@@ -1,8 +1,9 @@
 """عميل S3 لمخطوطات BuTeX — document.json وأصول الصور تحت storage_prefix."""
 
 import json
+from datetime import datetime
 from functools import lru_cache
-from typing import Any
+from typing import Any, TypedDict
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -117,6 +118,60 @@ def get_bytes(
         raise _FAILED from exc
     except BotoCoreError as exc:
         raise _FAILED from exc
+
+
+class ListedObject(TypedDict):
+    relative_key: str
+    size: int
+    last_modified: datetime | None
+    content_type: str | None
+
+
+def list_prefix(
+    storage_prefix: str,
+    relative_prefix: str = "",
+) -> list[ListedObject]:
+    """يسرد الكائنات تحت storage_prefix/relative_prefix (بدون document.json إلخ إن لم تكن تحت البادئة)."""
+    client = _client()
+    normalized = _object_key(storage_prefix, relative_prefix)
+    if not normalized.endswith("/"):
+        normalized = f"{normalized}/"
+    base_len = len(normalized)
+    results: list[ListedObject] = []
+    try:
+        continuation: str | None = None
+        while True:
+            kwargs: dict[str, Any] = {
+                "Bucket": settings.s3_bucket,
+                "Prefix": normalized,
+            }
+            if continuation:
+                kwargs["ContinuationToken"] = continuation
+            response = client.list_objects_v2(**kwargs)
+            for obj in response.get("Contents") or []:
+                key = obj.get("Key")
+                if not isinstance(key, str) or key.endswith("/"):
+                    continue
+                relative_key = key[base_len:] if len(key) >= base_len else key
+                if not relative_key:
+                    continue
+                last_modified = obj.get("LastModified")
+                results.append(
+                    {
+                        "relative_key": relative_key,
+                        "size": int(obj.get("Size") or 0),
+                        "last_modified": last_modified
+                        if isinstance(last_modified, datetime)
+                        else None,
+                        "content_type": None,
+                    }
+                )
+            if not response.get("IsTruncated"):
+                break
+            continuation = response.get("NextContinuationToken")
+    except (BotoCoreError, ClientError) as exc:
+        raise _FAILED from exc
+    return results
 
 
 def delete_prefix(prefix: str) -> None:

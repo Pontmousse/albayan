@@ -60,6 +60,19 @@ class ArticleDetail(BaseModel):
     versions: list[VersionRead]
 
 
+class ArticleAssetRead(BaseModel):
+    """أصل صورة مخزّن في S3 تحت assets/ — بدون جدول قاعدة بيانات."""
+
+    asset_id: str
+    content_type: str | None = None
+    size: int = 0
+    updated_at: datetime | None = None
+
+
+class ArticleAssetsList(BaseModel):
+    assets: list[ArticleAssetRead]
+
+
 class DocumentPayload(BaseModel):
     document: Any
 
