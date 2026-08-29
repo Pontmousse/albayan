@@ -8,11 +8,14 @@ import {
   useEffect,
   useRef,
   useState,
-  type ComponentProps,
   type ComponentType,
   type Ref,
 } from "react";
 import type { Document2Json } from "@drghaliasri/butex/document2";
+import type {
+  ButexDocumentEditor2Props,
+  ButexDocumentEditor2Ref,
+} from "@drghaliasri/butex/react-document2";
 import { ArticleAssetsPanel } from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
@@ -31,11 +34,6 @@ import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 import { isDevMode } from "@/lib/dev-mode";
 
 type EditorPhase = "loading" | "ready" | "blocked";
-type ButexDocumentEditor2Handle = {
-  insertImageBlock?: (assetId: string) => void;
-  updateImageBlockValue: (...args: unknown[]) => unknown;
-  getDocumentJson: () => Document2Json;
-};
 
 const ButexDocumentEditor2 = dynamic(
   () =>
@@ -46,8 +44,8 @@ const ButexDocumentEditor2 = dynamic(
 );
 
 const ButexDocumentEditor2WithRef = ButexDocumentEditor2 as ComponentType<
-  ComponentProps<typeof ButexDocumentEditor2> & {
-    ref?: Ref<ButexDocumentEditor2Handle>;
+  ButexDocumentEditor2Props & {
+    ref?: Ref<ButexDocumentEditor2Ref>;
   }
 >;
 
@@ -78,7 +76,7 @@ export default function TahrirPage() {
   const savedDocumentSnapshot = useRef<string | null>(null);
   const sessionRevision = useRef(0);
   const sessionNeedsDraftSave = useRef(false);
-  const editorRef = useRef<ButexDocumentEditor2Handle>(null);
+  const editorRef = useRef<ButexDocumentEditor2Ref>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const showDevJson = isDevMode();
