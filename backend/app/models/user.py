@@ -10,7 +10,9 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.agent_token import AgentToken
     from app.models.article import Article, ArticleAuthor, ArticleEditor, ArticleReviewer
+    from app.models.issue import Issue, IssueUpvote
     from app.models.invitation import Invitation
+    from app.models.notification import Notification
 
 
 class User(Base):
@@ -55,6 +57,20 @@ class User(Base):
         back_populates="inviter"
     )
     agent_tokens: Mapped[list["AgentToken"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="recipient",
+        cascade="all, delete-orphan",
+        foreign_keys="Notification.user_id",
+    )
+    triggered_notifications: Mapped[list["Notification"]] = relationship(
+        back_populates="actor",
+        foreign_keys="Notification.actor_id",
+    )
+    issues: Mapped[list["Issue"]] = relationship(back_populates="reporter")
+    issue_upvotes: Mapped[list["IssueUpvote"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

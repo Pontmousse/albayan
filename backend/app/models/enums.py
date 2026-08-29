@@ -55,3 +55,24 @@ class InvitationStatus(str, enum.Enum):
     ACCEPTED = "accepted"
     EXPIRED = "expired"
     CANCELLED = "cancelled"
+
+
+class NotificationType(str, enum.Enum):
+    SYSTEM = "system"
+    MENTION = "mention"
+    ISSUE_REPLY = "issue_reply"
+    ISSUE_UPVOTED = "issue_upvoted"
+    ISSUE_STATUS_CHANGED = "issue_status_changed"
+
+
+class IssueStatus(str, enum.Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+
+class IssueCategory(str, enum.Enum):
+    BUG = "bug"
+    FEATURE_REQUEST = "feature_request"
+    FEEDBACK = "feedback"

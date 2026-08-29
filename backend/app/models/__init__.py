@@ -13,13 +13,18 @@ from app.models.enums import (
     CompileStatus,
     InvitationRole,
     InvitationStatus,
+    IssueCategory,
+    IssueStatus,
+    NotificationType,
     ReviewRecommendation,
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
     VersionStatus,
 )
+from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.models.invitation import Invitation
+from app.models.notification import Notification
 from app.models.user import User
 
 __all__ = [
@@ -36,6 +41,13 @@ __all__ = [
     "Invitation",
     "InvitationRole",
     "InvitationStatus",
+    "Issue",
+    "IssueCategory",
+    "IssueImage",
+    "IssueStatus",
+    "IssueUpvote",
+    "Notification",
+    "NotificationType",
     "Review",
     "ReviewRecommendation",
     "ReviewStatus",

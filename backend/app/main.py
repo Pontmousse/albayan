@@ -8,6 +8,8 @@ from app.routers import (
     articles,
     editor,
     invitations,
+    issues,
+    notifications,
     public,
     reviews,
     users,
@@ -35,6 +37,8 @@ app.include_router(admin.router)
 app.include_router(invitations.router)
 app.include_router(reviews.router)
 app.include_router(editor.router)
+app.include_router(notifications.router)
+app.include_router(issues.router)
 
 
 @app.get("/")

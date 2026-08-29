@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AuthHeader } from "@/components/auth-header";
 import { MainNav } from "@/components/main-nav";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function SiteHeader() {
   return (
@@ -43,6 +44,7 @@ export function SiteHeader() {
             className="hidden h-5 w-px shrink-0 bg-[var(--journal-border)] sm:block"
             aria-hidden
           />
+          <NotificationBell />
           <AuthHeader />
         </div>
       </div>

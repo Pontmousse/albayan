@@ -16,6 +16,12 @@ export const dashboardSections: DashboardSection[] = [
   },
   { id: "articles", label: "مقالاتي", href: "/maktabi/maqalati", roles: ["author"] },
   {
+    id: "issues",
+    label: "البلاغات",
+    href: "/maktabi/balaghat",
+    roles: ["author", "reviewer", "editor"],
+  },
+  {
     id: "reviews",
     label: "مراجعاتي",
     href: "/maktabi/murajaati",
