@@ -6,10 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.enums import (
     InvitationRole,
     InvitationStatus,
+    IssueCategory,
+    IssueStatus,
     ReviewerAssignmentStatus,
     VersionStatus,
 )
 from app.schemas.article import VersionRead
+from app.schemas.issue import IssueImageRead
 
 
 class AdminUserBrief(BaseModel):
@@ -115,3 +118,27 @@ class InvitationRead(BaseModel):
 class InvitationCreateResponse(BaseModel):
     invitation: InvitationRead
     warning: str | None = None
+
+
+class AdminIssueReporterRead(BaseModel):
+    id: UUID
+    email: str
+    full_name: str | None
+
+
+class AdminIssueRead(BaseModel):
+    id: UUID
+    user_id: UUID
+    title: str
+    description: str
+    status: IssueStatus
+    category: IssueCategory
+    upvote_count: int
+    reporter: AdminIssueReporterRead
+    images: list[IssueImageRead]
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdminIssueStatusPayload(BaseModel):
+    status: IssueStatus

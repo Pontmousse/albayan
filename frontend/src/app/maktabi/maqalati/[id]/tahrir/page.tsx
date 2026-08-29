@@ -33,6 +33,8 @@ import { isDevMode } from "@/lib/dev-mode";
 type EditorPhase = "loading" | "ready" | "blocked";
 type ButexDocumentEditor2Handle = {
   insertImageBlock?: (assetId: string) => void;
+  updateImageBlockValue: (...args: unknown[]) => unknown;
+  getDocumentJson: () => Document2Json;
 };
 
 const ButexDocumentEditor2 = dynamic(

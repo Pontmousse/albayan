@@ -7,19 +7,33 @@ from sqlalchemy import case, delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from app.core import s3
 from app.models.enums import IssueCategory, IssueStatus, NotificationType
-from app.models.issue import Issue, IssueUpvote
+from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.services import notification_service
 
 ISSUE_CREATE_LIMIT = 5
+MAX_ISSUE_IMAGES = 3
+MAX_ISSUE_IMAGE_BYTES = 5 * 1024 * 1024
 IssueSort = Literal["date", "upvotes"]
 SortDirection = Literal["asc", "desc"]
 
 _NOT_FOUND = HTTPException(status_code=404, detail="البلاغ غير موجود.")
+_IMAGE_NOT_FOUND = HTTPException(status_code=404, detail="الصورة غير موجودة.")
+_REPORTER_ONLY = HTTPException(
+    status_code=403,
+    detail="يمكن لصاحب البلاغ فقط تعديل صوره.",
+)
 _RATE_LIMITED = HTTPException(
     status_code=429,
     detail="بلغت الحد الأقصى لإرسال البلاغات خلال 24 ساعة. جرّب لاحقاً.",
 )
+_ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+}
 
 
 def _recent_issue_count(db: Session, user_id: uuid.UUID) -> int:
@@ -185,5 +199,98 @@ def remove_upvote(db: Session, issue_id: uuid.UUID, user_id: uuid.UUID) -> Issue
                 )
             )
         )
+    db.commit()
+    return get_issue(db, issue_id)
+
+
+def _assert_reporter(issue: Issue, user_id: uuid.UUID) -> None:
+    if issue.user_id != user_id:
+        raise _REPORTER_ONLY
+
+
+def create_issue_image(
+    db: Session,
+    *,
+    issue_id: uuid.UUID,
+    user_id: uuid.UUID,
+    body: bytes,
+    content_type: str,
+) -> Issue:
+    issue = get_issue(db, issue_id)
+    _assert_reporter(issue, user_id)
+
+    normalized_type = content_type.split(";")[0].strip().lower()
+    ext = _ALLOWED_IMAGE_TYPES.get(normalized_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=400,
+            detail="نوع الملف غير مدعوم. استخدم JPEG أو PNG أو GIF أو WebP.",
+        )
+    if not body:
+        raise HTTPException(status_code=400, detail="الملف فارغ.")
+    if len(body) > MAX_ISSUE_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="حجم الصورة يتجاوز الحد المسموح (5 ميغابايت).",
+        )
+
+    image_count = int(
+        db.scalar(
+            select(func.count())
+            .select_from(IssueImage)
+            .where(IssueImage.issue_id == issue_id)
+        )
+        or 0
+    )
+    if image_count >= MAX_ISSUE_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail="يمكن إرفاق ثلاث صور كحد أقصى لكل بلاغ.",
+        )
+
+    max_position = db.scalar(
+        select(func.max(IssueImage.position)).where(IssueImage.issue_id == issue_id)
+    )
+    position = 0 if max_position is None else int(max_position) + 1
+    filename = f"{uuid.uuid4().hex}{ext}"
+    storage_prefix = f"issues/{issue_id}/images"
+    s3_key = f"{storage_prefix}/{filename}"
+    s3.put_bytes(storage_prefix, filename, body, normalized_type)
+
+    image = IssueImage(issue_id=issue_id, s3_key=s3_key, position=position)
+    db.add(image)
+    db.commit()
+    return get_issue(db, issue_id)
+
+
+def get_issue_image(db: Session, issue_id: uuid.UUID, image_id: uuid.UUID) -> IssueImage:
+    get_issue(db, issue_id)
+    image = db.scalar(
+        select(IssueImage).where(
+            IssueImage.id == image_id,
+            IssueImage.issue_id == issue_id,
+        )
+    )
+    if not image:
+        raise _IMAGE_NOT_FOUND
+    return image
+
+
+def delete_issue_image(
+    db: Session, issue_id: uuid.UUID, image_id: uuid.UUID, user_id: uuid.UUID
+) -> Issue:
+    issue = get_issue(db, issue_id)
+    _assert_reporter(issue, user_id)
+    image = db.scalar(
+        select(IssueImage).where(
+            IssueImage.id == image_id,
+            IssueImage.issue_id == issue_id,
+        )
+    )
+    if not image:
+        raise _IMAGE_NOT_FOUND
+
+    s3.delete_key(image.s3_key)
+    db.delete(image)
     db.commit()
     return get_issue(db, issue_id)

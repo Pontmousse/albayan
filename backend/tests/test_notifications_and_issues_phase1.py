@@ -12,10 +12,10 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.base import Base
 from app.models.enums import IssueCategory, IssueStatus, NotificationType
-from app.models.issue import Issue, IssueUpvote
+from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.models.notification import Notification
 from app.models.user import User
-from app.routers import issues, notifications
+from app.routers import admin, issues, notifications
 from app.schemas.issue import IssueCreate
 from app.services import (
     issue_service,
@@ -142,6 +142,53 @@ class NotificationPhase1Tests(unittest.TestCase):
 
         self.assertEqual(updated, 4)
         db.commit.assert_called_once_with()
+
+    def test_notification_page_returns_items_and_next_cursor(self) -> None:
+        db = Mock()
+        created = [
+            datetime(2026, 1, 3, tzinfo=UTC),
+            datetime(2026, 1, 2, tzinfo=UTC),
+            datetime(2026, 1, 1, tzinfo=UTC),
+        ]
+        rows = [
+            Notification(
+                id=uuid.uuid4(),
+                user_id=uuid.uuid4(),
+                type=NotificationType.SYSTEM,
+                title=f"إشعار {index}",
+                is_read=False,
+                metadata_json={},
+                created_at=value,
+            )
+            for index, value in enumerate(created)
+        ]
+        db.scalars.return_value.all.return_value = rows
+
+        items, next_cursor = notification_service.list_notifications_page(
+            db, uuid.uuid4(), limit=2
+        )
+
+        self.assertEqual(items, rows[:2])
+        self.assertEqual(next_cursor, rows[1].created_at)
+
+    def test_notification_page_route_uses_current_user(self) -> None:
+        user = _user()
+        db = Mock()
+
+        with patch.object(
+            notifications, "current_user", return_value=user
+        ), patch.object(
+            notifications.notification_service,
+            "list_notifications_page",
+            return_value=([], None),
+        ) as list_mock:
+            response = notifications.list_notifications_page(
+                auth=Mock(), db=db, limit=20, before=None
+            )
+
+        self.assertEqual(response.items, [])
+        self.assertIsNone(response.next_cursor)
+        list_mock.assert_called_once_with(db, user.id, limit=20, before=None)
 
 
 class IssuePhase1Tests(unittest.TestCase):
@@ -437,6 +484,340 @@ class IssuePhase1Tests(unittest.TestCase):
                 NotificationType.ISSUE_UPVOTED
             ),
             notification_email_policy.NotificationDelivery.IN_APP_ONLY,
+        )
+
+    def test_issue_status_changed_is_important_email_policy(self) -> None:
+        self.assertEqual(
+            notification_email_policy.delivery_for_notification(
+                NotificationType.ISSUE_STATUS_CHANGED
+            ),
+            notification_email_policy.NotificationDelivery.IMPORTANT_EMAIL,
+        )
+
+    def test_issue_image_upload_rejects_bad_inputs(self) -> None:
+        user_id = uuid.uuid4()
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=0,
+        )
+        db = Mock()
+
+        cases = [
+            ("text/plain", b"image", 400),
+            ("image/png", b"", 400),
+            ("image/png", b"x" * (issue_service.MAX_ISSUE_IMAGE_BYTES + 1), 400),
+        ]
+
+        for content_type, body, status_code in cases:
+            with self.subTest(content_type=content_type, size=len(body)):
+                with patch.object(issue_service, "get_issue", return_value=issue):
+                    with self.assertRaises(HTTPException) as raised:
+                        issue_service.create_issue_image(
+                            db,
+                            issue_id=issue.id,
+                            user_id=user_id,
+                            body=body,
+                            content_type=content_type,
+                        )
+                self.assertEqual(raised.exception.status_code, status_code)
+
+    def test_fourth_issue_image_upload_is_rejected_before_s3_write(self) -> None:
+        user_id = uuid.uuid4()
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=0,
+        )
+        db = Mock()
+        db.scalar.return_value = 3
+
+        with patch.object(issue_service, "get_issue", return_value=issue), patch.object(
+            issue_service.s3, "put_bytes"
+        ) as put_bytes:
+            with self.assertRaises(HTTPException) as raised:
+                issue_service.create_issue_image(
+                    db,
+                    issue_id=issue.id,
+                    user_id=user_id,
+                    body=b"image",
+                    content_type="image/png",
+                )
+
+        self.assertEqual(raised.exception.status_code, 400)
+        put_bytes.assert_not_called()
+
+    def test_non_reporter_cannot_upload_or_delete_issue_images(self) -> None:
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=uuid.uuid4(),
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=0,
+        )
+        db = Mock()
+
+        with patch.object(issue_service, "get_issue", return_value=issue):
+            with self.assertRaises(HTTPException) as raised:
+                issue_service.create_issue_image(
+                    db,
+                    issue_id=issue.id,
+                    user_id=uuid.uuid4(),
+                    body=b"image",
+                    content_type="image/png",
+                )
+        self.assertEqual(raised.exception.status_code, 403)
+
+        with patch.object(issue_service, "get_issue", return_value=issue):
+            with self.assertRaises(HTTPException) as raised:
+                issue_service.delete_issue_image(
+                    db,
+                    issue_id=issue.id,
+                    image_id=uuid.uuid4(),
+                    user_id=uuid.uuid4(),
+                )
+        self.assertEqual(raised.exception.status_code, 403)
+
+    def test_issue_image_upload_creates_s3_key_and_db_row(self) -> None:
+        user_id = uuid.uuid4()
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=0,
+        )
+        updated = Issue(
+            id=issue.id,
+            user_id=user_id,
+            title=issue.title,
+            description=issue.description,
+            status=issue.status,
+            category=issue.category,
+            upvote_count=0,
+        )
+        db = Mock()
+        db.scalar.side_effect = [0, None]
+
+        with patch.object(
+            issue_service, "get_issue", side_effect=[issue, updated]
+        ), patch.object(issue_service.s3, "put_bytes") as put_bytes:
+            result = issue_service.create_issue_image(
+                db,
+                issue_id=issue.id,
+                user_id=user_id,
+                body=b"image",
+                content_type="image/png",
+            )
+
+        self.assertIs(result, updated)
+        image = db.add.call_args.args[0]
+        self.assertIsInstance(image, IssueImage)
+        self.assertEqual(image.issue_id, issue.id)
+        self.assertEqual(image.position, 0)
+        self.assertTrue(
+            image.s3_key.startswith(f"issues/{issue.id}/images/")
+        )
+        self.assertTrue(image.s3_key.endswith(".png"))
+        put_bytes.assert_called_once()
+        self.assertEqual(put_bytes.call_args.args[0], f"issues/{issue.id}/images")
+        self.assertEqual(put_bytes.call_args.args[2], b"image")
+        self.assertEqual(put_bytes.call_args.args[3], "image/png")
+        db.commit.assert_called_once_with()
+
+    def test_logged_in_viewer_can_resolve_issue_image(self) -> None:
+        issue_id = uuid.uuid4()
+        image = IssueImage(
+            id=uuid.uuid4(),
+            issue_id=issue_id,
+            s3_key=f"issues/{issue_id}/images/test.png",
+            position=0,
+        )
+        db = Mock()
+        db.scalar.return_value = image
+
+        with patch.object(issue_service, "get_issue") as get_issue_mock:
+            result = issue_service.get_issue_image(db, issue_id, image.id)
+
+        self.assertIs(result, image)
+        get_issue_mock.assert_called_once_with(db, issue_id)
+
+    def test_issue_image_delete_removes_row_and_attempts_s3_delete(self) -> None:
+        user_id = uuid.uuid4()
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=0,
+        )
+        image = IssueImage(
+            id=uuid.uuid4(),
+            issue_id=issue.id,
+            s3_key=f"issues/{issue.id}/images/test.png",
+            position=0,
+        )
+        updated = Issue(
+            id=issue.id,
+            user_id=user_id,
+            title=issue.title,
+            description=issue.description,
+            status=issue.status,
+            category=issue.category,
+            upvote_count=0,
+        )
+        db = Mock()
+        db.scalar.return_value = image
+
+        with patch.object(
+            issue_service, "get_issue", side_effect=[issue, updated]
+        ), patch.object(issue_service.s3, "delete_key") as delete_key:
+            result = issue_service.delete_issue_image(
+                db, issue.id, image.id, user_id
+            )
+
+        self.assertIs(result, updated)
+        delete_key.assert_called_once_with(image.s3_key)
+        db.delete.assert_called_once_with(image)
+        db.commit.assert_called_once_with()
+
+
+class AdminIssuePhase3Tests(unittest.TestCase):
+    def _issue(self) -> Issue:
+        reporter = _user()
+        issue = Issue(
+            id=uuid.uuid4(),
+            user_id=reporter.id,
+            title="بلاغ",
+            description="وصف",
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            upvote_count=3,
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+            updated_at=datetime(2026, 1, 2, tzinfo=UTC),
+        )
+        issue.reporter = reporter
+        issue.images = []
+        return issue
+
+    def test_admin_issue_endpoints_use_admin_dependency(self) -> None:
+        self.assertEqual(
+            inspect.signature(admin.list_admin_issues).parameters["auth"].annotation,
+            admin.AdminDep,
+        )
+        self.assertEqual(
+            inspect.signature(admin.update_admin_issue_status).parameters[
+                "auth"
+            ].annotation,
+            admin.AdminDep,
+        )
+
+    def test_regular_issue_router_has_no_status_mutation(self) -> None:
+        route_paths = {getattr(route, "path", "") for route in issues.router.routes}
+        self.assertNotIn("/api/v1/issues/{issue_id}/status", route_paths)
+
+    def test_admin_list_passes_filters_and_sorting(self) -> None:
+        admin_user = _user()
+        db = MagicMock()
+
+        with patch.object(admin, "_admin_user", return_value=admin_user), patch.object(
+            admin.admin_issue_service, "list_issues", return_value=[]
+        ) as list_mock:
+            response = admin.list_admin_issues(
+                auth=Mock(),
+                db=db,
+                status=IssueStatus.OPEN,
+                category=IssueCategory.BUG,
+                sort="upvotes",
+                direction="asc",
+            )
+
+        self.assertEqual(response, [])
+        list_mock.assert_called_once_with(
+            db,
+            status=IssueStatus.OPEN,
+            category=IssueCategory.BUG,
+            sort="upvotes",
+            direction="asc",
+        )
+
+    def test_admin_issue_response_includes_reporter_email(self) -> None:
+        issue = self._issue()
+
+        response = admin._admin_issue_read(issue)
+
+        self.assertEqual(response.reporter.email, issue.reporter.email)
+
+    def test_same_status_patch_is_noop_without_notification(self) -> None:
+        issue = self._issue()
+        db = Mock()
+
+        with patch.object(
+            admin.admin_issue_service.issue_service,
+            "get_issue",
+            return_value=issue,
+        ), patch.object(
+            admin.admin_issue_service.notification_service, "create_notification"
+        ) as notify:
+            result = admin.admin_issue_service.update_issue_status(
+                db,
+                issue_id=issue.id,
+                admin_id=uuid.uuid4(),
+                status=IssueStatus.OPEN,
+            )
+
+        self.assertIs(result, issue)
+        db.flush.assert_not_called()
+        notify.assert_not_called()
+
+    def test_status_patch_creates_reporter_notification_with_metadata(self) -> None:
+        issue = self._issue()
+        db = Mock()
+        admin_id = uuid.uuid4()
+
+        with patch.object(
+            admin.admin_issue_service.issue_service,
+            "get_issue",
+            side_effect=[issue, issue],
+        ), patch.object(
+            admin.admin_issue_service.notification_service, "create_notification"
+        ) as notify:
+            result = admin.admin_issue_service.update_issue_status(
+                db,
+                issue_id=issue.id,
+                admin_id=admin_id,
+                status=IssueStatus.RESOLVED,
+            )
+
+        self.assertIs(result, issue)
+        self.assertEqual(issue.status, IssueStatus.RESOLVED)
+        db.flush.assert_called_once_with()
+        notify.assert_called_once()
+        kwargs = notify.call_args.kwargs
+        self.assertEqual(kwargs["user_id"], issue.user_id)
+        self.assertEqual(kwargs["actor_id"], admin_id)
+        self.assertEqual(kwargs["type"], NotificationType.ISSUE_STATUS_CHANGED)
+        self.assertEqual(
+            kwargs["metadata"],
+            {
+                "issue_id": str(issue.id),
+                "previous_status": "open",
+                "next_status": "resolved",
+            },
         )
 
     def test_models_are_available_to_alembic_metadata(self) -> None:

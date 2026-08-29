@@ -130,6 +130,34 @@ def get_bytes(
         raise _FAILED from exc
 
 
+def get_bytes_key(key: str) -> tuple[bytes, str | None]:
+    """يقرأ بايتات من مفتاح S3 كامل — يعيد (body, content_type)."""
+    client = _client()
+    try:
+        response = client.get_object(
+            Bucket=settings.s3_bucket,
+            Key=key,
+        )
+        body = response["Body"].read()
+        content_type = response.get("ContentType")
+        return body, content_type
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            raise _NOT_FOUND from exc
+        raise _FAILED from exc
+    except BotoCoreError as exc:
+        raise _FAILED from exc
+
+
+def delete_key(key: str) -> None:
+    """يحذف مفتاح S3 واحداً. لا خطأ إن لم يوجد شيء."""
+    client = _client()
+    try:
+        client.delete_object(Bucket=settings.s3_bucket, Key=key)
+    except (BotoCoreError, ClientError) as exc:
+        raise _FAILED from exc
+
+
 class ListedObject(TypedDict):
     relative_key: str
     size: int

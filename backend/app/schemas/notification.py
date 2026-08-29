@@ -25,6 +25,11 @@ class NotificationRead(BaseModel):
     metadata: dict[str, Any]
 
 
+class NotificationPageRead(BaseModel):
+    items: list[NotificationRead]
+    next_cursor: datetime | None
+
+
 class UnreadCountRead(BaseModel):
     count: int
 

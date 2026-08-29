@@ -1,15 +1,20 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Query
 
 from app.core.clerk import AdminDep, DbDep
 from app.core.deps import current_user
-from app.models.enums import InvitationRole, VersionStatus
+from app.models.enums import InvitationRole, IssueCategory, IssueStatus, VersionStatus
+from app.models.issue import Issue
 from app.schemas.admin import (
     AdminArticleDetail,
     AdminArticleSummary,
     AdminAuthorRead,
     AdminEditorRead,
+    AdminIssueRead,
+    AdminIssueReporterRead,
+    AdminIssueStatusPayload,
     AdminReviewerRead,
     AdminStatusPayload,
     AdminUserBrief,
@@ -21,7 +26,13 @@ from app.schemas.admin import (
     OverrideDecisionPayload,
 )
 from app.schemas.article import VersionRead
-from app.services import admin_article_service, admin_user_service, invitation_service
+from app.schemas.issue import IssueImageRead
+from app.services import (
+    admin_article_service,
+    admin_issue_service,
+    admin_user_service,
+    invitation_service,
+)
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
@@ -96,6 +107,27 @@ def _detail(article) -> AdminArticleDetail:
     )
 
 
+def _admin_issue_read(issue: Issue) -> AdminIssueRead:
+    images = sorted(issue.images, key=lambda image: image.position)
+    return AdminIssueRead(
+        id=issue.id,
+        user_id=issue.user_id,
+        title=issue.title,
+        description=issue.description,
+        status=issue.status,
+        category=issue.category,
+        upvote_count=issue.upvote_count,
+        reporter=AdminIssueReporterRead(
+            id=issue.reporter.id,
+            email=issue.reporter.email,
+            full_name=issue.reporter.full_name,
+        ),
+        images=[IssueImageRead.model_validate(image) for image in images],
+        created_at=issue.created_at,
+        updated_at=issue.updated_at,
+    )
+
+
 @router.get("/articles", response_model=list[AdminArticleSummary])
 def list_admin_articles(
     auth: AdminDep,
@@ -105,6 +137,43 @@ def list_admin_articles(
     _admin_user(auth, db)
     rows = admin_article_service.list_articles(db, status=status)
     return [_summary(article, version) for article, version in rows]
+
+
+@router.get("/issues", response_model=list[AdminIssueRead])
+def list_admin_issues(
+    auth: AdminDep,
+    db: DbDep,
+    status: IssueStatus | None = Query(default=None),
+    category: IssueCategory | None = Query(default=None),
+    sort: Literal["date", "upvotes"] = Query(default="date"),
+    direction: Literal["asc", "desc"] = Query(default="desc"),
+) -> list[AdminIssueRead]:
+    _admin_user(auth, db)
+    rows = admin_issue_service.list_issues(
+        db,
+        status=status,
+        category=category,
+        sort=sort,
+        direction=direction,
+    )
+    return [_admin_issue_read(issue) for issue in rows]
+
+
+@router.patch("/issues/{issue_id}/status", response_model=AdminIssueRead)
+def update_admin_issue_status(
+    issue_id: uuid.UUID,
+    payload: AdminIssueStatusPayload,
+    auth: AdminDep,
+    db: DbDep,
+) -> AdminIssueRead:
+    admin = _admin_user(auth, db)
+    issue = admin_issue_service.update_issue_status(
+        db,
+        issue_id=issue_id,
+        admin_id=admin.id,
+        status=payload.status,
+    )
+    return _admin_issue_read(issue)
 
 
 @router.get("/articles/{article_id}", response_model=AdminArticleDetail)

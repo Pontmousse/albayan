@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Query
 
@@ -8,6 +9,7 @@ from app.models.notification import Notification
 from app.schemas.notification import (
     MarkAllReadResult,
     NotificationActorRead,
+    NotificationPageRead,
     NotificationRead,
     UnreadCountRead,
 )
@@ -46,6 +48,23 @@ def list_notifications(
     user = current_user(auth, db)
     rows = notification_service.list_notifications(db, user.id, limit)
     return [_read(row) for row in rows]
+
+
+@router.get("/page", response_model=NotificationPageRead)
+def list_notifications_page(
+    auth: AuthDep,
+    db: DbDep,
+    limit: int = Query(default=20, ge=1, le=50),
+    before: datetime | None = Query(default=None),
+) -> NotificationPageRead:
+    user = current_user(auth, db)
+    rows, next_cursor = notification_service.list_notifications_page(
+        db, user.id, limit=limit, before=before
+    )
+    return NotificationPageRead(
+        items=[_read(row) for row in rows],
+        next_cursor=next_cursor,
+    )
 
 
 @router.get("/unread-count", response_model=UnreadCountRead)

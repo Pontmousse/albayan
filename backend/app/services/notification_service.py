@@ -55,6 +55,29 @@ def list_notifications(
     )
 
 
+def list_notifications_page(
+    db: Session,
+    user_id: uuid.UUID,
+    *,
+    limit: int = 20,
+    before: datetime | None = None,
+) -> tuple[list[Notification], datetime | None]:
+    bounded_limit = max(1, min(limit, 50))
+    statement = select(Notification).where(Notification.user_id == user_id)
+    if before is not None:
+        statement = statement.where(Notification.created_at < before)
+    statement = (
+        statement.options(selectinload(Notification.actor))
+        .order_by(Notification.created_at.desc())
+        .limit(bounded_limit + 1)
+    )
+
+    rows = list(db.scalars(statement).all())
+    items = rows[:bounded_limit]
+    next_cursor = items[-1].created_at if len(rows) > bounded_limit and items else None
+    return items, next_cursor
+
+
 def unread_count(db: Session, user_id: uuid.UUID) -> int:
     return int(
         db.scalar(

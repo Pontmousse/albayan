@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -12,12 +13,16 @@ import {
 } from "react";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
+import { IssueImageThumbnail } from "@/components/issues/issue-image-thumbnail";
+import { getCurrentUser } from "@/lib/api";
 import {
   createIssue,
+  deleteIssueImage,
   ISSUE_CATEGORY_LABELS,
   ISSUE_STATUS_LABELS,
   listIssues,
   removeIssueUpvote,
+  uploadIssueImage,
   upvoteIssue,
   type IssueCategory,
   type IssueRead,
@@ -33,6 +38,7 @@ type SortDirection = "asc" | "desc";
 
 const CATEGORIES: IssueCategory[] = ["bug", "feature_request", "feedback"];
 const STATUSES: IssueStatus[] = ["open", "in_progress", "resolved", "closed"];
+const MAX_SELECTED_IMAGES = 3;
 
 const STATUS_CLASS: Record<IssueStatus, string> = {
   open: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -43,11 +49,17 @@ const STATUS_CLASS: Record<IssueStatus, string> = {
 
 export default function BalaghatPage() {
   const { getToken } = useAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [issues, setIssues] = useState<IssueRead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<IssueCategory>("bug");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<
+    { url: string; name: string; size: number }[]
+  >([]);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sort, setSort] = useState<IssueSort>("date");
@@ -55,6 +67,8 @@ export default function BalaghatPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [votingId, setVotingId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const queryIssueLoadedRef = useRef(false);
 
   const listParams = useMemo(
@@ -101,6 +115,32 @@ export default function BalaghatPage() {
     if (issueId) setSelectedId(issueId);
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser(getToken)
+      .then((user) => {
+        if (!cancelled) setCurrentUserId(user.id);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentUserId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken]);
+
+  useEffect(() => {
+    const previews = selectedFiles.map((file) => ({
+      url: URL.createObjectURL(file),
+      name: file.name,
+      size: file.size,
+    }));
+    setFilePreviews(previews);
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [selectedFiles]);
+
   const selectedIssue = useMemo(
     () => issues?.find((issue) => issue.id === selectedId) ?? null,
     [issues, selectedId],
@@ -124,17 +164,60 @@ export default function BalaghatPage() {
     );
   }
 
+  function updateSelectedIssueInUrl(issueId: string | null) {
+    const url = new URL(window.location.href);
+    if (issueId) {
+      url.searchParams.set("issue", issueId);
+    } else {
+      url.searchParams.delete("issue");
+    }
+    window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+  }
+
+  function handleCreateFiles(files: FileList | null) {
+    const next = Array.from(files ?? []);
+    if (next.length > MAX_SELECTED_IMAGES) {
+      setImageError("يمكن إرفاق ثلاث صور كحد أقصى مع البلاغ.");
+      setSelectedFiles([]);
+      return;
+    }
+    setImageError(null);
+    setSelectedFiles(next);
+  }
+
+  function removeSelectedFile(index: number) {
+    setSelectedFiles((files) => files.filter((_, itemIndex) => itemIndex !== index));
+    setImageError(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
 
     try {
-      await createIssue(getToken, { title, description, category });
+      const created = await createIssue(getToken, { title, description, category });
+      let latest = created;
+      let uploadWarning: string | null = null;
+      for (const file of selectedFiles) {
+        try {
+          latest = await uploadIssueImage(getToken, created.id, file);
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "تعذّر رفع بعض الصور.";
+          uploadWarning =
+            `تم إنشاء البلاغ، لكن تعذّر رفع بعض الصور: ${message} يمكنك إعادة رفعها من تفاصيل البلاغ.`;
+          break;
+        }
+      }
       setTitle("");
       setDescription("");
       setCategory("bug");
+      setSelectedFiles([]);
+      setSelectedId(latest.id);
+      updateSelectedIssueInUrl(latest.id);
       await load();
+      if (uploadWarning) setError(uploadWarning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر إرسال البلاغ.");
     } finally {
@@ -166,6 +249,45 @@ export default function BalaghatPage() {
       setError(err instanceof Error ? err.message : "تعذّر تحديث التصويت.");
     } finally {
       setVotingId(null);
+    }
+  }
+
+  async function handleDetailImageUpload(issue: IssueRead, files: FileList | null) {
+    const selected = Array.from(files ?? []);
+    if (!selected.length || uploadingImage) return;
+    if (issue.images.length + selected.length > MAX_SELECTED_IMAGES) {
+      setImageError("يمكن إرفاق ثلاث صور كحد أقصى لكل بلاغ.");
+      return;
+    }
+
+    setUploadingImage(true);
+    setImageError(null);
+    setError(null);
+    try {
+      let updated = issue;
+      for (const file of selected) {
+        updated = await uploadIssueImage(getToken, issue.id, file);
+      }
+      applyIssueUpdate(updated);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function handleDeleteImage(issue: IssueRead, imageId: string) {
+    if (deletingImageId) return;
+    setDeletingImageId(imageId);
+    setImageError(null);
+    setError(null);
+    try {
+      const updated = await deleteIssueImage(getToken, issue.id, imageId);
+      applyIssueUpdate(updated);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : "تعذّر حذف الصورة.");
+    } finally {
+      setDeletingImageId(null);
     }
   }
 
@@ -233,6 +355,61 @@ export default function BalaghatPage() {
             className="min-h-28 w-full resize-y rounded-md border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
           />
         </label>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-slate-700">
+              الصور
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              multiple
+              onChange={(event) => handleCreateFiles(event.currentTarget.files)}
+              className="block w-full rounded-md border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-700 file:me-3 file:rounded-md file:border-0 file:bg-[var(--journal-accent-soft)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--journal-accent)]"
+            />
+          </label>
+
+          {imageError ? (
+            <p className="text-sm text-red-700" role="alert">
+              {imageError}
+            </p>
+          ) : null}
+
+          {filePreviews.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-3">
+              {filePreviews.map((preview, index) => (
+                <div
+                  key={`${preview.name}-${preview.size}-${index}`}
+                  className="overflow-hidden rounded-md border border-[var(--journal-border)] bg-white"
+                >
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={preview.url}
+                      alt=""
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 50vw, 220px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+                    <span className="min-w-0 truncate text-xs text-slate-600">
+                      {preview.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeSelectedFile(index)}
+                      className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                    >
+                      حذف
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex justify-end">
           <button
@@ -401,27 +578,85 @@ export default function BalaghatPage() {
                   </button>
                 </div>
 
-                {selectedId === issue.id ? (
-                  <div className="mt-4 border-t border-[var(--journal-border)] pt-4">
-                    <div className="rounded-md bg-slate-50 px-3 py-3">
-                      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                        {selectedIssue?.description ?? issue.description}
-                      </p>
-                    </div>
-                    {issue.images.length > 0 ? (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                        {issue.images.map((image) => (
-                          <div
-                            key={image.id}
-                            className="rounded-md border border-[var(--journal-border)] bg-white px-3 py-2 text-xs text-slate-500"
-                          >
-                            {image.s3_key}
+                {selectedId === issue.id
+                  ? (() => {
+                      const detailIssue =
+                        selectedIssue?.id === issue.id ? selectedIssue : issue;
+                      const canManageImages =
+                        currentUserId !== null &&
+                        currentUserId === detailIssue.user_id;
+                      const remainingSlots =
+                        MAX_SELECTED_IMAGES - detailIssue.images.length;
+                      return (
+                        <div className="mt-4 border-t border-[var(--journal-border)] pt-4">
+                          <div className="rounded-md bg-slate-50 px-3 py-3">
+                            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                              {detailIssue.description}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
+
+                          <div className="mt-3 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <h3 className="text-xs font-semibold text-slate-700">
+                                الصور
+                              </h3>
+                              {canManageImages && remainingSlots > 0 ? (
+                                <label className="inline-flex min-h-9 cursor-pointer items-center rounded-md border border-[var(--journal-border)] bg-white px-3 text-xs font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]">
+                                  {uploadingImage ? "جارٍ الرفع..." : "إضافة صور"}
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    multiple
+                                    disabled={uploadingImage}
+                                    onChange={(event) => {
+                                      void handleDetailImageUpload(
+                                        detailIssue,
+                                        event.currentTarget.files,
+                                      );
+                                      event.currentTarget.value = "";
+                                    }}
+                                    className="sr-only"
+                                  />
+                                </label>
+                              ) : null}
+                            </div>
+
+                            {imageError ? (
+                              <p className="text-sm text-red-700" role="alert">
+                                {imageError}
+                              </p>
+                            ) : null}
+
+                            {detailIssue.images.length > 0 ? (
+                              <div className="grid gap-2 sm:grid-cols-3">
+                                {detailIssue.images.map((image) => (
+                                  <IssueImageThumbnail
+                                    key={image.id}
+                                    issueId={detailIssue.id}
+                                    image={image}
+                                    deleting={deletingImageId === image.id}
+                                    onDelete={
+                                      canManageImages
+                                        ? (imageId) =>
+                                            void handleDeleteImage(
+                                              detailIssue,
+                                              imageId,
+                                            )
+                                        : undefined
+                                    }
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="rounded-md border border-dashed border-[var(--journal-border)] bg-white px-3 py-4 text-center text-xs text-slate-500">
+                                لا توجد صور مرفقة.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  : null}
               </article>
             </li>
           ))}

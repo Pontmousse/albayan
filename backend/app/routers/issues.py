@@ -1,8 +1,10 @@
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, File, Query, UploadFile
+from fastapi.responses import Response
 
+from app.core import s3
 from app.core.clerk import AuthDep, DbDep
 from app.core.deps import current_user
 from app.models.enums import IssueCategory, IssueStatus
@@ -78,6 +80,54 @@ def create_issue(payload: IssueCreate, auth: AuthDep, db: DbDep) -> IssueRead:
 def get_issue(issue_id: uuid.UUID, auth: AuthDep, db: DbDep) -> IssueRead:
     user = current_user(auth, db)
     issue = issue_service.get_issue(db, issue_id)
+    return _read(issue, issue_service.has_upvoted(db, user.id, issue.id))
+
+
+@router.post("/{issue_id}/images", response_model=IssueRead, status_code=201)
+async def upload_issue_image(
+    issue_id: uuid.UUID,
+    auth: AuthDep,
+    db: DbDep,
+    file: UploadFile = File(...),
+) -> IssueRead:
+    user = current_user(auth, db)
+    body = await file.read()
+    issue = issue_service.create_issue_image(
+        db,
+        issue_id=issue_id,
+        user_id=user.id,
+        body=body,
+        content_type=file.content_type or "",
+    )
+    return _read(issue, issue_service.has_upvoted(db, user.id, issue.id))
+
+
+@router.get("/{issue_id}/images/{image_id}")
+def get_issue_image(
+    issue_id: uuid.UUID,
+    image_id: uuid.UUID,
+    auth: AuthDep,
+    db: DbDep,
+) -> Response:
+    current_user(auth, db)
+    image = issue_service.get_issue_image(db, issue_id, image_id)
+    body, content_type = s3.get_bytes_key(image.s3_key)
+    return Response(
+        content=body,
+        media_type=content_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
+
+
+@router.delete("/{issue_id}/images/{image_id}", response_model=IssueRead)
+def delete_issue_image(
+    issue_id: uuid.UUID,
+    image_id: uuid.UUID,
+    auth: AuthDep,
+    db: DbDep,
+) -> IssueRead:
+    user = current_user(auth, db)
+    issue = issue_service.delete_issue_image(db, issue_id, image_id, user.id)
     return _read(issue, issue_service.has_upvoted(db, user.id, issue.id))
 
 

@@ -1,5 +1,10 @@
 import { apiFetch } from "@/lib/api";
 import type { VersionRead, VersionStatus } from "@/lib/api/articles";
+import type {
+  IssueCategory,
+  IssueImage,
+  IssueStatus,
+} from "@/lib/api/issues";
 
 export type ReviewerAssignmentStatus =
   | "invited"
@@ -89,6 +94,33 @@ export type InvitationRead = {
 export type InvitationCreateResponse = {
   invitation: InvitationRead;
   warning: string | null;
+};
+
+export type AdminIssueReporter = {
+  id: string;
+  email: string;
+  full_name: string | null;
+};
+
+export type AdminIssueRead = {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  status: IssueStatus;
+  category: IssueCategory;
+  upvote_count: number;
+  reporter: AdminIssueReporter;
+  images: IssueImage[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminIssueListParams = {
+  status?: IssueStatus | null;
+  category?: IssueCategory | null;
+  sort?: "date" | "upvotes";
+  direction?: "asc" | "desc";
 };
 
 type GetToken = () => Promise<string | null>;
@@ -211,6 +243,34 @@ export function overrideDecision(
 
 export function listAdminUsers(getToken: GetToken) {
   return apiFetch<AdminUserListItem[]>("/api/v1/admin/users", getToken);
+}
+
+export function listAdminIssues(
+  getToken: GetToken,
+  params: AdminIssueListParams = {},
+) {
+  const search = new URLSearchParams();
+  if (params.status) search.set("status", params.status);
+  if (params.category) search.set("category", params.category);
+  if (params.sort) search.set("sort", params.sort);
+  if (params.direction) search.set("direction", params.direction);
+  const qs = search.toString();
+  return apiFetch<AdminIssueRead[]>(
+    `/api/v1/admin/issues${qs ? `?${qs}` : ""}`,
+    getToken,
+  );
+}
+
+export function updateIssueStatus(
+  getToken: GetToken,
+  issueId: string,
+  status: IssueStatus,
+) {
+  return apiFetch<AdminIssueRead>(
+    `/api/v1/admin/issues/${issueId}/status`,
+    getToken,
+    { method: "PATCH", body: JSON.stringify({ status }) },
+  );
 }
 
 export const INVITATION_ROLE_LABELS: Record<InvitationRole, string> = {

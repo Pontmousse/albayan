@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 
 export type IssueStatus = "open" | "in_progress" | "resolved" | "closed";
 export type IssueCategory = "bug" | "feature_request" | "feedback";
@@ -49,6 +49,7 @@ export const ISSUE_CATEGORY_LABELS: Record<IssueCategory, string> = {
 };
 
 type GetToken = () => Promise<string | null>;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type IssueListParams = {
   status?: IssueStatus | null;
@@ -88,4 +89,76 @@ export function removeIssueUpvote(getToken: GetToken, id: string) {
   return apiFetch<IssueRead>(`/api/v1/issues/${id}/upvote`, getToken, {
     method: "DELETE",
   });
+}
+
+export async function uploadIssueImage(
+  getToken: GetToken,
+  issueId: string,
+  file: File,
+): Promise<IssueRead> {
+  const token = await getToken();
+  const form = new FormData();
+  form.append("file", file);
+
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/issues/${issueId}/images`,
+    {
+      method: "POST",
+      headers,
+      body: form,
+    },
+  );
+
+  if (!response.ok) {
+    let message = "تعذّر رفع الصورة.";
+    try {
+      const data = (await response.json()) as { detail?: string };
+      if (typeof data.detail === "string") message = data.detail;
+    } catch {
+      // ignore
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return response.json() as Promise<IssueRead>;
+}
+
+export async function fetchIssueImageBlob(
+  getToken: GetToken,
+  issueId: string,
+  imageId: string,
+): Promise<Blob> {
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(
+    `${API_BASE}/api/v1/issues/${issueId}/images/${imageId}`,
+    { headers },
+  );
+
+  if (!response.ok) {
+    throw new ApiError("تعذّر تحميل الصورة.", response.status);
+  }
+
+  return response.blob();
+}
+
+export function deleteIssueImage(
+  getToken: GetToken,
+  issueId: string,
+  imageId: string,
+) {
+  return apiFetch<IssueRead>(
+    `/api/v1/issues/${issueId}/images/${imageId}`,
+    getToken,
+    { method: "DELETE" },
+  );
 }

@@ -125,6 +125,7 @@ export function NotificationBell() {
   const mdUp = useMdUp();
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(0);
   const [notifications, setNotifications] = useState<NotificationRead[]>([]);
@@ -132,7 +133,10 @@ export function NotificationBell() {
   const [error, setError] = useState<string | null>(null);
   const sheetOpen = open && !mdUp;
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    window.setTimeout(() => buttonRef.current?.focus(), 0);
+  }, []);
 
   const refreshCount = useCallback(() => {
     if (!isSignedIn) return;
@@ -242,7 +246,7 @@ export function NotificationBell() {
       />
       <div className="border-t border-[var(--journal-border)] px-4 py-2">
         <Link
-          href="/maktabi/balaghat"
+          href="/maktabi/isharat"
           onClick={close}
           className="block rounded-md px-2 py-2 text-center text-sm font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]"
         >
@@ -255,6 +259,7 @@ export function NotificationBell() {
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label="الإشعارات"
         aria-expanded={open}
