@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { contactEmail, footerLinks } from "@/lib/nav-config";
 import { formatHijriYear } from "@/lib/format-date";
 
@@ -6,20 +7,29 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-[var(--journal-border)] bg-[var(--journal-footer)] pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:flex-row lg:justify-between lg:px-8">
-        <div className="max-w-md space-y-3 text-sm text-slate-600">
-          <p
-            className="text-base font-semibold text-[var(--journal-accent)]"
-            style={{ fontFamily: "var(--font-display-ar), serif" }}
-          >
-            مجلة البيان
-          </p>
-          <p>
-            منصة نشر علمي عربي تتبنى مبادئ النزاهة والشفافية وإتاحة المعرفة للمجتمع
-            الأكاديمي والمهني.
-          </p>
-          <p className="text-xs font-medium text-[var(--journal-muted)]">
-            النشر مجاني — لا رسوم على المؤلفين
-          </p>
+        <div className="flex max-w-md gap-4 text-sm text-slate-600">
+          <Image
+            src="/official-logo.png"
+            alt="شعار مجلة البيان"
+            width={72}
+            height={72}
+            className="h-16 w-16 shrink-0 object-contain drop-shadow-[0_10px_18px_rgba(18,63,51,0.14)]"
+          />
+          <div className="space-y-3">
+            <p
+              className="text-base font-semibold text-[var(--journal-accent)]"
+              style={{ fontFamily: "var(--font-display-ar), serif" }}
+            >
+              مجلة البيان
+            </p>
+            <p>
+              منصة نشر علمي عربي تتبنى مبادئ النزاهة والشفافية وإتاحة المعرفة للمجتمع
+              الأكاديمي والمهني.
+            </p>
+            <p className="text-xs font-medium text-[var(--journal-muted)]">
+              النشر مجاني — لا رسوم على المؤلفين
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3">

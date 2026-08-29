@@ -59,6 +59,11 @@ class Article(Base):
     reviewer_assignments: Mapped[list["ArticleReviewer"]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
     )
+    session: Mapped["ArticleSession | None"] = relationship(
+        back_populates="article",
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
     invitations: Mapped[list["Invitation"]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
     )
@@ -101,6 +106,45 @@ class ArticleVersion(Base):
 
     article: Mapped["Article"] = relationship(back_populates="versions")
     reviews: Mapped[list["Review"]] = relationship(back_populates="article_version")
+    session: Mapped["ArticleSession | None"] = relationship(
+        back_populates="article_version"
+    )
+
+
+class ArticleSession(Base):
+    __tablename__ = "article_sessions"
+    __table_args__ = (
+        UniqueConstraint("article_id", name="uq_article_sessions_article"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, primary_key=True, default=uuid.uuid4
+    )
+    article_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("articles.id", ondelete="CASCADE"), index=True
+    )
+    article_version_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("article_versions.id", ondelete="CASCADE"), index=True
+    )
+    revision: Mapped[int] = mapped_column(Integer, default=0)
+    last_saved_revision: Mapped[int] = mapped_column(Integer, default=0)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    article: Mapped["Article"] = relationship(back_populates="session")
+    article_version: Mapped["ArticleVersion"] = relationship(back_populates="session")
 
 
 class ArticleAuthor(Base):

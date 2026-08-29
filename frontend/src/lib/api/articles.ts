@@ -79,6 +79,36 @@ export function getArticleDocument(getToken: GetToken, id: string) {
   );
 }
 
+export type DocumentSession = {
+  revision: number;
+  last_saved_revision: number;
+  document: Document2Json | null;
+};
+
+export function getArticleSession(getToken: GetToken, id: string) {
+  return apiFetch<DocumentSession>(`/api/v1/articles/${id}/session`, getToken);
+}
+
+export function updateArticleSessionDocument(
+  getToken: GetToken,
+  id: string,
+  document: Document2Json,
+  baseRevision: number,
+) {
+  return apiFetch<DocumentSession>(`/api/v1/articles/${id}/session`, getToken, {
+    method: "PUT",
+    body: JSON.stringify({ document, base_revision: baseRevision }),
+  });
+}
+
+export function saveArticleSession(getToken: GetToken, id: string) {
+  return apiFetch<{ ok: boolean; revision: number; last_saved_revision: number }>(
+    `/api/v1/articles/${id}/session/save`,
+    getToken,
+    { method: "POST" },
+  );
+}
+
 export function saveArticleDocument(
   getToken: GetToken,
   id: string,

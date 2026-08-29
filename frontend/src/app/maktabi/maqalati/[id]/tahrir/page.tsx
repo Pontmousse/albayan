@@ -3,24 +3,37 @@
 import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ComponentType,
+  type Ref,
+} from "react";
 import type { Document2Json } from "@drghaliasri/butex/document2";
-import type { ButexDocumentEditor2Ref } from "@drghaliasri/butex/react-document2";
 import { ArticleAssetsPanel } from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import {
   getArticle,
-  getArticleDocument,
-  saveArticleDocument,
+  getArticleSession,
+  saveArticleSession,
   submitArticle,
+  updateArticleSessionDocument,
   type ArticleDetail,
 } from "@/lib/api/articles";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 import { isDevMode } from "@/lib/dev-mode";
+
+type EditorPhase = "loading" | "ready" | "blocked";
+type ButexDocumentEditor2Handle = {
+  insertImageBlock?: (assetId: string) => void;
+};
 
 const ButexDocumentEditor2 = dynamic(
   () =>
@@ -30,7 +43,11 @@ const ButexDocumentEditor2 = dynamic(
   { ssr: false },
 );
 
-type EditorPhase = "loading" | "ready" | "blocked";
+const ButexDocumentEditor2WithRef = ButexDocumentEditor2 as ComponentType<
+  ComponentProps<typeof ButexDocumentEditor2> & {
+    ref?: Ref<ButexDocumentEditor2Handle>;
+  }
+>;
 
 export default function TahrirPage() {
   const { getToken } = useAuth();
@@ -57,7 +74,9 @@ export default function TahrirPage() {
 
   const latestDocumentJson = useRef<Document2Json | null>(null);
   const savedDocumentSnapshot = useRef<string | null>(null);
-  const editorRef = useRef<ButexDocumentEditor2Ref>(null);
+  const sessionRevision = useRef(0);
+  const sessionNeedsDraftSave = useRef(false);
+  const editorRef = useRef<ButexDocumentEditor2Handle>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const showDevJson = isDevMode();
@@ -82,14 +101,10 @@ export default function TahrirPage() {
 
         setArticle(data);
 
-        let doc: Document2Json | null = null;
-        try {
-          const payload = await getArticleDocument(getToken, articleId);
-          doc = payload.document;
-        } catch {
-          // أول فتح أو S3 غير مُهيّأ — نبدأ بمستند فارغ
-          doc = null;
-        }
+        const payload = await getArticleSession(getToken, articleId);
+        const doc = payload.document;
+        const revision = payload.revision;
+        const lastSavedRevision = payload.last_saved_revision;
         if (cancelled) return;
 
         await ensureButexMathJax();
@@ -97,11 +112,17 @@ export default function TahrirPage() {
 
         latestDocumentJson.current = doc;
         savedDocumentSnapshot.current = null;
+        sessionRevision.current = revision;
+        sessionNeedsDraftSave.current = revision > lastSavedRevision;
         setInitialDocument(doc ?? undefined);
         if (isDevMode()) {
           setLiveDocument(doc);
         }
         if (doc) prefetchFromDocument(doc);
+        if (revision > lastSavedRevision) {
+          setDirty(true);
+          setSaveMessage("توجد تعديلات في جلسة التحرير لم تُحفظ في نسخة المقال بعد.");
+        }
         setPhase("ready");
       } catch (err) {
         if (!cancelled) {
@@ -160,10 +181,10 @@ export default function TahrirPage() {
 
       if (savedDocumentSnapshot.current === null) {
         savedDocumentSnapshot.current = snapshot;
-        setDirty(false);
+        setDirty(sessionNeedsDraftSave.current);
       } else {
         const changed = snapshot !== savedDocumentSnapshot.current;
-        setDirty(changed);
+        setDirty(changed || sessionNeedsDraftSave.current);
         if (changed) setSaveMessage(null);
       }
 
@@ -183,14 +204,30 @@ export default function TahrirPage() {
     setSaving(true);
     setError(null);
     try {
-      await saveArticleDocument(getToken, articleId, documentToSave);
+      if (snapshotToSave !== savedDocumentSnapshot.current) {
+        const session = await updateArticleSessionDocument(
+          getToken,
+          articleId,
+          documentToSave,
+          sessionRevision.current,
+        );
+        sessionRevision.current = session.revision;
+        sessionNeedsDraftSave.current =
+          session.revision > session.last_saved_revision;
+        savedDocumentSnapshot.current = JSON.stringify(session.document);
+      }
+
+      const saved = await saveArticleSession(getToken, articleId);
+      sessionRevision.current = saved.revision;
+      sessionNeedsDraftSave.current =
+        saved.revision > saved.last_saved_revision;
       savedDocumentSnapshot.current = snapshotToSave;
 
       const currentSnapshot = latestDocumentJson.current
         ? JSON.stringify(latestDocumentJson.current)
         : snapshotToSave;
       const changedWhileSaving = currentSnapshot !== snapshotToSave;
-      setDirty(changedWhileSaving);
+      setDirty(changedWhileSaving || sessionNeedsDraftSave.current);
       setSaveMessage(
         changedWhileSaving
           ? "تم حفظ النسخة السابقة — توجد تغييرات أحدث غير محفوظة."
@@ -242,7 +279,7 @@ export default function TahrirPage() {
       setError(null);
       try {
         await ensureAsset(assetId);
-        editorRef.current?.insertImageBlock(assetId);
+        editorRef.current?.insertImageBlock?.(assetId);
         setSaveMessage("أُدرجت الصورة في المستند — احفظ المخطوطة.");
       } catch (err) {
         setError(err instanceof Error ? err.message : "تعذّر إدراج الصورة.");
@@ -345,7 +382,7 @@ export default function TahrirPage() {
         ) : null}
 
         {phase === "ready" ? (
-          <ButexDocumentEditor2
+          <ButexDocumentEditor2WithRef
             ref={editorRef}
             className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={initialDocument}

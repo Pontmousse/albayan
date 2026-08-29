@@ -1,0 +1,23 @@
+{
+  "name": "albayan-emails",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "email dev --dir src --port 3001",
+    "build": "email build --dir src --packageManager npm",
+    "export": "email export --dir src --pretty",
+    "resend:setup": "email resend setup"
+  },
+  "dependencies": {
+    "@react-email/ui": "6.9.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-email": "6.9.3"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "typescript": "7.0.2"
+  }
+}

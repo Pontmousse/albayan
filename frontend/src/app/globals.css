@@ -45,6 +45,56 @@ body {
   display: none;
 }
 
+@keyframes albayan-logo-sweep {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(130%) rotate(18deg);
+  }
+  78% {
+    opacity: 0.62;
+  }
+  88% {
+    opacity: 0.18;
+    transform: translateX(-130%) rotate(18deg);
+  }
+}
+
+@keyframes albayan-logo-breathe {
+  0%,
+  72%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+    transform: scale(1);
+  }
+  82% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--journal-gold) 34%, transparent));
+    transform: scale(1.025);
+  }
+}
+
+.albayan-logo-sweep {
+  animation: albayan-logo-breathe 9s ease-in-out infinite;
+}
+
+.albayan-logo-sweep::after {
+  content: "";
+  position: absolute;
+  inset-block: -18%;
+  inset-inline-start: 45%;
+  width: 36%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, white 74%, transparent),
+    transparent
+  );
+  transform: translateX(130%) rotate(18deg);
+  animation: albayan-logo-sweep 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
 /* مكدس الأشرطة الثابتة في صفحة تحرير المقال */
 .article-editor__actions {
   top: var(--article-editor-site-header-height, 0px);
@@ -91,7 +141,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
   .stagger-item,
-  .panel-crossfade {
+  .panel-crossfade,
+  .albayan-logo-sweep,
+  .albayan-logo-sweep::after {
     animation: none;
   }
 }

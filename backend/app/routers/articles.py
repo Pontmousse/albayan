@@ -21,10 +21,17 @@ from app.schemas.article import (
     ArticleSummary,
     ArticleUpdate,
     CompilePayload,
+    DocumentBlocksRead,
+    DocumentCommandPayload,
+    DocumentCommandResult,
+    DocumentOutlineRead,
+    DocumentSessionRead,
+    DocumentSessionSaveResult,
+    DocumentSessionUpdatePayload,
     DocumentPayload,
     VersionRead,
 )
-from app.services import article_service, compile_service
+from app.services import article_service, article_session_service, compile_service
 
 router = APIRouter(prefix="/api/v1/articles", tags=["articles"])
 
@@ -136,6 +143,82 @@ def save_document(
     )
     db.commit()
     return {"ok": True}
+
+
+@router.get("/{article_id}/session", response_model=DocumentSessionRead)
+def get_article_session(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.get_session_document(db, article_id, actor)
+
+
+@router.put("/{article_id}/session", response_model=DocumentSessionRead)
+def update_article_session(
+    article_id: uuid.UUID,
+    payload: DocumentSessionUpdatePayload,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.update_session_document(
+        db,
+        article_id,
+        actor,
+        payload.base_revision,
+        payload.document,
+    )
+
+
+@router.get("/{article_id}/session/outline", response_model=DocumentOutlineRead)
+def get_article_session_outline(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.get_session_outline(db, article_id, actor)
+
+
+@router.get("/{article_id}/session/blocks", response_model=DocumentBlocksRead)
+def get_article_session_blocks(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.get_session_blocks(db, article_id, actor)
+
+
+@router.post("/{article_id}/session/commands", response_model=DocumentCommandResult)
+def apply_article_session_command(
+    article_id: uuid.UUID,
+    payload: DocumentCommandPayload,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.apply_session_command(
+        db,
+        article_id,
+        actor,
+        payload,
+    )
+
+
+@router.post("/{article_id}/session/save", response_model=DocumentSessionSaveResult)
+def save_article_session(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.save_session_to_draft(db, article_id, actor)
+
+
+@router.delete("/{article_id}/session", status_code=204)
+def discard_article_session(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> None:
+    article_session_service.discard_session(db, article_id, actor)
 
 
 def _guess_image_content_type(asset_id: str) -> str | None:

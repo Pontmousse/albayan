@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const verses = [
   "أَلَمْ تَرَ أَنَّ اللَّهَ أَنْزَلَ مِنَ السَّمَاءِ مَاءً فَأَخْرَجْنَا بِهِ ثَمَرَاتٍ مُخْتَلِفًا أَلْوَانُهَا ۚ وَمِنَ الْجِبَالِ جُدَدٌ بِيضٌ وَحُمْرٌ مُخْتَلِفٌ أَلْوَانُهَا وَغَرَابِيبُ سُودٌ",
   "وَمِنَ النَّاسِ وَالدَّوَابِّ وَالْأَنْعَامِ مُخْتَلِفٌ أَلْوَانُهُ كَذَٰلِكَ ۗ إِنَّمَا يَخْشَى اللَّهَ مِنْ عِبَادِهِ الْعُلَمَاءُ ۗ إِنَّ اللَّهَ عَزِيزٌ غَفُورٌ",
@@ -12,6 +14,16 @@ export function QuranicOpening() {
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-slate-900" />
       <div className="mx-auto max-w-7xl px-3 py-6 sm:px-5 sm:py-8 lg:px-8 lg:py-10">
         <div className="rounded-2xl border border-[var(--journal-border)] bg-white/70 p-4 shadow-sm backdrop-blur sm:rounded-[2rem] sm:p-7 lg:p-8">
+          <div className="mb-4 flex justify-center sm:mb-5">
+            <Image
+              src="/official-logo.png"
+              alt="شعار مجلة البيان"
+              width={112}
+              height={112}
+              priority
+              className="h-20 w-20 object-contain drop-shadow-[0_12px_22px_rgba(18,63,51,0.18)] sm:h-24 sm:w-24"
+            />
+          </div>
           <div
             className="text-center text-lg leading-relaxed text-emerald-950 sm:text-3xl lg:text-4xl"
             style={{ fontFamily: "AlmaghribiWarch, var(--font-display-ar), serif" }}

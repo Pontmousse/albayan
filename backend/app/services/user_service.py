@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.clerk import AuthContext
 from app.models.user import User
+from app.services import email_service
+
+logger = logging.getLogger(__name__)
 
 
 def get_or_create_user(db: Session, auth: AuthContext) -> User:
@@ -29,6 +34,10 @@ def get_or_create_user(db: Session, auth: AuthContext) -> User:
     db.add(user)
     db.commit()
     db.refresh(user)
+    try:
+        email_service.send_welcome_email(to=user.email, user_name=user.full_name)
+    except Exception as exc:
+        logger.warning("Welcome email failed for user %s: %s", user.id, exc)
     return user
 
 

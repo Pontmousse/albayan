@@ -49,13 +49,13 @@ def _document_key(storage_prefix: str) -> str:
     return _object_key(storage_prefix, DOCUMENT_FILENAME)
 
 
-def put_json(storage_prefix: str, data: Any) -> None:
-    """يكتب document.json تحت storage_prefix."""
+def put_json_at(storage_prefix: str, relative_key: str, data: Any) -> None:
+    """يكتب JSON تحت storage_prefix/relative_key."""
     client = _client()
     try:
         client.put_object(
             Bucket=settings.s3_bucket,
-            Key=_document_key(storage_prefix),
+            Key=_object_key(storage_prefix, relative_key),
             Body=json.dumps(data, ensure_ascii=False).encode("utf-8"),
             ContentType="application/json",
         )
@@ -63,13 +63,13 @@ def put_json(storage_prefix: str, data: Any) -> None:
         raise _FAILED from exc
 
 
-def get_json(storage_prefix: str) -> Any:
-    """يقرأ document.json من storage_prefix — يعيد None إن لم يوجد بعد."""
+def get_json_at(storage_prefix: str, relative_key: str) -> Any:
+    """يقرأ JSON من storage_prefix/relative_key — يعيد None إن لم يوجد."""
     client = _client()
     try:
         response = client.get_object(
             Bucket=settings.s3_bucket,
-            Key=_document_key(storage_prefix),
+            Key=_object_key(storage_prefix, relative_key),
         )
         return json.loads(response["Body"].read())
     except ClientError as exc:
@@ -78,6 +78,16 @@ def get_json(storage_prefix: str) -> Any:
         raise _FAILED from exc
     except BotoCoreError as exc:
         raise _FAILED from exc
+
+
+def put_json(storage_prefix: str, data: Any) -> None:
+    """يكتب document.json تحت storage_prefix."""
+    put_json_at(storage_prefix, DOCUMENT_FILENAME, data)
+
+
+def get_json(storage_prefix: str) -> Any:
+    """يقرأ document.json من storage_prefix — يعيد None إن لم يوجد بعد."""
+    return get_json_at(storage_prefix, DOCUMENT_FILENAME)
 
 
 def put_bytes(

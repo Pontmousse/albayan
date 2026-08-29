@@ -31,8 +31,12 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://albayan-journal.org"
     resend_api_key: str = ""
     email_from: str = ""
+    resend_welcome_template_id: str = ""
+    email_asset_base_url: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
+    butex_worker_url: str = ""
+    butex_worker_token: str = ""
     # من DEV_MODE — يفعّل أدوات التشخيص (مثل compile.log)؛ لا تفعّله في الإنتاج.
     dev_mode: bool = False
 

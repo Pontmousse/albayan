@@ -4,6 +4,7 @@ from app.models.article import (
     ArticleAuthor,
     ArticleEditor,
     ArticleReviewer,
+    ArticleSession,
     ArticleVersion,
     Review,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "ArticleAuthor",
     "ArticleEditor",
     "ArticleReviewer",
+    "ArticleSession",
     "ArticleVersion",
     "ArticleStatus",
     "VersionStatus",

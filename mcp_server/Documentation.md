@@ -833,19 +833,19 @@ FastAPI  POST /articles/{id}/session/commands  (وما شابه)
 **مطلوب:** نقطة دخول واحدة (مثال):
 
 ```ts
-applyDocument2Command(json: Document2Json, cmd: Document2Command): Document2Json
+applyDocumentCommand(json: Document2Json, cmd: DocumentCommand): Document2Json
 ```
 
 أو مجموعة دوال موثّقة تستدعيها FastAPI فقط. أمثلة أوامر:
 
 ```json
-{ "op": "upsert_block", "kind": "paragraph", "text": "…", "anchor": { "after_block_id": "…" } }
-{ "op": "upsert_block", "block_id": "…", "text": "" }
+{ "op": "insert_text_block", "kind": "paragraph", "text": "…", "anchor": { "after_block_id": "…" } }
+{ "op": "replace_text_block", "block_id": "…", "text": "…" }
 { "op": "insert_figure", "asset_id": "assets/….jpg", "anchor": { "end": true }, "caption": "…" }
 { "op": "remove_block", "block_id": "…" }
 ```
 
-**إدراج ومسح بنفس الأداة:** `text: ""` أو سياسة `remove` واضحة — لا أدوات منفصلة `delete_paragraph` إن أمكن تجنّبها.
+**الإدراج والاستبدال والحذف أوامر صريحة:** لا تستخدم `upsert_block` في مسار الوكيل.
 
 #### ج) `document2Outline(json)`
 
@@ -879,7 +879,7 @@ applyDocument2Command(json: Document2Json, cmd: Document2Command): Document2Json
 POST /api/v1/articles/{id}/session/commands
 Content-Type: application/json
 
-{ "op": "upsert_block", "kind": "section", "text": "المقدمة", "anchor": { "after_block_id": "block_intro" } }
+{ "op": "insert_text_block", "kind": "section", "text": "المقدمة", "anchor": { "after_block_id": "block_intro" } }
 ```
 
 | أداة MCP (مقترحة) | HTTP |

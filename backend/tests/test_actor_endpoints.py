@@ -106,6 +106,21 @@ class ActorEndpointTests(unittest.TestCase):
 
         self.assertEqual(annotation, AuthDep)
 
+    def test_article_session_endpoints_use_actor_dependency(self) -> None:
+        endpoints = (
+            articles.get_article_session,
+            articles.update_article_session,
+            articles.get_article_session_outline,
+            articles.get_article_session_blocks,
+            articles.apply_article_session_command,
+            articles.save_article_session,
+            articles.discard_article_session,
+        )
+        for endpoint in endpoints:
+            with self.subTest(endpoint=endpoint.__name__):
+                annotation = inspect.signature(endpoint).parameters["actor"].annotation
+                self.assertEqual(annotation, ActorDep)
+
     def test_submit_review_remains_human_only(self) -> None:
         annotation = inspect.signature(reviews.submit_review).parameters[
             "auth"

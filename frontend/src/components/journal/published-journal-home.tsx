@@ -1,5 +1,6 @@
 import type { PublicArticleSummary } from "@/lib/api/public";
 import { HomeHeroCtas } from "@/components/journal/home-hero-ctas";
+import { HeroBrandMark } from "@/components/journal/hero-brand-mark";
 import { PublishedArticlesSection } from "@/components/journal/published-articles-section";
 import { isMcpEnabled } from "@/lib/mcp-enabled";
 
@@ -22,6 +23,7 @@ export function PublishedJournalHome({
       <section className="border-b border-[var(--journal-border)] bg-[linear-gradient(180deg,var(--journal-accent-soft)_0%,var(--journal-paper)_100%)]">
         <div className="mx-auto max-w-7xl px-3 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
           <div className="mx-auto max-w-3xl space-y-5 text-center sm:space-y-6">
+            <HeroBrandMark />
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               منشورات المجلة
             </p>

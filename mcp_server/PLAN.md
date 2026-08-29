@@ -1027,7 +1027,7 @@ mcp_server/
 And backend authentication should conceptually become:
 
 ```text
-                 FastAPI
+                 FastAPIgood, please now
                     │
         ┌───────────┴───────────┐
         │                       │

@@ -28,10 +28,19 @@ export class ApiError extends Error {
 
 async function parseError(response: Response): Promise<string> {
   try {
-    const data = (await response.json()) as { detail?: string | { msg?: string }[] };
+    const data = (await response.json()) as {
+      detail?: string | { msg?: string }[] | { message?: string };
+    };
     if (typeof data.detail === "string") return data.detail;
     if (Array.isArray(data.detail) && data.detail[0]?.msg) {
       return data.detail[0].msg;
+    }
+    if (
+      data.detail &&
+      !Array.isArray(data.detail) &&
+      typeof data.detail.message === "string"
+    ) {
+      return data.detail.message;
     }
   } catch {
     // ignore
