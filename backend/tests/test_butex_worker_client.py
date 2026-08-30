@@ -42,7 +42,7 @@ class BuTeXWorkerClientTests(unittest.TestCase):
         self.assertEqual(document, {"node_type": "DocumentObject", "blocks": []})
         client.__enter__.return_value.post.assert_called_once()
         args, kwargs = client.__enter__.return_value.post.call_args
-        self.assertEqual(args[0], "/v1/document/commands")
+        self.assertEqual(args[0], "/v1/document2/commands")
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer secret")
         self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
         self.assertEqual(kwargs["headers"]["X-Request-ID"], "albayan-backend")

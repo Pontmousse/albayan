@@ -124,13 +124,13 @@ def _post(path: str, payload: dict[str, Any]) -> Any:
 
 def normalize_document(document: dict[str, Any]) -> dict[str, Any]:
     return _require_success_document(
-        _post("/v1/document/normalize", {"document": document})
+        _post("/v1/document2/normalize", {"document": document})
     )
 
 
 def outline_document(document: dict[str, Any]) -> list[dict[str, Any]]:
     return _require_success_outline(
-        _post("/v1/document/outline", {"document": document})
+        _post("/v1/document2/outline", {"document": document})
     )
 
 
@@ -139,5 +139,8 @@ def apply_document_command(
     command: dict[str, Any],
 ) -> dict[str, Any]:
     return _require_success_document(
-        _post("/v1/document/commands", {"document": document, "command": command})
+        _post(
+            "/v1/document2/commands",
+            {"document": document, "command": command},
+        )
     )

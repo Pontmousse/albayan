@@ -54,13 +54,13 @@ package or worker process itself.
 
 | Method and path | Request body | Successful response |
 |---|---|---|
-| `GET /health` | none | `{ "ok": true, "service": "butex-document" }` |
-| `POST /v1/document/normalize` | `{ "document": documentJson }` | `{ "ok": true, "document": documentJson }` |
-| `POST /v1/document/outline` | `{ "document": documentJson }` | `{ "ok": true, "outline": documentOutlineEntry[] }` |
-| `POST /v1/document/commands` | `{ "document": documentJson, "command": documentCommand }` | `{ "ok": true, "document": documentJson }` |
+| `GET /health` | none | `{ "ok": true, "service": "butex-document2" }` |
+| `POST /v1/document2/normalize` | `{ "document": documentJson }` | `{ "ok": true, "document": documentJson }` |
+| `POST /v1/document2/outline` | `{ "document": documentJson }` | `{ "ok": true, "outline": documentOutlineEntry[] }` |
+| `POST /v1/document2/commands` | `{ "document": documentJson, "command": documentCommand }` | `{ "ok": true, "document": documentJson }` |
 
 - Transform endpoints require the bearer token; `/health` does not.
-- The `/health` value `service: "butex-document"` identifies the packaged
+- The `/health` value `service: "butex-document2"` identifies the packaged
   worker process; the Railway service containing it is `albayan-butex`.
 - The maximum request body is 5 MiB.
 - The worker request timeout is 15 seconds.
