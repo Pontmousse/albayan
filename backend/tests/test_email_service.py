@@ -142,7 +142,7 @@ class EmailServiceTests(unittest.TestCase):
                 patch.object(
                     email_service.settings,
                     "email_reply_to",
-                    "مجلة البيان <contact@albayan-journal.org>",
+                    "مجلة البيان <support@albayan-journal.org>",
                 )
             )
             stack.enter_context(
@@ -182,7 +182,7 @@ class EmailServiceTests(unittest.TestCase):
         self.assertEqual(payload["from"], "Albayan <noreply@example.com>")
         self.assertEqual(
             payload["reply_to"],
-            "مجلة البيان <contact@albayan-journal.org>",
+            "مجلة البيان <support@albayan-journal.org>",
         )
         self.assertEqual(payload["to"], ["author@example.com"])
         self.assertEqual(
@@ -193,7 +193,7 @@ class EmailServiceTests(unittest.TestCase):
                     "USER_NAME": "د. أحمد",
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",
                     "SITE_URL": "https://albayan-journal.org",
-                    "CONTACT_EMAIL": "contact@albayan-journal.org",
+                    "CONTACT_EMAIL": "support@albayan-journal.org",
                     "ASSET_BASE_URL": "https://cdn.albayan-journal.org/email",
                 },
             },

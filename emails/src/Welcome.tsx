@@ -150,6 +150,6 @@ WelcomeEmail.PreviewProps = {
   USER_NAME: "د. أحمد",
   LOGIN_URL: "https://albayan-journal.org/maktabi",
   SITE_URL: "https://albayan-journal.org",
-  CONTACT_EMAIL: "contact@albayan-journal.org",
+  CONTACT_EMAIL: "support@albayan-journal.org",
   ASSET_BASE_URL: "http://localhost:3001/static",
 } satisfies WelcomeEmailProps;

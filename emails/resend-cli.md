@@ -20,7 +20,7 @@ Configure these server-only application variables together:
 ```env
 RESEND_API_KEY=re_xxxxxxxxxx
 EMAIL_FROM="مجلة البيان <mail@albayan-journal.org>"
-EMAIL_REPLY_TO="مجلة البيان <contact@albayan-journal.org>"
+EMAIL_REPLY_TO="مجلة البيان <support@albayan-journal.org>"
 
 FRONTEND_BASE_URL=https://albayan-journal.org
 EMAIL_ASSET_BASE_URL=https://albayan-journal.org/email
@@ -44,6 +44,12 @@ RESEND_WELCOME_TEMPLATE=welcome-ar
 Resend owns the API key, verified sending domain, and published templates. The
 application owns sender/reply-to identities, template references, frontend
 links, and public asset URLs.
+
+`support@albayan-journal.org` is the receiving inbox humans monitor. Resend
+can send from `mail@albayan-journal.org` once the domain is verified, even if
+that mailbox is only a forwarding alias. If the provider supports aliases, keep
+`mail@` and optional legacy `contact@` forwarding to `support@` so direct
+replies do not get lost.
 
 ## Template variables
 
