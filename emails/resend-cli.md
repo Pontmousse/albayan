@@ -1,25 +1,24 @@
 # Resend / React Email
 
-## Architecture
+## Production architecture
 
 ```text
-React Email → Resend Template → FastAPI/Resend API → Recipient
+React Email source
+  → exported HTML with Resend variables
+  → published Resend template (`welcome-ar`)
+  → FastAPI sends through the Resend REST API
 ```
 
-- **React Email**: design reusable `.tsx` emails.
-- **Resend Templates**: production templates.
-- **FastAPI + Resend SDK**: sends production emails.
-- **Resend CLI**: development, testing and debugging only.
+The backend never invokes a CLI. It sends either a published template or raw
+HTML through one internal transport function; those two modes are mutually
+exclusive because Resend rejects a payload that combines them.
 
-## Backend delivery configuration
+## Backend environment
 
-FastAPI uses `RESEND_API_KEY` as its runtime credential for sending email. Give
-this credential only the permissions required for delivery; it is not the
-template-administration credential used by the synchronization script.
+Configure these server-only application variables together:
 
 ```env
-RESEND_API_KEY=re_xxxxx
-
+RESEND_API_KEY=re_xxxxxxxxxx
 EMAIL_FROM="مجلة البيان <mail@albayan-journal.org>"
 EMAIL_REPLY_TO="مجلة البيان <contact@albayan-journal.org>"
 
@@ -29,113 +28,102 @@ EMAIL_ASSET_BASE_URL=https://albayan-journal.org/email
 RESEND_WELCOME_TEMPLATE=welcome-ar
 ```
 
-Prefer template aliases (`welcome-ar`) over hardcoded IDs when possible.
-Never expose this credential to the browser or use it to run
-`sync-resend-templates.sh`.
+- Never expose the API key through `NEXT_PUBLIC_*`, logs, template variables,
+  API responses, or committed `.env` files.
+- `RESEND_WELCOME_TEMPLATE` accepts the published template alias or UUID. The
+  stable `welcome-ar` alias is preferred; no `tmpl_` prefix is assumed.
+- An empty email configuration disables delivery for local development. Once
+  any email-specific value is supplied, startup validation requires the whole
+  group. Production URLs must use HTTPS; local HTTP is accepted only with
+  `DEV_MODE=true` and a loopback host.
+- `FRONTEND_BASE_URL` builds account, manuscript, and action links.
+  `EMAIL_ASSET_BASE_URL` is application configuration and is passed into the
+  welcome template as `ASSET_BASE_URL`; neither value belongs in Resend's
+  environment settings.
 
-## Local/CI template synchronization
+Resend owns the API key, verified sending domain, and published templates. The
+application owns sender/reply-to identities, template references, frontend
+links, and public asset URLs.
 
-Template synchronization requires a separate template-administration
-credential in `RESEND_TEMPLATE_SYNC_API_KEY`. Configure it in the local shell or
-the CI secret store, then run:
+## Template variables
 
-```bash
-export RESEND_TEMPLATE_SYNC_API_KEY=<template-administration-key>
-./emails/sync-resend-templates.sh
-```
-
-The script exports that value to `RESEND_API_KEY` only in its own process
-because this is the variable name expected by the Resend CLI. It does not accept
-a preexisting `RESEND_API_KEY` as a fallback, so the backend runtime/send
-credential cannot be used accidentally for template administration.
-
-Do not enable shell tracing (`set -x`) while configuring or running the script,
-and never print either credential in local or CI logs.
-
-## Email assets
-
-Store public assets in:
+`templates.yaml` is the source of truth for the variables required by the
+published welcome template:
 
 ```text
-public/email/
-├── logo.png
-├── header-arch.png
-├── divider.png
-└── icons/
+USER_NAME
+LOGIN_URL
+SITE_URL
+CONTACT_EMAIL
+ASSET_BASE_URL
 ```
 
-They become publicly accessible at:
+The backend sends exactly these variables. `CONTACT_EMAIL` is derived from the
+configured `EMAIL_REPLY_TO` mailbox, so the address is not duplicated in the
+service. `email export` renders the triple-brace Resend placeholders; React
+Email `PreviewProps` supply readable values only in the local preview.
 
-```text
-https://albayan-journal.org/email/...
-```
+## Public email assets
 
-Email images **must be publicly accessible over HTTPS without authentication**.
-
-## Resend CLI
-
-Useful commands:
+Editable source assets live in `emails/assets/`. Keep the deployed copies in
+sync with:
 
 ```bash
-# Check configuration
+cd emails
+npm run assets:sync
+npm run assets:check
+```
+
+The sync command writes the same canonical manifest to:
+
+```text
+emails/src/static/       # React Email preview
+frontend/public/email/   # Next.js production hosting
+```
+
+Next.js therefore serves the production files without authentication at:
+
+```text
+https://albayan-journal.org/email/logo.png
+https://albayan-journal.org/email/header-arch.png
+https://albayan-journal.org/email/divider.png
+https://albayan-journal.org/email/pattern.png
+https://albayan-journal.org/email/footer-corner.png
+https://albayan-journal.org/email/icons/publish.png
+https://albayan-journal.org/email/icons/read.png
+https://albayan-journal.org/email/icons/community.png
+```
+
+Email clients cannot load React Email's local `/static/` preview paths. The
+exported production template must contain only `{{{ASSET_BASE_URL}}}/...` image
+URLs, which the test suite verifies.
+
+## Publishing the template
+
+Install the current official Resend CLI and `yq`, then use a Full Access key
+dedicated to template administration:
+
+```bash
+export RESEND_API_KEY=re_xxxxxxxxxx
+cd emails
+npm run templates:sync
+```
+
+Template administration requires a Full Access key. The deployed backend may
+use a different, sending-only key under the same variable name in its own
+isolated environment. Keep every key out of shell tracing and CI logs.
+
+The sync workflow exports the React Email source, creates or updates the
+`welcome-ar` alias with the declared variables, and publishes the resulting
+draft. A missing alias is the only lookup failure that may create a template;
+authentication, network, and rate-limit failures stop the workflow.
+
+Useful read-only checks:
+
+```bash
 resend doctor
-
-# Domains
-resend domains list
-
-# Templates
-resend templates list
-resend templates get <alias>
-resend templates publish <alias>
-
-# Debugging
-resend logs list
-resend logs get <id>
-```
-
-For agents/CI, use JSON where useful:
-
-```bash
 resend templates list --json
-resend doctor --json
+resend templates get welcome-ar --json
 ```
 
-## React Email
-
-Recommended:
-
-```text
-emails/
-├── components/
-│   └── AlbayanLayout.tsx
-├── welcome.tsx
-├── submission-received.tsx
-└── review-status.tsx
-```
-
-All emails share:
-
-```tsx
-<AlbayanLayout>
-  {/* email-specific content */}
-</AlbayanLayout>
-```
-
-Local development:
-
-```bash
-npx react-email@latest resend setup
-```
-
-The shared layout is the **template-of-templates**.
-
-## Rule
-
-Never use the CLI from FastAPI for production sending.
-
-```text
-Development → React Email + Resend CLI
-Production  → FastAPI + Resend API/SDK
-```
-
-Never commit `RESEND_API_KEY` or `RESEND_TEMPLATE_SYNC_API_KEY`.
+Never commit `RESEND_API_KEY`.

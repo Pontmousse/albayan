@@ -34,7 +34,7 @@ export function AlbayanFooter({
               style={{ padding: "64px 26px 0 0" }}
             >
               <Img
-                src={emailAssetUrl(assetBaseUrl, "corner-ornament-footer.png")}
+                src={emailAssetUrl(assetBaseUrl, "footer-corner.png")}
                 alt=""
                 width="104"
                 height="104"
@@ -63,7 +63,7 @@ export function AlbayanFooter({
                         }}
                       >
                         <Img
-                          src={emailAssetUrl(assetBaseUrl, "icon-website.png")}
+                          src={emailAssetUrl(assetBaseUrl, "icons/website.png")}
                           alt=""
                           width="30"
                           height="30"
@@ -90,7 +90,7 @@ export function AlbayanFooter({
                         }}
                       >
                         <Img
-                          src={emailAssetUrl(assetBaseUrl, "icon-email.png")}
+                          src={emailAssetUrl(assetBaseUrl, "icons/email.png")}
                           alt=""
                           width="30"
                           height="30"
@@ -142,7 +142,7 @@ export function AlbayanFooter({
               style={{ padding: "64px 0 0 26px" }}
             >
               <Img
-                src={emailAssetUrl(assetBaseUrl, "corner-ornament-footer.png")}
+                src={emailAssetUrl(assetBaseUrl, "footer-corner.png")}
                 alt=""
                 width="104"
                 height="104"

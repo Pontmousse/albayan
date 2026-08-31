@@ -28,8 +28,7 @@ def _send_resend_email(
     subject: str | None = None,
     html: str | None = None,
     template_alias_or_id: str | None = None,
-    variables: dict[str, str] | None = None,
-    reply_to: str | None = None,
+    variables: dict[str, str | int] | None = None,
 ) -> None:
     has_template = template_alias_or_id is not None
     has_raw_content = subject is not None or html is not None
@@ -41,31 +40,30 @@ def _send_resend_email(
     if has_raw_content and (subject is None or html is None):
         raise ValueError("يلزم تحديد subject وhtml معاً لإرسال محتوى خام.")
 
-    if not settings.resend_api_key or not settings.email_from:
+    api_key = (
+        settings.resend_api_key.get_secret_value()
+        if hasattr(settings.resend_api_key, "get_secret_value")
+        else settings.resend_api_key
+    )
+    if not api_key or not settings.email_from or not settings.email_reply_to:
         raise HTTPException(
             status_code=503,
             detail="خدمة البريد غير مُهيّأة على الخادم.",
         )
 
+    payload_dict: dict[str, object] = {
+        "from": settings.email_from,
+        "reply_to": settings.email_reply_to,
+        "to": [to],
+    }
     if has_template:
-        payload_dict: dict[str, object] = {
-            "from": settings.email_from,
-            "to": [to],
-            "template": {
-                "id": template_alias_or_id,
-                "variables": variables or {},
-            },
+        payload_dict["template"] = {
+            "id": template_alias_or_id,
+            "variables": variables or {},
         }
     else:
-        payload_dict = {
-            "from": settings.email_from,
-            "to": [to],
-            "subject": subject,
-            "html": html,
-        }
-
-    if reply_to is not None:
-        payload_dict["reply_to"] = reply_to
+        payload_dict["subject"] = subject
+        payload_dict["html"] = html
 
     payload = json.dumps(payload_dict, ensure_ascii=False).encode("utf-8")
 
@@ -73,7 +71,7 @@ def _send_resend_email(
         "https://api.resend.com/emails",
         data=payload,
         headers={
-            "Authorization": f"Bearer {settings.resend_api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
         method="POST",
@@ -94,7 +92,7 @@ def _send_resend_email(
             detail=failure_detail,
         ) from exc
     except Exception as exc:
-        logger.warning("Resend email failed for %s: %s", to, exc)
+        logger.warning("Resend email failed for %s (%s)", to, type(exc).__name__)
         raise HTTPException(
             status_code=502,
             detail=failure_detail,
@@ -102,7 +100,7 @@ def _send_resend_email(
 
 
 def send_welcome_email(*, to: str, user_name: str | None) -> None:
-    if not settings.resend_welcome_template_id:
+    if not settings.resend_welcome_template:
         raise HTTPException(
             status_code=503,
             detail="قالب بريد الترحيب غير مُهيّأ على الخادم.",
@@ -112,12 +110,12 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
     _send_resend_email(
         to=to,
         failure_detail="تعذّر إرسال بريد الترحيب.",
-        template_alias_or_id=settings.resend_welcome_template_id,
+        template_alias_or_id=settings.resend_welcome_template,
         variables={
             "USER_NAME": user_name or "الباحث الكريم",
             "LOGIN_URL": f"{site_url}/maktabi",
             "SITE_URL": site_url,
-            "CONTACT_EMAIL": "contact@albayan-journal.org",
+            "CONTACT_EMAIL": settings.email_reply_to_address,
             "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
         },
     )

@@ -5,9 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "email dev --dir src --port 3001",
+    "test": "npm run assets:check && npm run test:unit && npm run test:template && npm run test:sync",
+    "test:unit": "esbuild test/theme.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/theme.test.mjs && node --test .test-dist/theme.test.mjs",
+    "test:template": "npm run export && node scripts/check-template-export.mjs",
+    "test:sync": "bash tests/sync-resend-templates-test.sh",
     "build": "email build --dir src --packageManager npm",
     "export": "email export --dir src --pretty",
-    "test": "npm run export && rg -q 'contact@albayan-journal.org' out/Welcome.html && ! rg -q 'albayan@gmail.com' out/Welcome.html",
+    "assets:sync": "node scripts/sync-assets.mjs",
+    "assets:check": "node scripts/sync-assets.mjs --check",
     "resend:setup": "email resend setup",
     "templates:sync": "./sync-resend-templates.sh templates.yaml"
   },

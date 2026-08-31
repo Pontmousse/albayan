@@ -9,12 +9,17 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 mkdir -p "$TMP_DIR/bin"
 touch "$TMP_DIR/template.tsx"
+printf '{{{USER_NAME}}}\n' >"$TMP_DIR/template.html"
 cat >"$TMP_DIR/templates.yaml" <<EOF
 templates:
   - alias: test-alias
     name: Test
     subject: Test subject
     file: $TMP_DIR/template.tsx
+    html_file: $TMP_DIR/template.html
+    variables:
+      USER_NAME: string
+      LOGIN_URL: string
     publish: false
 EOF
 
@@ -42,6 +47,10 @@ case "$args" in
   *'.templates[0].name'*) echo Test ;;
   *'.templates[0].subject'*) echo 'Test subject' ;;
   *'.templates[0].file'*) echo "$MOCK_TEMPLATE_FILE" ;;
+  *'.templates[0].html_file'*) echo "$MOCK_HTML_FILE" ;;
+  *'.templates[0].variables'*to_entries*)
+    printf 'USER_NAME:string\nLOGIN_URL:string\n'
+    ;;
   *'.templates[0].publish'*) echo false ;;
   *) exit 2 ;;
 esac
@@ -54,6 +63,13 @@ run_case() {
   local calls_file="$TMP_DIR/$scenario.calls"
   : >"$calls_file"
 
+  cat >"$TMP_DIR/bin/npm" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'npm %s\n' "$*" >>"$MOCK_CALLS_FILE"
+EOF
+  chmod +x "$TMP_DIR/bin/npm"
+
   cat >"$TMP_DIR/bin/resend" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -63,8 +79,8 @@ printf '%s\n' "$*" >>"$MOCK_CALLS_FILE"
 if [[ "$*" == 'templates get test-alias --json' ]]; then
   case "$MOCK_SCENARIO" in
     existing) printf '{"id":"template-id","alias":"test-alias"}\n'; exit 0 ;;
-    missing) printf '{"statusCode":404,"name":"not_found","message":"Template not found"}\n' >&2; exit 1 ;;
-    authentication) printf '{"statusCode":401,"name":"validation_error","message":"API key secret-value is invalid"}\n' >&2; exit 1 ;;
+    missing) printf '{"error":{"statusCode":404,"code":"fetch_error","message":"Template not found"}}\n' >&2; exit 1 ;;
+    authentication) printf '{"error":{"statusCode":401,"code":"fetch_error","message":"API key secret-value is invalid"}}\n' >&2; exit 1 ;;
     network) printf 'Fetch failed: ECONNREFUSED secret-response-body\n' >&2; exit 1 ;;
   esac
 fi
@@ -74,10 +90,11 @@ EOF
 
   set +e
   PATH="$TMP_DIR/bin:$PATH" \
-    RESEND_API_KEY='re_secret_test_key' \
+    RESEND_API_KEY='re_secret_sync_key' \
     MOCK_SCENARIO="$scenario" \
     MOCK_CALLS_FILE="$calls_file" \
     MOCK_TEMPLATE_FILE="$TMP_DIR/template.tsx" \
+    MOCK_HTML_FILE="$TMP_DIR/template.html" \
     "$SYNC_SCRIPT" "$TMP_DIR/templates.yaml" >"$output_file" 2>&1
   CASE_STATUS=$?
   set -e
@@ -87,24 +104,33 @@ EOF
 
 run_case existing
 [[ "$CASE_STATUS" == 0 ]]
+grep -qx 'npm run export' "$CASE_CALLS"
 grep -qx 'templates get test-alias --json' "$CASE_CALLS"
-grep -qx 'templates update test-alias --name Test --subject Test subject --react-email .*' "$CASE_CALLS"
+grep -q 'templates update test-alias --name Test --subject Test subject --html-file .*template.html --var USER_NAME:string --var LOGIN_URL:string' "$CASE_CALLS"
 ! grep -q 'templates create' "$CASE_CALLS"
 
 run_case missing
 [[ "$CASE_STATUS" == 0 ]]
-grep -q '^templates create --alias test-alias ' "$CASE_CALLS"
+grep -q '^templates create --alias test-alias .*--html-file .*template.html --var USER_NAME:string --var LOGIN_URL:string' "$CASE_CALLS"
 
 run_case authentication
 [[ "$CASE_STATUS" != 0 ]]
 grep -q 'authentication/authorization failure' "$CASE_OUTPUT"
 ! grep -q 'templates create' "$CASE_CALLS"
-! grep -q 'secret-value\|re_secret_test_key' "$CASE_OUTPUT"
+! grep -q 'secret-value\|re_secret_sync_key' "$CASE_OUTPUT"
 
 run_case network
 [[ "$CASE_STATUS" != 0 ]]
 grep -q 'network failure' "$CASE_OUTPUT"
 ! grep -q 'templates create' "$CASE_CALLS"
-! grep -q 'secret-response-body\|re_secret_test_key' "$CASE_OUTPUT"
+! grep -q 'secret-response-body\|re_secret_sync_key' "$CASE_OUTPUT"
+
+set +e
+PATH="$TMP_DIR/bin:$PATH" \
+  "$SYNC_SCRIPT" "$TMP_DIR/templates.yaml" >"$TMP_DIR/runtime-only.output" 2>&1
+RUNTIME_ONLY_STATUS=$?
+set -e
+[[ "$RUNTIME_ONLY_STATUS" != 0 ]]
+grep -q 'RESEND_API_KEY is required' "$TMP_DIR/runtime-only.output"
 
 echo 'sync-resend-templates mocked checks passed'

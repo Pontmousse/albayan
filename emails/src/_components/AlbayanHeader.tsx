@@ -7,8 +7,8 @@ type AlbayanHeaderProps = {
 };
 
 export function AlbayanHeader({ assetBaseUrl }: AlbayanHeaderProps) {
-  const logoUrl = emailAssetUrl(assetBaseUrl, "logo-horizontal.png");
-  const archUrl = emailAssetUrl(assetBaseUrl, "arch-artwork.png");
+  const logoUrl = emailAssetUrl(assetBaseUrl, "logo.png");
+  const archUrl = emailAssetUrl(assetBaseUrl, "header-arch.png");
 
   return (
     <Section

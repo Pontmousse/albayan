@@ -18,6 +18,13 @@ class EmailServiceTests(unittest.TestCase):
         stack.enter_context(
             patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
         )
+        stack.enter_context(
+            patch.object(
+                email_service.settings,
+                "email_reply_to",
+                "Editorial <editor@example.com>",
+            )
+        )
         return stack.enter_context(patch.object(email_service.urllib.request, "urlopen"))
 
     @staticmethod
@@ -78,7 +85,7 @@ class EmailServiceTests(unittest.TestCase):
                 failure_detail="تعذّر الإرسال.",
             )
 
-    def test_transport_propagates_reply_to(self) -> None:
+    def test_transport_uses_configured_reply_to(self) -> None:
         response = Mock(status=200)
         with ExitStack() as stack:
             urlopen = self._configured_transport(stack)
@@ -89,10 +96,12 @@ class EmailServiceTests(unittest.TestCase):
                 failure_detail="تعذّر الإرسال.",
                 subject="عنوان",
                 html="<p>المحتوى</p>",
-                reply_to="editor@example.com",
             )
 
-        self.assertEqual(self._payload(urlopen)["reply_to"], "editor@example.com")
+        self.assertEqual(
+            self._payload(urlopen)["reply_to"],
+            "Editorial <editor@example.com>",
+        )
 
     def test_transport_sanitizes_resend_http_errors(self) -> None:
         provider_error = "provider-secret-response"
@@ -132,8 +141,15 @@ class EmailServiceTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     email_service.settings,
-                    "resend_welcome_template_id",
-                    "welcome-template-id",
+                    "email_reply_to",
+                    "مجلة البيان <contact@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_welcome_template",
+                    "welcome-ar",
                 )
             )
             stack.enter_context(
@@ -164,11 +180,15 @@ class EmailServiceTests(unittest.TestCase):
         payload = json.loads(req.data.decode("utf-8"))
 
         self.assertEqual(payload["from"], "Albayan <noreply@example.com>")
+        self.assertEqual(
+            payload["reply_to"],
+            "مجلة البيان <contact@albayan-journal.org>",
+        )
         self.assertEqual(payload["to"], ["author@example.com"])
         self.assertEqual(
             payload["template"],
             {
-                "id": "welcome-template-id",
+                "id": "welcome-ar",
                 "variables": {
                     "USER_NAME": "د. أحمد",
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",

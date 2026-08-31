@@ -1,6 +1,9 @@
+import re
+from email.utils import parseaddr
 from typing import Any
+from urllib.parse import urlsplit
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,9 +32,10 @@ class Settings(BaseSettings):
     s3_access_key: str = ""
     s3_secret_key: str = ""
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://albayan-journal.org"
-    resend_api_key: str = ""
+    resend_api_key: SecretStr = SecretStr("")
     email_from: str = ""
-    resend_welcome_template_id: str = ""
+    email_reply_to: str = ""
+    resend_welcome_template: str = ""
     email_asset_base_url: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
@@ -52,9 +56,102 @@ class Settings(BaseSettings):
     def validate_bool_flags(cls, value: Any) -> bool:
         return _parse_bool_flag(value)
 
+    @model_validator(mode="after")
+    def validate_email_configuration(self) -> "Settings":
+        """Validate the server-only email settings together when configured."""
+        api_key = self.resend_api_key.get_secret_value()
+        email_settings = {
+            "RESEND_API_KEY": api_key,
+            "EMAIL_FROM": self.email_from,
+            "EMAIL_REPLY_TO": self.email_reply_to,
+            "RESEND_WELCOME_TEMPLATE": self.resend_welcome_template,
+            "EMAIL_ASSET_BASE_URL": self.email_asset_base_url,
+        }
+
+        # An entirely empty group disables email locally. Supplying any member
+        # opts into email delivery and requires a complete, coherent group.
+        if not any(value.strip() for value in email_settings.values()):
+            return self
+
+        required = {
+            **email_settings,
+            "FRONTEND_BASE_URL": self.frontend_base_url,
+        }
+        missing = [name for name, value in required.items() if not value.strip()]
+        if missing:
+            raise ValueError(f"Missing required email settings: {', '.join(missing)}")
+
+        if not api_key.startswith("re_"):
+            raise ValueError("RESEND_API_KEY must be a Resend API key")
+
+        self.email_from = _validate_mailbox(self.email_from, "EMAIL_FROM")
+        self.email_reply_to = _validate_mailbox(
+            self.email_reply_to, "EMAIL_REPLY_TO"
+        )
+        self.resend_welcome_template = self.resend_welcome_template.strip()
+        self.frontend_base_url = _validate_email_url(
+            self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
+        )
+        self.email_asset_base_url = _validate_email_url(
+            self.email_asset_base_url, "EMAIL_ASSET_BASE_URL", self.dev_mode
+        )
+        return self
+
+    @property
+    def email_enabled(self) -> bool:
+        api_key = (
+            self.resend_api_key.get_secret_value()
+            if hasattr(self.resend_api_key, "get_secret_value")
+            else self.resend_api_key
+        )
+        return bool(api_key)
+
+    @property
+    def email_reply_to_address(self) -> str:
+        return parseaddr(self.email_reply_to)[1]
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+
+_EMAIL_ADDRESS_RE = re.compile(
+    r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+"
+    r"[A-Za-z]{2,63}$"
+)
+
+
+def _validate_mailbox(value: str, setting_name: str) -> str:
+    value = value.strip()
+    if "\n" in value or "\r" in value:
+        raise ValueError(f"{setting_name} must be a valid mailbox identity")
+
+    display_name, address = parseaddr(value)
+    has_brackets = "<" in value or ">" in value
+    if (
+        not _EMAIL_ADDRESS_RE.fullmatch(address)
+        or (has_brackets and not (display_name and value.endswith(">")))
+        or (not has_brackets and address != value)
+    ):
+        raise ValueError(f"{setting_name} must be a valid mailbox identity")
+    return value
+
+
+def _validate_email_url(value: str, setting_name: str, dev_mode: bool) -> str:
+    value = value.strip().rstrip("/")
+    parsed = urlsplit(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError(f"{setting_name} must be an absolute HTTP(S) URL")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError(f"{setting_name} must be a clean base URL")
+    if parsed.scheme != "https":
+        is_local = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
+        if not dev_mode or not is_local:
+            raise ValueError(
+                f"{setting_name} must use HTTPS outside local development"
+            )
+    return value
 
 
 settings = Settings()

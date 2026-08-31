@@ -5,7 +5,13 @@ import { AlbayanLayout } from "./_components/AlbayanLayout";
 import { FeatureTriptych } from "./_components/FeatureTriptych";
 import { GoldDivider } from "./_components/GoldDivider";
 import { InfoPanel } from "./_components/InfoPanel";
-import { colors, displayFontFamily, fontFamily } from "./_components/theme";
+import {
+  ASSET_BASE_URL_PLACEHOLDER,
+  colors,
+  displayFontFamily,
+  fontFamily,
+  resendTemplateVariable,
+} from "./_components/theme";
 
 type WelcomeEmailProps = {
   USER_NAME?: string;
@@ -16,11 +22,11 @@ type WelcomeEmailProps = {
 };
 
 export default function WelcomeEmail({
-  USER_NAME = "الباحث الكريم",
-  LOGIN_URL = "https://albayan-journal.org/maktabi",
-  SITE_URL = "https://albayan-journal.org",
-  CONTACT_EMAIL = "contact@albayan-journal.org",
-  ASSET_BASE_URL,
+  USER_NAME = resendTemplateVariable("USER_NAME"),
+  LOGIN_URL = resendTemplateVariable("LOGIN_URL"),
+  SITE_URL = resendTemplateVariable("SITE_URL"),
+  CONTACT_EMAIL = resendTemplateVariable("CONTACT_EMAIL"),
+  ASSET_BASE_URL = ASSET_BASE_URL_PLACEHOLDER,
 }: WelcomeEmailProps) {
   return (
     <AlbayanLayout
@@ -91,17 +97,17 @@ export default function WelcomeEmail({
           assetBaseUrl={ASSET_BASE_URL}
           features={[
             {
-              imageFileName: "publish.png",
+              imageFileName: "icons/publish.png",
               title: "انشر بحثك",
               body: "قدّم أعمالك العلمية في بيئة أكاديمية تقدّر الدقة والمنهج.",
             },
             {
-              imageFileName: "read.png",
+              imageFileName: "icons/read.png",
               title: "اطلع وتعلّم",
               body: "تابع معرفة محكّمة تمتد عبر مجالات العلم والبحث الجاد.",
             },
             {
-              imageFileName: "community.png",
+              imageFileName: "icons/community.png",
               title: "تواصل وانضم",
               body: "كن جزءًا من مجتمع يطلب التميز والأمانة والمعرفة النافعة.",
             },
@@ -139,3 +145,11 @@ export default function WelcomeEmail({
     </AlbayanLayout>
   );
 }
+
+WelcomeEmail.PreviewProps = {
+  USER_NAME: "د. أحمد",
+  LOGIN_URL: "https://albayan-journal.org/maktabi",
+  SITE_URL: "https://albayan-journal.org",
+  CONTACT_EMAIL: "contact@albayan-journal.org",
+  ASSET_BASE_URL: "http://localhost:3001/static",
+} satisfies WelcomeEmailProps;

@@ -11,7 +11,7 @@ export function GoldDivider({ spacing = 24, assetBaseUrl }: GoldDividerProps) {
   return (
     <Section style={{ padding: `${spacing}px 0` }}>
       <Img
-        src={emailAssetUrl(assetBaseUrl, "gold-divider.png")}
+        src={emailAssetUrl(assetBaseUrl, "divider.png")}
         alt=""
         width="260"
         height="87"

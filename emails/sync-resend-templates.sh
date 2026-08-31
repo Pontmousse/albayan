@@ -13,14 +13,12 @@ if [[ "$CONFIG" != /* ]]; then
 fi
 cd "$REPO_ROOT"
 
-# The Resend CLI expects RESEND_API_KEY, but template administration must use a
-# dedicated local/CI credential rather than the backend runtime/send credential.
-if [[ -z "${RESEND_TEMPLATE_SYNC_API_KEY:-}" ]]; then
-  echo "ERROR: RESEND_TEMPLATE_SYNC_API_KEY is required for template administration." >&2
-  echo "The backend runtime/send credential (RESEND_API_KEY) is not accepted by this script." >&2
+# This is the official environment variable consumed by the Resend CLI. Use a
+# Full Access key in the local/CI template-sync environment.
+if [[ -z "${RESEND_API_KEY:-}" ]]; then
+  echo "ERROR: RESEND_API_KEY is required for template administration." >&2
   exit 1
 fi
-export RESEND_API_KEY="$RESEND_TEMPLATE_SYNC_API_KEY"
 
 command -v resend >/dev/null 2>&1 || {
   echo "ERROR: Resend CLI is not installed." >&2
@@ -32,6 +30,11 @@ command -v yq >/dev/null 2>&1 || {
   exit 1
 }
 
+command -v npm >/dev/null 2>&1 || {
+  echo "ERROR: npm is required to export the React Email templates." >&2
+  exit 1
+}
+
 [[ -f "$CONFIG" ]] || {
   echo "ERROR: Config not found: $CONFIG" >&2
   exit 1
@@ -39,6 +42,9 @@ command -v yq >/dev/null 2>&1 || {
 
 echo "Checking Resend..."
 resend doctor
+
+echo "Exporting React Email templates with Resend placeholders..."
+(cd "$SCRIPT_DIR" && npm run export)
 
 COUNT="$(yq -r '.templates | length' "$CONFIG")"
 
@@ -69,8 +75,7 @@ template_lookup_failure() {
 
   # A 404/not_found response from `templates get <alias>` specifically means
   # that this template alias does not exist. No other failure may create it.
-  if [[ "$http_status" == "404" && \
-        ( "$normalized_name" == "not_found" || "$normalized_name" == "not_found_error" ) ]]; then
+  if [[ "$http_status" == "404" ]]; then
     return 0
   fi
 
@@ -106,6 +111,7 @@ for ((i = 0; i < COUNT; i++)); do
   NAME="$(yq -r ".templates[$i].name" "$CONFIG")"
   SUBJECT="$(yq -r ".templates[$i].subject" "$CONFIG")"
   FILE="$(yq -r ".templates[$i].file" "$CONFIG")"
+  HTML_FILE="$(yq -r ".templates[$i].html_file" "$CONFIG")"
   PUBLISH="$(yq -r ".templates[$i].publish" "$CONFIG")"
   [[ "$PUBLISH" == "null" ]] && PUBLISH="true"
 
@@ -116,6 +122,18 @@ for ((i = 0; i < COUNT; i++)); do
     echo "ERROR: Template file not found: $FILE" >&2
     exit 1
   }
+  [[ -f "$HTML_FILE" ]] || {
+    echo "ERROR: Rendered template not found: $HTML_FILE" >&2
+    exit 1
+  }
+
+  mapfile -t VARIABLES < <(
+    yq -r ".templates[$i].variables // {} | to_entries | .[] | \"\(.key):\(.value)\"" "$CONFIG"
+  )
+  VAR_ARGS=()
+  for VARIABLE in "${VARIABLES[@]}"; do
+    VAR_ARGS+=(--var "$VARIABLE")
+  done
 
   GET_RESPONSE=""
   GET_STATUS=0
@@ -124,7 +142,8 @@ for ((i = 0; i < COUNT; i++)); do
     resend templates update "$ALIAS" \
       --name "$NAME" \
       --subject "$SUBJECT" \
-      --react-email "$FILE"
+      --html-file "$HTML_FILE" \
+      "${VAR_ARGS[@]}"
   else
     GET_STATUS=$?
     if template_lookup_failure "$ALIAS" "$GET_RESPONSE" "$GET_STATUS"; then
@@ -133,7 +152,8 @@ for ((i = 0; i < COUNT; i++)); do
         --alias "$ALIAS" \
         --name "$NAME" \
         --subject "$SUBJECT" \
-        --react-email "$FILE"
+        --html-file "$HTML_FILE" \
+        "${VAR_ARGS[@]}"
     else
       exit "$GET_STATUS"
     fi

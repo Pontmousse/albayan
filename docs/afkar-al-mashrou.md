@@ -574,7 +574,7 @@ email_enabled   boolean DEFAULT true
 | **خدمة داخلية** | `NotificationService` تُستدعى من نقاط سير العمل (تقديم، قرار، تعيين مراجع، …) |
 | **قائمة انتظار** | مهام خلفية (Celery/RQ أو worker بسيط) لإرسال البريد دون تعطيل الطلب |
 | **قوالب** | ملفات قوالب أو Jinja2 لكل `event_type` |
-| **متغيرات بيئة** | `SMTP_*` أو `RESEND_API_KEY`، `NOTIFICATION_FROM_EMAIL` |
+| **متغيرات بيئة** | `RESEND_API_KEY`، `EMAIL_FROM`، `EMAIL_REPLY_TO`، مراجع القوالب، وروابط التطبيق/أصول البريد |
 
 | Method | المسار | الوصف |
 |--------|--------|--------|
