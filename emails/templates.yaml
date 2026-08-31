@@ -12,6 +12,20 @@ templates:
       ASSET_BASE_URL: string
     publish: true
 
+  - alias: app-invitation-ar
+    name: "Al-Bayan App Invitation"
+    subject: "دعوة للانضمام إلى مجلة البيان"
+    file: "emails/src/AppInvitation.tsx"
+    html_file: "emails/out/AppInvitation.html"
+    variables:
+      INVITATION_URL: string
+      RECIPIENT_EMAIL: string
+      EXPIRES_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
   # Add templates here as their React Email sources are implemented.
   #
   # - alias: submission-received-ar

@@ -19,6 +19,9 @@ from app.schemas.admin import (
     AdminStatusPayload,
     AdminUserBrief,
     AdminUserListItem,
+    AppInvitationCreatePayload,
+    AppInvitationCreateResponse,
+    AppInvitationRead,
     AssignByUserOrEmail,
     InvitationCreateResponse,
     InvitationRead,
@@ -31,6 +34,7 @@ from app.services import (
     admin_article_service,
     admin_issue_service,
     admin_user_service,
+    app_invitation_service,
     invitation_service,
 )
 
@@ -284,6 +288,31 @@ def list_admin_users(auth: AdminDep, db: DbDep) -> list[AdminUserListItem]:
     return [AdminUserListItem.model_validate(row) for row in rows]
 
 
+@router.get("/invitations", response_model=list[AppInvitationRead])
+def list_app_invitations(auth: AdminDep, db: DbDep) -> list[AppInvitationRead]:
+    _admin_user(auth, db)
+    rows = app_invitation_service.list_app_invitations()
+    return [AppInvitationRead(**row.__dict__) for row in rows]
+
+
+@router.post(
+    "/invitations",
+    response_model=AppInvitationCreateResponse,
+    status_code=201,
+)
+def create_app_invitation(
+    payload: AppInvitationCreatePayload, auth: AdminDep, db: DbDep
+) -> AppInvitationCreateResponse:
+    _admin_user(auth, db)
+    invitation = app_invitation_service.create_app_invitation(
+        email=payload.email,
+        admin=auth,
+    )
+    return AppInvitationCreateResponse(
+        invitation=AppInvitationRead(**invitation.__dict__)
+    )
+
+
 @router.patch("/users/{user_id}/admin-status")
 def patch_admin_status(
     user_id: uuid.UUID,
@@ -352,3 +381,9 @@ def cancel_invitation(
 ) -> None:
     _admin_user(auth, db)
     invitation_service.cancel_invitation(db, invitation_id)
+
+
+@router.post("/invitations/{invitation_id}/revoke", status_code=204)
+def revoke_app_invitation(invitation_id: str, auth: AdminDep, db: DbDep) -> None:
+    _admin_user(auth, db)
+    app_invitation_service.revoke_app_invitation(invitation_id)

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { EmailField } from "@/components/email-field";
 import { PasswordField } from "@/components/password-field";
 import {
@@ -14,9 +14,11 @@ import {
   translateClerkError,
 } from "@/lib/auth-ui";
 
-export default function SignUpPage() {
+function SignUpForm() {
   const { signUp, fetchStatus } = useSignUp();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const invitationTicket = searchParams.get("__clerk_ticket");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +27,25 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
 
   const isReady = fetchStatus !== "fetching" && signUp;
+  const isInvitation = Boolean(invitationTicket);
+
+  async function finalizeIfComplete(): Promise<boolean> {
+    if (!signUp || signUp.status !== "complete") {
+      return false;
+    }
+
+    const { error: finalizeError } = await signUp.finalize({
+      navigate: async () => {
+        router.push("/");
+      },
+    });
+
+    if (finalizeError) {
+      setError(translateClerkError(finalizeError));
+      return false;
+    }
+    return true;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,6 +64,32 @@ export default function SignUpPage() {
     const lastName = nameParts.slice(1).join(" ");
 
     try {
+      if (invitationTicket) {
+        const { error: ticketError } = await signUp.ticket({
+          ticket: invitationTicket,
+          firstName,
+          lastName,
+        });
+
+        if (ticketError) {
+          setError(translateClerkError(ticketError));
+          return;
+        }
+
+        if (await finalizeIfComplete()) return;
+
+        const { error: passwordError } = await signUp.password({ password });
+        if (passwordError) {
+          setError(translateClerkError(passwordError));
+          return;
+        }
+
+        if (await finalizeIfComplete()) return;
+
+        setError("قُبلت الدعوة، لكن التسجيل يتطلب خطوة إضافية غير مكتملة بعد.");
+        return;
+      }
+
       const { error: signUpError } = await signUp.password({
         emailAddress: email,
         password,
@@ -55,18 +102,7 @@ export default function SignUpPage() {
         return;
       }
 
-      if (signUp.status === "complete") {
-        const { error: finalizeError } = await signUp.finalize({
-          navigate: async () => {
-            router.push("/");
-          },
-        });
-
-        if (finalizeError) {
-          setError(translateClerkError(finalizeError));
-        }
-        return;
-      }
+      if (await finalizeIfComplete()) return;
 
       if (signUp.unverifiedFields.includes("email_address")) {
         const { error: verifyError } = await signUp.verifications.sendEmailCode();
@@ -94,9 +130,13 @@ export default function SignUpPage() {
             className="text-2xl font-bold text-slate-900"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
-            إنشاء حساب
+            {isInvitation ? "قبول الدعوة" : "إنشاء حساب"}
           </h1>
-          <p className="mt-2 text-sm text-slate-600">انضم إلى مجلة البيان لإدارة ملفك الشخصي.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {isInvitation
+              ? "أكمل بياناتك لقبول الدعوة وإنشاء حسابك في مجلة البيان."
+              : "انضم إلى مجلة البيان لإدارة ملفك الشخصي."}
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
             <div>
@@ -119,14 +159,16 @@ export default function SignUpPage() {
                 onInput={(e) => e.currentTarget.setCustomValidity("")}
               />
             </div>
-            <EmailField
-              id="email"
-              label="البريد الإلكتروني"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            {!isInvitation ? (
+              <EmailField
+                id="email"
+                label="البريد الإلكتروني"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            ) : null}
             <PasswordField
               id="password"
               label="كلمة المرور"
@@ -145,6 +187,8 @@ export default function SignUpPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
 
+            <div id="clerk-captcha" />
+
             {error && (
               <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
                 {error}
@@ -152,7 +196,13 @@ export default function SignUpPage() {
             )}
 
             <button type="submit" disabled={loading || !isReady} className={`${buttonClassName} w-full`}>
-              {loading ? "جارٍ الإنشاء…" : "إنشاء حساب"}
+              {loading
+                ? isInvitation
+                  ? "جارٍ قبول الدعوة…"
+                  : "جارٍ الإنشاء…"
+                : isInvitation
+                  ? "قبول الدعوة وإنشاء الحساب"
+                  : "إنشاء حساب"}
             </button>
           </form>
 
@@ -165,5 +215,19 @@ export default function SignUpPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
+          جارٍ التحميل...
+        </div>
+      }
+    >
+      <SignUpForm />
+    </Suspense>
   );
 }

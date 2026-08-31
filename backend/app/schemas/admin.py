@@ -97,6 +97,23 @@ class AdminStatusPayload(BaseModel):
     is_admin: bool
 
 
+class AppInvitationCreatePayload(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+
+
+class AppInvitationRead(BaseModel):
+    id: str
+    email: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    expires_at: datetime | None = None
+
+
+class AppInvitationCreateResponse(BaseModel):
+    invitation: AppInvitationRead
+
+
 class InviteCreatePayload(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     role: InvitationRole

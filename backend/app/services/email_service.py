@@ -121,6 +121,34 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
     )
 
 
+def send_app_invitation_email(
+    *,
+    to: str,
+    invitation_url: str,
+    expires_text: str | None,
+) -> None:
+    if not settings.resend_app_invitation_template:
+        raise HTTPException(
+            status_code=503,
+            detail="قالب بريد دعوة المستخدم غير مُهيّأ على الخادم.",
+        )
+
+    site_url = settings.frontend_base_url.rstrip("/")
+    _send_resend_email(
+        to=to,
+        failure_detail="تعذّر إرسال دعوة المستخدم.",
+        template_alias_or_id=settings.resend_app_invitation_template,
+        variables={
+            "INVITATION_URL": invitation_url,
+            "RECIPIENT_EMAIL": to,
+            "EXPIRES_TEXT": expires_text or "",
+            "SITE_URL": site_url,
+            "CONTACT_EMAIL": settings.email_reply_to_address,
+            "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
+        },
+    )
+
+
 def send_invitation_email(
     *,
     to: str,

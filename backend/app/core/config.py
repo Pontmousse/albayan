@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     email_from: str = ""
     email_reply_to: str = ""
     resend_welcome_template: str = ""
+    resend_app_invitation_template: str = ""
     email_asset_base_url: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
@@ -65,6 +66,7 @@ class Settings(BaseSettings):
             "EMAIL_FROM": self.email_from,
             "EMAIL_REPLY_TO": self.email_reply_to,
             "RESEND_WELCOME_TEMPLATE": self.resend_welcome_template,
+            "RESEND_APP_INVITATION_TEMPLATE": self.resend_app_invitation_template,
             "EMAIL_ASSET_BASE_URL": self.email_asset_base_url,
         }
 
@@ -89,6 +91,9 @@ class Settings(BaseSettings):
             self.email_reply_to, "EMAIL_REPLY_TO"
         )
         self.resend_welcome_template = self.resend_welcome_template.strip()
+        self.resend_app_invitation_template = (
+            self.resend_app_invitation_template.strip()
+        )
         self.frontend_base_url = _validate_email_url(
             self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
         )

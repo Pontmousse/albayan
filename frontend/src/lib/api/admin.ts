@@ -80,6 +80,26 @@ export type AdminUserListItem = {
   created_at: string;
 };
 
+export type AppInvitationStatus =
+  | "pending"
+  | "accepted"
+  | "revoked"
+  | "expired"
+  | string;
+
+export type AppInvitationRead = {
+  id: string;
+  email: string;
+  status: AppInvitationStatus;
+  created_at: string;
+  updated_at: string;
+  expires_at: string | null;
+};
+
+export type AppInvitationCreateResponse = {
+  invitation: AppInvitationRead;
+};
+
 export type InvitationRead = {
   id: string;
   article_id: string;
@@ -243,6 +263,25 @@ export function overrideDecision(
 
 export function listAdminUsers(getToken: GetToken) {
   return apiFetch<AdminUserListItem[]>("/api/v1/admin/users", getToken);
+}
+
+export function listAppInvitations(getToken: GetToken) {
+  return apiFetch<AppInvitationRead[]>("/api/v1/admin/invitations", getToken);
+}
+
+export function createAppInvitation(getToken: GetToken, email: string) {
+  return apiFetch<AppInvitationCreateResponse>("/api/v1/admin/invitations", getToken, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function revokeAppInvitation(getToken: GetToken, invitationId: string) {
+  return apiFetch<void>(
+    `/api/v1/admin/invitations/${encodeURIComponent(invitationId)}/revoke`,
+    getToken,
+    { method: "POST" },
+  );
 }
 
 export function listAdminIssues(

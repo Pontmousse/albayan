@@ -205,6 +205,69 @@ class EmailServiceTests(unittest.TestCase):
             "Bearer re_test",
         )
 
+    def test_app_invitation_email_sends_resend_template_payload(self) -> None:
+        response = Mock(status=200)
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
+            stack.enter_context(
+                patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_reply_to",
+                    "مجلة البيان <support@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_app_invitation_template",
+                    "app-invitation-ar",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    "https://albayan-journal.org/",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_asset_base_url",
+                    "https://albayan-journal.org/email/",
+                )
+            )
+            urlopen = stack.enter_context(
+                patch.object(email_service.urllib.request, "urlopen")
+            )
+            urlopen.return_value.__enter__.return_value = response
+
+            email_service.send_app_invitation_email(
+                to="new-user@example.com",
+                invitation_url="https://clerk.example/invitations/accept",
+                expires_text="١٥ ربيع الأول ١٤٤٨ هـ",
+            )
+
+        payload = self._payload(urlopen)
+        self.assertEqual(
+            payload["template"],
+            {
+                "id": "app-invitation-ar",
+                "variables": {
+                    "INVITATION_URL": "https://clerk.example/invitations/accept",
+                    "RECIPIENT_EMAIL": "new-user@example.com",
+                    "EXPIRES_TEXT": "١٥ ربيع الأول ١٤٤٨ هـ",
+                    "SITE_URL": "https://albayan-journal.org",
+                    "CONTACT_EMAIL": "support@albayan-journal.org",
+                    "ASSET_BASE_URL": "https://albayan-journal.org/email",
+                },
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

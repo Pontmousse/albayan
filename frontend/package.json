@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:wukala-ux": "node --test scripts/check-wukala-nondev-ux.mjs",
+    "test:clerk-invitations": "node scripts/check-clerk-invitation-signup.mjs",
     "test:copy-hijri": "node --test scripts/check-copy-hijri.mjs"
   },
   "dependencies": {

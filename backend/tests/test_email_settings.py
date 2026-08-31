@@ -11,6 +11,7 @@ VALID_EMAIL_SETTINGS = {
     "EMAIL_FROM": "مجلة البيان <mail@example.com>",
     "EMAIL_REPLY_TO": "مجلة البيان <contact@example.com>",
     "RESEND_WELCOME_TEMPLATE": "welcome-ar",
+    "RESEND_APP_INVITATION_TEMPLATE": "app-invitation-ar",
     "FRONTEND_BASE_URL": "https://albayan.example/",
     "EMAIL_ASSET_BASE_URL": "https://albayan.example/email/",
 }
@@ -20,6 +21,7 @@ SETTING_FIELDS = {
     "EMAIL_FROM": "email_from",
     "EMAIL_REPLY_TO": "email_reply_to",
     "RESEND_WELCOME_TEMPLATE": "resend_welcome_template",
+    "RESEND_APP_INVITATION_TEMPLATE": "resend_app_invitation_template",
     "FRONTEND_BASE_URL": "frontend_base_url",
     "EMAIL_ASSET_BASE_URL": "email_asset_base_url",
     "DEV_MODE": "dev_mode",
@@ -49,6 +51,10 @@ class EmailSettingsTests(unittest.TestCase):
         )
         self.assertEqual(settings.email_reply_to_address, "contact@example.com")
         self.assertEqual(settings.resend_welcome_template, "welcome-ar")
+        self.assertEqual(
+            settings.resend_app_invitation_template,
+            "app-invitation-ar",
+        )
         self.assertEqual(settings.frontend_base_url, "https://albayan.example")
         self.assertEqual(
             settings.email_asset_base_url,
@@ -61,6 +67,10 @@ class EmailSettingsTests(unittest.TestCase):
 
         self.assertEqual(settings.resend_welcome_template, "welcome-ar")
         self.assertEqual(
+            settings.resend_app_invitation_template,
+            "app-invitation-ar",
+        )
+        self.assertEqual(
             settings.resend_api_key.get_secret_value(),
             VALID_EMAIL_SETTINGS["RESEND_API_KEY"],
         )
@@ -71,6 +81,7 @@ class EmailSettingsTests(unittest.TestCase):
             "EMAIL_FROM",
             "EMAIL_REPLY_TO",
             "RESEND_WELCOME_TEMPLATE",
+            "RESEND_APP_INVITATION_TEMPLATE",
             "FRONTEND_BASE_URL",
             "EMAIL_ASSET_BASE_URL",
         ):

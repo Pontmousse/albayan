@@ -26,12 +26,14 @@ FRONTEND_BASE_URL=https://albayan-journal.org
 EMAIL_ASSET_BASE_URL=https://albayan-journal.org/email
 
 RESEND_WELCOME_TEMPLATE=welcome-ar
+RESEND_APP_INVITATION_TEMPLATE=app-invitation-ar
 ```
 
 - Never expose the API key through `NEXT_PUBLIC_*`, logs, template variables,
   API responses, or committed `.env` files.
-- `RESEND_WELCOME_TEMPLATE` accepts the published template alias or UUID. The
-  stable `welcome-ar` alias is preferred; no `tmpl_` prefix is assumed.
+- `RESEND_WELCOME_TEMPLATE` and `RESEND_APP_INVITATION_TEMPLATE` accept
+  published template aliases or UUIDs. Stable aliases such as `welcome-ar` and
+  `app-invitation-ar` are preferred; no `tmpl_` prefix is assumed.
 - An empty email configuration disables delivery for local development. Once
   any email-specific value is supplied, startup validation requires the whole
   group. Production URLs must use HTTPS; local HTTP is accepted only with
@@ -54,7 +56,9 @@ replies do not get lost.
 ## Template variables
 
 `templates.yaml` is the source of truth for the variables required by the
-published welcome template:
+published templates.
+
+Welcome:
 
 ```text
 USER_NAME
@@ -64,10 +68,22 @@ CONTACT_EMAIL
 ASSET_BASE_URL
 ```
 
-The backend sends exactly these variables. `CONTACT_EMAIL` is derived from the
-configured `EMAIL_REPLY_TO` mailbox, so the address is not duplicated in the
-service. `email export` renders the triple-brace Resend placeholders; React
-Email `PreviewProps` supply readable values only in the local preview.
+Application invitation:
+
+```text
+INVITATION_URL
+RECIPIENT_EMAIL
+EXPIRES_TEXT
+SITE_URL
+CONTACT_EMAIL
+ASSET_BASE_URL
+```
+
+The backend sends exactly the variables declared for each template.
+`CONTACT_EMAIL` is derived from the configured `EMAIL_REPLY_TO` mailbox, so
+the address is not duplicated in the service. `email export` renders the
+triple-brace Resend placeholders; React Email `PreviewProps` supply readable
+values only in the local preview.
 
 ## Public email assets
 
