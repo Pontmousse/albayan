@@ -54,16 +54,14 @@ class EmailServiceTests(unittest.TestCase):
 
         self.assertEqual(payload["from"], "Albayan <noreply@example.com>")
         self.assertEqual(payload["to"], ["author@example.com"])
+        self.assertEqual(payload["template"]["id"], "welcome-template-id")
         self.assertEqual(
-            payload["template"],
+            payload["template"]["variables"],
             {
-                "id": "welcome-template-id",
-                "variables": {
-                    "USER_NAME": "د. أحمد",
-                    "LOGIN_URL": "https://albayan-journal.org/maktabi",
-                    "SITE_URL": "https://albayan-journal.org",
-                    "ASSET_BASE_URL": "https://cdn.albayan-journal.org/email",
-                },
+                "USER_NAME": "د. أحمد",
+                "LOGIN_URL": "https://albayan-journal.org/maktabi",
+                "SITE_URL": "https://albayan-journal.org",
+                "ASSET_BASE_URL": "https://cdn.albayan-journal.org/email",
             },
         )
         self.assertEqual(req.method, "POST")

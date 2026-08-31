@@ -42,6 +42,10 @@ command -v yq >/dev/null 2>&1 || {
 echo "Checking Resend..."
 resend doctor
 
+# Render the React Email sources with their placeholder defaults. Uploading the
+# resulting HTML avoids the CLI replacing those defaults while compiling TSX.
+(cd "$SCRIPT_DIR" && npm run export)
+
 COUNT="$(yq -r '.templates | length' "$CONFIG")"
 
 for ((i = 0; i < COUNT; i++)); do
@@ -49,6 +53,7 @@ for ((i = 0; i < COUNT; i++)); do
   NAME="$(yq -r ".templates[$i].name" "$CONFIG")"
   SUBJECT="$(yq -r ".templates[$i].subject" "$CONFIG")"
   FILE="$(yq -r ".templates[$i].file" "$CONFIG")"
+  HTML_FILE="$(yq -r ".templates[$i].html_file" "$CONFIG")"
   PUBLISH="$(yq -r ".templates[$i].publish" "$CONFIG")"
   [[ "$PUBLISH" == "null" ]] && PUBLISH="true"
 
@@ -59,20 +64,34 @@ for ((i = 0; i < COUNT; i++)); do
     echo "ERROR: Template file not found: $FILE" >&2
     exit 1
   }
+  [[ -f "$HTML_FILE" ]] || {
+    echo "ERROR: Rendered template not found: $HTML_FILE" >&2
+    exit 1
+  }
+
+  mapfile -t VARIABLES < <(
+    yq -r ".templates[$i].variables // {} | to_entries | .[] | \"\(.key):\(.value)\"" "$CONFIG"
+  )
+  VAR_ARGS=()
+  for VARIABLE in "${VARIABLES[@]}"; do
+    VAR_ARGS+=(--var "$VARIABLE")
+  done
 
   if resend templates get "$ALIAS" >/dev/null 2>&1; then
     echo "  Updating existing template..."
     resend templates update "$ALIAS" \
       --name "$NAME" \
       --subject "$SUBJECT" \
-      --react-email "$FILE"
+      --html-file "$HTML_FILE" \
+      "${VAR_ARGS[@]}"
   else
     echo "  Creating template..."
     resend templates create \
       --alias "$ALIAS" \
       --name "$NAME" \
       --subject "$SUBJECT" \
-      --react-email "$FILE"
+      --html-file "$HTML_FILE" \
+      "${VAR_ARGS[@]}"
   fi
 
   if [[ "$PUBLISH" == "true" ]]; then

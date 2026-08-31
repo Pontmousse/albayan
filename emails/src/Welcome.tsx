@@ -15,10 +15,10 @@ type WelcomeEmailProps = {
 };
 
 export default function WelcomeEmail({
-  USER_NAME = "الباحث الكريم",
-  LOGIN_URL = "https://albayan-journal.org/maktabi",
-  SITE_URL = "https://albayan-journal.org",
-  ASSET_BASE_URL,
+  USER_NAME = "{{{USER_NAME}}}",
+  LOGIN_URL = "{{{LOGIN_URL}}}",
+  SITE_URL = "{{{SITE_URL}}}",
+  ASSET_BASE_URL = "{{{ASSET_BASE_URL}}}",
 }: WelcomeEmailProps) {
   return (
     <AlbayanLayout

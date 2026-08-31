@@ -3,6 +3,12 @@ templates:
     name: "Al-Bayan Welcome"
     subject: "مجلة البيان ترحب بكم"
     file: "emails/src/Welcome.tsx"
+    html_file: "emails/out/Welcome.html"
+    variables:
+      USER_NAME: string
+      LOGIN_URL: string
+      SITE_URL: string
+      ASSET_BASE_URL: string
     publish: true
 
   # Add templates here as their React Email sources are implemented.
