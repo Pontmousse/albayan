@@ -268,6 +268,133 @@ class EmailServiceTests(unittest.TestCase):
             },
         )
 
+    def test_auth_verification_email_uses_idempotency_key(self) -> None:
+        response = Mock(status=200)
+        response.read.return_value = b'{"id":"email_123"}'
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
+            stack.enter_context(
+                patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_reply_to",
+                    "مجلة البيان <support@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_auth_verification_template",
+                    "auth-verification-code-ar",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    "https://albayan-journal.org/",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_asset_base_url",
+                    "https://albayan-journal.org/email/",
+                )
+            )
+            urlopen = stack.enter_context(
+                patch.object(email_service.urllib.request, "urlopen")
+            )
+            urlopen.return_value.__enter__.return_value = response
+
+            message_id = email_service.send_auth_verification_email(
+                to="user@example.com",
+                otp_code="123456",
+                idempotency_key="clerk-email/email_1",
+            )
+
+        req = urlopen.call_args.args[0]
+        payload = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(message_id, "email_123")
+        self.assertEqual(req.headers["Idempotency-key"], "clerk-email/email_1")
+        self.assertEqual(
+            payload["template"],
+            {
+                "id": "auth-verification-code-ar",
+                "variables": {
+                    "OTP_CODE": "123456",
+                    "RECIPIENT_EMAIL": "user@example.com",
+                    "SITE_URL": "https://albayan-journal.org",
+                    "CONTACT_EMAIL": "support@albayan-journal.org",
+                    "ASSET_BASE_URL": "https://albayan-journal.org/email",
+                },
+            },
+        )
+
+    def test_password_reset_email_sends_resend_template_payload(self) -> None:
+        response = Mock(status=200)
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
+            stack.enter_context(
+                patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_reply_to",
+                    "مجلة البيان <support@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_password_reset_template",
+                    "password-reset-ar",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    "https://albayan-journal.org/",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_asset_base_url",
+                    "https://albayan-journal.org/email/",
+                )
+            )
+            urlopen = stack.enter_context(
+                patch.object(email_service.urllib.request, "urlopen")
+            )
+            urlopen.return_value.__enter__.return_value = response
+
+            email_service.send_password_reset_email(
+                to="user@example.com",
+                otp_code="654321",
+            )
+
+        payload = self._payload(urlopen)
+        self.assertEqual(
+            payload["template"],
+            {
+                "id": "password-reset-ar",
+                "variables": {
+                    "OTP_CODE": "654321",
+                    "RECIPIENT_EMAIL": "user@example.com",
+                    "SITE_URL": "https://albayan-journal.org",
+                    "CONTACT_EMAIL": "support@albayan-journal.org",
+                    "ASSET_BASE_URL": "https://albayan-journal.org/email",
+                },
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

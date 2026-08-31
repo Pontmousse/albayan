@@ -23,8 +23,8 @@ command -v resend >/dev/null 2>&1 || {
   exit 1
 }
 
-# Explicitly use Mike Farah yq.
-YQ="/snap/bin/yq"
+# Explicitly use Mike Farah yq by default; tests may override YQ.
+YQ="${YQ:-/snap/bin/yq}"
 
 [[ -x "$YQ" ]] || {
   echo "ERROR: Mike Farah yq was not found at $YQ." >&2
@@ -62,9 +62,25 @@ fi
 echo
 echo "Fetching existing Resend templates..."
 
-RAW_TEMPLATES_OUTPUT="$(
-  resend templates list --json 2>&1
-)"
+redact_resend_output() {
+  sed -E \
+    -e "s/${RESEND_API_KEY//\//\\/}/[REDACTED_RESEND_API_KEY]/g" \
+    -e 's/re_[A-Za-z0-9_=-]+/[REDACTED_RESEND_API_KEY]/g' \
+    -e 's/secret-[^[:space:]]+/[REDACTED_SECRET]/g'
+}
+
+if ! RAW_TEMPLATES_OUTPUT="$(resend templates list --json 2>&1)"; then
+  normalized_response="$(printf '%s' "$RAW_TEMPLATES_OUTPUT" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$normalized_response" == *"unauthorized"* ||
+        "$normalized_response" == *"forbidden"* ||
+        "$normalized_response" == *"invalid"* ]]; then
+    echo "ERROR: Resend template list failed due to authentication/authorization failure." >&2
+  else
+    echo "ERROR: Resend template list failed due to network failure." >&2
+  fi
+  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
+  exit 1
+fi
 
 TEMPLATES_JSON="$(
   printf '%s\n' "$RAW_TEMPLATES_OUTPUT" |
@@ -74,7 +90,7 @@ TEMPLATES_JSON="$(
 if [[ -z "$TEMPLATES_JSON" ]]; then
   echo "ERROR: Resend returned no JSON when listing templates." >&2
   echo "Raw output:" >&2
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" >&2
+  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
   exit 1
 fi
 
@@ -83,7 +99,7 @@ if ! printf '%s' "$TEMPLATES_JSON" |
 
   echo "ERROR: Could not parse 'resend templates list --json' output." >&2
   echo "Raw output:" >&2
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" >&2
+  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
   exit 1
 fi
 

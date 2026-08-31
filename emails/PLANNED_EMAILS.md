@@ -8,6 +8,8 @@ gold, ink, and paper palette already used by the application.
 | --- | --- | --- | --- |
 | Welcome | New user | First local backend user creation from Clerk auth | Implemented first. |
 | Application invitation | Invited email | Admin creates a Clerk application invitation | Implemented with Clerk-owned URL/status and Resend delivery. |
+| Sign-up verification code | New user | Clerk `email.created` webhook for sign-up email verification | Implemented with Clerk-owned OTP validation and Resend delivery. |
+| Password reset code | Existing user | Clerk `email.created` webhook for password recovery | Implemented with Clerk-owned OTP validation and Resend delivery. |
 | Submission received | Corresponding author | Manuscript submission | Include title, version, and manuscript link. |
 | New submission alert | Admins/editors | Manuscript submission | Route to admin/editor dashboard. |
 | Editor assigned | Editor | Admin assigns existing editor | Include article title and editor URL. |

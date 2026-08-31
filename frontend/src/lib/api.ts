@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type UserProfile = {
   id: string;
@@ -15,6 +15,18 @@ export type UserProfileUpdate = {
   full_name?: string | null;
   affiliation?: string | null;
   bio?: string | null;
+};
+
+export type AccountDeletionRequestRead = {
+  id: string;
+  user_id: string;
+  email_snapshot: string;
+  reason: string | null;
+  status: string;
+  requested_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  resolution_note: string | null;
 };
 
 export class ApiError extends Error {

@@ -4,6 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.enums import (
+    AccountDeletionRequestStatus,
     InvitationRole,
     InvitationStatus,
     IssueCategory,
@@ -95,6 +96,25 @@ class AdminUserListItem(BaseModel):
 
 class AdminStatusPayload(BaseModel):
     is_admin: bool
+
+
+class AccountDeletionRequestStatusPayload(BaseModel):
+    status: AccountDeletionRequestStatus
+    resolution_note: str | None = Field(default=None, max_length=2000)
+
+
+class AccountDeletionRequestAdminRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    email_snapshot: str
+    reason: str | None
+    status: str
+    requested_at: datetime
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    resolution_note: str | None
 
 
 class AppInvitationCreatePayload(BaseModel):

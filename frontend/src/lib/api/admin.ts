@@ -100,6 +100,24 @@ export type AppInvitationCreateResponse = {
   invitation: AppInvitationRead;
 };
 
+export type AccountDeletionRequestStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "completed";
+
+export type AccountDeletionRequestAdminRead = {
+  id: string;
+  user_id: string;
+  email_snapshot: string;
+  reason: string | null;
+  status: AccountDeletionRequestStatus;
+  requested_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  resolution_note: string | null;
+};
+
 export type InvitationRead = {
   id: string;
   article_id: string;
@@ -281,6 +299,32 @@ export function revokeAppInvitation(getToken: GetToken, invitationId: string) {
     `/api/v1/admin/invitations/${encodeURIComponent(invitationId)}/revoke`,
     getToken,
     { method: "POST" },
+  );
+}
+
+export function listAccountDeletionRequests(getToken: GetToken) {
+  return apiFetch<AccountDeletionRequestAdminRead[]>(
+    "/api/v1/admin/account-deletion-requests",
+    getToken,
+  );
+}
+
+export function updateAccountDeletionRequest(
+  getToken: GetToken,
+  requestId: string,
+  status: AccountDeletionRequestStatus,
+  resolutionNote?: string | null,
+) {
+  return apiFetch<AccountDeletionRequestAdminRead>(
+    `/api/v1/admin/account-deletion-requests/${requestId}`,
+    getToken,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        status,
+        resolution_note: resolutionNote?.trim() || null,
+      }),
+    },
   );
 }
 

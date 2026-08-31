@@ -1,3 +1,4 @@
+from app.models.account_deletion_request import AccountDeletionRequest
 from app.models.agent_token import AgentToken
 from app.models.article import (
     Article,
@@ -10,6 +11,7 @@ from app.models.article import (
 )
 from app.models.enums import (
     ArticleStatus,
+    AccountDeletionRequestStatus,
     CompileStatus,
     InvitationRole,
     InvitationStatus,
@@ -29,6 +31,8 @@ from app.models.user import User
 
 __all__ = [
     "AgentToken",
+    "AccountDeletionRequest",
+    "AccountDeletionRequestStatus",
     "Article",
     "ArticleAuthor",
     "ArticleEditor",

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
 import { FormEvent, Suspense, useState } from "react";
 import { EmailField } from "@/components/email-field";
+import { EmailCodeForm } from "@/components/email-code-form";
 import { PasswordField } from "@/components/password-field";
 import {
   buttonClassName,
@@ -23,8 +24,11 @@ function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [step, setStep] = useState<"details" | "verify-email">("details");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const isReady = fetchStatus !== "fetching" && signUp;
   const isInvitation = Boolean(invitationTicket);
@@ -86,6 +90,16 @@ function SignUpForm() {
 
         if (await finalizeIfComplete()) return;
 
+        if (signUp.unverifiedFields.includes("email_address")) {
+          const { error: verifyError } = await signUp.verifications.sendEmailCode();
+          if (verifyError) {
+            setError(translateClerkError(verifyError));
+            return;
+          }
+          setStep("verify-email");
+          return;
+        }
+
         setError("قُبلت الدعوة، لكن التسجيل يتطلب خطوة إضافية غير مكتملة بعد.");
         return;
       }
@@ -110,7 +124,7 @@ function SignUpForm() {
           setError(translateClerkError(verifyError));
           return;
         }
-        setError("تم إرسال رمز التحقق إلى بريدك. أكمل التحقق ثم سجّل الدخول.");
+        setStep("verify-email");
         return;
       }
 
@@ -119,6 +133,49 @@ function SignUpForm() {
       setError(translateClerkError(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleVerifyEmailCode() {
+    if (!signUp) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: verifyError } = await signUp.verifications.verifyEmailCode({
+        code: emailCode,
+      });
+
+      if (verifyError) {
+        setError(translateClerkError(verifyError));
+        return;
+      }
+
+      if (await finalizeIfComplete()) return;
+      setError("تم التحقق من البريد، لكن التسجيل يتطلب خطوة إضافية غير مكتملة بعد.");
+    } catch (err) {
+      setError(translateClerkError(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResendEmailCode() {
+    if (!signUp) return;
+
+    setResendLoading(true);
+    setError(null);
+
+    try {
+      const { error: verifyError } = await signUp.verifications.sendEmailCode();
+      if (verifyError) {
+        setError(translateClerkError(verifyError));
+      }
+    } catch (err) {
+      setError(translateClerkError(err));
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -138,6 +195,19 @@ function SignUpForm() {
               : "انضم إلى مجلة البيان لإدارة ملفك الشخصي."}
           </p>
 
+          {step === "verify-email" ? (
+            <EmailCodeForm
+              title="تحقق من بريدك الإلكتروني"
+              description="أرسلنا رمز تحقق إلى بريدك. أدخل الرمز هنا لإكمال إنشاء الحساب."
+              code={emailCode}
+              onCodeChange={setEmailCode}
+              onSubmit={handleVerifyEmailCode}
+              onResend={handleResendEmailCode}
+              loading={loading}
+              resendLoading={resendLoading}
+              error={error}
+            />
+          ) : (
           <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
             <div>
               <label htmlFor="fullName" className="mb-1 block text-sm font-medium text-slate-700">
@@ -205,6 +275,7 @@ function SignUpForm() {
                   : "إنشاء حساب"}
             </button>
           </form>
+          )}
 
           <p className="mt-6 text-center text-sm text-slate-600">
             لديك حساب؟{" "}

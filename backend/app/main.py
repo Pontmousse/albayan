@@ -13,6 +13,7 @@ from app.routers import (
     public,
     reviews,
     users,
+    webhooks,
 )
 
 app = FastAPI(
@@ -31,6 +32,7 @@ app.add_middleware(
 
 app.include_router(public.router)
 app.include_router(users.router)
+app.include_router(webhooks.router)
 app.include_router(agent_tokens.router)
 app.include_router(articles.router)
 app.include_router(admin.router)

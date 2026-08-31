@@ -27,13 +27,16 @@ EMAIL_ASSET_BASE_URL=https://albayan-journal.org/email
 
 RESEND_WELCOME_TEMPLATE=welcome-ar
 RESEND_APP_INVITATION_TEMPLATE=app-invitation-ar
+RESEND_AUTH_VERIFICATION_TEMPLATE=auth-verification-code-ar
+RESEND_PASSWORD_RESET_TEMPLATE=password-reset-ar
 ```
 
 - Never expose the API key through `NEXT_PUBLIC_*`, logs, template variables,
   API responses, or committed `.env` files.
-- `RESEND_WELCOME_TEMPLATE` and `RESEND_APP_INVITATION_TEMPLATE` accept
-  published template aliases or UUIDs. Stable aliases such as `welcome-ar` and
-  `app-invitation-ar` are preferred; no `tmpl_` prefix is assumed.
+- `RESEND_*_TEMPLATE` values accept published template aliases or UUIDs. Stable
+  aliases such as `welcome-ar`, `app-invitation-ar`,
+  `auth-verification-code-ar`, and `password-reset-ar` are preferred; no
+  `tmpl_` prefix is assumed.
 - An empty email configuration disables delivery for local development. Once
   any email-specific value is supplied, startup validation requires the whole
   group. Production URLs must use HTTPS; local HTTP is accepted only with
@@ -74,6 +77,16 @@ Application invitation:
 INVITATION_URL
 RECIPIENT_EMAIL
 EXPIRES_TEXT
+SITE_URL
+CONTACT_EMAIL
+ASSET_BASE_URL
+```
+
+Auth verification code and password reset:
+
+```text
+OTP_CODE
+RECIPIENT_EMAIL
 SITE_URL
 CONTACT_EMAIL
 ASSET_BASE_URL

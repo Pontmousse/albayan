@@ -21,3 +21,21 @@ class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, max_length=200)
     affiliation: str | None = Field(default=None, max_length=300)
     bio: str | None = Field(default=None, max_length=500)
+
+
+class AccountDeletionRequestPayload(BaseModel):
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class AccountDeletionRequestRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    user_id: UUID
+    email_snapshot: str
+    reason: str | None
+    status: str
+    requested_at: datetime
+    reviewed_by: UUID | None
+    reviewed_at: datetime | None
+    resolution_note: str | None

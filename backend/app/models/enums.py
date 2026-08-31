@@ -76,3 +76,10 @@ class IssueCategory(str, enum.Enum):
     BUG = "bug"
     FEATURE_REQUEST = "feature_request"
     FEEDBACK = "feedback"
+
+
+class AccountDeletionRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    COMPLETED = "completed"

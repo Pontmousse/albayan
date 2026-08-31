@@ -46,6 +46,42 @@ const templates = [
       "icons/email.png",
     ],
   },
+  {
+    file: "auth/VerificationCode.html",
+    variables: [
+      "OTP_CODE",
+      "RECIPIENT_EMAIL",
+      "SITE_URL",
+      "CONTACT_EMAIL",
+      "ASSET_BASE_URL",
+    ],
+    assets: [
+      "logo.png",
+      "header-arch.png",
+      "divider.png",
+      "footer-corner.png",
+      "icons/website.png",
+      "icons/email.png",
+    ],
+  },
+  {
+    file: "auth/PasswordReset.html",
+    variables: [
+      "OTP_CODE",
+      "RECIPIENT_EMAIL",
+      "SITE_URL",
+      "CONTACT_EMAIL",
+      "ASSET_BASE_URL",
+    ],
+    assets: [
+      "logo.png",
+      "header-arch.png",
+      "divider.png",
+      "footer-corner.png",
+      "icons/website.png",
+      "icons/email.png",
+    ],
+  },
 ];
 
 for (const template of templates) {

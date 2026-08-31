@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AccountDeletionRequestCard } from "@/components/settings/account-deletion-request-card";
 import { DevModeAgentsCard } from "@/components/settings/dev-mode-agents-card";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { SecurityForm } from "@/components/settings/security-form";
@@ -27,6 +28,7 @@ export default function SettingsPage() {
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <ProfileForm />
           <SecurityForm />
+          <AccountDeletionRequestCard />
         </div>
       </main>
     </div>

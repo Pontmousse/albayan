@@ -113,6 +113,16 @@ function SignInForm() {
           </form>
 
           <p className="mt-6 text-center text-sm text-slate-600">
+            نسيت كلمة المرور؟{" "}
+            <Link
+              href="/istirja"
+              className="font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+            >
+              استعد الوصول
+            </Link>
+          </p>
+
+          <p className="mt-3 text-center text-sm text-slate-600">
             ليس لديك حساب؟{" "}
             <Link
               href="/tasjil"

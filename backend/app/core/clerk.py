@@ -17,6 +17,7 @@ class AuthContext:
     clerk_id: str
     email: str | None
     full_name: str | None
+    session_claims: dict[str, Any] | None = None
 
 
 def _read_value(source: Any, key: str) -> Any:
@@ -102,7 +103,12 @@ def _context_from_payload(payload: dict[str, Any]) -> AuthContext:
     last_name = payload.get("last_name") or payload.get("family_name") or ""
     full_name = f"{first_name} {last_name}".strip() or None
 
-    return AuthContext(clerk_id=clerk_id, email=email, full_name=full_name)
+    return AuthContext(
+        clerk_id=clerk_id,
+        email=email,
+        full_name=full_name,
+        session_claims=payload,
+    )
 
 
 def get_auth_context(request: Request) -> AuthContext:

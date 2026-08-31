@@ -8,6 +8,8 @@ from app.core.deps import current_user
 from app.models.enums import InvitationRole, IssueCategory, IssueStatus, VersionStatus
 from app.models.issue import Issue
 from app.schemas.admin import (
+    AccountDeletionRequestAdminRead,
+    AccountDeletionRequestStatusPayload,
     AdminArticleDetail,
     AdminArticleSummary,
     AdminAuthorRead,
@@ -31,6 +33,7 @@ from app.schemas.admin import (
 from app.schemas.article import VersionRead
 from app.schemas.issue import IssueImageRead
 from app.services import (
+    account_deletion_service,
     admin_article_service,
     admin_issue_service,
     admin_user_service,
@@ -327,6 +330,39 @@ def patch_admin_status(
         "user_id": str(user.id),
         "is_admin": payload.is_admin,
     }
+
+
+@router.get(
+    "/account-deletion-requests",
+    response_model=list[AccountDeletionRequestAdminRead],
+)
+def list_account_deletion_requests(
+    auth: AdminDep, db: DbDep
+) -> list[AccountDeletionRequestAdminRead]:
+    _admin_user(auth, db)
+    rows = account_deletion_service.list_deletion_requests(db)
+    return [AccountDeletionRequestAdminRead.model_validate(row) for row in rows]
+
+
+@router.patch(
+    "/account-deletion-requests/{request_id}",
+    response_model=AccountDeletionRequestAdminRead,
+)
+def patch_account_deletion_request(
+    request_id: uuid.UUID,
+    payload: AccountDeletionRequestStatusPayload,
+    auth: AdminDep,
+    db: DbDep,
+) -> AccountDeletionRequestAdminRead:
+    admin_user = _admin_user(auth, db)
+    request = account_deletion_service.update_deletion_request_status(
+        db,
+        request_id=request_id,
+        admin=admin_user,
+        status=payload.status,
+        resolution_note=payload.resolution_note,
+    )
+    return AccountDeletionRequestAdminRead.model_validate(request)
 
 
 @router.post(

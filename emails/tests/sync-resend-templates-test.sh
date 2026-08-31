@@ -37,6 +37,9 @@ if [[ "$args" == *'-p=json'* ]]; then
     sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$input"
   elif [[ "$args" == *'.message'* ]]; then
     sed -n 's/.*"message"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' <<<"$input"
+  elif [[ "$args" == *'.data[].alias'* ]]; then
+    grep -o '"alias"[[:space:]]*:[[:space:]]*"[^"]*"' <<<"$input" |
+      sed 's/.*"alias"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/'
   fi
   exit 0
 fi
@@ -77,9 +80,14 @@ printf '%s\n' "$*" >>"$MOCK_CALLS_FILE"
 [[ "${1:-}" == doctor ]] && exit 0
 
 if [[ "$*" == 'templates get test-alias --json' ]]; then
+  printf 'unexpected templates get call\n' >&2
+  exit 1
+fi
+
+if [[ "$*" == 'templates list --json' ]]; then
   case "$MOCK_SCENARIO" in
-    existing) printf '{"id":"template-id","alias":"test-alias"}\n'; exit 0 ;;
-    missing) printf '{"error":{"statusCode":404,"code":"fetch_error","message":"Template not found"}}\n' >&2; exit 1 ;;
+    existing) printf '{"data":[{"id":"template-id","alias":"test-alias"}]}\n'; exit 0 ;;
+    missing) printf '{"data":[]}\n'; exit 0 ;;
     authentication) printf '{"error":{"statusCode":401,"code":"fetch_error","message":"API key secret-value is invalid"}}\n' >&2; exit 1 ;;
     network) printf 'Fetch failed: ECONNREFUSED secret-response-body\n' >&2; exit 1 ;;
   esac
@@ -90,6 +98,7 @@ EOF
 
   set +e
   PATH="$TMP_DIR/bin:$PATH" \
+    YQ="$TMP_DIR/bin/yq" \
     RESEND_API_KEY='re_secret_sync_key' \
     MOCK_SCENARIO="$scenario" \
     MOCK_CALLS_FILE="$calls_file" \
@@ -105,7 +114,7 @@ EOF
 run_case existing
 [[ "$CASE_STATUS" == 0 ]]
 grep -qx 'npm run export' "$CASE_CALLS"
-grep -qx 'templates get test-alias --json' "$CASE_CALLS"
+grep -qx 'templates list --json' "$CASE_CALLS"
 grep -q 'templates update test-alias --name Test --subject Test subject --html-file .*template.html --var USER_NAME:string --var LOGIN_URL:string' "$CASE_CALLS"
 ! grep -q 'templates create' "$CASE_CALLS"
 
@@ -127,6 +136,7 @@ grep -q 'network failure' "$CASE_OUTPUT"
 
 set +e
 PATH="$TMP_DIR/bin:$PATH" \
+  YQ="$TMP_DIR/bin/yq" \
   "$SYNC_SCRIPT" "$TMP_DIR/templates.yaml" >"$TMP_DIR/runtime-only.output" 2>&1
 RUNTIME_ONLY_STATUS=$?
 set -e

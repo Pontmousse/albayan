@@ -26,6 +26,32 @@ templates:
       ASSET_BASE_URL: string
     publish: true
 
+  - alias: auth-verification-code-ar
+    name: "Al-Bayan Auth Verification Code"
+    subject: "رمز التحقق من بريدكم في مجلة البيان"
+    file: "emails/src/auth/VerificationCode.tsx"
+    html_file: "emails/out/auth/VerificationCode.html"
+    variables:
+      OTP_CODE: string
+      RECIPIENT_EMAIL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: password-reset-ar
+    name: "Al-Bayan Password Reset"
+    subject: "رمز استعادة كلمة المرور في مجلة البيان"
+    file: "emails/src/auth/PasswordReset.tsx"
+    html_file: "emails/out/auth/PasswordReset.html"
+    variables:
+      OTP_CODE: string
+      RECIPIENT_EMAIL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
   # Add templates here as their React Email sources are implemented.
   #
   # - alias: submission-received-ar

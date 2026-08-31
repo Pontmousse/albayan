@@ -29,7 +29,8 @@ def _send_resend_email(
     html: str | None = None,
     template_alias_or_id: str | None = None,
     variables: dict[str, str | int] | None = None,
-) -> None:
+    idempotency_key: str | None = None,
+) -> str | None:
     has_template = template_alias_or_id is not None
     has_raw_content = subject is not None or html is not None
 
@@ -67,13 +68,17 @@ def _send_resend_email(
 
     payload = json.dumps(payload_dict, ensure_ascii=False).encode("utf-8")
 
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+
     req = urllib.request.Request(
         "https://api.resend.com/emails",
         data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
     try:
@@ -83,6 +88,18 @@ def _send_resend_email(
                     status_code=502,
                     detail=failure_detail,
                 )
+            body = resp.read() if callable(getattr(resp, "read", None)) else b""
+            if not isinstance(body, bytes) or not body:
+                return None
+            try:
+                data = json.loads(body.decode("utf-8"))
+            except Exception:
+                return None
+            message_id = data.get("id") if isinstance(data, dict) else None
+            if isinstance(message_id, str):
+                logger.info("Resend accepted email to %s with id %s", to, message_id)
+                return message_id
+            return None
     except HTTPException:
         raise
     except urllib.error.HTTPError as exc:
@@ -146,6 +163,62 @@ def send_app_invitation_email(
             "CONTACT_EMAIL": settings.email_reply_to_address,
             "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
         },
+    )
+
+
+def send_auth_verification_email(
+    *,
+    to: str,
+    otp_code: str,
+    idempotency_key: str | None = None,
+) -> str | None:
+    if not settings.resend_auth_verification_template:
+        raise HTTPException(
+            status_code=503,
+            detail="قالب بريد تحقق الحساب غير مُهيّأ على الخادم.",
+        )
+
+    site_url = settings.frontend_base_url.rstrip("/")
+    return _send_resend_email(
+        to=to,
+        failure_detail="تعذّر إرسال رمز تحقق الحساب.",
+        template_alias_or_id=settings.resend_auth_verification_template,
+        variables={
+            "OTP_CODE": otp_code,
+            "RECIPIENT_EMAIL": to,
+            "SITE_URL": site_url,
+            "CONTACT_EMAIL": settings.email_reply_to_address,
+            "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
+        },
+        idempotency_key=idempotency_key,
+    )
+
+
+def send_password_reset_email(
+    *,
+    to: str,
+    otp_code: str,
+    idempotency_key: str | None = None,
+) -> str | None:
+    if not settings.resend_password_reset_template:
+        raise HTTPException(
+            status_code=503,
+            detail="قالب بريد استعادة كلمة المرور غير مُهيّأ على الخادم.",
+        )
+
+    site_url = settings.frontend_base_url.rstrip("/")
+    return _send_resend_email(
+        to=to,
+        failure_detail="تعذّر إرسال رمز استعادة كلمة المرور.",
+        template_alias_or_id=settings.resend_password_reset_template,
+        variables={
+            "OTP_CODE": otp_code,
+            "RECIPIENT_EMAIL": to,
+            "SITE_URL": site_url,
+            "CONTACT_EMAIL": settings.email_reply_to_address,
+            "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
+        },
+        idempotency_key=idempotency_key,
     )
 
 

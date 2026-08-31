@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.issue import Issue, IssueUpvote
     from app.models.invitation import Invitation
     from app.models.notification import Notification
+    from app.models.account_deletion_request import AccountDeletionRequest
 
 
 class User(Base):
@@ -73,4 +74,9 @@ class User(Base):
     issue_upvotes: Mapped[list["IssueUpvote"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
+    )
+    account_deletion_requests: Mapped[list["AccountDeletionRequest"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="AccountDeletionRequest.user_id",
     )
