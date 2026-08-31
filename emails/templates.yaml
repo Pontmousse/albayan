@@ -1,0 +1,14 @@
+templates:
+  - alias: welcome-ar
+    name: "Al-Bayan Welcome"
+    subject: "مجلة البيان ترحب بكم"
+    file: "emails/src/Welcome.tsx"
+    publish: true
+
+  # Add templates here as their React Email sources are implemented.
+  #
+  # - alias: submission-received-ar
+  #   name: "Submission Received"
+  #   subject: "تم استلام بحثكم بنجاح"
+  #   file: "emails/src/SubmissionReceived.tsx"
+  #   publish: true
