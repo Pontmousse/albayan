@@ -30,7 +30,12 @@ def _send_resend_email(
     template_id: str | None = None,
     variables: dict[str, str] | None = None,
 ) -> None:
-    if not settings.resend_api_key or not settings.email_from:
+    api_key = (
+        settings.resend_api_key.get_secret_value()
+        if hasattr(settings.resend_api_key, "get_secret_value")
+        else settings.resend_api_key
+    )
+    if not api_key or not settings.email_from:
         raise HTTPException(
             status_code=503,
             detail="خدمة البريد غير مُهيّأة على الخادم.",
@@ -39,6 +44,7 @@ def _send_resend_email(
     if template_id:
         payload_dict: dict[str, object] = {
             "from": settings.email_from,
+            "reply_to": settings.email_reply_to,
             "to": [to],
             "template": {
                 "id": template_id,
@@ -48,6 +54,7 @@ def _send_resend_email(
     elif subject and html:
         payload_dict = {
             "from": settings.email_from,
+            "reply_to": settings.email_reply_to,
             "to": [to],
             "subject": subject,
             "html": html,
@@ -61,7 +68,7 @@ def _send_resend_email(
         "https://api.resend.com/emails",
         data=payload,
         headers={
-            "Authorization": f"Bearer {settings.resend_api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
         method="POST",
