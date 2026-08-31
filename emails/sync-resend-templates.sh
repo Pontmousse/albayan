@@ -13,16 +13,14 @@ if [[ "$CONFIG" != /* ]]; then
 fi
 cd "$REPO_ROOT"
 
-# Use the dedicated Full Access credential for local/CI synchronization while
-# leaving RESEND_API_KEY as the backend runtime/send credential.
-if [[ -n "${RESEND_TEMPLATE_SYNC_API_KEY:-}" ]]; then
-  export RESEND_API_KEY="$RESEND_TEMPLATE_SYNC_API_KEY"
-fi
-
-if [[ -z "${RESEND_API_KEY:-}" ]]; then
-  echo "ERROR: RESEND_TEMPLATE_SYNC_API_KEY or RESEND_API_KEY is required." >&2
+# The Resend CLI expects RESEND_API_KEY, but template administration must use a
+# dedicated local/CI credential rather than the backend runtime/send credential.
+if [[ -z "${RESEND_TEMPLATE_SYNC_API_KEY:-}" ]]; then
+  echo "ERROR: RESEND_TEMPLATE_SYNC_API_KEY is required for template administration." >&2
+  echo "The backend runtime/send credential (RESEND_API_KEY) is not accepted by this script." >&2
   exit 1
 fi
+export RESEND_API_KEY="$RESEND_TEMPLATE_SYNC_API_KEY"
 
 command -v resend >/dev/null 2>&1 || {
   echo "ERROR: Resend CLI is not installed." >&2
