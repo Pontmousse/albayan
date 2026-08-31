@@ -55,6 +55,9 @@ def _send_resend_email(
     else:
         raise ValueError("يلزم تحديد template_id أو subject/html لإرسال البريد.")
 
+    if settings.email_reply_to:
+        payload_dict["reply_to"] = settings.email_reply_to
+
     payload = json.dumps(payload_dict, ensure_ascii=False).encode("utf-8")
 
     req = urllib.request.Request(
