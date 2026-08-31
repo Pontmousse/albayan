@@ -105,6 +105,7 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
             "USER_NAME": user_name or "الباحث الكريم",
             "LOGIN_URL": f"{site_url}/maktabi",
             "SITE_URL": site_url,
+            "CONTACT_EMAIL": "contact@albayan-journal.org",
             "ASSET_BASE_URL": settings.email_asset_base_url.rstrip("/"),
         },
     )

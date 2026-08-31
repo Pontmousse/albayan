@@ -4,12 +4,16 @@ import { colors, emailAssetUrl, fontFamily } from "./theme";
 
 type AlbayanFooterProps = {
   siteUrl: string;
+  contactEmail: string;
   assetBaseUrl?: string;
 };
 
-export function AlbayanFooter({ siteUrl, assetBaseUrl }: AlbayanFooterProps) {
+export function AlbayanFooter({
+  siteUrl,
+  contactEmail,
+  assetBaseUrl,
+}: AlbayanFooterProps) {
   const displayUrl = siteUrl.replace(/^https?:\/\//, "");
-  const contactEmail = "albayan@gmail.com";
 
   return (
     <Section

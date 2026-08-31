@@ -7,6 +7,7 @@
     "dev": "email dev --dir src --port 3001",
     "build": "email build --dir src --packageManager npm",
     "export": "email export --dir src --pretty",
+    "test": "npm run export && rg -q 'contact@albayan-journal.org' out/Welcome.html && ! rg -q 'albayan@gmail.com' out/Welcome.html",
     "resend:setup": "email resend setup",
     "templates:sync": "./sync-resend-templates.sh templates.yaml"
   },

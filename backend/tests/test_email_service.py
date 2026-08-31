@@ -62,10 +62,12 @@ class EmailServiceTests(unittest.TestCase):
                     "USER_NAME": "د. أحمد",
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",
                     "SITE_URL": "https://albayan-journal.org",
+                    "CONTACT_EMAIL": "contact@albayan-journal.org",
                     "ASSET_BASE_URL": "https://cdn.albayan-journal.org/email",
                 },
             },
         )
+        self.assertNotIn("albayan@gmail.com", req.data.decode("utf-8"))
         self.assertEqual(req.method, "POST")
         self.assertEqual(
             req.headers["Authorization"],

@@ -7,6 +7,7 @@ import { colors, fontFamily } from "./theme";
 type AlbayanLayoutProps = {
   preview: string;
   siteUrl: string;
+  contactEmail: string;
   assetBaseUrl?: string;
   children: React.ReactNode;
 };
@@ -14,6 +15,7 @@ type AlbayanLayoutProps = {
 export function AlbayanLayout({
   preview,
   siteUrl,
+  contactEmail,
   assetBaseUrl,
   children,
 }: AlbayanLayoutProps) {
@@ -45,7 +47,11 @@ export function AlbayanLayout({
         >
           <AlbayanHeader assetBaseUrl={assetBaseUrl} />
           {children}
-          <AlbayanFooter siteUrl={siteUrl} assetBaseUrl={assetBaseUrl} />
+          <AlbayanFooter
+            siteUrl={siteUrl}
+            contactEmail={contactEmail}
+            assetBaseUrl={assetBaseUrl}
+          />
         </Container>
       </Body>
     </Html>
