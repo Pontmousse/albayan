@@ -18,11 +18,16 @@ const amiri = Amiri({
 });
 
 export const metadata: Metadata = {
-  title: "البيان | مجلة علمية محكّمة",
-  description:
-    "مجلة علمية عربية للنشر المفتوح والبحث الخاضع للتحكيم الأقران في العلوم والهندسة والإنسانيات.",
-    icons: {
-    icon: "/favicon.ico",
+  title: "مجلة البيان",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        type: "image/x-icon",
+      },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
 
