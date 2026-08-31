@@ -7,7 +7,8 @@
     "dev": "email dev --dir src --port 3001",
     "build": "email build --dir src --packageManager npm",
     "export": "email export --dir src --pretty",
-    "resend:setup": "email resend setup"
+    "resend:setup": "email resend setup",
+    "templates:sync": "./sync-resend-templates.sh templates.yaml"
   },
   "dependencies": {
     "@react-email/ui": "6.9.3",
