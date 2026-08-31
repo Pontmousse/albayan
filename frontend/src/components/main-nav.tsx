@@ -145,6 +145,7 @@ function MobileNav() {
 
   const flatLinks = [
     primaryNavLink,
+    { href: "/balaghat", label: "البلاغات" },
     ...navGroups.flatMap((g) => g.items),
     contactNavLink,
   ];

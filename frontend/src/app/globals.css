@@ -17,6 +17,11 @@
   --journal-paper: #fbf8f1;
   --journal-footer: #f3eee4;
   --journal-footer-bar: #ebe4d6;
+  --admin-accent: #334c78;
+  --admin-accent-strong: #243758;
+  --admin-surface: #f2f5fa;
+  --admin-surface-strong: #e4eaf3;
+  --admin-border: #cbd5e4;
   --motion-enter-ms: 360ms;
   --motion-exit-ms: 280ms;
   --motion-dropdown-ms: 180ms;

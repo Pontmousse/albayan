@@ -49,7 +49,7 @@ def update_issue_status(
         type=NotificationType.ISSUE_STATUS_CHANGED,
         title=notification_copy.issue_status_changed_title(status),
         body=notification_copy.issue_status_changed_body(issue.title, status),
-        link=f"/maktabi/balaghat?issue={issue.id}",
+        link=f"/balaghat?issue={issue.id}",
         metadata={
             "issue_id": str(issue.id),
             "previous_status": previous_status.value,

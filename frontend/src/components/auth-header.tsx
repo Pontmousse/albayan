@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { readClerkRole } from "@/lib/clerk-role";
 import { MobileSheet } from "@/components/mobile-sheet";
 import { useMdUp } from "@/hooks/use-md-up";
 
@@ -98,14 +97,9 @@ export function AuthHeader() {
     user.firstName ||
     user.primaryEmailAddress?.emailAddress ||
     "حسابي";
-  const isAdmin = readClerkRole(user.publicMetadata) === "admin";
-
   const menuLinks = (
     <>
       <MenuLink href="/maktabi" label="مكتبي" onClick={close} />
-      {isAdmin ? (
-        <MenuLink href="/admin" label="لوحة الإدارة" onClick={close} />
-      ) : null}
       <MenuLink href="/al-idayat" label="إعدادات الحساب" onClick={close} />
     </>
   );

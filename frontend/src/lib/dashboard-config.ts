@@ -12,20 +12,19 @@ export const dashboardSections: DashboardSection[] = [
     id: "overview",
     label: "نظرة عامة",
     href: "/maktabi",
-    roles: ["author", "reviewer", "editor"],
+    roles: ["author", "reviewer", "editor", "admin"],
   },
-  { id: "articles", label: "مقالاتي", href: "/maktabi/maqalati", roles: ["author"] },
   {
-    id: "issues",
-    label: "البلاغات",
-    href: "/maktabi/balaghat",
-    roles: ["author", "reviewer", "editor"],
+    id: "articles",
+    label: "مقالاتي",
+    href: "/maktabi/maqalati",
+    roles: ["author", "admin"],
   },
   {
     id: "notifications",
     label: "الإشعارات",
     href: "/maktabi/isharat",
-    roles: ["author", "reviewer", "editor"],
+    roles: ["author", "reviewer", "editor", "admin"],
   },
   {
     id: "reviews",
@@ -38,6 +37,12 @@ export const dashboardSections: DashboardSection[] = [
     label: "تحريري",
     href: "/maktabi/tahriri",
     roles: ["editor"],
+  },
+  {
+    id: "admin",
+    label: "إدارة",
+    href: "/admin",
+    roles: ["admin"],
   },
 ];
 

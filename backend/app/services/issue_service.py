@@ -168,7 +168,7 @@ def upvote_issue(db: Session, issue_id: uuid.UUID, user_id: uuid.UUID) -> Issue:
             type=NotificationType.ISSUE_UPVOTED,
             title="صوّت مستخدم على بلاغك",
             body=f"حصل البلاغ «{issue.title}» على تصويت جديد.",
-            link=f"/maktabi/balaghat?issue={issue.id}",
+            link=f"/balaghat?issue={issue.id}",
             metadata={
                 "issue_id": str(issue.id),
                 "upvote_count": upvote_count,
