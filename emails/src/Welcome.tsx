@@ -5,7 +5,12 @@ import { AlbayanLayout } from "./_components/AlbayanLayout";
 import { FeatureTriptych } from "./_components/FeatureTriptych";
 import { GoldDivider } from "./_components/GoldDivider";
 import { InfoPanel } from "./_components/InfoPanel";
-import { colors, displayFontFamily, fontFamily } from "./_components/theme";
+import {
+  ASSET_BASE_URL_PLACEHOLDER,
+  colors,
+  displayFontFamily,
+  fontFamily,
+} from "./_components/theme";
 
 type WelcomeEmailProps = {
   USER_NAME?: string;
@@ -18,7 +23,7 @@ export default function WelcomeEmail({
   USER_NAME = "الباحث الكريم",
   LOGIN_URL = "https://albayan-journal.org/maktabi",
   SITE_URL = "https://albayan-journal.org",
-  ASSET_BASE_URL,
+  ASSET_BASE_URL = ASSET_BASE_URL_PLACEHOLDER,
 }: WelcomeEmailProps) {
   return (
     <AlbayanLayout
@@ -136,3 +141,7 @@ export default function WelcomeEmail({
     </AlbayanLayout>
   );
 }
+
+WelcomeEmail.PreviewProps = {
+  ASSET_BASE_URL: "http://localhost:3001/static",
+} satisfies WelcomeEmailProps;

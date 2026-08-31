@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "email dev --dir src --port 3001",
+    "test": "node --test --experimental-strip-types 'test/**/*.test.ts'",
     "build": "email build --dir src --packageManager npm",
     "export": "email export --dir src --pretty",
     "resend:setup": "email resend setup",
