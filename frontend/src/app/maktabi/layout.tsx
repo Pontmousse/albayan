@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "مكتبي | البيان",
-  description: "لوحة عمل المؤلف في مجلة البيان — إدارة المقالات والمسودات.",
+  description:
+    "مساحة عمل المستخدم في مجلة البيان، وتتكيف أقسامها مع أدواره ومهامه.",
 };
 
 export default function MaktabiLayout({ children }: { children: ReactNode }) {

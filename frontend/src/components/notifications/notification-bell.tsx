@@ -250,7 +250,7 @@ export function NotificationBell() {
           onClick={close}
           className="block rounded-md px-2 py-2 text-center text-sm font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]"
         >
-          عرض الكل
+          عرض جميع الإشعارات
         </Link>
       </div>
     </>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { listEditorArticles } from "@/lib/api/editor";
 import { listMyAssignments } from "@/lib/api/reviews";
+import { readClerkRole } from "@/lib/clerk-role";
 import {
   visibleSections,
   type DashboardRole,
@@ -19,6 +20,7 @@ function isActive(pathname: string, href: string): boolean {
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { getToken } = useAuth();
+  const { user } = useUser();
   const [roles, setRoles] = useState<DashboardRole[]>(["author"]);
 
   useEffect(() => {
@@ -31,12 +33,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       const next: DashboardRole[] = ["author"];
       if (assignments.length > 0) next.push("reviewer");
       if (editorArticles.length > 0) next.push("editor");
+      if (readClerkRole(user?.publicMetadata) === "admin") next.push("admin");
       setRoles(next);
     });
     return () => {
       cancelled = true;
     };
-  }, [getToken]);
+  }, [getToken, user?.publicMetadata]);
 
   const sections = visibleSections(roles);
 
