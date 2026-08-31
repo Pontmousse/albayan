@@ -27,33 +27,45 @@ def _send_resend_email(
     failure_detail: str,
     subject: str | None = None,
     html: str | None = None,
-    template_id: str | None = None,
+    template_alias_or_id: str | None = None,
     variables: dict[str, str] | None = None,
+    reply_to: str | None = None,
 ) -> None:
+    has_template = template_alias_or_id is not None
+    has_raw_content = subject is not None or html is not None
+
+    if has_template and has_raw_content:
+        raise ValueError("لا يمكن الجمع بين قالب البريد ومحتوى subject/html.")
+    if not has_template and not has_raw_content:
+        raise ValueError("يلزم تحديد قالب بريد أو subject/html لإرسال البريد.")
+    if has_raw_content and (subject is None or html is None):
+        raise ValueError("يلزم تحديد subject وhtml معاً لإرسال محتوى خام.")
+
     if not settings.resend_api_key or not settings.email_from:
         raise HTTPException(
             status_code=503,
             detail="خدمة البريد غير مُهيّأة على الخادم.",
         )
 
-    if template_id:
+    if has_template:
         payload_dict: dict[str, object] = {
             "from": settings.email_from,
             "to": [to],
             "template": {
-                "id": template_id,
+                "id": template_alias_or_id,
                 "variables": variables or {},
             },
         }
-    elif subject and html:
+    else:
         payload_dict = {
             "from": settings.email_from,
             "to": [to],
             "subject": subject,
             "html": html,
         }
-    else:
-        raise ValueError("يلزم تحديد template_id أو subject/html لإرسال البريد.")
+
+    if reply_to is not None:
+        payload_dict["reply_to"] = reply_to
 
     payload = json.dumps(payload_dict, ensure_ascii=False).encode("utf-8")
 
@@ -76,7 +88,7 @@ def _send_resend_email(
     except HTTPException:
         raise
     except urllib.error.HTTPError as exc:
-        logger.warning("Resend rejected email to %s: %s", to, exc)
+        logger.warning("Resend rejected email to %s with status %s", to, exc.code)
         raise HTTPException(
             status_code=502,
             detail=failure_detail,
@@ -100,7 +112,7 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
     _send_resend_email(
         to=to,
         failure_detail="تعذّر إرسال بريد الترحيب.",
-        template_id=settings.resend_welcome_template_id,
+        template_alias_or_id=settings.resend_welcome_template_id,
         variables={
             "USER_NAME": user_name or "الباحث الكريم",
             "LOGIN_URL": f"{site_url}/maktabi",
