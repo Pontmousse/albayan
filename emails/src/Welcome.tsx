@@ -11,6 +11,7 @@ type WelcomeEmailProps = {
   USER_NAME?: string;
   LOGIN_URL?: string;
   SITE_URL?: string;
+  CONTACT_EMAIL?: string;
   ASSET_BASE_URL?: string;
 };
 
@@ -18,12 +19,14 @@ export default function WelcomeEmail({
   USER_NAME = "الباحث الكريم",
   LOGIN_URL = "https://albayan-journal.org/maktabi",
   SITE_URL = "https://albayan-journal.org",
+  CONTACT_EMAIL = "contact@albayan-journal.org",
   ASSET_BASE_URL,
 }: WelcomeEmailProps) {
   return (
     <AlbayanLayout
       preview="مجلة البيان ترحب بكم"
       siteUrl={SITE_URL}
+      contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}
     >
       <Section style={{ padding: "28px 34px 10px", textAlign: "center" }}>
