@@ -27,7 +27,7 @@ def _send_resend_email(
     failure_detail: str,
     subject: str | None = None,
     html: str | None = None,
-    template_id: str | None = None,
+    template_ref: str | None = None,
     variables: dict[str, str] | None = None,
 ) -> None:
     if not settings.resend_api_key or not settings.email_from:
@@ -36,12 +36,12 @@ def _send_resend_email(
             detail="خدمة البريد غير مُهيّأة على الخادم.",
         )
 
-    if template_id:
+    if template_ref:
         payload_dict: dict[str, object] = {
             "from": settings.email_from,
             "to": [to],
             "template": {
-                "id": template_id,
+                "id": template_ref,
                 "variables": variables or {},
             },
         }
@@ -53,7 +53,7 @@ def _send_resend_email(
             "html": html,
         }
     else:
-        raise ValueError("يلزم تحديد template_id أو subject/html لإرسال البريد.")
+        raise ValueError("يلزم تحديد template أو subject/html لإرسال البريد.")
 
     payload = json.dumps(payload_dict, ensure_ascii=False).encode("utf-8")
 
@@ -90,7 +90,7 @@ def _send_resend_email(
 
 
 def send_welcome_email(*, to: str, user_name: str | None) -> None:
-    if not settings.resend_welcome_template_id:
+    if not settings.resend_welcome_template:
         raise HTTPException(
             status_code=503,
             detail="قالب بريد الترحيب غير مُهيّأ على الخادم.",
@@ -100,7 +100,7 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
     _send_resend_email(
         to=to,
         failure_detail="تعذّر إرسال بريد الترحيب.",
-        template_id=settings.resend_welcome_template_id,
+        template_ref=settings.resend_welcome_template,
         variables={
             "USER_NAME": user_name or "الباحث الكريم",
             "LOGIN_URL": f"{site_url}/maktabi",

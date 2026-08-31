@@ -21,8 +21,8 @@ class EmailServiceTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     email_service.settings,
-                    "resend_welcome_template_id",
-                    "welcome-template-id",
+                    "resend_welcome_template",
+                    "welcome-ar",
                 )
             )
             stack.enter_context(
@@ -57,7 +57,7 @@ class EmailServiceTests(unittest.TestCase):
         self.assertEqual(
             payload["template"],
             {
-                "id": "welcome-template-id",
+                "id": "welcome-ar",
                 "variables": {
                     "USER_NAME": "د. أحمد",
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",

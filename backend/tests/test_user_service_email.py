@@ -28,7 +28,7 @@ class UserServiceEmailTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     user_service.email_service.settings,
-                    "resend_welcome_template_id",
+                    "resend_welcome_template",
                     "",
                 )
             )
