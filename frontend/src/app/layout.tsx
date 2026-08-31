@@ -21,6 +21,9 @@ export const metadata: Metadata = {
   title: "البيان | مجلة علمية محكّمة",
   description:
     "مجلة علمية عربية للنشر المفتوح والبحث الخاضع للتحكيم الأقران في العلوم والهندسة والإنسانيات.",
+    icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
