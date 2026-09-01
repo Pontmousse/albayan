@@ -116,6 +116,24 @@ class EmailServiceTests(unittest.TestCase):
             "Editorial <editor@example.com>",
         )
 
+    def test_transport_identifies_backend_client(self) -> None:
+        response = Mock(status=200)
+        with ExitStack() as stack:
+            urlopen = self._configured_transport(stack)
+            urlopen.return_value.__enter__.return_value = response
+
+            email_service._send_resend_email(
+                to="author@example.com",
+                failure_detail="تعذّر الإرسال.",
+                subject="عنوان",
+                html="<p>المحتوى</p>",
+            )
+
+        request = urlopen.call_args.args[0]
+        headers = {name.lower(): value for name, value in request.header_items()}
+        self.assertEqual(headers["user-agent"], "albayan-backend/1.0")
+        self.assertEqual(headers["accept"], "application/json")
+
     def test_transport_sanitizes_resend_http_errors(self) -> None:
         provider_error = "provider-secret-response"
         error = HTTPError(
