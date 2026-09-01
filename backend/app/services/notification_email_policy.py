@@ -8,9 +8,7 @@ class NotificationDelivery(str, enum.Enum):
     IMPORTANT_EMAIL = "important_email"
 
 
-_IMPORTANT_EMAIL_TYPES = {
-    NotificationType.ISSUE_STATUS_CHANGED,
-}
+_IMPORTANT_EMAIL_TYPES: set[NotificationType] = set()
 
 
 def delivery_for_notification(type: NotificationType) -> NotificationDelivery:

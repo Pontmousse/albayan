@@ -55,5 +55,7 @@ def update_issue_status(
             "previous_status": previous_status.value,
             "next_status": status.value,
         },
+        event_key=f"issue:{issue.id}:status:{status.value}",
     )
+    db.commit()
     return issue_service.get_issue(db, issue_id)

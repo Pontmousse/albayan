@@ -9,6 +9,7 @@ import {
   listAccountDeletionRequests,
   listAdminUsers,
   listAppInvitations,
+  resendAppInvitation,
   revokeAppInvitation,
   updateAccountDeletionRequest,
   type AccountDeletionRequestAdminRead,
@@ -65,6 +66,7 @@ export default function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [updatingDeletionId, setUpdatingDeletionId] = useState<string | null>(
     null,
   );
@@ -157,6 +159,23 @@ export default function AdminUsersPage() {
       );
     } finally {
       setRevokingId(null);
+    }
+  }
+
+  async function handleResend(invitationId: string) {
+    setResendingId(invitationId);
+    setInvitationError(null);
+    setSuccess(null);
+
+    try {
+      await resendAppInvitation(getToken, invitationId);
+      setSuccess("أُعيد إرسال الدعوة.");
+    } catch (err) {
+      setInvitationError(
+        err instanceof Error ? err.message : "تعذّرت إعادة إرسال الدعوة.",
+      );
+    } finally {
+      setResendingId(null);
     }
   }
 
@@ -277,14 +296,28 @@ export default function AdminUsersPage() {
                       {invitationStatusLabel(invitation.status)}
                     </span>
                     {invitation.status === "pending" ? (
-                      <button
-                        type="button"
-                        className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-60"
-                        disabled={revokingId === invitation.id}
-                        onClick={() => handleRevoke(invitation.id)}
-                      >
-                        {revokingId === invitation.id ? "جارٍ الإلغاء…" : "إلغاء"}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:opacity-60"
+                          disabled={resendingId === invitation.id}
+                          onClick={() => handleResend(invitation.id)}
+                        >
+                          {resendingId === invitation.id
+                            ? "جارٍ الإرسال…"
+                            : "إعادة إرسال"}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+                          disabled={revokingId === invitation.id}
+                          onClick={() => handleRevoke(invitation.id)}
+                        >
+                          {revokingId === invitation.id
+                            ? "جارٍ الإلغاء…"
+                            : "إلغاء"}
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 </div>

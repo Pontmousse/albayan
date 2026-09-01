@@ -33,7 +33,7 @@ class EmailAutomationServiceTests(unittest.TestCase):
         self.assertEqual(assignment.reminder_midpoint_sent_at, now)
         self.assertIsNone(assignment.reminder_due_soon_sent_at)
         send.assert_called_once()
-        db.commit.assert_called_once_with()
+        self.assertEqual(db.commit.call_count, 2)
 
     def test_due_soon_review_reminder_marks_assignment_after_send(self) -> None:
         now = datetime(2026, 8, 31, tzinfo=UTC)
@@ -58,7 +58,7 @@ class EmailAutomationServiceTests(unittest.TestCase):
 
         self.assertEqual(sent, 1)
         self.assertEqual(assignment.reminder_due_soon_sent_at, now)
-        db.commit.assert_called_once_with()
+        self.assertEqual(db.commit.call_count, 2)
 
     def test_unread_digest_updates_state_after_send(self) -> None:
         now = datetime(2026, 8, 31, tzinfo=UTC)

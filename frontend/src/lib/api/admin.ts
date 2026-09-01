@@ -312,6 +312,14 @@ export function revokeAppInvitation(getToken: GetToken, invitationId: string) {
   );
 }
 
+export function resendAppInvitation(getToken: GetToken, invitationId: string) {
+  return apiFetch<AppInvitationRead>(
+    `/api/v1/admin/app-invitations/${encodeURIComponent(invitationId)}/resend`,
+    getToken,
+    { method: "POST" },
+  );
+}
+
 export function listAccountDeletionRequests(getToken: GetToken) {
   return apiFetch<AccountDeletionRequestAdminRead[]>(
     "/api/v1/admin/account-deletion-requests",

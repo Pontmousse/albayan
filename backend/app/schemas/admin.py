@@ -141,6 +141,12 @@ class InviteCreatePayload(BaseModel):
     role: InvitationRole
     review_due_at: datetime | None = None
 
+    @model_validator(mode="after")
+    def require_reviewer_due_at(self) -> "InviteCreatePayload":
+        if self.role == InvitationRole.REVIEWER and self.review_due_at is None:
+            raise ValueError("يلزم تحديد موعد تسليم المراجعة.")
+        return self
+
 
 class InvitationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)

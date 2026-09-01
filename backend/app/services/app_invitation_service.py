@@ -148,17 +148,79 @@ def create_app_invitation(*, email: str, admin: AuthContext) -> AppInvitation:
 
     app_invitation = _invitation_read(invitation)
     if not app_invitation.url:
+        try:
+            clerk_client.invitations.revoke(invitation_id=app_invitation.id)
+        except Exception as exc:
+            logger.warning(
+                "Failed to revoke unusable Clerk invitation %s (%s)",
+                app_invitation.id,
+                type(exc).__name__,
+            )
         raise HTTPException(
             status_code=502,
             detail="أنشأ Clerk الدعوة دون رابط قبول صالح.",
         )
 
-    send_app_invitation_email(
-        to=app_invitation.email,
-        invitation_url=app_invitation.url,
-        expires_text=_expires_text(app_invitation),
-    )
+    try:
+        send_app_invitation_email(
+            to=app_invitation.email,
+            invitation_url=app_invitation.url,
+            expires_text=_expires_text(app_invitation),
+            idempotency_key=f"app-invitation/{app_invitation.id}",
+        )
+    except Exception:
+        try:
+            clerk_client.invitations.revoke(invitation_id=app_invitation.id)
+        except Exception as exc:
+            logger.warning(
+                "Failed to revoke undelivered Clerk invitation %s (%s)",
+                app_invitation.id,
+                type(exc).__name__,
+            )
+        raise
     return app_invitation
+
+
+def resend_app_invitation(invitation_id: str) -> AppInvitation:
+    offset = 0
+    invitation: AppInvitation | None = None
+    while offset < 5000:
+        try:
+            page = clerk_client.invitations.list(
+                limit=100,
+                offset=offset,
+                order_by="-created_at",
+            )
+        except Exception as exc:
+            logger.warning("Clerk app invitation lookup failed (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="تعذّر تحميل دعوة المستخدم من Clerk.",
+            ) from exc
+        if not page:
+            break
+        for row in page:
+            candidate = _invitation_read(row)
+            if candidate.id == invitation_id:
+                invitation = candidate
+                break
+        if invitation or len(page) < 100:
+            break
+        offset += len(page)
+
+    if invitation is None:
+        raise HTTPException(status_code=404, detail="الدعوة غير موجودة.")
+    if invitation.status != "pending":
+        raise HTTPException(status_code=409, detail="لا يمكن إعادة إرسال دعوة غير معلّقة.")
+    if not invitation.url:
+        raise HTTPException(status_code=409, detail="لا تحتوي الدعوة على رابط قبول صالح.")
+
+    send_app_invitation_email(
+        to=invitation.email,
+        invitation_url=invitation.url,
+        expires_text=_expires_text(invitation),
+    )
+    return invitation
 
 
 def list_app_invitations() -> list[AppInvitation]:

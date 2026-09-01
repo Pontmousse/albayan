@@ -61,6 +61,10 @@ class AppInvitationServiceTests(unittest.TestCase):
             inspect.signature(admin.revoke_app_invitation).parameters["auth"].annotation,
             admin.AdminDep,
         )
+        self.assertEqual(
+            inspect.signature(admin.resend_app_invitation).parameters["auth"].annotation,
+            admin.AdminDep,
+        )
 
     def test_create_uses_clerk_invitation_url_and_disables_clerk_email(self) -> None:
         admin_auth = AuthContext(
@@ -107,6 +111,7 @@ class AppInvitationServiceTests(unittest.TestCase):
             to="person@example.com",
             invitation_url=returned.url,
             expires_text="١٥ ربيع الأول ١٤٤٨ هـ",
+            idempotency_key="app-invitation/inv_test",
         )
         self.assertEqual(invitation.id, "inv_test")
         self.assertEqual(invitation.status, "pending")
@@ -124,6 +129,47 @@ class AppInvitationServiceTests(unittest.TestCase):
                 )
 
         self.assertEqual(raised.exception.status_code, 409)
+
+    def test_failed_resend_delivery_revokes_new_clerk_invitation(self) -> None:
+        returned = _clerk_invitation()
+        with patch.object(
+            app_invitation_service.clerk_client.invitations,
+            "create",
+            return_value=returned,
+        ), patch.object(
+            app_invitation_service.clerk_client.invitations,
+            "revoke",
+        ) as revoke, patch.object(
+            app_invitation_service,
+            "send_app_invitation_email",
+            side_effect=HTTPException(status_code=502, detail="mail failed"),
+        ):
+            with self.assertRaises(HTTPException):
+                app_invitation_service.create_app_invitation(
+                    email="person@example.com",
+                    admin=AuthContext("user_admin", "admin@example.com", None),
+                )
+
+        revoke.assert_called_once_with(invitation_id="inv_test")
+
+    def test_resend_pending_app_invitation_uses_existing_url(self) -> None:
+        returned = _clerk_invitation()
+        with patch.object(
+            app_invitation_service.clerk_client.invitations,
+            "list",
+            return_value=[returned],
+        ), patch.object(
+            app_invitation_service,
+            "send_app_invitation_email",
+        ) as send:
+            invitation = app_invitation_service.resend_app_invitation("inv_test")
+
+        self.assertEqual(invitation.id, "inv_test")
+        send.assert_called_once_with(
+            to="person@example.com",
+            invitation_url=returned.url,
+            expires_text=app_invitation_service.format_date(invitation.expires_at),
+        )
 
     def test_list_returns_compact_clerk_invitations(self) -> None:
         with patch.object(

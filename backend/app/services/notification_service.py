@@ -22,7 +22,15 @@ def create_notification(
     link: str | None = None,
     actor_id: uuid.UUID | None = None,
     metadata: dict[str, Any] | None = None,
+    event_key: str | None = None,
 ) -> Notification:
+    if event_key:
+        existing = db.scalar(
+            select(Notification).where(Notification.event_key == event_key)
+        )
+        if existing:
+            return existing
+
     notification = Notification(
         user_id=user_id,
         type=type,
@@ -31,13 +39,41 @@ def create_notification(
         link=link,
         actor_id=actor_id,
         metadata_json=metadata or {},
+        event_key=event_key,
         is_read=False,
         read_at=None,
     )
     db.add(notification)
-    db.commit()
-    db.refresh(notification)
+    db.flush()
     return notification
+
+
+def create_notifications(
+    db: Session,
+    *,
+    user_ids: list[uuid.UUID] | set[uuid.UUID] | tuple[uuid.UUID, ...],
+    type: NotificationType,
+    title: str,
+    body: str | None = None,
+    link: str | None = None,
+    actor_id: uuid.UUID | None = None,
+    metadata: dict[str, Any] | None = None,
+    event_scope: str,
+) -> list[Notification]:
+    return [
+        create_notification(
+            db,
+            user_id=user_id,
+            type=type,
+            title=title,
+            body=body,
+            link=link,
+            actor_id=actor_id,
+            metadata=metadata,
+            event_key=f"{event_scope}:user:{user_id}",
+        )
+        for user_id in sorted(set(user_ids), key=str)
+    ]
 
 
 def list_notifications(

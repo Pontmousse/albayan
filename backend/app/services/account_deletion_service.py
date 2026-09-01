@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.account_deletion_request import AccountDeletionRequest
-from app.models.enums import AccountDeletionRequestStatus
+from app.models.enums import AccountDeletionRequestStatus, NotificationType
 from app.models.user import User
+from app.services import workflow_notification_service
 
 REVERIFICATION_PRESET = "strict"
 REVERIFICATION_WINDOW_MINUTES = 10
@@ -72,6 +73,18 @@ def create_deletion_request(
         status=AccountDeletionRequestStatus.PENDING,
     )
     db.add(request)
+    db.flush()
+    workflow_notification_service.notify_many(
+        db,
+        user_ids=workflow_notification_service.admin_ids(db),
+        type=NotificationType.ACCOUNT_DELETION_REQUESTED,
+        title="طلب حذف حساب جديد",
+        body=f"أرسل {user.full_name or user.email} طلبًا لحذف الحساب.",
+        link="/admin/mustakhdimin",
+        actor_id=user.id,
+        event_scope=f"account-deletion:{request.id}:requested",
+        metadata={"request_id": str(request.id), "user_id": str(user.id)},
+    )
     db.commit()
     db.refresh(request)
     return request, True
@@ -98,11 +111,30 @@ def update_deletion_request_status(
     request = db.get(AccountDeletionRequest, request_id)
     if not request:
         raise HTTPException(status_code=404, detail="طلب حذف الحساب غير موجود.")
+    if request.status == status:
+        return request
 
     request.status = status
     request.reviewed_by = admin.id
     request.reviewed_at = datetime.now(UTC)
     request.resolution_note = (resolution_note or "").strip() or None
+    status_label = {
+        AccountDeletionRequestStatus.PENDING: "بانتظار المراجعة",
+        AccountDeletionRequestStatus.APPROVED: "مقبول",
+        AccountDeletionRequestStatus.REJECTED: "مرفوض",
+        AccountDeletionRequestStatus.COMPLETED: "مكتمل",
+    }[status]
+    workflow_notification_service.notify_many(
+        db,
+        user_ids={request.user_id},
+        type=NotificationType.ACCOUNT_DELETION_STATUS_CHANGED,
+        title="تغيّرت حالة طلب حذف الحساب",
+        body=f"أصبحت حالة طلب حذف حسابك: {status_label}.",
+        link="/al-idayat",
+        actor_id=admin.id,
+        event_scope=f"account-deletion:{request.id}:status:{status.value}",
+        metadata={"request_id": str(request.id), "status": status.value},
+    )
     db.commit()
     db.refresh(request)
     return request

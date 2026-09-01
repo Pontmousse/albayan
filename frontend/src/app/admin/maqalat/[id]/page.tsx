@@ -59,6 +59,7 @@ export default function AdminArticleDetailPage() {
   const [assignMode, setAssignMode] = useState<"user" | "email">("user");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
+  const [reviewDurationDays, setReviewDurationDays] = useState(14);
 
   const [overrideReason, setOverrideReason] = useState("");
   const [pendingOverride, setPendingOverride] = useState<VersionStatus | null>(
@@ -115,6 +116,21 @@ export default function AdminArticleDetailPage() {
   }
 
   async function handleAssignOrInvite() {
+    const reviewDueAt =
+      assignRole === "reviewer"
+        ? new Date(
+            Date.now() + reviewDurationDays * 24 * 60 * 60 * 1000,
+          ).toISOString()
+        : null;
+    if (
+      assignRole === "reviewer" &&
+      (!Number.isInteger(reviewDurationDays) ||
+        reviewDurationDays < 1 ||
+        reviewDurationDays > 365)
+    ) {
+      setActionError("أدخل مهلة تحكيم صحيحة بين يوم واحد و365 يومًا.");
+      return;
+    }
     if (assignMode === "user") {
       if (!selectedUserId) {
         setActionError("اختر مستخدماً للتعيين.");
@@ -124,7 +140,7 @@ export default function AdminArticleDetailPage() {
         assignRole === "reviewer" ? "تم تعيين المراجع." : "تم تعيين المحرر.",
         () =>
           assignRole === "reviewer"
-            ? assignReviewer(getToken, articleId, selectedUserId)
+            ? assignReviewer(getToken, articleId, selectedUserId, reviewDueAt)
             : assignEditor(getToken, articleId, selectedUserId),
       );
       return;
@@ -138,7 +154,13 @@ export default function AdminArticleDetailPage() {
     await runAction(
       "أُنشئت الدعوة.",
       async () => {
-        const res = await inviteToArticle(getToken, articleId, email, assignRole);
+        const res = await inviteToArticle(
+          getToken,
+          articleId,
+          email,
+          assignRole,
+          reviewDueAt,
+        );
         setInviteEmail("");
         return res;
       },
@@ -420,6 +442,38 @@ export default function AdminArticleDetailPage() {
               />
             </label>
           )}
+          {assignRole === "reviewer" ? (
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold text-slate-600">
+                مهلة التحكيم بالأيام
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={365}
+                step={1}
+                required
+                value={reviewDurationDays}
+                onChange={(event) =>
+                  setReviewDurationDays(Number(event.target.value))
+                }
+                className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
+              />
+              {Number.isInteger(reviewDurationDays) &&
+              reviewDurationDays >= 1 &&
+              reviewDurationDays <= 365 ? (
+                <span className="block text-xs text-slate-500">
+                  موعد التسليم:{" "}
+                  {formatDate(
+                    new Date(
+                      Date.now() +
+                        reviewDurationDays * 24 * 60 * 60 * 1000,
+                    ).toISOString(),
+                  )}
+                </span>
+              ) : null}
+            </label>
+          ) : null}
           <button
             type="button"
             disabled={busy}

@@ -63,6 +63,20 @@ class NotificationType(str, enum.Enum):
     ISSUE_REPLY = "issue_reply"
     ISSUE_UPVOTED = "issue_upvoted"
     ISSUE_STATUS_CHANGED = "issue_status_changed"
+    ISSUE_CREATED = "issue_created"
+    ARTICLE_SUBMITTED = "article_submitted"
+    ARTICLE_INVITATION = "article_invitation"
+    INVITATION_ACCEPTED = "invitation_accepted"
+    EDITOR_ASSIGNED = "editor_assigned"
+    REVIEWER_ASSIGNED = "reviewer_assigned"
+    REVIEW_REMINDER = "review_reminder"
+    REVIEW_SUBMITTED = "review_submitted"
+    EDITORIAL_DECISION = "editorial_decision"
+    ARTICLE_PUBLISHED = "article_published"
+    ASSIGNMENT_REMOVED = "assignment_removed"
+    ACCOUNT_DELETION_REQUESTED = "account_deletion_requested"
+    ACCOUNT_DELETION_STATUS_CHANGED = "account_deletion_status_changed"
+    ADMIN_ROLE_CHANGED = "admin_role_changed"
 
 
 class IssueStatus(str, enum.Enum):

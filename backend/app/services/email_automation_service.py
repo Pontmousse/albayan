@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.dates import format_date
 from app.models.article import Article, ArticleReviewer
 from app.models.email_digest_state import EmailDigestState
-from app.models.enums import ReviewerAssignmentStatus
+from app.models.enums import NotificationType, ReviewerAssignmentStatus
 from app.models.notification import Notification
 from app.models.user import User
-from app.services import email_service
+from app.services import email_service, workflow_notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +78,22 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
         if not reminder_kind:
             continue
 
+        workflow_notification_service.notify_many(
+            db,
+            user_ids={assignment.user_id},
+            type=NotificationType.REVIEW_REMINDER,
+            title="تذكير بموعد المراجعة",
+            body=f"{reminder_text} البحث: «{assignment.article.title}».",
+            link=f"/maktabi/murajaati/{assignment.id}",
+            event_scope=f"review-assignment:{assignment.id}:reminder:{reminder_kind}",
+            metadata={
+                "article_id": str(assignment.article_id),
+                "assignment_id": str(assignment.id),
+                "reminder_kind": reminder_kind,
+            },
+        )
+        db.commit()
+
         try:
             email_service.send_review_reminder_email(
                 to=assignment.user.email,
@@ -96,8 +112,6 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
         else:
             assignment.reminder_due_soon_sent_at = current
         sent += 1
-
-    if sent:
         db.commit()
     return sent
 
@@ -137,23 +151,27 @@ def send_unread_notification_digests(
         f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/isharat"
     )
     for user, unread_count in rows:
+        state = db.get(EmailDigestState, user.id)
+        previous_marker = (
+            state.last_unread_digest_sent_at.isoformat()
+            if state and state.last_unread_digest_sent_at
+            else "initial"
+        )
         try:
             email_service.send_unread_notifications_digest_email(
                 to=user.email,
                 unread_count=int(unread_count),
                 notifications_url=notifications_url,
+                idempotency_key=f"unread-digest/{user.id}/{previous_marker}",
             )
         except Exception as exc:
             logger.warning("Unread digest email failed for user %s: %s", user.id, exc)
             continue
 
-        state = db.get(EmailDigestState, user.id)
         if state is None:
             state = EmailDigestState(user_id=user.id)
             db.add(state)
         state.last_unread_digest_sent_at = current
         sent += 1
-
-    if sent:
         db.commit()
     return sent

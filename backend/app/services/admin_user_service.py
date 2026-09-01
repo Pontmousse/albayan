@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.clerk import clerk_client
 from app.models.article import ArticleAuthor, ArticleEditor, ArticleReviewer
+from app.models.enums import NotificationType
 from app.models.user import User
+from app.services import workflow_notification_service
 
 _NOT_FOUND = HTTPException(status_code=404, detail="المستخدم غير موجود.")
 
@@ -32,6 +34,8 @@ def list_users_with_roles(db: Session) -> list[dict]:
             roles.append("reviewer")
         if user.id in editor_ids:
             roles.append("editor")
+        if user.is_admin:
+            roles.append("admin")
         result.append(
             {
                 "id": user.id,
@@ -45,10 +49,17 @@ def list_users_with_roles(db: Session) -> list[dict]:
     return result
 
 
-def set_admin_status(db: Session, user_id: uuid.UUID, is_admin: bool) -> User:
+def set_admin_status(
+    db: Session,
+    user_id: uuid.UUID,
+    is_admin: bool,
+    *,
+    actor_id: uuid.UUID | None = None,
+) -> User:
     user = db.get(User, user_id)
     if not user:
         raise _NOT_FOUND
+    changed = user.is_admin != is_admin
 
     public_metadata: dict = {"role": "admin"} if is_admin else {"role": None}
     try:
@@ -63,4 +74,57 @@ def set_admin_status(db: Session, user_id: uuid.UUID, is_admin: bool) -> User:
             detail="تعذّر تحديث صلاحيات المدير في Clerk.",
         ) from exc
 
+    if not changed:
+        return user
+
+    user.is_admin = is_admin
+    workflow_notification_service.notify_many(
+        db,
+        user_ids={user.id},
+        type=NotificationType.ADMIN_ROLE_CHANGED,
+        title="تغيّرت صلاحيات حسابك",
+        body=(
+            "مُنحت صلاحية إدارة مجلة البيان."
+            if is_admin
+            else "أُزيلت صلاحية إدارة مجلة البيان من حسابك."
+        ),
+        link="/admin" if is_admin else "/maktabi",
+        actor_id=actor_id,
+        event_scope=(
+            f"user:{user.id}:admin-role:{'granted' if is_admin else 'removed'}:"
+            f"{uuid.uuid4()}"
+        ),
+        metadata={"is_admin": is_admin},
+    )
+    db.commit()
+    db.refresh(user)
     return user
+
+
+def reconcile_admin_roles(db: Session) -> int:
+    users_by_clerk_id = {
+        user.clerk_id: user for user in db.scalars(select(User)).all()
+    }
+    changed = 0
+    offset = 0
+    while offset < 100_000:
+        rows = clerk_client.users.list(request={"limit": 100, "offset": offset})
+        if not rows:
+            break
+        for clerk_user in rows:
+            clerk_id = str(getattr(clerk_user, "id", ""))
+            local_user = users_by_clerk_id.get(clerk_id)
+            if local_user is None:
+                continue
+            metadata = getattr(clerk_user, "public_metadata", None)
+            role = metadata.get("role") if isinstance(metadata, dict) else None
+            expected = role == "admin"
+            if local_user.is_admin != expected:
+                local_user.is_admin = expected
+                changed += 1
+        if len(rows) < 100:
+            break
+        offset += len(rows)
+    if changed:
+        db.commit()
+    return changed

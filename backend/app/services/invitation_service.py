@@ -3,18 +3,20 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import Article, ArticleEditor, ArticleReviewer
 from app.models.enums import (
     InvitationRole,
     InvitationStatus,
+    NotificationType,
     ReviewerAssignmentStatus,
 )
 from app.models.invitation import Invitation
 from app.models.user import User
 from app.core.dates import format_date
+from app.services import workflow_notification_service
 from app.services.email_service import send_invitation_email
 
 _NOT_FOUND = HTTPException(status_code=404, detail="الدعوة غير موجودة.")
@@ -50,6 +52,15 @@ def create_invitation(
     article = db.get(Article, article_id)
     if not article:
         raise _ARTICLE_NOT_FOUND
+    if role == InvitationRole.REVIEWER and (
+        review_due_at is None
+        or review_due_at.tzinfo is None
+        or review_due_at <= datetime.now(timezone.utc)
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="يلزم تحديد موعد مستقبلي لتسليم المراجعة.",
+        )
 
     email_norm = _normalize_email(email)
     existing = db.scalar(
@@ -75,6 +86,27 @@ def create_invitation(
         review_due_at=review_due_at if role == InvitationRole.REVIEWER else None,
     )
     db.add(invitation)
+    db.flush()
+    existing_user = db.scalar(
+        select(User).where(func.lower(User.email) == email_norm)
+    )
+    if existing_user:
+        role_label = "مراجع" if role == InvitationRole.REVIEWER else "محرر"
+        workflow_notification_service.notify_many(
+            db,
+            user_ids={existing_user.id},
+            type=NotificationType.ARTICLE_INVITATION,
+            title="دعوة للمشاركة في بحث",
+            body=f"دُعيت للمشاركة بصفة {role_label} في البحث «{article.title}».",
+            link=f"/daawa/{invitation.token}",
+            actor_id=invited_by,
+            event_scope=f"article-invitation:{invitation.id}:created",
+            metadata={
+                "article_id": str(article.id),
+                "invitation_id": str(invitation.id),
+                "role": role.value,
+            },
+        )
     db.commit()
     db.refresh(invitation)
 
@@ -175,6 +207,7 @@ def accept_invitation(
     if _normalize_email(user.email) != _normalize_email(invitation.email):
         raise _EMAIL_MISMATCH
 
+    assignment_id: uuid.UUID | None = None
     if invitation.role == InvitationRole.REVIEWER:
         existing = db.scalar(
             select(ArticleReviewer).where(
@@ -192,10 +225,15 @@ def accept_invitation(
                 accepted_at=now,
             )
             db.add(assignment)
+            db.flush()
+            assignment_id = assignment.id
         elif existing.status == ReviewerAssignmentStatus.INVITED:
             existing.status = ReviewerAssignmentStatus.ACCEPTED
             existing.review_due_at = invitation.review_due_at
             existing.accepted_at = now
+            assignment_id = existing.id
+        else:
+            assignment_id = existing.id
     else:
         existing_editor = db.scalar(
             select(ArticleEditor).where(
@@ -204,15 +242,58 @@ def accept_invitation(
             )
         )
         if not existing_editor:
-            db.add(
-                ArticleEditor(
+            editor_assignment = ArticleEditor(
                     article_id=invitation.article_id,
                     user_id=user.id,
                     assigned_by=invitation.invited_by,
                 )
-            )
+            db.add(editor_assignment)
+            db.flush()
+            assignment_id = editor_assignment.id
+        else:
+            assignment_id = existing_editor.id
 
     invitation.status = InvitationStatus.ACCEPTED
+    role_label = "مراجع" if invitation.role == InvitationRole.REVIEWER else "محرر"
+    destination = (
+        f"/maktabi/murajaati/{assignment_id}"
+        if invitation.role == InvitationRole.REVIEWER
+        else f"/maktabi/tahriri/{invitation.article_id}"
+    )
+    workflow_notification_service.notify_many(
+        db,
+        user_ids={user.id},
+        type=(
+            NotificationType.REVIEWER_ASSIGNED
+            if invitation.role == InvitationRole.REVIEWER
+            else NotificationType.EDITOR_ASSIGNED
+        ),
+        title="أصبحت المهمة متاحة في مكتبك",
+        body=f"قُبلت دعوتك بصفتك {role_label} للبحث «{invitation.article.title}».",
+        link=destination,
+        actor_id=invitation.invited_by,
+        event_scope=f"article-invitation:{invitation.id}:accepted:assignee",
+        metadata={
+            "article_id": str(invitation.article_id),
+            "invitation_id": str(invitation.id),
+            "role": invitation.role.value,
+        },
+    )
+    workflow_notification_service.notify_many(
+        db,
+        user_ids={invitation.invited_by},
+        type=NotificationType.INVITATION_ACCEPTED,
+        title="قُبلت دعوة المشاركة",
+        body=f"قبل {user.full_name or user.email} دعوة المشاركة بصفة {role_label} في «{invitation.article.title}».",
+        link=f"/admin/maqalat/{invitation.article_id}",
+        actor_id=user.id,
+        event_scope=f"article-invitation:{invitation.id}:accepted:inviter",
+        metadata={
+            "article_id": str(invitation.article_id),
+            "invitation_id": str(invitation.id),
+            "role": invitation.role.value,
+        },
+    )
     db.commit()
     db.refresh(invitation)
     return invitation

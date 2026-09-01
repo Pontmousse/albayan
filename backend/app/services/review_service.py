@@ -8,13 +8,14 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import Article, ArticleEditor, ArticleReviewer, ArticleVersion, Review
 from app.models.enums import (
+    NotificationType,
     ReviewRecommendation,
     ReviewerAssignmentStatus,
     ReviewStatus,
 )
 from app.models.user import User
 from app.services import article_service
-from app.services import email_service
+from app.services import email_service, workflow_notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +144,6 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
     review.status = ReviewStatus.SUBMITTED
     review.submitted_at = now
     assignment.status = ReviewerAssignmentStatus.COMPLETED
-    db.commit()
-    db.refresh(review)
-    db.refresh(assignment)
     article = db.scalar(
         select(Article)
         .where(Article.id == assignment.article_id)
@@ -154,7 +152,39 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
         )
     )
     if article:
-        report_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/tahriri/{article.id}"
+        editor_ids = {link.user_id for link in article.editor_assignments}
+        admin_ids = workflow_notification_service.admin_ids(db)
+        metadata = {
+            "article_id": str(article.id),
+            "review_id": str(review.id),
+            "assignment_id": str(assignment.id),
+        }
+        workflow_notification_service.notify_many(
+            db,
+            user_ids=editor_ids,
+            type=NotificationType.REVIEW_SUBMITTED,
+            title="تم تسليم مراجعة جديدة",
+            body=f"سُلّمت مراجعة جديدة للبحث «{article.title}».",
+            link=f"/maktabi/tahriri/{article.id}",
+            actor_id=assignment.user_id,
+            event_scope=f"review:{review.id}:submitted:editor",
+            metadata=metadata,
+        )
+        workflow_notification_service.notify_many(
+            db,
+            user_ids=admin_ids - editor_ids,
+            type=NotificationType.REVIEW_SUBMITTED,
+            title="تم تسليم مراجعة جديدة",
+            body=f"سُلّمت مراجعة جديدة للبحث «{article.title}».",
+            link=f"/admin/maqalat/{article.id}",
+            actor_id=assignment.user_id,
+            event_scope=f"review:{review.id}:submitted:admin",
+            metadata=metadata,
+        )
+    db.commit()
+    db.refresh(review)
+    db.refresh(assignment)
+    if article:
         reviewer = db.get(User, assignment.user_id)
         reviewer_name = (
             reviewer.full_name
@@ -163,17 +193,24 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
             if reviewer
             else "مراجع"
         )
-        recipients = {link.user.email for link in article.editor_assignments}
-        recipients.update(
-            db.scalars(select(User.email).where(User.is_admin.is_(True))).all()
-        )
-        for recipient in sorted(recipients):
+        site_url = email_service.settings.frontend_base_url.rstrip("/")
+        recipient_urls = {
+            link.user.email.strip().lower(): f"{site_url}/maktabi/tahriri/{article.id}"
+            for link in article.editor_assignments
+        }
+        for admin in db.scalars(select(User).where(User.is_admin.is_(True))).all():
+            recipient_urls.setdefault(
+                admin.email.strip().lower(),
+                f"{site_url}/admin/maqalat/{article.id}",
+            )
+        for recipient, report_url in sorted(recipient_urls.items()):
             try:
                 email_service.send_review_submitted_email(
                     to=recipient,
                     article_title=article.title,
                     reviewer_name=reviewer_name,
                     report_url=report_url,
+                    idempotency_key=f"review-submitted/{review.id}/{recipient}",
                 )
             except Exception as exc:
                 logger.warning("Review submitted email failed for %s: %s", review.id, exc)

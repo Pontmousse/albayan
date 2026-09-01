@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import s3
 from app.models.enums import IssueCategory, IssueStatus, NotificationType
 from app.models.issue import Issue, IssueImage, IssueUpvote
-from app.services import notification_service
+from app.services import notification_service, workflow_notification_service
 
 ISSUE_CREATE_LIMIT = 5
 MAX_ISSUE_IMAGES = 3
@@ -68,6 +68,18 @@ def create_issue(
         upvote_count=0,
     )
     db.add(issue)
+    db.flush()
+    workflow_notification_service.notify_many(
+        db,
+        user_ids=workflow_notification_service.admin_ids(db),
+        type=NotificationType.ISSUE_CREATED,
+        title="بلاغ جديد",
+        body=f"أُرسل بلاغ جديد بعنوان «{issue.title}».",
+        link="/admin/balaghat",
+        actor_id=user_id,
+        event_scope=f"issue:{issue.id}:created",
+        metadata={"issue_id": str(issue.id), "category": category.value},
+    )
     db.commit()
     db.refresh(issue)
     return issue
@@ -173,7 +185,9 @@ def upvote_issue(db: Session, issue_id: uuid.UUID, user_id: uuid.UUID) -> Issue:
                 "issue_id": str(issue.id),
                 "upvote_count": upvote_count,
             },
+            event_key=f"issue:{issue.id}:upvote:{user_id}",
         )
+        db.commit()
     else:
         db.commit()
 

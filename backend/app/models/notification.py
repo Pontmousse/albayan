@@ -22,13 +22,16 @@ class Notification(Base):
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     type: Mapped[NotificationType] = mapped_column(
-        Enum(NotificationType, native_enum=False)
+        Enum(NotificationType, native_enum=False, length=48)
     )
     title: Mapped[str] = mapped_column(String(300))
     body: Mapped[str | None] = mapped_column(Text)
     link: Mapped[str | None] = mapped_column(String(500))
     metadata_json: Mapped[dict[str, Any]] = mapped_column(
         "metadata", JSON, default=dict
+    )
+    event_key: Mapped[str | None] = mapped_column(
+        String(500), unique=True, nullable=True, index=True
     )
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

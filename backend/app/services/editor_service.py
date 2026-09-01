@@ -14,8 +14,8 @@ from app.models.article import (
     ArticleVersion,
     Review,
 )
-from app.models.enums import ReviewStatus, VersionStatus
-from app.services import article_service, email_service
+from app.models.enums import NotificationType, ReviewStatus, VersionStatus
+from app.services import article_service, email_service, workflow_notification_service
 
 _NOT_FOUND = HTTPException(status_code=404, detail="المقال غير موجود.")
 _INVALID_STATUS = HTTPException(
@@ -151,6 +151,9 @@ def apply_decision(
     version = article_service.current_version(db, article_id)
     if version.status == VersionStatus.DRAFT:
         raise _DRAFT_BLOCKED
+    if version.status == status:
+        return version
+    transition_marker = datetime.now(timezone.utc).isoformat()
 
     version.status = status
     if status == VersionStatus.UNDER_REVIEW and version.submitted_at is None:
@@ -162,13 +165,32 @@ def apply_decision(
         summary = f"{summary} — {reason.strip()}"
     version.change_summary = summary
 
-    db.commit()
-    db.refresh(version)
     article = db.scalar(
         select(Article)
         .where(Article.id == article_id)
         .options(selectinload(Article.author_links).selectinload(ArticleAuthor.user))
     )
+    if article:
+        workflow_notification_service.notify_many(
+            db,
+            user_ids=workflow_notification_service.author_ids(article),
+            type=NotificationType.EDITORIAL_DECISION,
+            title="قرار تحريري جديد",
+            body=f"أصبحت حالة البحث «{article.title}»: {label}.",
+            link=f"/maktabi/maqalati/{article.id}",
+            actor_id=user_id,
+            event_scope=(
+                f"article:{article.id}:version:{version.version_number}:"
+                f"status:{status.value}:{transition_marker}"
+            ),
+            metadata={
+                "article_id": str(article.id),
+                "version_number": version.version_number,
+                "status": status.value,
+            },
+        )
+    db.commit()
+    db.refresh(version)
     if article:
         article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
         next_step = {
@@ -184,6 +206,10 @@ def apply_decision(
                     decision_text=label,
                     article_url=article_url,
                     next_step=next_step,
+                    idempotency_key=(
+                        f"decision/{article.id}/{version.version_number}/{status.value}/"
+                        f"{transition_marker}/{link.user_id}"
+                    ),
                 )
             except Exception as exc:
                 logger.warning("Decision email failed for article %s: %s", article.id, exc)

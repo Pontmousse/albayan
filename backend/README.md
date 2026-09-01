@@ -57,3 +57,20 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 alembic revision --autogenerate -m "وصف التغيير"
 alembic upgrade head
 ```
+
+## مهام البريد والإشعارات المجدولة
+
+اضبط Scheduler منصة الاستضافة لتشغيل الأمر التالي يوميًا عند `02:00 UTC`
+(`0 2 * * *`). يفحص الأمر تذكيرات التحكيم المستحقة، ويرسل ملخص الإشعارات
+غير المقروءة بعد مرور سبعة أيام على آخر ملخص:
+
+```bash
+python -m app.jobs.email_automation
+```
+
+بعد نشر مزامنة صلاحيات المدير لأول مرة، شغّل الأمر التالي مرة واحدة لمطابقة
+`users.is_admin` مع `public_metadata.role` في Clerk:
+
+```bash
+python -m app.jobs.sync_admin_roles
+```

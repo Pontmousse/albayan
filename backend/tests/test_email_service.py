@@ -470,6 +470,7 @@ class EmailServiceTests(unittest.TestCase):
                 to="user@example.com",
                 unread_count=6,
                 notifications_url="https://albayan-journal.org/maktabi/isharat",
+                idempotency_key="unread-digest/user/initial",
             )
 
         payload = self._payload(urlopen)

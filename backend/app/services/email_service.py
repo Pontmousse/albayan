@@ -166,6 +166,7 @@ def send_app_invitation_email(
     to: str,
     invitation_url: str,
     expires_text: str | None,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_app_invitation_template,
@@ -182,6 +183,7 @@ def send_app_invitation_email(
             "EXPIRES_TEXT": expires_text or "",
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
@@ -266,6 +268,7 @@ def send_new_submission_alert_email(
     article_title: str,
     author_name: str,
     article_url: str,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_new_submission_alert_template,
@@ -281,10 +284,17 @@ def send_new_submission_alert_email(
             "ARTICLE_URL": article_url,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
-def send_editor_assigned_email(*, to: str, article_title: str, article_url: str) -> None:
+def send_editor_assigned_email(
+    *,
+    to: str,
+    article_title: str,
+    article_url: str,
+    idempotency_key: str | None = None,
+) -> None:
     template = _require_template(
         settings.resend_editor_assigned_template,
         "قالب بريد تعيين المحرر غير مُهيّأ على الخادم.",
@@ -298,11 +308,17 @@ def send_editor_assigned_email(*, to: str, article_title: str, article_url: str)
             "ARTICLE_URL": article_url,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
 def send_reviewer_assigned_email(
-    *, to: str, article_title: str, review_url: str, due_text: str
+    *,
+    to: str,
+    article_title: str,
+    review_url: str,
+    due_text: str,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_reviewer_assigned_template,
@@ -318,6 +334,7 @@ def send_reviewer_assigned_email(
             "DUE_TEXT": due_text,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
@@ -350,7 +367,12 @@ def send_review_reminder_email(
 
 
 def send_review_submitted_email(
-    *, to: str, article_title: str, reviewer_name: str, report_url: str
+    *,
+    to: str,
+    article_title: str,
+    reviewer_name: str,
+    report_url: str,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_review_submitted_template,
@@ -366,6 +388,7 @@ def send_review_submitted_email(
             "REPORT_URL": report_url,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
@@ -376,6 +399,7 @@ def send_decision_email(
     decision_text: str,
     article_url: str,
     next_step: str,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_decision_template,
@@ -392,11 +416,16 @@ def send_decision_email(
             "NEXT_STEP": next_step,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
 def send_article_published_email(
-    *, to: str, article_title: str, article_url: str
+    *,
+    to: str,
+    article_title: str,
+    article_url: str,
+    idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_article_published_template,
@@ -411,11 +440,16 @@ def send_article_published_email(
             "ARTICLE_URL": article_url,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 
 def send_unread_notifications_digest_email(
-    *, to: str, unread_count: int, notifications_url: str
+    *,
+    to: str,
+    unread_count: int,
+    notifications_url: str,
+    idempotency_key: str,
 ) -> None:
     template = _require_template(
         settings.resend_unread_notifications_digest_template,
@@ -430,6 +464,7 @@ def send_unread_notifications_digest_email(
             "NOTIFICATIONS_URL": notifications_url,
             **_common_variables(),
         },
+        idempotency_key=idempotency_key,
     )
 
 

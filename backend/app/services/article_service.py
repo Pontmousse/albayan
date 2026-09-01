@@ -7,11 +7,11 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import s3
-from app.models.article import Article, ArticleAuthor, ArticleVersion, Review
-from app.models.enums import SourceType, VersionStatus
+from app.models.article import Article, ArticleAuthor, ArticleEditor, ArticleVersion, Review
+from app.models.enums import NotificationType, SourceType, VersionStatus
 from app.models.user import User
 from app.core.dates import format_date_time
-from app.services import email_service
+from app.services import email_service, workflow_notification_service
 
 _FROZEN = HTTPException(status_code=409, detail="المخطوطة مجمّدة — لا يمكن تعديلها بعد التقديم.")
 _ALREADY_SUBMITTED = HTTPException(status_code=409, detail="المقال مُقدَّم بالفعل.")
@@ -177,15 +177,61 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         raise _ALREADY_SUBMITTED
     version.status = VersionStatus.SUBMITTED
     version.submitted_at = datetime.now(timezone.utc)
+    author_ids = set(
+        db.scalars(
+            select(ArticleAuthor.user_id).where(ArticleAuthor.article_id == article.id)
+        ).all()
+    )
+    editor_ids = set(
+        db.scalars(
+            select(ArticleEditor.user_id).where(ArticleEditor.article_id == article.id)
+        ).all()
+    )
+    admin_ids = workflow_notification_service.admin_ids(db)
+    staff_ids = editor_ids | admin_ids
+    metadata = {
+        "article_id": str(article.id),
+        "version_number": version.version_number,
+    }
+    workflow_notification_service.notify_many(
+        db,
+        user_ids=author_ids - staff_ids,
+        type=NotificationType.ARTICLE_SUBMITTED,
+        title="تم استلام بحثك",
+        body=f"استلمت المجلة البحث «{article.title}» وبدأت متابعته تحريرياً.",
+        link=f"/maktabi/maqalati/{article.id}",
+        event_scope=f"article:{article.id}:version:{version.version_number}:submitted:author",
+        metadata=metadata,
+    )
+    workflow_notification_service.notify_many(
+        db,
+        user_ids=editor_ids,
+        type=NotificationType.ARTICLE_SUBMITTED,
+        title="بحث جديد بانتظار المتابعة",
+        body=f"قُدّم البحث «{article.title}» للمراجعة التحريرية.",
+        link=f"/maktabi/tahriri/{article.id}",
+        event_scope=f"article:{article.id}:version:{version.version_number}:submitted:editor",
+        metadata=metadata,
+    )
+    workflow_notification_service.notify_many(
+        db,
+        user_ids=admin_ids - editor_ids,
+        type=NotificationType.ARTICLE_SUBMITTED,
+        title="بحث جديد بانتظار المتابعة",
+        body=f"قُدّم البحث «{article.title}» للمراجعة التحريرية.",
+        link=f"/admin/maqalat/{article.id}",
+        event_scope=f"article:{article.id}:version:{version.version_number}:submitted:admin",
+        metadata=metadata,
+    )
     db.commit()
     db.refresh(version)
     db.refresh(article)
     article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
     admin_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/admin/maqalat/{article.id}"
     submitted_text = format_date_time(version.submitted_at) if version.submitted_at else ""
-    try:
-        submitter = db.get(User, article.submitted_by)
-        if submitter:
+    submitter = db.get(User, article.submitted_by)
+    if submitter:
+        try:
             email_service.send_submission_received_email(
                 to=submitter.email,
                 article_title=article.title,
@@ -193,17 +239,40 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
                 submitted_text=submitted_text,
                 version_number=version.version_number,
             )
-        admins = list(db.scalars(select(User).where(User.is_admin.is_(True))).all())
-        author_name = submitter.full_name if submitter and submitter.full_name else "مؤلف"
-        for admin in admins:
+        except Exception as exc:
+            logger.warning("Submission receipt email failed for article %s: %s", article.id, exc)
+
+    staff_users = list(
+        db.scalars(select(User).where(User.id.in_(staff_ids))).all()
+    ) if staff_ids else []
+    author_name = submitter.full_name if submitter and submitter.full_name else "مؤلف"
+    sent_emails: set[str] = set()
+    for recipient in staff_users:
+        normalized_email = recipient.email.strip().lower()
+        if normalized_email in sent_emails:
+            continue
+        sent_emails.add(normalized_email)
+        try:
             email_service.send_new_submission_alert_email(
-                to=admin.email,
+                to=recipient.email,
                 article_title=article.title,
                 author_name=author_name,
-                article_url=admin_url,
+                article_url=(
+                    f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/tahriri/{article.id}"
+                    if recipient.id in editor_ids
+                    else admin_url
+                ),
+                idempotency_key=(
+                    f"new-submission/{article.id}/{version.version_number}/{recipient.id}"
+                ),
             )
-    except Exception as exc:
-        logger.warning("Submission email notifications failed for article %s: %s", article.id, exc)
+        except Exception as exc:
+            logger.warning(
+                "New submission email failed for article %s recipient %s: %s",
+                article.id,
+                recipient.id,
+                exc,
+            )
     return version
 
 

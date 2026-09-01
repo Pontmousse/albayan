@@ -73,8 +73,8 @@ class NotificationPhase1Tests(unittest.TestCase):
         self.assertFalse(row.is_read)
         self.assertIsNone(row.read_at)
         db.add.assert_called_once_with(row)
-        db.commit.assert_called_once_with()
-        db.refresh.assert_called_once_with(row)
+        db.flush.assert_called_once_with()
+        db.commit.assert_not_called()
 
     def test_route_lists_current_users_notifications_only(self) -> None:
         user = _user()
@@ -222,7 +222,16 @@ class IssuePhase1Tests(unittest.TestCase):
         db = Mock()
         user_id = uuid.uuid4()
 
-        with patch.object(issue_service, "_recent_issue_count", return_value=0):
+        with patch.object(
+            issue_service, "_recent_issue_count", return_value=0
+        ), patch.object(
+            issue_service.workflow_notification_service,
+            "admin_ids",
+            return_value={uuid.uuid4()},
+        ), patch.object(
+            issue_service.workflow_notification_service,
+            "notify_many",
+        ) as notify:
             row = issue_service.create_issue(
                 db,
                 user_id=user_id,
@@ -238,6 +247,7 @@ class IssuePhase1Tests(unittest.TestCase):
         db.add.assert_called_once_with(row)
         db.commit.assert_called_once_with()
         db.refresh.assert_called_once_with(row)
+        notify.assert_called_once()
 
     def test_create_issue_rate_limit_blocks_sixth_recent_issue(self) -> None:
         db = Mock()
@@ -486,12 +496,12 @@ class IssuePhase1Tests(unittest.TestCase):
             notification_email_policy.NotificationDelivery.IN_APP_ONLY,
         )
 
-    def test_issue_status_changed_is_important_email_policy(self) -> None:
+    def test_issue_status_changed_is_digest_only_email_policy(self) -> None:
         self.assertEqual(
             notification_email_policy.delivery_for_notification(
                 NotificationType.ISSUE_STATUS_CHANGED
             ),
-            notification_email_policy.NotificationDelivery.IMPORTANT_EMAIL,
+            notification_email_policy.NotificationDelivery.IN_APP_ONLY,
         )
 
     def test_issue_image_upload_rejects_bad_inputs(self) -> None:

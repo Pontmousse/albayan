@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from app.models.enums import AccountDeletionRequestStatus
 from app.services import account_deletion_service
@@ -28,12 +28,20 @@ class AccountDeletionRequestTests(unittest.TestCase):
             email="author@example.com",
         )
 
-        request, created = account_deletion_service.create_deletion_request(
-            db,
-            user=user,
-            session_claims={"fva": [0, -1]},
-            reason="أريد حذف الحساب",
-        )
+        with patch.object(
+            account_deletion_service.workflow_notification_service,
+            "admin_ids",
+            return_value={uuid.uuid4()},
+        ), patch.object(
+            account_deletion_service.workflow_notification_service,
+            "notify_many",
+        ) as notify:
+            request, created = account_deletion_service.create_deletion_request(
+                db,
+                user=user,
+                session_claims={"fva": [0, -1]},
+                reason="أريد حذف الحساب",
+            )
 
         self.assertTrue(created)
         self.assertEqual(request.user_id, user.id)
@@ -43,6 +51,7 @@ class AccountDeletionRequestTests(unittest.TestCase):
         db.add.assert_called_once_with(request)
         db.commit.assert_called_once_with()
         db.refresh.assert_called_once_with(request)
+        notify.assert_called_once()
 
     def test_existing_pending_request_is_idempotent(self) -> None:
         existing = Mock()
