@@ -9,6 +9,7 @@ from clerk_backend_api import models
 from fastapi import HTTPException
 
 from app.core.clerk import AuthContext
+from app.models.enums import UserGender
 from app.routers import admin
 from app.services import app_invitation_service
 
@@ -92,6 +93,8 @@ class AppInvitationServiceTests(unittest.TestCase):
         ) as send_email:
             invitation = app_invitation_service.create_app_invitation(
                 email=" Person@Example.COM ",
+                full_name="  أحمد   الزهراني  ",
+                gender=UserGender.MALE,
                 admin=admin_auth,
             )
 
@@ -104,17 +107,22 @@ class AppInvitationServiceTests(unittest.TestCase):
                 "public_metadata": {
                     "source": "albayan-admin",
                     "invited_by_clerk_id": "user_admin",
+                    "albayan_invitee_name": "أحمد الزهراني",
+                    "albayan_gender": "male",
                 },
             }
         )
         send_email.assert_called_once_with(
             to="person@example.com",
+            recipient_name="أحمد الزهراني",
             invitation_url=returned.url,
             expires_text="١٥ ربيع الأول ١٤٤٨ هـ",
             idempotency_key="app-invitation/inv_test",
         )
         self.assertEqual(invitation.id, "inv_test")
         self.assertEqual(invitation.status, "pending")
+        self.assertEqual(invitation.full_name, "أحمد الزهراني")
+        self.assertEqual(invitation.gender, UserGender.MALE)
 
     def test_duplicate_invitation_or_user_maps_to_conflict(self) -> None:
         with patch.object(
@@ -125,6 +133,8 @@ class AppInvitationServiceTests(unittest.TestCase):
             with self.assertRaises(HTTPException) as raised:
                 app_invitation_service.create_app_invitation(
                     email="person@example.com",
+                    full_name="سلمى الباحثة",
+                    gender=UserGender.FEMALE,
                     admin=AuthContext("user_admin", "admin@example.com", None),
                 )
 
@@ -147,6 +157,8 @@ class AppInvitationServiceTests(unittest.TestCase):
             with self.assertRaises(HTTPException):
                 app_invitation_service.create_app_invitation(
                     email="person@example.com",
+                    full_name="سلمى الباحثة",
+                    gender=UserGender.FEMALE,
                     admin=AuthContext("user_admin", "admin@example.com", None),
                 )
 
@@ -167,6 +179,7 @@ class AppInvitationServiceTests(unittest.TestCase):
         self.assertEqual(invitation.id, "inv_test")
         send.assert_called_once_with(
             to="person@example.com",
+            recipient_name=None,
             invitation_url=returned.url,
             expires_text=app_invitation_service.format_date(invitation.expires_at),
         )
@@ -182,6 +195,23 @@ class AppInvitationServiceTests(unittest.TestCase):
         list_invitations.assert_called_once_with(limit=50, order_by="-created_at")
         self.assertEqual(rows[0].id, "inv_1")
         self.assertEqual(rows[0].created_at, datetime(2026, 8, 1, tzinfo=UTC))
+
+    def test_list_reads_name_and_gender_from_invitation_metadata(self) -> None:
+        returned = _clerk_invitation(
+            public_metadata={
+                "albayan_invitee_name": "ليلى العامرية",
+                "albayan_gender": "female",
+            }
+        )
+        with patch.object(
+            app_invitation_service.clerk_client.invitations,
+            "list",
+            return_value=[returned],
+        ):
+            invitation = app_invitation_service.list_app_invitations()[0]
+
+        self.assertEqual(invitation.full_name, "ليلى العامرية")
+        self.assertEqual(invitation.gender, UserGender.FEMALE)
 
     def test_revoke_calls_clerk(self) -> None:
         with patch.object(

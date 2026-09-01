@@ -10,6 +10,7 @@ from app.models.enums import (
     IssueCategory,
     IssueStatus,
     ReviewerAssignmentStatus,
+    UserGender,
     VersionStatus,
 )
 from app.schemas.article import VersionRead
@@ -22,6 +23,7 @@ class AdminUserBrief(BaseModel):
     id: UUID
     email: str
     full_name: str | None
+    gender: UserGender | None
 
 
 class AdminAuthorRead(BaseModel):
@@ -92,6 +94,7 @@ class AdminUserListItem(BaseModel):
     clerk_id: str
     email: str
     full_name: str | None
+    gender: UserGender | None
     roles: list[str]
     created_at: datetime
 
@@ -121,11 +124,15 @@ class AccountDeletionRequestAdminRead(BaseModel):
 
 class AppInvitationCreatePayload(BaseModel):
     email: str = Field(min_length=3, max_length=320)
+    full_name: str = Field(min_length=1, max_length=200)
+    gender: UserGender
 
 
 class AppInvitationRead(BaseModel):
     id: str
     email: str
+    full_name: str | None = None
+    gender: UserGender | None = None
     status: str
     created_at: datetime
     updated_at: datetime

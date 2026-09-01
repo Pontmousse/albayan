@@ -86,6 +86,7 @@ Application invitation:
 
 ```text
 INVITATION_URL
+RECIPIENT_NAME
 RECIPIENT_EMAIL
 EXPIRES_TEXT
 SITE_URL
@@ -150,6 +151,10 @@ the address is not duplicated in the service. `email export` renders the
 triple-brace Resend placeholders; React Email `PreviewProps` supply readable
 values only in the local preview.
 
+`RECIPIENT_NAME` has the neutral fallback `ضيف مجلة البيان`. Keep this fallback
+when updating the published invitation template so an older backend can continue
+to send safely during a staged rollout.
+
 ## Public email assets
 
 Editable source assets live in `emails/assets/`. Keep the deployed copies in
@@ -175,7 +180,8 @@ https://albayan-journal.org/email/logo.png
 https://albayan-journal.org/email/header-arch.png
 https://albayan-journal.org/email/divider.png
 https://albayan-journal.org/email/pattern.png
-https://albayan-journal.org/email/footer-corner.png
+https://albayan-journal.org/email/footer-corner-left.png
+https://albayan-journal.org/email/footer-corner-right.png
 https://albayan-journal.org/email/icons/publish.png
 https://albayan-journal.org/email/icons/read.png
 https://albayan-journal.org/email/icons/community.png
@@ -187,8 +193,10 @@ URLs, which the test suite verifies.
 
 ## Publishing the template
 
-Install the current official Resend CLI and `yq`, then use a Full Access key
-dedicated to template administration:
+Install the current official Resend CLI and Mike Farah `yq` v4 (the unrelated
+Python `yq` package is not compatible), then use a Full Access key dedicated to
+template administration. The official Node.js CLI installation is
+`npm install -g resend-cli`.
 
 ```bash
 export RESEND_API_KEY=re_xxxxxxxxxx
@@ -214,3 +222,25 @@ resend templates get welcome-ar --json
 ```
 
 Never commit `RESEND_API_KEY`.
+
+## Safe rollout and mobile acceptance
+
+Because the invitation template gains a variable and two public assets, use this
+order and avoid sending application invitations during the short rollout window:
+
+1. Deploy the frontend public assets and verify both footer-corner URLs return
+   PNG files over HTTPS.
+2. Run `npm test` in `emails/`, then publish the templates with
+   `npm run templates:sync`.
+3. Run `alembic upgrade head`, then deploy the backend and frontend application
+   code.
+4. Send one invitation to a controlled address and verify the CTA opens
+   `/tasjil` with exactly one `__clerk_ticket` query parameter.
+5. Check the received message in at least one narrow iOS or Android mail client:
+   no horizontal scrolling, full CTA visibility, readable OTP blocks, stacked
+   welcome features, and distinct mirrored footer corners.
+
+The templates use one responsive HTML document, not a separate mobile version.
+The export test enforces a viewport tag, the mobile breakpoint, one occurrence
+of every action URL, and the absence of CSS image mirroring and recipient-facing
+vendor names.

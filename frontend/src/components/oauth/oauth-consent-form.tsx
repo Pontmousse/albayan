@@ -305,7 +305,7 @@ function ConsentDecisionForm() {
       </div>
 
       <p className="mt-4 text-center text-xs text-[var(--journal-muted)]">
-        البيان لا يعيد كتابة بروتوكول OAuth — الموافقة تُرسل إلى Clerk ثم يكتمل
+        تحافظ منصة البيان على مسار التفويض الآمن، ثم يكتمل
         التفويض مع التطبيق الطالب.
       </p>
     </form>

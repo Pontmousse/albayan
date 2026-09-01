@@ -14,6 +14,8 @@ const assets = [
   "divider.png",
   "pattern.png",
   "footer-corner.png",
+  "footer-corner-left.png",
+  "footer-corner-right.png",
   "icons/publish.png",
   "icons/read.png",
   "icons/community.png",

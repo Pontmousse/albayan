@@ -29,7 +29,6 @@ export default function Decision({
       intro={<>صدر قرار تحريري على بحثكم «{ARTICLE_TITLE}»: {DECISION_TEXT}.</>}
       actionHref={ARTICLE_URL}
       actionLabel="فتح البحث"
-      fallbackHref={ARTICLE_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

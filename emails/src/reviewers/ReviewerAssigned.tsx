@@ -27,7 +27,6 @@ export default function ReviewerAssigned({
       intro={<>أُسندت إليكم مراجعة البحث: «{ARTICLE_TITLE}».</>}
       actionHref={REVIEW_URL}
       actionLabel="فتح مساحة المراجعة"
-      fallbackHref={REVIEW_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

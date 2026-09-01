@@ -9,6 +9,7 @@ type InfoPanelProps = {
 export function InfoPanel({ children }: InfoPanelProps) {
   return (
     <Section
+      className="email-info-panel"
       style={{
         backgroundColor: colors.white,
         border: `1px solid ${colors.border}`,

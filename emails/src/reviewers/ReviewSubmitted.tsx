@@ -27,7 +27,6 @@ export default function ReviewSubmitted({
       intro={<>سلّم {REVIEWER_NAME} تقرير مراجعة للبحث: «{ARTICLE_TITLE}».</>}
       actionHref={REPORT_URL}
       actionLabel="فتح تقرير المراجعة"
-      fallbackHref={REPORT_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

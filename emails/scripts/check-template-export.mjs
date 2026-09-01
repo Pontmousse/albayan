@@ -31,6 +31,7 @@ const templates = [
     file: "AppInvitation.html",
     variables: [
       "INVITATION_URL",
+      "RECIPIENT_NAME",
       "RECIPIENT_EMAIL",
       "EXPIRES_TEXT",
       "SITE_URL",
@@ -213,7 +214,13 @@ for (const template of templates) {
     assert.match(html, new RegExp(`\\{\\{\\{${variable}\\}\\}\\}`));
   }
 
-  for (const asset of template.assets) {
+  const expectedAssets = template.assets.flatMap((asset) =>
+    asset === "footer-corner.png"
+      ? ["footer-corner-left.png", "footer-corner-right.png"]
+      : [asset],
+  );
+
+  for (const asset of expectedAssets) {
     assert.ok(
       html.includes(`{{{ASSET_BASE_URL}}}/${asset}`),
       `${template.file} is missing ${asset}`,
@@ -226,6 +233,24 @@ for (const template of templates) {
     `${template.file} must resolve assets from ASSET_BASE_URL at send time`,
   );
   assert.ok(!html.includes("albayan@gmail.com"), "Legacy contact address found");
+  assert.match(html, /name="viewport"/i, `${template.file} is missing a viewport meta tag`);
+  assert.match(html, /max-width:\s*620px/i, `${template.file} is missing mobile CSS`);
+  assert.ok(!/transform:\s*scaleX/i.test(html), `${template.file} mirrors an image with CSS`);
+  assert.ok(
+    !/\b(?:Clerk|Resend|Next\.js|FastAPI)\b/i.test(html),
+    `${template.file} exposes an implementation vendor to recipients`,
+  );
+
+  for (const variable of template.variables.filter(
+    (name) => name.endsWith("_URL") && !["SITE_URL", "ASSET_BASE_URL"].includes(name),
+  )) {
+    const occurrences = html.split(`{{{${variable}}}}`).length - 1;
+    assert.equal(
+      occurrences,
+      1,
+      `${template.file} must render ${variable} only as its single action link`,
+    );
+  }
 }
 
-console.log("Exported templates contain their declared Resend variables.");
+console.log("Exported templates passed variable, asset, mobile, and link checks.");

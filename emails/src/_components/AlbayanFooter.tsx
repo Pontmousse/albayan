@@ -24,30 +24,45 @@ export function AlbayanFooter({
         textAlign: "center",
       }}
     >
-      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0">
+      <table
+        role="presentation"
+        width="100%"
+        cellPadding="0"
+        cellSpacing="0"
+        dir="ltr"
+      >
         <tbody>
           <tr>
             <td
               align="right"
               valign="middle"
-              width="118"
-              style={{ padding: "64px 26px 0 0" }}
+              width="18%"
+              className="email-footer-corner-cell"
+              style={{ padding: "64px 0 0 8px" }}
             >
               <Img
-                src={emailAssetUrl(assetBaseUrl, "footer-corner.png")}
+                src={emailAssetUrl(assetBaseUrl, "footer-corner-left.png")}
                 alt=""
-                width="104"
-                height="104"
+                width="72"
+                height="72"
+                className="email-fluid-image"
                 style={{
                   display: "block",
-                  height: "104px",
+                  height: "auto",
+                  maxWidth: "104px",
                   objectFit: "contain",
-                  transform: "scaleX(-1)",
-                  width: "104px",
+                  width: "100%",
                 }}
               />
             </td>
-            <td align="center" valign="middle" style={{ padding: "0 4px" }}>
+            <td
+              align="center"
+              valign="middle"
+              width="64%"
+              dir="rtl"
+              className="email-footer-center-cell"
+              style={{ padding: "0 4px" }}
+            >
               <table role="presentation" cellPadding="0" cellSpacing="0" align="center">
                 <tbody>
                   <tr>
@@ -78,6 +93,8 @@ export function AlbayanFooter({
                         {displayUrl}
                       </Link>
                     </td>
+                  </tr>
+                  <tr>
                     <td align="center" style={{ padding: "0 10px 12px" }}>
                       <Link
                         href={`mailto:${contactEmail}`}
@@ -86,6 +103,7 @@ export function AlbayanFooter({
                           fontFamily,
                           fontSize: "13px",
                           fontWeight: 700,
+                          overflowWrap: "anywhere",
                           textDecoration: "none",
                         }}
                       >
@@ -102,7 +120,7 @@ export function AlbayanFooter({
                             width: "30px",
                           }}
                         />
-                        {contactEmail}
+                        <span dir="ltr">{contactEmail}</span>
                       </Link>
                     </td>
                   </tr>
@@ -138,19 +156,22 @@ export function AlbayanFooter({
             <td
               align="left"
               valign="middle"
-              width="118"
-              style={{ padding: "64px 0 0 26px" }}
+              width="18%"
+              className="email-footer-corner-cell"
+              style={{ padding: "64px 8px 0 0" }}
             >
               <Img
-                src={emailAssetUrl(assetBaseUrl, "footer-corner.png")}
+                src={emailAssetUrl(assetBaseUrl, "footer-corner-right.png")}
                 alt=""
-                width="104"
-                height="104"
+                width="72"
+                height="72"
+                className="email-fluid-image"
                 style={{
                   display: "block",
-                  height: "104px",
+                  height: "auto",
+                  maxWidth: "104px",
                   objectFit: "contain",
-                  width: "104px",
+                  width: "100%",
                 }}
               />
             </td>

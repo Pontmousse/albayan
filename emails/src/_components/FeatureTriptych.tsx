@@ -29,6 +29,7 @@ export function FeatureTriptych({ features, assetBaseUrl }: FeatureTriptychProps
           <tr>
             {features.map((feature) => (
               <td
+                className="email-feature-cell"
                 key={feature.title}
                 align="center"
                 valign="top"
@@ -49,6 +50,7 @@ export function FeatureTriptych({ features, assetBaseUrl }: FeatureTriptychProps
                     objectFit: "contain",
                     width: "64px",
                   }}
+                  className="email-fluid-image"
                 />
                 <Text
                   style={{

@@ -18,7 +18,9 @@ templates:
     file: $TMP_DIR/template.tsx
     html_file: $TMP_DIR/template.html
     variables:
-      USER_NAME: string
+      USER_NAME:
+        type: string
+        fallback: researcher
       LOGIN_URL: string
     publish: false
 EOF
@@ -27,6 +29,12 @@ cat >"$TMP_DIR/bin/yq" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 args="$*"
+
+if [[ "$args" == '--version' ]]; then
+  echo 'yq (https://github.com/mikefarah/yq/) version v4.45.1'
+  exit 0
+fi
+
 input="$(cat || true)"
 
 if [[ "$args" == *'-p=json'* ]]; then
@@ -52,7 +60,7 @@ case "$args" in
   *'.templates[0].file'*) echo "$MOCK_TEMPLATE_FILE" ;;
   *'.templates[0].html_file'*) echo "$MOCK_HTML_FILE" ;;
   *'.templates[0].variables'*to_entries*)
-    printf 'USER_NAME:string\nLOGIN_URL:string\n'
+    printf 'USER_NAME:string:researcher\nLOGIN_URL:string\n'
     ;;
   *'.templates[0].publish'*) echo false ;;
   *) exit 2 ;;
@@ -115,12 +123,12 @@ run_case existing
 [[ "$CASE_STATUS" == 0 ]]
 grep -qx 'npm run export' "$CASE_CALLS"
 grep -qx 'templates list --json' "$CASE_CALLS"
-grep -q 'templates update test-alias --name Test --subject Test subject --html-file .*template.html --var USER_NAME:string --var LOGIN_URL:string' "$CASE_CALLS"
+grep -q 'templates update test-alias --name Test --subject Test subject --html-file .*template.html --var USER_NAME:string:researcher --var LOGIN_URL:string' "$CASE_CALLS"
 ! grep -q 'templates create' "$CASE_CALLS"
 
 run_case missing
 [[ "$CASE_STATUS" == 0 ]]
-grep -q '^templates create --alias test-alias .*--html-file .*template.html --var USER_NAME:string --var LOGIN_URL:string' "$CASE_CALLS"
+grep -q '^templates create --alias test-alias .*--html-file .*template.html --var USER_NAME:string:researcher --var LOGIN_URL:string' "$CASE_CALLS"
 
 run_case authentication
 [[ "$CASE_STATUS" != 0 ]]

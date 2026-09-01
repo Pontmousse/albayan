@@ -325,6 +325,8 @@ def create_app_invitation(
     _admin_user(auth, db)
     invitation = app_invitation_service.create_app_invitation(
         email=payload.email,
+        full_name=payload.full_name,
+        gender=payload.gender,
         admin=auth,
     )
     return AppInvitationCreateResponse(

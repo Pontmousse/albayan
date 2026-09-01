@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, type UserGender } from "@/lib/api";
 import type { VersionRead, VersionStatus } from "@/lib/api/articles";
 import type {
   IssueCategory,
@@ -24,6 +24,7 @@ export type AdminUserBrief = {
   id: string;
   email: string;
   full_name: string | null;
+  gender: UserGender | null;
 };
 
 export type AdminAuthorRead = {
@@ -77,6 +78,7 @@ export type AdminUserListItem = {
   clerk_id: string;
   email: string;
   full_name: string | null;
+  gender: UserGender | null;
   roles: string[];
   created_at: string;
 };
@@ -91,6 +93,8 @@ export type AppInvitationStatus =
 export type AppInvitationRead = {
   id: string;
   email: string;
+  full_name: string | null;
+  gender: UserGender | null;
   status: AppInvitationStatus;
   created_at: string;
   updated_at: string;
@@ -297,10 +301,13 @@ export function listAppInvitations(getToken: GetToken) {
   return apiFetch<AppInvitationRead[]>("/api/v1/admin/invitations", getToken);
 }
 
-export function createAppInvitation(getToken: GetToken, email: string) {
+export function createAppInvitation(
+  getToken: GetToken,
+  payload: { email: string; full_name: string; gender: UserGender },
+) {
   return apiFetch<AppInvitationCreateResponse>("/api/v1/admin/invitations", getToken, {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(payload),
   });
 }
 

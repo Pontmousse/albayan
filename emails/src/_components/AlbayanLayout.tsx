@@ -21,9 +21,28 @@ export function AlbayanLayout({
 }: AlbayanLayoutProps) {
   return (
     <Html lang="ar" dir="rtl">
-      <Head />
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>{`
+          .email-container, .email-content, .email-action-button { box-sizing: border-box; }
+          .email-fluid-image { height: auto !important; max-width: 100% !important; }
+          @media only screen and (max-width: 620px) {
+            .email-body { padding: 0 !important; }
+            .email-container { border-radius: 0 !important; width: 100% !important; }
+            .email-content { padding: 24px 18px 8px !important; }
+            .email-title { font-size: 26px !important; line-height: 1.5 !important; }
+            .email-action-button { font-size: 16px !important; padding: 13px 22px !important; }
+            .email-feature-cell { box-sizing: border-box !important; display: block !important; width: 100% !important; }
+            .email-footer-corner-cell { padding-left: 2px !important; padding-right: 2px !important; width: 16% !important; }
+            .email-footer-center-cell { width: 68% !important; }
+            .email-otp-code { font-size: 28px !important; letter-spacing: 5px !important; padding: 16px 12px !important; }
+          }
+        `}</style>
+      </Head>
       <Preview>{preview}</Preview>
       <Body
+        className="email-body"
+        lang="ar"
         dir="rtl"
         style={{
           backgroundColor: colors.paper,
@@ -35,6 +54,7 @@ export function AlbayanLayout({
         }}
       >
         <Container
+          className="email-container"
           style={{
             backgroundColor: colors.white,
             border: `1px solid ${colors.border}`,

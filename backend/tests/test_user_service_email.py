@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import unittest
 from contextlib import ExitStack
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from pydantic import ValidationError
+
 from app.core.clerk import AuthContext
+from app.models.enums import UserGender
+from app.schemas.user import UserUpdate
 from app.services import user_service
 
 
@@ -32,11 +37,19 @@ class UserServiceEmailTests(unittest.TestCase):
                     "",
                 )
             )
+            stack.enter_context(
+                patch.object(
+                    user_service,
+                    "_new_user_identity",
+                    return_value=(UserGender.MALE, None),
+                )
+            )
 
             user = user_service.get_or_create_user(db, auth)
 
         self.assertEqual(user.email, "author@example.com")
         self.assertEqual(user.full_name, "د. أحمد")
+        self.assertEqual(user.gender, UserGender.MALE)
         db.add.assert_called_once_with(user)
         db.commit.assert_called_once_with()
         db.refresh.assert_called_once_with(user)
@@ -56,6 +69,69 @@ class UserServiceEmailTests(unittest.TestCase):
 
         self.assertIs(user, existing)
         email_service.send_welcome_email.assert_not_called()
+
+    def test_invitation_metadata_wins_and_is_stored_on_first_creation(self) -> None:
+        db = Mock()
+        db.scalar.return_value = None
+        auth = AuthContext("user_invited", "invitee@example.com", None)
+
+        with patch.object(
+            user_service,
+            "_new_user_identity",
+            return_value=(UserGender.FEMALE, "ليلى العامرية"),
+        ), patch.object(user_service.email_service, "send_welcome_email"):
+            user = user_service.get_or_create_user(db, auth)
+
+        self.assertEqual(user.gender, UserGender.FEMALE)
+        self.assertEqual(user.full_name, "ليلى العامرية")
+
+    def test_unsafe_signup_gender_is_mirrored_to_public_metadata(self) -> None:
+        clerk_user = SimpleNamespace(
+            public_metadata={},
+            unsafe_metadata={"albayan_gender": "female"},
+        )
+        with patch.object(
+            user_service.clerk_client.users,
+            "get",
+            return_value=clerk_user,
+        ), patch.object(
+            user_service.clerk_client.users,
+            "update_metadata",
+        ) as update_metadata:
+            gender, invited_name = user_service._new_user_identity("user_new")
+
+        self.assertEqual(gender, UserGender.FEMALE)
+        self.assertIsNone(invited_name)
+        update_metadata.assert_called_once_with(
+            user_id="user_new",
+            public_metadata={"albayan_gender": "female"},
+        )
+
+    def test_invitation_public_metadata_takes_precedence(self) -> None:
+        clerk_user = SimpleNamespace(
+            public_metadata={
+                "albayan_gender": "male",
+                "albayan_invitee_name": "أحمد الزهراني",
+            },
+            unsafe_metadata={"albayan_gender": "female"},
+        )
+        with patch.object(
+            user_service.clerk_client.users,
+            "get",
+            return_value=clerk_user,
+        ), patch.object(
+            user_service.clerk_client.users,
+            "update_metadata",
+        ) as update_metadata:
+            gender, invited_name = user_service._new_user_identity("user_invited")
+
+        self.assertEqual(gender, UserGender.MALE)
+        self.assertEqual(invited_name, "أحمد الزهراني")
+        update_metadata.assert_not_called()
+
+    def test_profile_update_cannot_change_gender(self) -> None:
+        with self.assertRaises(ValidationError):
+            UserUpdate.model_validate({"gender": "male"})
 
 
 if __name__ == "__main__":

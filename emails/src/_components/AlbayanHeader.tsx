@@ -12,6 +12,7 @@ export function AlbayanHeader({ assetBaseUrl }: AlbayanHeaderProps) {
 
   return (
     <Section
+      className="email-header"
       style={{
         backgroundColor: colors.accentSoft,
         backgroundImage: archUrl ? `url(${archUrl})` : undefined,
@@ -19,7 +20,10 @@ export function AlbayanHeader({ assetBaseUrl }: AlbayanHeaderProps) {
         backgroundRepeat: "no-repeat",
         backgroundSize: "124% auto",
         borderBottom: `1px solid ${colors.border}`,
-        padding: "296px 32px 34px",
+        paddingBottom: "34px",
+        paddingLeft: "32px",
+        paddingRight: "32px",
+        paddingTop: "49%",
         textAlign: "center",
       }}
     >
@@ -36,6 +40,7 @@ export function AlbayanHeader({ assetBaseUrl }: AlbayanHeaderProps) {
           objectFit: "contain",
           width: "90%",
         }}
+        className="email-fluid-image"
       />
     </Section>
   );

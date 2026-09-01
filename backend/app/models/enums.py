@@ -57,6 +57,11 @@ class InvitationStatus(str, enum.Enum):
     CANCELLED = "cancelled"
 
 
+class UserGender(str, enum.Enum):
+    MALE = "male"
+    FEMALE = "female"
+
+
 class NotificationType(str, enum.Enum):
     SYSTEM = "system"
     MENTION = "mention"

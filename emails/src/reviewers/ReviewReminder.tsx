@@ -29,7 +29,6 @@ export default function ReviewReminder({
       intro={<>نذكّركم بالمراجعة المسندة إليكم للبحث: «{ARTICLE_TITLE}».</>}
       actionHref={REVIEW_URL}
       actionLabel="فتح المراجعة"
-      fallbackHref={REVIEW_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

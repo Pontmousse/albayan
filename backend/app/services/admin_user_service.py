@@ -42,6 +42,7 @@ def list_users_with_roles(db: Session) -> list[dict]:
                 "clerk_id": user.clerk_id,
                 "email": user.email,
                 "full_name": user.full_name,
+                "gender": user.gender,
                 "roles": roles,
                 "created_at": user.created_at,
             }

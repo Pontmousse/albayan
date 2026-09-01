@@ -32,7 +32,7 @@ export default function PasswordResetEmail({
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}
     >
-      <Section style={{ padding: "28px 34px 10px", textAlign: "center" }}>
+      <Section className="email-content" style={{ padding: "28px 34px 10px", textAlign: "center" }}>
         <Text
           style={{
             color: colors.ink,
@@ -47,6 +47,7 @@ export default function PasswordResetEmail({
         </Text>
         <GoldDivider spacing={22} assetBaseUrl={ASSET_BASE_URL} />
         <Heading
+          className="email-title"
           as="h1"
           style={{
             color: colors.accentStrong,
@@ -72,9 +73,12 @@ export default function PasswordResetEmail({
         >
           استخدموا الرمز الآتي لتأكيد طلب استعادة كلمة المرور للبريد:
           <br />
-          <strong>{RECIPIENT_EMAIL}</strong>
+          <strong dir="ltr" style={{ overflowWrap: "anywhere" }}>
+            {RECIPIENT_EMAIL}
+          </strong>
         </Text>
         <Text
+          className="email-otp-code"
           style={{
             backgroundColor: colors.accentSoft,
             border: `1px solid ${colors.border}`,

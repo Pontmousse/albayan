@@ -35,7 +35,7 @@ export default function WelcomeEmail({
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}
     >
-      <Section style={{ padding: "28px 34px 10px", textAlign: "center" }}>
+      <Section className="email-content" style={{ padding: "28px 34px 10px", textAlign: "center" }}>
         <Text
           style={{
             color: colors.ink,
@@ -50,6 +50,7 @@ export default function WelcomeEmail({
         </Text>
         <GoldDivider spacing={22} assetBaseUrl={ASSET_BASE_URL} />
         <Heading
+          className="email-title"
           as="h1"
           style={{
             color: colors.accentStrong,

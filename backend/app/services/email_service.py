@@ -1,9 +1,11 @@
 """إرسال البريد عبر Resend REST API."""
 
 import html as html_lib
+import hashlib
 import json
 import logging
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 
@@ -19,6 +21,30 @@ _ROLE_LABELS = {
 }
 
 logger = logging.getLogger(__name__)
+
+
+def _recipient_log_id(address: str) -> str:
+    """Return a stable diagnostic label without putting an address in logs."""
+    normalized = address.strip().lower().encode("utf-8")
+    return hashlib.sha256(normalized).hexdigest()[:12]
+
+
+def _action_url_diagnostics(
+    variables: dict[str, str | int] | None,
+) -> dict[str, dict[str, object]]:
+    """Describe action URLs without logging query values or complete links."""
+    diagnostics: dict[str, dict[str, object]] = {}
+    for key, value in (variables or {}).items():
+        if not key.endswith("_URL") or not isinstance(value, str):
+            continue
+        parsed = urllib.parse.urlsplit(value)
+        diagnostics[key] = {
+            "scheme": parsed.scheme,
+            "host": parsed.hostname,
+            "path": parsed.path,
+            "query_keys": sorted(urllib.parse.parse_qs(parsed.query).keys()),
+        }
+    return diagnostics
 
 
 def _site_url() -> str:
@@ -111,6 +137,14 @@ def _send_resend_email(
         headers=headers,
         method="POST",
     )
+    recipient_id = _recipient_log_id(to)
+    template_label = template_alias_or_id or "raw-content"
+    logger.debug(
+        "Email action URL diagnostics recipient=%s template=%s urls=%s",
+        recipient_id,
+        template_label,
+        _action_url_diagnostics(variables),
+    )
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             if resp.status >= 400:
@@ -127,19 +161,34 @@ def _send_resend_email(
                 return None
             message_id = data.get("id") if isinstance(data, dict) else None
             if isinstance(message_id, str):
-                logger.info("Resend accepted email to %s with id %s", to, message_id)
+                logger.info(
+                    "Email accepted recipient=%s template=%s message_id=%s",
+                    recipient_id,
+                    template_label,
+                    message_id,
+                )
                 return message_id
             return None
     except HTTPException:
         raise
     except urllib.error.HTTPError as exc:
-        logger.warning("Resend rejected email to %s with status %s", to, exc.code)
+        logger.warning(
+            "Email rejected recipient=%s template=%s status=%s",
+            recipient_id,
+            template_label,
+            exc.code,
+        )
         raise HTTPException(
             status_code=502,
             detail=failure_detail,
         ) from exc
     except Exception as exc:
-        logger.warning("Resend email failed for %s (%s)", to, type(exc).__name__)
+        logger.warning(
+            "Email failed recipient=%s template=%s error=%s",
+            recipient_id,
+            template_label,
+            type(exc).__name__,
+        )
         raise HTTPException(
             status_code=502,
             detail=failure_detail,
@@ -168,6 +217,7 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
 def send_app_invitation_email(
     *,
     to: str,
+    recipient_name: str | None,
     invitation_url: str,
     expires_text: str | None,
     idempotency_key: str | None = None,
@@ -183,6 +233,7 @@ def send_app_invitation_email(
         template_alias_or_id=template,
         variables={
             "INVITATION_URL": invitation_url,
+            "RECIPIENT_NAME": recipient_name or "ضيف مجلة البيان",
             "RECIPIENT_EMAIL": to,
             "EXPIRES_TEXT": expires_text or "",
             **_common_variables(),

@@ -27,7 +27,6 @@ export default function NewSubmissionAlert({
       intro={<>قُدّم بحث جديد بعنوان: «{ARTICLE_TITLE}».</>}
       actionHref={ARTICLE_URL}
       actionLabel="فتح البحث"
-      fallbackHref={ARTICLE_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

@@ -31,7 +31,6 @@ export default function ReviewInvitation({
       intro={<>دُعيتم بدور {ROLE_LABEL} للمشاركة في البحث: «{ARTICLE_TITLE}».</>}
       actionHref={INVITATION_URL}
       actionLabel="قبول الدعوة"
-      fallbackHref={INVITATION_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

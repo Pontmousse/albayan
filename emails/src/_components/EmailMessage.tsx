@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Heading, Link, Section, Text } from "react-email";
+import { Heading, Section, Text } from "react-email";
 import { ActionButton } from "./ActionButton";
 import { AlbayanLayout } from "./AlbayanLayout";
 import { GoldDivider } from "./GoldDivider";
@@ -13,7 +13,6 @@ type EmailMessageProps = {
   children?: React.ReactNode;
   actionHref?: string;
   actionLabel?: string;
-  fallbackHref?: string;
   footerNote?: React.ReactNode;
   siteUrl: string;
   contactEmail: string;
@@ -27,7 +26,6 @@ export function EmailMessage({
   children,
   actionHref,
   actionLabel,
-  fallbackHref,
   footerNote,
   siteUrl,
   contactEmail,
@@ -40,7 +38,10 @@ export function EmailMessage({
       contactEmail={contactEmail}
       assetBaseUrl={assetBaseUrl}
     >
-      <Section style={{ padding: "28px 34px 10px", textAlign: "center" }}>
+      <Section
+        className="email-content"
+        style={{ padding: "28px 34px 10px", textAlign: "center" }}
+      >
         <Text
           style={{
             color: colors.ink,
@@ -55,6 +56,7 @@ export function EmailMessage({
         </Text>
         <GoldDivider spacing={22} assetBaseUrl={assetBaseUrl} />
         <Heading
+          className="email-title"
           as="h1"
           style={{
             color: colors.accentStrong,
@@ -72,32 +74,6 @@ export function EmailMessage({
         {children}
         {actionHref && actionLabel ? (
           <ActionButton href={actionHref}>{actionLabel}</ActionButton>
-        ) : null}
-        {fallbackHref ? (
-          <Text
-            style={{
-              color: colors.muted,
-              fontFamily,
-              fontSize: "13px",
-              lineHeight: "1.9",
-              margin: "0",
-              overflowWrap: "break-word",
-              textAlign: "center",
-            }}
-          >
-            إن لم يعمل الزر، افتح هذا الرابط مباشرة:
-            <br />
-            <Link
-              href={fallbackHref}
-              style={{
-                color: colors.accent,
-                fontFamily,
-                textDecoration: "underline",
-              }}
-            >
-              {fallbackHref}
-            </Link>
-          </Text>
         ) : null}
         {footerNote ? (
           <Text

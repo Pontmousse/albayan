@@ -1,10 +1,13 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+export type UserGender = "male" | "female";
+
 export type UserProfile = {
   id: string;
   clerk_id: string;
   email: string;
   full_name: string | null;
+  gender: UserGender | null;
   affiliation: string | null;
   bio: string | null;
   created_at: string;

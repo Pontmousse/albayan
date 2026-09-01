@@ -13,8 +13,9 @@ const deletionCard = await readFile(
 assert.match(signup, /verifyEmailCode/);
 assert.match(signup, /sendEmailCode/);
 assert.match(signup, /EmailCodeForm/);
-assert.match(signup, /signUp\.password\(\{\s*emailAddress:/);
-assert.match(signup, /signUp\.ticket\(/);
+assert.match(signup, /signUp\.password\(/);
+assert.match(signup, /emailAddress:\s*email/);
+assert.match(signup, /signUp\s*\.\s*ticket\(/);
 assert.match(signup, /id="clerk-captcha"/);
 
 assert.match(signin, /href="\/istirja"/);

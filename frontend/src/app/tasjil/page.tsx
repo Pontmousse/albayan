@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSignUp } from "@clerk/nextjs";
-import { FormEvent, Suspense, useState } from "react";
+import { FormEvent, Suspense, useEffect, useRef, useState } from "react";
 import { EmailField } from "@/components/email-field";
 import { EmailCodeForm } from "@/components/email-code-form";
+import { GenderIconSelector } from "@/components/gender-icon-selector";
 import { PasswordField } from "@/components/password-field";
+import type { UserGender } from "@/lib/api";
 import {
   buttonClassName,
   cardClassName,
@@ -21,6 +23,7 @@ function SignUpForm() {
   const searchParams = useSearchParams();
   const invitationTicket = searchParams.get("__clerk_ticket");
   const [fullName, setFullName] = useState("");
+  const [gender, setGender] = useState<UserGender | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,9 +32,37 @@ function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [invitationReady, setInvitationReady] = useState(!invitationTicket);
+  const invitationStarted = useRef(false);
 
-  const isReady = fetchStatus !== "fetching" && signUp;
+  const isReady = fetchStatus !== "fetching" && signUp && invitationReady;
   const isInvitation = Boolean(invitationTicket);
+
+  useEffect(() => {
+    if (
+      !invitationTicket ||
+      !signUp ||
+      fetchStatus === "fetching" ||
+      invitationStarted.current
+    ) {
+      return;
+    }
+
+    invitationStarted.current = true;
+    void signUp
+      .ticket({ ticket: invitationTicket })
+      .then(({ error: ticketError }) => {
+        if (ticketError) {
+          setError(translateClerkError(ticketError));
+          return;
+        }
+
+        setInvitationReady(true);
+      })
+      .catch((ticketError) => {
+        setError(translateClerkError(ticketError));
+      });
+  }, [fetchStatus, invitationTicket, signUp]);
 
   async function finalizeIfComplete(): Promise<boolean> {
     if (!signUp || signUp.status !== "complete") {
@@ -55,6 +86,11 @@ function SignUpForm() {
     event.preventDefault();
     if (!signUp) return;
 
+    if (!isInvitation && !gender) {
+      setError("يرجى اختيار صيغة المخاطبة.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("كلمة المرور وتأكيدها غير متطابقين.");
       return;
@@ -68,48 +104,20 @@ function SignUpForm() {
     const lastName = nameParts.slice(1).join(" ");
 
     try {
-      if (invitationTicket) {
-        const { error: ticketError } = await signUp.ticket({
-          ticket: invitationTicket,
-          firstName,
-          lastName,
-        });
-
-        if (ticketError) {
-          setError(translateClerkError(ticketError));
-          return;
-        }
-
-        if (await finalizeIfComplete()) return;
-
-        const { error: passwordError } = await signUp.password({ password });
-        if (passwordError) {
-          setError(translateClerkError(passwordError));
-          return;
-        }
-
-        if (await finalizeIfComplete()) return;
-
-        if (signUp.unverifiedFields.includes("email_address")) {
-          const { error: verifyError } = await signUp.verifications.sendEmailCode();
-          if (verifyError) {
-            setError(translateClerkError(verifyError));
-            return;
-          }
-          setStep("verify-email");
-          return;
-        }
-
-        setError("قُبلت الدعوة، لكن التسجيل يتطلب خطوة إضافية غير مكتملة بعد.");
-        return;
-      }
-
-      const { error: signUpError } = await signUp.password({
-        emailAddress: email,
+      const signUpPayload = {
         password,
         firstName,
         lastName,
-      });
+      };
+      const { error: signUpError } = await signUp.password(
+        invitationTicket
+          ? signUpPayload
+          : {
+              ...signUpPayload,
+              emailAddress: email,
+              unsafeMetadata: { albayan_gender: gender },
+            },
+      );
 
       if (signUpError) {
         setError(translateClerkError(signUpError));
@@ -229,6 +237,13 @@ function SignUpForm() {
                 onInput={(e) => e.currentTarget.setCustomValidity("")}
               />
             </div>
+            {!isInvitation ? (
+              <GenderIconSelector
+                value={gender}
+                onChange={setGender}
+                name="signup-gender"
+              />
+            ) : null}
             {!isInvitation ? (
               <EmailField
                 id="email"

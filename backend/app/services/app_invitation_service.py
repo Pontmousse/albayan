@@ -1,6 +1,6 @@
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from email.utils import parseaddr
 from typing import Any
@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from app.core.clerk import AuthContext, clerk_client
 from app.core.config import settings
 from app.core.dates import format_date
+from app.models.enums import UserGender
 from app.services.email_service import send_app_invitation_email
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,8 @@ _EMAIL_ADDRESS_RE = re.compile(
 class AppInvitation:
     id: str
     email: str
+    full_name: str | None
+    gender: UserGender | None
     status: str
     url: str | None
     created_at: datetime
@@ -49,6 +52,13 @@ def _normalize_email(email: str) -> str:
         or not _EMAIL_ADDRESS_RE.fullmatch(normalized)
     ):
         raise HTTPException(status_code=422, detail="صيغة البريد الإلكتروني غير صحيحة.")
+    return normalized
+
+
+def _normalize_full_name(full_name: str) -> str:
+    normalized = " ".join(full_name.split())
+    if not normalized or len(normalized) > 200:
+        raise HTTPException(status_code=422, detail="الاسم الكامل غير صالح.")
     return normalized
 
 
@@ -69,9 +79,23 @@ def _invitation_read(invitation: Any) -> AppInvitation:
     created_at = _datetime_from_clerk_timestamp(_read_value(invitation, "created_at"))
     updated_at = _datetime_from_clerk_timestamp(_read_value(invitation, "updated_at"))
     status = _read_value(invitation, "status") or "pending"
+    metadata = _read_value(invitation, "public_metadata")
+    if not isinstance(metadata, dict):
+        metadata = _read_value(invitation, "publicMetadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    full_name = metadata.get("albayan_invitee_name")
+    if not isinstance(full_name, str) or not full_name.strip():
+        full_name = None
+    try:
+        gender = UserGender(metadata.get("albayan_gender"))
+    except (TypeError, ValueError):
+        gender = None
     return AppInvitation(
         id=str(_read_value(invitation, "id") or ""),
         email=str(_read_value(invitation, "email_address") or ""),
+        full_name=full_name.strip() if full_name else None,
+        gender=gender,
         status=str(getattr(status, "value", status)),
         url=_read_value(invitation, "url"),
         created_at=created_at or datetime.now(UTC),
@@ -120,8 +144,15 @@ def _expires_text(invitation: AppInvitation) -> str | None:
     return format_date(invitation.expires_at)
 
 
-def create_app_invitation(*, email: str, admin: AuthContext) -> AppInvitation:
+def create_app_invitation(
+    *,
+    email: str,
+    full_name: str,
+    gender: UserGender,
+    admin: AuthContext,
+) -> AppInvitation:
     normalized_email = _normalize_email(email)
+    normalized_name = _normalize_full_name(full_name)
     redirect_url = f"{settings.frontend_base_url.rstrip('/')}/tasjil"
 
     try:
@@ -134,6 +165,8 @@ def create_app_invitation(*, email: str, admin: AuthContext) -> AppInvitation:
                 "public_metadata": {
                     "source": "albayan-admin",
                     "invited_by_clerk_id": admin.clerk_id,
+                    "albayan_invitee_name": normalized_name,
+                    "albayan_gender": gender.value,
                 },
             }
         )
@@ -147,6 +180,12 @@ def create_app_invitation(*, email: str, admin: AuthContext) -> AppInvitation:
         ) from exc
 
     app_invitation = _invitation_read(invitation)
+    if app_invitation.full_name is None or app_invitation.gender is None:
+        app_invitation = replace(
+            app_invitation,
+            full_name=normalized_name,
+            gender=gender,
+        )
     if not app_invitation.url:
         try:
             clerk_client.invitations.revoke(invitation_id=app_invitation.id)
@@ -164,6 +203,7 @@ def create_app_invitation(*, email: str, admin: AuthContext) -> AppInvitation:
     try:
         send_app_invitation_email(
             to=app_invitation.email,
+            recipient_name=normalized_name,
             invitation_url=app_invitation.url,
             expires_text=_expires_text(app_invitation),
             idempotency_key=f"app-invitation/{app_invitation.id}",
@@ -217,6 +257,7 @@ def resend_app_invitation(invitation_id: str) -> AppInvitation:
 
     send_app_invitation_email(
         to=invitation.email,
+        recipient_name=invitation.full_name,
         invitation_url=invitation.url,
         expires_text=_expires_text(invitation),
     )

@@ -24,7 +24,6 @@ export default function EditorAssigned({
       intro={<>تم تعيينكم محررًا على البحث: «{ARTICLE_TITLE}».</>}
       actionHref={ARTICLE_URL}
       actionLabel="فتح مساحة التحرير"
-      fallbackHref={ARTICLE_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

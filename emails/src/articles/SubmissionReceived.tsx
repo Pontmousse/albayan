@@ -29,7 +29,6 @@ export default function SubmissionReceived({
       intro={<>استلمنا بحثكم: «{ARTICLE_TITLE}».</>}
       actionHref={ARTICLE_URL}
       actionLabel="متابعة البحث"
-      fallbackHref={ARTICLE_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

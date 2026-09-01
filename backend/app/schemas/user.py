@@ -3,6 +3,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.enums import UserGender
+
 
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -11,6 +13,7 @@ class UserRead(BaseModel):
     clerk_id: str
     email: str
     full_name: str | None
+    gender: UserGender | None
     affiliation: str | None
     bio: str | None
     created_at: datetime
@@ -18,6 +21,8 @@ class UserRead(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     full_name: str | None = Field(default=None, max_length=200)
     affiliation: str | None = Field(default=None, max_length=300)
     bio: str | None = Field(default=None, max_length=500)

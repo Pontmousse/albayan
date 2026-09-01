@@ -2,10 +2,11 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String, Text, Uuid, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+from app.models.enums import UserGender
 
 if TYPE_CHECKING:
     from app.models.agent_token import AgentToken
@@ -19,6 +20,12 @@ if TYPE_CHECKING:
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "gender IS NULL OR gender IN ('male', 'female')",
+            name="ck_users_gender",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
@@ -26,6 +33,15 @@ class User(Base):
     clerk_id: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(320), index=True)
     full_name: Mapped[str | None] = mapped_column(String(200))
+    gender: Mapped[UserGender | None] = mapped_column(
+        Enum(
+            UserGender,
+            native_enum=False,
+            length=6,
+            values_callable=lambda enum_type: [item.value for item in enum_type],
+        ),
+        nullable=True,
+    )
     affiliation: Mapped[str | None] = mapped_column(String(300))
     bio: Mapped[str | None] = mapped_column(Text)
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")

@@ -13,6 +13,27 @@ from app.services import email_service
 
 
 class EmailServiceTests(unittest.TestCase):
+    def test_action_url_diagnostics_never_include_query_values(self) -> None:
+        diagnostics = email_service._action_url_diagnostics(
+            {
+                "INVITATION_URL": (
+                    "https://accounts.example/invitations/accept"
+                    "?__clerk_ticket=secret-ticket&lang=ar"
+                )
+            }
+        )
+
+        self.assertEqual(
+            diagnostics["INVITATION_URL"],
+            {
+                "scheme": "https",
+                "host": "accounts.example",
+                "path": "/invitations/accept",
+                "query_keys": ["__clerk_ticket", "lang"],
+            },
+        )
+        self.assertNotIn("secret-ticket", repr(diagnostics))
+
     def _configured_transport(self, stack: ExitStack):
         stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
         stack.enter_context(
@@ -265,6 +286,7 @@ class EmailServiceTests(unittest.TestCase):
 
             email_service.send_app_invitation_email(
                 to="new-user@example.com",
+                recipient_name="أحمد الزهراني",
                 invitation_url="https://clerk.example/invitations/accept",
                 expires_text="١٥ ربيع الأول ١٤٤٨ هـ",
             )
@@ -276,6 +298,7 @@ class EmailServiceTests(unittest.TestCase):
                 "id": "app-invitation-ar",
                 "variables": {
                     "INVITATION_URL": "https://clerk.example/invitations/accept",
+                    "RECIPIENT_NAME": "أحمد الزهراني",
                     "RECIPIENT_EMAIL": "new-user@example.com",
                     "EXPIRES_TEXT": "١٥ ربيع الأول ١٤٤٨ هـ",
                     "SITE_URL": "https://albayan-journal.org",

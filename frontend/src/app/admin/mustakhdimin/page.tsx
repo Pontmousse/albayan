@@ -1,9 +1,11 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
+import Image from "next/image";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
+import { GenderIconSelector } from "@/components/gender-icon-selector";
 import {
   createAppInvitation,
   listAccountDeletionRequests,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/api/admin";
 import { buttonClassName, inputClassName } from "@/lib/auth-ui";
 import { formatDate } from "@/lib/format-date";
+import type { UserGender } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
   author: "مؤلف",
@@ -64,6 +67,8 @@ export default function AdminUsersPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [email, setEmail] = useState("");
+  const [invitedName, setInvitedName] = useState("");
+  const [invitedGender, setInvitedGender] = useState<UserGender | null>(null);
   const [sending, setSending] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -121,8 +126,9 @@ export default function AdminUsersPage() {
   async function handleInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) {
-      setInvitationError("يرجى إدخال البريد الإلكتروني.");
+    const normalizedName = invitedName.trim();
+    if (!normalizedName || !normalizedEmail || !invitedGender) {
+      setInvitationError("يرجى إكمال بيانات الدعوة.");
       return;
     }
 
@@ -131,8 +137,14 @@ export default function AdminUsersPage() {
     setSuccess(null);
 
     try {
-      const response = await createAppInvitation(getToken, normalizedEmail);
+      const response = await createAppInvitation(getToken, {
+        email: normalizedEmail,
+        full_name: normalizedName,
+        gender: invitedGender,
+      });
       setEmail("");
+      setInvitedName("");
+      setInvitedGender(null);
       setSuccess(`أُرسلت الدعوة إلى ${response.invitation.email}.`);
       await refreshInvitations();
     } catch (err) {
@@ -223,7 +235,7 @@ export default function AdminUsersPage() {
         </h2>
         <form
           onSubmit={handleInvite}
-          className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
+          className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
           noValidate
         >
           <label className="block space-y-1.5">
@@ -239,6 +251,25 @@ export default function AdminUsersPage() {
               className={inputClassName}
             />
           </label>
+          <label className="block space-y-1.5">
+            <span className="text-xs font-semibold text-slate-600">
+              الاسم الكامل
+            </span>
+            <input
+              type="text"
+              value={invitedName}
+              onChange={(event) => setInvitedName(event.target.value)}
+              autoComplete="name"
+              maxLength={200}
+              required
+              className={inputClassName}
+            />
+          </label>
+          <GenderIconSelector
+            value={invitedGender}
+            onChange={setInvitedGender}
+            name="invited-gender"
+          />
           <button type="submit" className={buttonClassName} disabled={sending}>
             {sending ? "جارٍ الإرسال…" : "إرسال الدعوة"}
           </button>
@@ -281,7 +312,21 @@ export default function AdminUsersPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="break-all text-sm font-semibold text-slate-800">
+                    <div className="flex items-center gap-2">
+                      {invitation.gender ? (
+                        <Image
+                          src={`/${invitation.gender}.png`}
+                          alt=""
+                          width={24}
+                          height={24}
+                          className="size-6 object-contain"
+                        />
+                      ) : null}
+                      <p className="text-sm font-semibold text-slate-800">
+                        {invitation.full_name || "دعوة قديمة"}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 break-all text-xs text-slate-500">
                       {invitation.email}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
@@ -440,9 +485,20 @@ export default function AdminUsersPage() {
                 <div className="rounded-xl border border-[var(--journal-border)] bg-white/80 px-4 py-3.5 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-800">
-                        {row.full_name || "بدون اسم"}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {row.gender ? (
+                          <Image
+                            src={`/${row.gender}.png`}
+                            alt=""
+                            width={24}
+                            height={24}
+                            className="size-6 object-contain"
+                          />
+                        ) : null}
+                        <p className="truncate text-sm font-semibold text-slate-800">
+                          {row.full_name || "بدون اسم"}
+                        </p>
+                      </div>
                       <p className="mt-0.5 text-xs text-slate-500">{row.email}</p>
                     </div>
                     <span className="text-xs text-slate-500">

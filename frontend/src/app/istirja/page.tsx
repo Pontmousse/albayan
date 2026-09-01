@@ -162,7 +162,7 @@ export default function PasswordRecoveryPage() {
             استعادة كلمة المرور
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            أدخل بريدك، ثم استخدم رمز التحقق الذي ترسله Clerk عبر بريد البيان
+            أدخل بريدك، ثم استخدم رمز التحقق الذي يصلك عبر بريد البيان
             الموحّد.
           </p>
 

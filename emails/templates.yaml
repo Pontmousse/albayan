@@ -19,6 +19,9 @@ templates:
     html_file: "emails/out/AppInvitation.html"
     variables:
       INVITATION_URL: string
+      RECIPIENT_NAME:
+        type: string
+        fallback: "ضيف مجلة البيان"
       RECIPIENT_EMAIL: string
       EXPIRES_TEXT: string
       SITE_URL: string

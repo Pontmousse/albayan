@@ -7,7 +7,7 @@ palette already used by the application.
 | Email | Recipient | Trigger | Notes |
 | --- | --- | --- | --- |
 | Welcome | New user | First local backend user creation from Clerk auth | Implemented first. |
-| Application invitation | Invited email | Admin creates a Clerk application invitation | Implemented with Clerk-owned URL/status and Resend delivery. |
+| Application invitation | Invited email | Admin creates an application invitation | Implemented with provider-owned URL/status, recipient name, and branded delivery. |
 | Sign-up verification code | New user | Clerk `email.created` webhook for sign-up email verification | Implemented with Clerk-owned OTP validation and Resend delivery. |
 | Password reset code | Existing user | Clerk `email.created` webhook for password recovery | Implemented with Clerk-owned OTP validation and Resend delivery. |
 | Submission received | Corresponding author | Manuscript submission | Implemented as `submission-received-ar`. |
@@ -31,7 +31,7 @@ palette already used by the application.
 - Email-safe header arch artwork in green/gold/paper.
 - Subtle geometric pattern tile.
 - Gold divider/flourish image.
-- Footer corner ornament.
+- Separate left and truly mirrored right footer-corner ornaments.
 - Small feature icons for publish/read/community.
 - Social/contact icons, if official links exist.
 - Production HTTPS asset host path for email images.

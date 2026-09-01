@@ -25,7 +25,6 @@ export default function UnreadDigest({
       intro={<>لديكم {UNREAD_COUNT} إشعارات غير مقروءة في منصة مجلة البيان.</>}
       actionHref={NOTIFICATIONS_URL}
       actionLabel="فتح الإشعارات"
-      fallbackHref={NOTIFICATIONS_URL}
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}

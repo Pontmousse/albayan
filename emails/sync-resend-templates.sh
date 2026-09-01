@@ -23,13 +23,19 @@ command -v resend >/dev/null 2>&1 || {
   exit 1
 }
 
-# Explicitly use Mike Farah yq by default; tests may override YQ.
-YQ="${YQ:-/snap/bin/yq}"
+# Explicitly require Mike Farah yq v4; tests and CI may override YQ.
+YQ="${YQ:-$(command -v yq || true)}"
 
-[[ -x "$YQ" ]] || {
-  echo "ERROR: Mike Farah yq was not found at $YQ." >&2
+[[ -n "$YQ" && -x "$YQ" ]] || {
+  echo "ERROR: Mike Farah yq v4 was not found in PATH." >&2
   exit 1
 }
+
+YQ_VERSION="$("$YQ" --version 2>&1 || true)"
+if [[ "$YQ_VERSION" != *"mikefarah/yq"* || "$YQ_VERSION" != *"version v4."* ]]; then
+  echo "ERROR: Template sync requires Mike Farah yq v4 (not Python yq)." >&2
+  exit 1
+fi
 
 command -v npm >/dev/null 2>&1 || {
   echo "ERROR: npm is required to export React Email templates." >&2
@@ -173,7 +179,11 @@ for ((i = 0; i < COUNT; i++)); do
       .templates[$i].variables // {}
       | to_entries
       | .[]
-      | \"\(.key):\(.value)\"
+      | if (.value | tag) == \"!!map\" then
+          \"\(.key):\(.value.type):\(.value.fallback)\"
+        else
+          \"\(.key):\(.value)\"
+        end
     " "$CONFIG"
   )
 

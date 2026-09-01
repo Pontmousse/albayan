@@ -38,7 +38,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <h1 className="text-2xl font-bold text-slate-900">غير مصرح</h1>
         <p className="text-sm text-slate-600">
-          هذه الصفحة مخصّصة للمستخدمين الذين لديهم دور مدير في Clerk فقط.
+          هذه الصفحة مخصّصة للمستخدمين الذين لديهم صلاحية مدير فقط.
         </p>
         <Link
           href="/"
