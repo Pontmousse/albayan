@@ -71,7 +71,7 @@ export default function AppInvitationEmail({
           دعوة للانضمام إلى مجلة البيان
         </Heading>
         <InfoPanel>
-          يسر مجلة البيان دعوتكم، {RECIPIENT_NAME}، لإنشاء حساب في
+          يسر مجلة البيان دعوتكم، <strong>{RECIPIENT_NAME}</strong>، لإنشاء حساب في
           منصتها والمشاركة في بيئتها العلمية والإدارية.
           <br />
           أُرسلت هذه الدعوة إلى:

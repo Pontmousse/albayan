@@ -24,7 +24,7 @@ export default function ReviewSubmitted({
     <EmailMessage
       preview="تم تسليم مراجعة جديدة"
       title="تقرير مراجعة جديد"
-      intro={<>سلّم {REVIEWER_NAME} تقرير مراجعة للبحث: «{ARTICLE_TITLE}».</>}
+      intro={<>سلّم <strong>{REVIEWER_NAME}</strong> تقرير مراجعة للبحث: «{ARTICLE_TITLE}».</>}
       actionHref={REPORT_URL}
       actionLabel="فتح تقرير المراجعة"
       siteUrl={SITE_URL}

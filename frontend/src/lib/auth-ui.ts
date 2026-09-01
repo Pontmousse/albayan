@@ -27,6 +27,10 @@ const CLERK_ERROR_MAP: Record<string, string> = {
 
 const ENGLISH_MESSAGE_PATTERNS: { pattern: RegExp; replace: string | ((match: RegExpMatchArray) => string) }[] = [
   {
+    pattern: /^(?:(?:you(?:'|’)?re|you are) )?already signed in\.?$/i,
+    replace: "أنت مسجّل الدخول بالفعل.",
+  },
+  {
     pattern: /passwords? must (?:be )?at least (\d+) characters?/i,
     replace: (m) => `يجب أن تكون كلمة المرور ${m[1]} أحرف على الأقل.`,
   },

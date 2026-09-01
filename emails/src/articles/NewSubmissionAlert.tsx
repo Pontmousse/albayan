@@ -32,7 +32,7 @@ export default function NewSubmissionAlert({
       assetBaseUrl={ASSET_BASE_URL}
     >
       <Text style={{ fontFamily, fontSize: "16px", lineHeight: "2", textAlign: "center" }}>
-        المؤلف/المقدّم: {AUTHOR_NAME}
+        المؤلف/المقدّم: <strong>{AUTHOR_NAME}</strong>
       </Text>
     </EmailMessage>
   );

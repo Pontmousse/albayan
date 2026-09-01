@@ -33,7 +33,7 @@ export function AlbayanLayout({
             .email-title { font-size: 26px !important; line-height: 1.5 !important; }
             .email-action-button { font-size: 16px !important; padding: 13px 22px !important; }
             .email-feature-cell { box-sizing: border-box !important; display: block !important; width: 100% !important; }
-            .email-footer-corner-cell { padding-left: 2px !important; padding-right: 2px !important; width: 16% !important; }
+            .email-footer-corner-cell { padding-left: 2px !important; padding-right: 2px !important; padding-top: 90px !important; width: 16% !important; }
             .email-footer-center-cell { width: 68% !important; }
             .email-otp-code { font-size: 28px !important; letter-spacing: 5px !important; padding: 16px 12px !important; }
           }

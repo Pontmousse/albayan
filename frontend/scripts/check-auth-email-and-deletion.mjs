@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 const signup = await readFile("src/app/tasjil/page.tsx", "utf8");
 const signin = await readFile("src/app/tawajjuh/page.tsx", "utf8");
 const recovery = await readFile("src/app/istirja/page.tsx", "utf8");
+const authUi = await readFile("src/lib/auth-ui.ts", "utf8");
 const codeForm = await readFile("src/components/email-code-form.tsx", "utf8");
 const deletionCard = await readFile(
   "src/components/settings/account-deletion-request-card.tsx",
@@ -20,6 +21,8 @@ assert.match(signup, /id="clerk-captcha"/);
 
 assert.match(signin, /href="\/istirja"/);
 assert.match(signin, /signIn\.password/);
+assert.match(authUi, /already signed in/);
+assert.match(authUi, /أنت مسجّل الدخول بالفعل/);
 
 assert.match(recovery, /resetPasswordEmailCode\.sendCode/);
 assert.match(recovery, /resetPasswordEmailCode\.verifyCode/);

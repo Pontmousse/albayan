@@ -13,8 +13,6 @@ export function AlbayanFooter({
   contactEmail,
   assetBaseUrl,
 }: AlbayanFooterProps) {
-  const displayUrl = siteUrl.replace(/^https?:\/\//, "");
-
   return (
     <Section
       style={{
@@ -38,7 +36,7 @@ export function AlbayanFooter({
               valign="middle"
               width="18%"
               className="email-footer-corner-cell"
-              style={{ padding: "64px 0 0 8px" }}
+              style={{ padding: "100px 0 0 8px" }}
             >
               <Img
                 src={emailAssetUrl(assetBaseUrl, "footer-corner-left.png")}
@@ -66,14 +64,12 @@ export function AlbayanFooter({
               <table role="presentation" cellPadding="0" cellSpacing="0" align="center">
                 <tbody>
                   <tr>
-                    <td align="center" style={{ padding: "0 10px 12px" }}>
+                    <td align="center" style={{ padding: "0 7px 14px" }}>
                       <Link
                         href={siteUrl}
+                        aria-label="زيارة موقع مجلة البيان"
                         style={{
-                          color: colors.accent,
-                          fontFamily,
-                          fontSize: "13px",
-                          fontWeight: 700,
+                          display: "block",
                           textDecoration: "none",
                         }}
                       >
@@ -85,25 +81,19 @@ export function AlbayanFooter({
                           style={{
                             display: "block",
                             height: "30px",
-                            margin: "0 auto 6px",
+                            margin: "0 auto",
                             objectFit: "contain",
                             width: "30px",
                           }}
                         />
-                        {displayUrl}
                       </Link>
                     </td>
-                  </tr>
-                  <tr>
-                    <td align="center" style={{ padding: "0 10px 12px" }}>
+                    <td align="center" style={{ padding: "0 7px 14px" }}>
                       <Link
                         href={`mailto:${contactEmail}`}
+                        aria-label="مراسلة مجلة البيان"
                         style={{
-                          color: colors.accent,
-                          fontFamily,
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          overflowWrap: "anywhere",
+                          display: "block",
                           textDecoration: "none",
                         }}
                       >
@@ -115,12 +105,11 @@ export function AlbayanFooter({
                           style={{
                             display: "block",
                             height: "30px",
-                            margin: "0 auto 6px",
+                            margin: "0 auto",
                             objectFit: "contain",
                             width: "30px",
                           }}
                         />
-                        <span dir="ltr">{contactEmail}</span>
                       </Link>
                     </td>
                   </tr>
@@ -158,7 +147,7 @@ export function AlbayanFooter({
               valign="middle"
               width="18%"
               className="email-footer-corner-cell"
-              style={{ padding: "64px 8px 0 0" }}
+              style={{ padding: "100px 8px 0 0" }}
             >
               <Img
                 src={emailAssetUrl(assetBaseUrl, "footer-corner-right.png")}

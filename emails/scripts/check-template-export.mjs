@@ -207,6 +207,13 @@ const templates = [
   },
 ];
 
+const boldNameVariables = new Set([
+  "USER_NAME",
+  "RECIPIENT_NAME",
+  "AUTHOR_NAME",
+  "REVIEWER_NAME",
+]);
+
 for (const template of templates) {
   const html = await readFile(resolve(emailRoot, "out", template.file), "utf8");
 
@@ -236,9 +243,38 @@ for (const template of templates) {
   assert.match(html, /name="viewport"/i, `${template.file} is missing a viewport meta tag`);
   assert.match(html, /max-width:\s*620px/i, `${template.file} is missing mobile CSS`);
   assert.ok(!/transform:\s*scaleX/i.test(html), `${template.file} mirrors an image with CSS`);
+  assert.match(
+    html,
+    /email-footer-corner-cell[^}]*padding-top:\s*90px/i,
+    `${template.file} is missing the lowered mobile footer corners`,
+  );
   assert.ok(
     !/\b(?:Clerk|Resend|Next\.js|FastAPI)\b/i.test(html),
     `${template.file} exposes an implementation vendor to recipients`,
+  );
+
+  for (const variable of template.variables.filter((name) => boldNameVariables.has(name))) {
+    assert.ok(
+      html.includes(`<strong>{{{${variable}}}}</strong>`),
+      `${template.file} must render ${variable} in bold`,
+    );
+  }
+
+  for (const variable of ["SITE_URL", "CONTACT_EMAIL"]) {
+    const occurrences = html.split(`{{{${variable}}}}`).length - 1;
+    assert.equal(
+      occurrences,
+      1,
+      `${template.file} must use ${variable} only for its footer icon link`,
+    );
+  }
+
+  const websiteIconIndex = html.indexOf("icons/website.png");
+  const emailIconIndex = html.indexOf("icons/email.png");
+  assert.ok(websiteIconIndex >= 0 && emailIconIndex > websiteIconIndex);
+  assert.ok(
+    !html.slice(websiteIconIndex, emailIconIndex).includes("</tr>"),
+    `${template.file} must place footer links side by side`,
   );
 
   for (const variable of template.variables.filter(
