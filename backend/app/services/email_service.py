@@ -97,6 +97,10 @@ def _send_resend_email(
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
+        # Avoid urllib's default Python-urllib signature, which can be rejected
+        # by the API provider's edge security before the request reaches Resend.
+        "User-Agent": "albayan-backend/1.0",
     }
     if idempotency_key:
         headers["Idempotency-Key"] = idempotency_key
