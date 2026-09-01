@@ -32,6 +32,19 @@ class EmailServiceTests(unittest.TestCase):
         request = urlopen.call_args.args[0]
         return json.loads(request.data.decode("utf-8"))
 
+    def test_asset_base_url_is_derived_from_frontend_base_url(self) -> None:
+        for frontend_url, expected in (
+            ("https://albayan-journal.org/", "https://albayan-journal.org/email"),
+            ("http://localhost:3000", "http://localhost:3000/email"),
+        ):
+            with self.subTest(frontend_url=frontend_url):
+                with patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    frontend_url,
+                ):
+                    self.assertEqual(email_service._asset_base_url(), expected)
+
     def test_transport_sends_template_payload(self) -> None:
         response = Mock(status=200)
         with ExitStack() as stack:
@@ -159,13 +172,6 @@ class EmailServiceTests(unittest.TestCase):
                     "https://albayan-journal.org/",
                 )
             )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://cdn.albayan-journal.org/email/",
-                )
-            )
             urlopen = stack.enter_context(
                 patch.object(email_service.urllib.request, "urlopen")
             )
@@ -194,7 +200,7 @@ class EmailServiceTests(unittest.TestCase):
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",
                     "SITE_URL": "https://albayan-journal.org",
                     "CONTACT_EMAIL": "support@albayan-journal.org",
-                    "ASSET_BASE_URL": "https://cdn.albayan-journal.org/email",
+                    "ASSET_BASE_URL": "https://albayan-journal.org/email",
                 },
             },
         )
@@ -232,13 +238,6 @@ class EmailServiceTests(unittest.TestCase):
                     email_service.settings,
                     "frontend_base_url",
                     "https://albayan-journal.org/",
-                )
-            )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://albayan-journal.org/email/",
                 )
             )
             urlopen = stack.enter_context(
@@ -296,13 +295,6 @@ class EmailServiceTests(unittest.TestCase):
                     email_service.settings,
                     "frontend_base_url",
                     "https://albayan-journal.org/",
-                )
-            )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://albayan-journal.org/email/",
                 )
             )
             urlopen = stack.enter_context(
@@ -363,13 +355,6 @@ class EmailServiceTests(unittest.TestCase):
                     "https://albayan-journal.org/",
                 )
             )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://albayan-journal.org/email/",
-                )
-            )
             urlopen = stack.enter_context(
                 patch.object(email_service.urllib.request, "urlopen")
             )
@@ -424,13 +409,6 @@ class EmailServiceTests(unittest.TestCase):
                     "https://albayan-journal.org/",
                 )
             )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://albayan-journal.org/email/",
-                )
-            )
             urlopen = stack.enter_context(
                 patch.object(email_service.urllib.request, "urlopen")
             )
@@ -481,13 +459,6 @@ class EmailServiceTests(unittest.TestCase):
                     email_service.settings,
                     "frontend_base_url",
                     "https://albayan-journal.org/",
-                )
-            )
-            stack.enter_context(
-                patch.object(
-                    email_service.settings,
-                    "email_asset_base_url",
-                    "https://albayan-journal.org/email/",
                 )
             )
             urlopen = stack.enter_context(

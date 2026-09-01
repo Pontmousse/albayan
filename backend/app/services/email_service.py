@@ -26,7 +26,7 @@ def _site_url() -> str:
 
 
 def _asset_base_url() -> str:
-    return settings.email_asset_base_url.rstrip("/")
+    return f"{_site_url()}/email"
 
 
 def _contact_email() -> str:

@@ -23,7 +23,6 @@ EMAIL_FROM="مجلة البيان <mail@albayan-journal.org>"
 EMAIL_REPLY_TO="مجلة البيان <support@albayan-journal.org>"
 
 FRONTEND_BASE_URL=https://albayan-journal.org
-EMAIL_ASSET_BASE_URL=https://albayan-journal.org/email
 
 RESEND_WELCOME_TEMPLATE=welcome-ar
 RESEND_APP_INVITATION_TEMPLATE=app-invitation-ar
@@ -53,10 +52,10 @@ CLERK_SECRET_KEY=sk_live_xxxxxxxxxx
   any email-specific value is supplied, startup validation requires the whole
   group. Production URLs must use HTTPS; local HTTP is accepted only with
   `DEV_MODE=true` and a loopback host.
-- `FRONTEND_BASE_URL` builds account, manuscript, and action links.
-  `EMAIL_ASSET_BASE_URL` is application configuration and is passed into the
-  welcome template as `ASSET_BASE_URL`; neither value belongs in Resend's
-  environment settings.
+- `FRONTEND_BASE_URL` builds account, manuscript, and action links. Email
+  assets are always resolved from its `/email` path and passed to templates as
+  `ASSET_BASE_URL`. This value belongs to the backend, not Resend's environment
+  settings.
 
 Resend owns the API key, verified sending domain, and published templates. The
 application owns sender/reply-to identities, template references, frontend

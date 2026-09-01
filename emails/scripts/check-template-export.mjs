@@ -223,7 +223,7 @@ for (const template of templates) {
   assert.ok(!html.includes("/static/"), `${template.file} contains preview asset URLs`);
   assert.ok(
     !html.includes("https://albayan-journal.org/email/"),
-    `${template.file} must resolve assets from EMAIL_ASSET_BASE_URL at send time`,
+    `${template.file} must resolve assets from ASSET_BASE_URL at send time`,
   );
   assert.ok(!html.includes("albayan@gmail.com"), "Legacy contact address found");
 }

@@ -50,7 +50,6 @@ class Settings(BaseSettings):
     resend_decision_template: str = ""
     resend_article_published_template: str = ""
     resend_unread_notifications_digest_template: str = ""
-    email_asset_base_url: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
     butex_worker_url: str = ""
@@ -100,7 +99,6 @@ class Settings(BaseSettings):
             "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": (
                 self.resend_unread_notifications_digest_template
             ),
-            "EMAIL_ASSET_BASE_URL": self.email_asset_base_url,
         }
 
         # An entirely empty group disables email locally. Supplying any member
@@ -159,9 +157,6 @@ class Settings(BaseSettings):
         )
         self.frontend_base_url = _validate_email_url(
             self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
-        )
-        self.email_asset_base_url = _validate_email_url(
-            self.email_asset_base_url, "EMAIL_ASSET_BASE_URL", self.dev_mode
         )
         return self
 

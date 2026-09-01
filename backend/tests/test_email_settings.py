@@ -25,7 +25,6 @@ VALID_EMAIL_SETTINGS = {
     "RESEND_ARTICLE_PUBLISHED_TEMPLATE": "article-published-ar",
     "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": "unread-notifications-digest-ar",
     "FRONTEND_BASE_URL": "https://albayan.example/",
-    "EMAIL_ASSET_BASE_URL": "https://albayan.example/email/",
 }
 
 SETTING_FIELDS = {
@@ -49,7 +48,6 @@ SETTING_FIELDS = {
         "resend_unread_notifications_digest_template"
     ),
     "FRONTEND_BASE_URL": "frontend_base_url",
-    "EMAIL_ASSET_BASE_URL": "email_asset_base_url",
     "DEV_MODE": "dev_mode",
 }
 
@@ -95,10 +93,6 @@ class EmailSettingsTests(unittest.TestCase):
             "unread-notifications-digest-ar",
         )
         self.assertEqual(settings.frontend_base_url, "https://albayan.example")
-        self.assertEqual(
-            settings.email_asset_base_url,
-            "https://albayan.example/email",
-        )
 
     def test_documented_environment_variable_names_are_loaded(self) -> None:
         with patch.dict("os.environ", VALID_EMAIL_SETTINGS, clear=True):
@@ -143,7 +137,6 @@ class EmailSettingsTests(unittest.TestCase):
             "RESEND_ARTICLE_PUBLISHED_TEMPLATE",
             "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE",
             "FRONTEND_BASE_URL",
-            "EMAIL_ASSET_BASE_URL",
         ):
             with self.subTest(missing=missing):
                 with self.assertRaises(ValidationError) as raised:
@@ -166,32 +159,22 @@ class EmailSettingsTests(unittest.TestCase):
                         make_settings(**{field: malformed})
 
     def test_urls_must_be_absolute_clean_base_urls(self) -> None:
-        for field in ("FRONTEND_BASE_URL", "EMAIL_ASSET_BASE_URL"):
-            with self.subTest(field=field, kind="relative"):
-                with self.assertRaisesRegex(ValidationError, "absolute"):
-                    make_settings(**{field: "/relative/path"})
-            with self.subTest(field=field, kind="query"):
-                with self.assertRaisesRegex(ValidationError, "clean base URL"):
-                    make_settings(**{field: "https://albayan.example/?token=value"})
+        with self.assertRaisesRegex(ValidationError, "absolute"):
+            make_settings(FRONTEND_BASE_URL="/relative/path")
+        with self.assertRaisesRegex(ValidationError, "clean base URL"):
+            make_settings(FRONTEND_BASE_URL="https://albayan.example/?token=value")
 
     def test_production_urls_must_use_https(self) -> None:
-        for field in ("FRONTEND_BASE_URL", "EMAIL_ASSET_BASE_URL"):
-            with self.subTest(field=field):
-                with self.assertRaisesRegex(ValidationError, "HTTPS"):
-                    make_settings(**{field: "http://albayan.example"})
+        with self.assertRaisesRegex(ValidationError, "HTTPS"):
+            make_settings(FRONTEND_BASE_URL="http://albayan.example")
 
     def test_development_permits_local_http_urls(self) -> None:
         settings = make_settings(
             DEV_MODE="true",
             FRONTEND_BASE_URL="http://localhost:3000/",
-            EMAIL_ASSET_BASE_URL="http://127.0.0.1:8080/assets/",
         )
 
         self.assertEqual(settings.frontend_base_url, "http://localhost:3000")
-        self.assertEqual(
-            settings.email_asset_base_url,
-            "http://127.0.0.1:8080/assets",
-        )
 
     def test_resend_key_format_is_validated_without_leaking_the_key(self) -> None:
         with self.assertRaises(ValidationError) as raised:
