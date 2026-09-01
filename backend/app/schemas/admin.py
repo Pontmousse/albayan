@@ -34,6 +34,7 @@ class AdminReviewerRead(BaseModel):
     user: AdminUserBrief
     status: ReviewerAssignmentStatus
     invited_at: datetime
+    review_due_at: datetime | None = None
     accepted_at: datetime | None
     declined_at: datetime | None
 
@@ -72,6 +73,7 @@ class AdminArticleDetail(BaseModel):
 class AssignByUserOrEmail(BaseModel):
     user_id: UUID | None = None
     email: str | None = Field(default=None, max_length=320)
+    review_due_at: datetime | None = None
 
     @model_validator(mode="after")
     def require_one(self) -> "AssignByUserOrEmail":
@@ -137,6 +139,7 @@ class AppInvitationCreateResponse(BaseModel):
 class InviteCreatePayload(BaseModel):
     email: str = Field(min_length=3, max_length=320)
     role: InvitationRole
+    review_due_at: datetime | None = None
 
 
 class InvitationRead(BaseModel):
@@ -149,6 +152,7 @@ class InvitationRead(BaseModel):
     status: InvitationStatus
     invited_by: UUID
     expires_at: datetime
+    review_due_at: datetime | None = None
     created_at: datetime
 
 

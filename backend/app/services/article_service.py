@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -8,6 +9,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.core import s3
 from app.models.article import Article, ArticleAuthor, ArticleVersion, Review
 from app.models.enums import SourceType, VersionStatus
+from app.models.user import User
+from app.core.dates import format_date_time
+from app.services import email_service
 
 _FROZEN = HTTPException(status_code=409, detail="المخطوطة مجمّدة — لا يمكن تعديلها بعد التقديم.")
 _ALREADY_SUBMITTED = HTTPException(status_code=409, detail="المقال مُقدَّم بالفعل.")
@@ -30,6 +34,8 @@ _METADATA_MISMATCH_MESSAGES = {
         "داخل المحرر. عدّلهما يدويًا ثم أعد المحاولة."
     ),
 }
+
+logger = logging.getLogger(__name__)
 
 
 def assert_is_author(db: Session, article_id: uuid.UUID, user_id: uuid.UUID) -> Article:
@@ -173,6 +179,31 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
     version.submitted_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(version)
+    db.refresh(article)
+    article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
+    admin_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/admin/maqalat/{article.id}"
+    submitted_text = format_date_time(version.submitted_at) if version.submitted_at else ""
+    try:
+        submitter = db.get(User, article.submitted_by)
+        if submitter:
+            email_service.send_submission_received_email(
+                to=submitter.email,
+                article_title=article.title,
+                article_url=article_url,
+                submitted_text=submitted_text,
+                version_number=version.version_number,
+            )
+        admins = list(db.scalars(select(User).where(User.is_admin.is_(True))).all())
+        author_name = submitter.full_name if submitter and submitter.full_name else "مؤلف"
+        for admin in admins:
+            email_service.send_new_submission_alert_email(
+                to=admin.email,
+                article_title=article.title,
+                author_name=author_name,
+                article_url=admin_url,
+            )
+    except Exception as exc:
+        logger.warning("Submission email notifications failed for article %s: %s", article.id, exc)
     return version
 
 

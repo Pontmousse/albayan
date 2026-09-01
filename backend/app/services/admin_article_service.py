@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+import logging
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -14,7 +15,10 @@ from app.models.article import (
 )
 from app.models.enums import ReviewerAssignmentStatus, VersionStatus
 from app.models.user import User
-from app.services import article_service
+from app.core.dates import format_date
+from app.services import article_service, email_service
+
+logger = logging.getLogger(__name__)
 
 _NOT_FOUND = HTTPException(status_code=404, detail="المقال غير موجود.")
 _USER_NOT_FOUND = HTTPException(status_code=404, detail="المستخدم غير موجود.")
@@ -90,6 +94,7 @@ def assign_reviewer(
     *,
     user_id: uuid.UUID | None = None,
     assigner_id: uuid.UUID | None = None,
+    review_due_at: datetime | None = None,
 ) -> ArticleReviewer:
     article = db.get(Article, article_id)
     if not article:
@@ -116,11 +121,21 @@ def assign_reviewer(
         user_id=user_id,
         status=ReviewerAssignmentStatus.ACCEPTED,
         invited_at=now,
+        review_due_at=review_due_at,
         accepted_at=now,
     )
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
+    try:
+        email_service.send_reviewer_assigned_email(
+            to=user.email,
+            article_title=article.title,
+            review_url=f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/murajaati/{assignment.id}",
+            due_text=format_date(review_due_at) if review_due_at else "",
+        )
+    except Exception as exc:
+        logger.warning("Reviewer assignment email failed for %s: %s", assignment.id, exc)
     return assignment
 
 
@@ -158,6 +173,14 @@ def assign_editor(
     db.add(assignment)
     db.commit()
     db.refresh(assignment)
+    try:
+        email_service.send_editor_assigned_email(
+            to=user.email,
+            article_title=article.title,
+            article_url=f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/tahriri/{article.id}",
+        )
+    except Exception as exc:
+        logger.warning("Editor assignment email failed for %s: %s", assignment.id, exc)
     return assignment
 
 
@@ -202,4 +225,20 @@ def override_decision(
         version.submitted_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(version)
+    article = db.scalar(
+        select(Article)
+        .where(Article.id == article_id)
+        .options(selectinload(Article.author_links).selectinload(ArticleAuthor.user))
+    )
+    if article and status == VersionStatus.PUBLISHED:
+        article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
+        for link in article.author_links:
+            try:
+                email_service.send_article_published_email(
+                    to=link.user.email,
+                    article_title=article.title,
+                    article_url=article_url,
+                )
+            except Exception as exc:
+                logger.warning("Article published email failed for %s: %s", article.id, exc)
     return version

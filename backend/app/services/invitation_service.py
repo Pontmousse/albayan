@@ -14,6 +14,7 @@ from app.models.enums import (
 )
 from app.models.invitation import Invitation
 from app.models.user import User
+from app.core.dates import format_date
 from app.services.email_service import send_invitation_email
 
 _NOT_FOUND = HTTPException(status_code=404, detail="الدعوة غير موجودة.")
@@ -43,6 +44,7 @@ def create_invitation(
     email: str,
     invited_by: uuid.UUID,
     send_email: bool = True,
+    review_due_at: datetime | None = None,
 ) -> tuple[Invitation, str | None]:
     """ينشئ دعوة. يعيد (invitation, warning) — warning عند فشل البريد بعد الحفظ."""
     article = db.get(Article, article_id)
@@ -70,6 +72,7 @@ def create_invitation(
         status=InvitationStatus.PENDING,
         invited_by=invited_by,
         expires_at=now + timedelta(days=_INVITE_DAYS),
+        review_due_at=review_due_at if role == InvitationRole.REVIEWER else None,
     )
     db.add(invitation)
     db.commit()
@@ -84,6 +87,9 @@ def create_invitation(
                 role=role,
                 token=invitation.token,
                 expires_at=invitation.expires_at,
+                review_due_text=format_date(invitation.review_due_at)
+                if invitation.review_due_at
+                else "",
             )
         except HTTPException as exc:
             warning = exc.detail if isinstance(exc.detail, str) else "تعذّر إرسال البريد."
@@ -130,6 +136,9 @@ def resend_invitation(db: Session, invitation_id: uuid.UUID) -> Invitation:
         role=invitation.role,
         token=invitation.token,
         expires_at=invitation.expires_at,
+        review_due_text=format_date(invitation.review_due_at)
+        if invitation.review_due_at
+        else "",
     )
     return invitation
 
@@ -179,11 +188,13 @@ def accept_invitation(
                 user_id=user.id,
                 status=ReviewerAssignmentStatus.ACCEPTED,
                 invited_at=invitation.created_at,
+                review_due_at=invitation.review_due_at,
                 accepted_at=now,
             )
             db.add(assignment)
         elif existing.status == ReviewerAssignmentStatus.INVITED:
             existing.status = ReviewerAssignmentStatus.ACCEPTED
+            existing.review_due_at = invitation.review_due_at
             existing.accepted_at = now
     else:
         existing_editor = db.scalar(

@@ -14,6 +14,16 @@ VALID_EMAIL_SETTINGS = {
     "RESEND_APP_INVITATION_TEMPLATE": "app-invitation-ar",
     "RESEND_AUTH_VERIFICATION_TEMPLATE": "auth-verification-code-ar",
     "RESEND_PASSWORD_RESET_TEMPLATE": "password-reset-ar",
+    "RESEND_SUBMISSION_RECEIVED_TEMPLATE": "submission-received-ar",
+    "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE": "new-submission-alert-ar",
+    "RESEND_EDITOR_ASSIGNED_TEMPLATE": "editor-assigned-ar",
+    "RESEND_REVIEW_INVITATION_TEMPLATE": "review-invitation-ar",
+    "RESEND_REVIEWER_ASSIGNED_TEMPLATE": "reviewer-assigned-ar",
+    "RESEND_REVIEW_REMINDER_TEMPLATE": "review-reminder-ar",
+    "RESEND_REVIEW_SUBMITTED_TEMPLATE": "review-submitted-ar",
+    "RESEND_DECISION_TEMPLATE": "decision-ar",
+    "RESEND_ARTICLE_PUBLISHED_TEMPLATE": "article-published-ar",
+    "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": "unread-notifications-digest-ar",
     "FRONTEND_BASE_URL": "https://albayan.example/",
     "EMAIL_ASSET_BASE_URL": "https://albayan.example/email/",
 }
@@ -26,6 +36,18 @@ SETTING_FIELDS = {
     "RESEND_APP_INVITATION_TEMPLATE": "resend_app_invitation_template",
     "RESEND_AUTH_VERIFICATION_TEMPLATE": "resend_auth_verification_template",
     "RESEND_PASSWORD_RESET_TEMPLATE": "resend_password_reset_template",
+    "RESEND_SUBMISSION_RECEIVED_TEMPLATE": "resend_submission_received_template",
+    "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE": "resend_new_submission_alert_template",
+    "RESEND_EDITOR_ASSIGNED_TEMPLATE": "resend_editor_assigned_template",
+    "RESEND_REVIEW_INVITATION_TEMPLATE": "resend_review_invitation_template",
+    "RESEND_REVIEWER_ASSIGNED_TEMPLATE": "resend_reviewer_assigned_template",
+    "RESEND_REVIEW_REMINDER_TEMPLATE": "resend_review_reminder_template",
+    "RESEND_REVIEW_SUBMITTED_TEMPLATE": "resend_review_submitted_template",
+    "RESEND_DECISION_TEMPLATE": "resend_decision_template",
+    "RESEND_ARTICLE_PUBLISHED_TEMPLATE": "resend_article_published_template",
+    "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": (
+        "resend_unread_notifications_digest_template"
+    ),
     "FRONTEND_BASE_URL": "frontend_base_url",
     "EMAIL_ASSET_BASE_URL": "email_asset_base_url",
     "DEV_MODE": "dev_mode",
@@ -64,6 +86,14 @@ class EmailSettingsTests(unittest.TestCase):
             "auth-verification-code-ar",
         )
         self.assertEqual(settings.resend_password_reset_template, "password-reset-ar")
+        self.assertEqual(
+            settings.resend_submission_received_template,
+            "submission-received-ar",
+        )
+        self.assertEqual(
+            settings.resend_unread_notifications_digest_template,
+            "unread-notifications-digest-ar",
+        )
         self.assertEqual(settings.frontend_base_url, "https://albayan.example")
         self.assertEqual(
             settings.email_asset_base_url,
@@ -85,6 +115,10 @@ class EmailSettingsTests(unittest.TestCase):
         )
         self.assertEqual(settings.resend_password_reset_template, "password-reset-ar")
         self.assertEqual(
+            settings.resend_review_reminder_template,
+            "review-reminder-ar",
+        )
+        self.assertEqual(
             settings.resend_api_key.get_secret_value(),
             VALID_EMAIL_SETTINGS["RESEND_API_KEY"],
         )
@@ -98,6 +132,16 @@ class EmailSettingsTests(unittest.TestCase):
             "RESEND_APP_INVITATION_TEMPLATE",
             "RESEND_AUTH_VERIFICATION_TEMPLATE",
             "RESEND_PASSWORD_RESET_TEMPLATE",
+            "RESEND_SUBMISSION_RECEIVED_TEMPLATE",
+            "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE",
+            "RESEND_EDITOR_ASSIGNED_TEMPLATE",
+            "RESEND_REVIEW_INVITATION_TEMPLATE",
+            "RESEND_REVIEWER_ASSIGNED_TEMPLATE",
+            "RESEND_REVIEW_REMINDER_TEMPLATE",
+            "RESEND_REVIEW_SUBMITTED_TEMPLATE",
+            "RESEND_DECISION_TEMPLATE",
+            "RESEND_ARTICLE_PUBLISHED_TEMPLATE",
+            "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE",
             "FRONTEND_BASE_URL",
             "EMAIL_ASSET_BASE_URL",
         ):

@@ -71,6 +71,7 @@ def _summary(assignment) -> AssignmentSummary:
         version_number=version.version_number,
         review=ReviewRead.model_validate(review) if review else None,
         invited_at=assignment.invited_at,
+        review_due_at=assignment.review_due_at,
     )
 
 
@@ -89,6 +90,7 @@ def _detail(assignment) -> AssignmentDetail:
         compile_status=version.compile_status,
         review=ReviewRead.model_validate(review) if review else None,
         invited_at=assignment.invited_at,
+        review_due_at=assignment.review_due_at,
         accepted_at=assignment.accepted_at,
     )
 

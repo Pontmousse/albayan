@@ -395,6 +395,116 @@ class EmailServiceTests(unittest.TestCase):
             },
         )
 
+    def test_review_reminder_email_sends_declared_template_variables(self) -> None:
+        response = Mock(status=200)
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
+            stack.enter_context(
+                patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_reply_to",
+                    "مجلة البيان <support@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_review_reminder_template",
+                    "review-reminder-ar",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    "https://albayan-journal.org/",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_asset_base_url",
+                    "https://albayan-journal.org/email/",
+                )
+            )
+            urlopen = stack.enter_context(
+                patch.object(email_service.urllib.request, "urlopen")
+            )
+            urlopen.return_value.__enter__.return_value = response
+
+            email_service.send_review_reminder_email(
+                to="reviewer@example.com",
+                article_title="عنوان البحث",
+                review_url="https://albayan-journal.org/maktabi/murajaati/1",
+                due_text="٢٥ ربيع الأول ١٤٤٨ هـ",
+                reminder_text="تبقى يوم واحد تقريبًا على موعد تسليم المراجعة.",
+                idempotency_key="review-reminder/1/due-soon",
+            )
+
+        req = urlopen.call_args.args[0]
+        payload = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(req.headers["Idempotency-key"], "review-reminder/1/due-soon")
+        self.assertEqual(payload["template"]["id"], "review-reminder-ar")
+        self.assertEqual(
+            payload["template"]["variables"]["DUE_TEXT"],
+            "٢٥ ربيع الأول ١٤٤٨ هـ",
+        )
+
+    def test_unread_digest_email_sends_declared_template_variables(self) -> None:
+        response = Mock(status=200)
+
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(email_service.settings, "resend_api_key", "re_test"))
+            stack.enter_context(
+                patch.object(email_service.settings, "email_from", "Albayan <noreply@example.com>")
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_reply_to",
+                    "مجلة البيان <support@albayan-journal.org>",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "resend_unread_notifications_digest_template",
+                    "unread-notifications-digest-ar",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "frontend_base_url",
+                    "https://albayan-journal.org/",
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    email_service.settings,
+                    "email_asset_base_url",
+                    "https://albayan-journal.org/email/",
+                )
+            )
+            urlopen = stack.enter_context(
+                patch.object(email_service.urllib.request, "urlopen")
+            )
+            urlopen.return_value.__enter__.return_value = response
+
+            email_service.send_unread_notifications_digest_email(
+                to="user@example.com",
+                unread_count=6,
+                notifications_url="https://albayan-journal.org/maktabi/isharat",
+            )
+
+        payload = self._payload(urlopen)
+        self.assertEqual(payload["template"]["id"], "unread-notifications-digest-ar")
+        self.assertEqual(payload["template"]["variables"]["UNREAD_COUNT"], 6)
+
 
 if __name__ == "__main__":
     unittest.main()

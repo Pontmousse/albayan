@@ -52,10 +52,144 @@ templates:
       ASSET_BASE_URL: string
     publish: true
 
-  # Add templates here as their React Email sources are implemented.
-  #
-  # - alias: submission-received-ar
-  #   name: "Submission Received"
-  #   subject: "تم استلام بحثكم بنجاح"
-  #   file: "emails/src/SubmissionReceived.tsx"
-  #   publish: true
+  - alias: submission-received-ar
+    name: "Al-Bayan Submission Received"
+    subject: "تم استلام بحثكم بنجاح"
+    file: "emails/src/articles/SubmissionReceived.tsx"
+    html_file: "emails/out/articles/SubmissionReceived.html"
+    variables:
+      ARTICLE_TITLE: string
+      ARTICLE_URL: string
+      SUBMITTED_TEXT: string
+      VERSION_NUMBER: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: new-submission-alert-ar
+    name: "Al-Bayan New Submission Alert"
+    subject: "بحث جديد بانتظار المتابعة التحريرية"
+    file: "emails/src/articles/NewSubmissionAlert.tsx"
+    html_file: "emails/out/articles/NewSubmissionAlert.html"
+    variables:
+      ARTICLE_TITLE: string
+      AUTHOR_NAME: string
+      ARTICLE_URL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: editor-assigned-ar
+    name: "Al-Bayan Editor Assigned"
+    subject: "تعيين تحريري جديد في مجلة البيان"
+    file: "emails/src/articles/EditorAssigned.tsx"
+    html_file: "emails/out/articles/EditorAssigned.html"
+    variables:
+      ARTICLE_TITLE: string
+      ARTICLE_URL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: review-invitation-ar
+    name: "Al-Bayan Review Invitation"
+    subject: "دعوة للمشاركة في تحكيم بحث"
+    file: "emails/src/reviewers/ReviewInvitation.tsx"
+    html_file: "emails/out/ReviewInvitation.html"
+    variables:
+      ARTICLE_TITLE: string
+      ROLE_LABEL: string
+      INVITATION_URL: string
+      EXPIRES_TEXT: string
+      DUE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: reviewer-assigned-ar
+    name: "Al-Bayan Reviewer Assigned"
+    subject: "مهمة مراجعة جديدة في مجلة البيان"
+    file: "emails/src/reviewers/ReviewerAssigned.tsx"
+    html_file: "emails/out/ReviewerAssigned.html"
+    variables:
+      ARTICLE_TITLE: string
+      REVIEW_URL: string
+      DUE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: review-reminder-ar
+    name: "Al-Bayan Review Reminder"
+    subject: "تذكير بمراجعة بحث في مجلة البيان"
+    file: "emails/src/reviewers/ReviewReminder.tsx"
+    html_file: "emails/out/ReviewReminder.html"
+    variables:
+      ARTICLE_TITLE: string
+      REVIEW_URL: string
+      DUE_TEXT: string
+      REMINDER_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: review-submitted-ar
+    name: "Al-Bayan Review Submitted"
+    subject: "تم تسليم مراجعة جديدة"
+    file: "emails/src/reviewers/ReviewSubmitted.tsx"
+    html_file: "emails/out/ReviewSubmitted.html"
+    variables:
+      ARTICLE_TITLE: string
+      REVIEWER_NAME: string
+      REPORT_URL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: decision-ar
+    name: "Al-Bayan Editorial Decision"
+    subject: "قرار تحريري من مجلة البيان"
+    file: "emails/src/articles/Decision.tsx"
+    html_file: "emails/out/articles/Decision.html"
+    variables:
+      ARTICLE_TITLE: string
+      DECISION_TEXT: string
+      ARTICLE_URL: string
+      NEXT_STEP: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: article-published-ar
+    name: "Al-Bayan Article Published"
+    subject: "نُشر بحثكم في مجلة البيان"
+    file: "emails/src/articles/Published.tsx"
+    html_file: "emails/out/articles/Published.html"
+    variables:
+      ARTICLE_TITLE: string
+      ARTICLE_URL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: unread-notifications-digest-ar
+    name: "Al-Bayan Unread Notifications Digest"
+    subject: "لديكم إشعارات غير مقروءة في مجلة البيان"
+    file: "emails/src/notifications/UnreadDigest.tsx"
+    html_file: "emails/out/notifications/UnreadDigest.html"
+    variables:
+      UNREAD_COUNT: string
+      NOTIFICATIONS_URL: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true

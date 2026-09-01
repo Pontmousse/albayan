@@ -39,6 +39,7 @@ class AssignmentSummary(BaseModel):
     version_number: int
     review: ReviewRead | None
     invited_at: datetime
+    review_due_at: datetime | None = None
 
 
 class AssignmentDetail(BaseModel):
@@ -53,4 +54,5 @@ class AssignmentDetail(BaseModel):
     compile_status: CompileStatus
     review: ReviewRead | None
     invited_at: datetime
+    review_due_at: datetime | None = None
     accepted_at: datetime | None

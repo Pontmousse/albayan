@@ -34,6 +34,7 @@ export type AssignmentSummary = {
   version_number: number;
   review: ReviewRead | null;
   invited_at: string;
+  review_due_at: string | null;
 };
 
 export type AssignmentDetail = {
@@ -48,6 +49,7 @@ export type AssignmentDetail = {
   compile_status: "pending" | "processing" | "success" | "failed";
   review: ReviewRead | null;
   invited_at: string;
+  review_due_at: string | null;
   accepted_at: string | null;
 };
 

@@ -65,6 +65,7 @@ def _reviewer_reads(article) -> list[AdminReviewerRead]:
             user=AdminUserBrief.model_validate(a.user),
             status=a.status,
             invited_at=a.invited_at,
+            review_due_at=a.review_due_at,
             accepted_at=a.accepted_at,
             declined_at=a.declined_at,
         )
@@ -202,7 +203,11 @@ def assign_reviewer(
     admin = _admin_user(auth, db)
     if payload.user_id:
         assignment = admin_article_service.assign_reviewer(
-            db, article_id, user_id=payload.user_id, assigner_id=admin.id
+            db,
+            article_id,
+            user_id=payload.user_id,
+            assigner_id=admin.id,
+            review_due_at=payload.review_due_at,
         )
         return {"ok": True, "assignment_id": str(assignment.id)}
 
@@ -212,6 +217,7 @@ def assign_reviewer(
         role=InvitationRole.REVIEWER,
         email=str(payload.email),
         invited_by=admin.id,
+        review_due_at=payload.review_due_at,
     )
     return {
         "ok": True,
@@ -240,6 +246,7 @@ def assign_editor(
         role=InvitationRole.EDITOR,
         email=str(payload.email),
         invited_by=admin.id,
+        review_due_at=payload.review_due_at,
     )
     return {
         "ok": True,
@@ -383,6 +390,7 @@ def invite_to_article(
         role=payload.role,
         email=str(payload.email),
         invited_by=admin.id,
+        review_due_at=payload.review_due_at,
     )
     return InvitationCreateResponse(
         invitation=InvitationRead.model_validate(invitation),

@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     resend_app_invitation_template: str = ""
     resend_auth_verification_template: str = ""
     resend_password_reset_template: str = ""
+    resend_submission_received_template: str = ""
+    resend_new_submission_alert_template: str = ""
+    resend_editor_assigned_template: str = ""
+    resend_review_invitation_template: str = ""
+    resend_reviewer_assigned_template: str = ""
+    resend_review_reminder_template: str = ""
+    resend_review_submitted_template: str = ""
+    resend_decision_template: str = ""
+    resend_article_published_template: str = ""
+    resend_unread_notifications_digest_template: str = ""
     email_asset_base_url: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
@@ -74,6 +84,22 @@ class Settings(BaseSettings):
                 self.resend_auth_verification_template
             ),
             "RESEND_PASSWORD_RESET_TEMPLATE": self.resend_password_reset_template,
+            "RESEND_SUBMISSION_RECEIVED_TEMPLATE": (
+                self.resend_submission_received_template
+            ),
+            "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE": (
+                self.resend_new_submission_alert_template
+            ),
+            "RESEND_EDITOR_ASSIGNED_TEMPLATE": self.resend_editor_assigned_template,
+            "RESEND_REVIEW_INVITATION_TEMPLATE": self.resend_review_invitation_template,
+            "RESEND_REVIEWER_ASSIGNED_TEMPLATE": self.resend_reviewer_assigned_template,
+            "RESEND_REVIEW_REMINDER_TEMPLATE": self.resend_review_reminder_template,
+            "RESEND_REVIEW_SUBMITTED_TEMPLATE": self.resend_review_submitted_template,
+            "RESEND_DECISION_TEMPLATE": self.resend_decision_template,
+            "RESEND_ARTICLE_PUBLISHED_TEMPLATE": self.resend_article_published_template,
+            "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": (
+                self.resend_unread_notifications_digest_template
+            ),
             "EMAIL_ASSET_BASE_URL": self.email_asset_base_url,
         }
 
@@ -105,6 +131,32 @@ class Settings(BaseSettings):
             self.resend_auth_verification_template.strip()
         )
         self.resend_password_reset_template = self.resend_password_reset_template.strip()
+        self.resend_submission_received_template = (
+            self.resend_submission_received_template.strip()
+        )
+        self.resend_new_submission_alert_template = (
+            self.resend_new_submission_alert_template.strip()
+        )
+        self.resend_editor_assigned_template = self.resend_editor_assigned_template.strip()
+        self.resend_review_invitation_template = (
+            self.resend_review_invitation_template.strip()
+        )
+        self.resend_reviewer_assigned_template = (
+            self.resend_reviewer_assigned_template.strip()
+        )
+        self.resend_review_reminder_template = (
+            self.resend_review_reminder_template.strip()
+        )
+        self.resend_review_submitted_template = (
+            self.resend_review_submitted_template.strip()
+        )
+        self.resend_decision_template = self.resend_decision_template.strip()
+        self.resend_article_published_template = (
+            self.resend_article_published_template.strip()
+        )
+        self.resend_unread_notifications_digest_template = (
+            self.resend_unread_notifications_digest_template.strip()
+        )
         self.frontend_base_url = _validate_email_url(
             self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
         )

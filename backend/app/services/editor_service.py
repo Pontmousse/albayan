@@ -1,4 +1,5 @@
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -7,13 +8,14 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import (
     Article,
+    ArticleAuthor,
     ArticleEditor,
     ArticleReviewer,
     ArticleVersion,
     Review,
 )
 from app.models.enums import ReviewStatus, VersionStatus
-from app.services import article_service
+from app.services import article_service, email_service
 
 _NOT_FOUND = HTTPException(status_code=404, detail="المقال غير موجود.")
 _INVALID_STATUS = HTTPException(
@@ -35,6 +37,8 @@ _STATUS_AR = {
     VersionStatus.ACCEPTED: "قبول",
     VersionStatus.REJECTED: "رفض",
 }
+
+logger = logging.getLogger(__name__)
 
 
 def assert_is_editor(
@@ -160,4 +164,27 @@ def apply_decision(
 
     db.commit()
     db.refresh(version)
+    article = db.scalar(
+        select(Article)
+        .where(Article.id == article_id)
+        .options(selectinload(Article.author_links).selectinload(ArticleAuthor.user))
+    )
+    if article:
+        article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
+        next_step = {
+            VersionStatus.UNDER_REVIEW: "سنوافيكم بأي مستجدات بعد اكتمال أعمال التحكيم.",
+            VersionStatus.ACCEPTED: "يرجى متابعة لوحة المقال لأي تعليمات نهائية قبل النشر.",
+            VersionStatus.REJECTED: "يمكنكم مراجعة القرار والتواصل مع هيئة التحرير عند الحاجة.",
+        }[status]
+        for link in article.author_links:
+            try:
+                email_service.send_decision_email(
+                    to=link.user.email,
+                    article_title=article.title,
+                    decision_text=label,
+                    article_url=article_url,
+                    next_step=next_step,
+                )
+            except Exception as exc:
+                logger.warning("Decision email failed for article %s: %s", article.id, exc)
     return version

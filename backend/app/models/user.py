@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.invitation import Invitation
     from app.models.notification import Notification
     from app.models.account_deletion_request import AccountDeletionRequest
+    from app.models.email_digest_state import EmailDigestState
 
 
 class User(Base):
@@ -79,4 +80,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
         foreign_keys="AccountDeletionRequest.user_id",
+    )
+    email_digest_state: Mapped["EmailDigestState | None"] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        single_parent=True,
     )

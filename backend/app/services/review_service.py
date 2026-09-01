@@ -1,17 +1,22 @@
 import uuid
+import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.article import Article, ArticleReviewer, ArticleVersion, Review
+from app.models.article import Article, ArticleEditor, ArticleReviewer, ArticleVersion, Review
 from app.models.enums import (
     ReviewRecommendation,
     ReviewerAssignmentStatus,
     ReviewStatus,
 )
+from app.models.user import User
 from app.services import article_service
+from app.services import email_service
+
+logger = logging.getLogger(__name__)
 
 _NOT_FOUND = HTTPException(status_code=404, detail="التعيين غير موجود.")
 _FORBIDDEN = HTTPException(status_code=404, detail="التعيين غير موجود.")
@@ -141,4 +146,35 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
     db.commit()
     db.refresh(review)
     db.refresh(assignment)
+    article = db.scalar(
+        select(Article)
+        .where(Article.id == assignment.article_id)
+        .options(
+            selectinload(Article.editor_assignments).selectinload(ArticleEditor.user),
+        )
+    )
+    if article:
+        report_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/tahriri/{article.id}"
+        reviewer = db.get(User, assignment.user_id)
+        reviewer_name = (
+            reviewer.full_name
+            if reviewer and reviewer.full_name
+            else reviewer.email
+            if reviewer
+            else "مراجع"
+        )
+        recipients = {link.user.email for link in article.editor_assignments}
+        recipients.update(
+            db.scalars(select(User.email).where(User.is_admin.is_(True))).all()
+        )
+        for recipient in sorted(recipients):
+            try:
+                email_service.send_review_submitted_email(
+                    to=recipient,
+                    article_title=article.title,
+                    reviewer_name=reviewer_name,
+                    report_url=report_url,
+                )
+            except Exception as exc:
+                logger.warning("Review submitted email failed for %s: %s", review.id, exc)
     return review

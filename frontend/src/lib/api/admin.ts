@@ -36,6 +36,7 @@ export type AdminReviewerRead = {
   user: AdminUserBrief;
   status: ReviewerAssignmentStatus;
   invited_at: string;
+  review_due_at: string | null;
   accepted_at: string | null;
   declined_at: string | null;
 };
@@ -126,6 +127,7 @@ export type InvitationRead = {
   status: InvitationStatus;
   invited_by: string;
   expires_at: string;
+  review_due_at: string | null;
   created_at: string;
 };
 
@@ -185,11 +187,15 @@ export function assignReviewer(
   getToken: GetToken,
   articleId: string,
   userId: string,
+  reviewDueAt?: string | null,
 ) {
   return apiFetch<{ ok: boolean; assignment_id: string }>(
     `/api/v1/admin/articles/${articleId}/assign-reviewer`,
     getToken,
-    { method: "POST", body: JSON.stringify({ user_id: userId }) },
+    {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId, review_due_at: reviewDueAt ?? null }),
+    },
   );
 }
 
@@ -234,11 +240,15 @@ export function inviteToArticle(
   articleId: string,
   email: string,
   role: InvitationRole,
+  reviewDueAt?: string | null,
 ) {
   return apiFetch<InvitationCreateResponse>(
     `/api/v1/admin/articles/${articleId}/invite`,
     getToken,
-    { method: "POST", body: JSON.stringify({ email, role }) },
+    {
+      method: "POST",
+      body: JSON.stringify({ email, role, review_due_at: reviewDueAt ?? null }),
+    },
   );
 }
 

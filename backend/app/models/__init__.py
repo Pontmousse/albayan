@@ -26,6 +26,7 @@ from app.models.enums import (
 )
 from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.models.invitation import Invitation
+from app.models.email_digest_state import EmailDigestState
 from app.models.notification import Notification
 from app.models.user import User
 
@@ -50,6 +51,7 @@ __all__ = [
     "IssueImage",
     "IssueStatus",
     "IssueUpvote",
+    "EmailDigestState",
     "Notification",
     "NotificationType",
     "Review",

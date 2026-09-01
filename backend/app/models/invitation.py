@@ -35,6 +35,7 @@ class Invitation(Base):
         Uuid, ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    review_due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
