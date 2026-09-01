@@ -92,7 +92,7 @@ if [[ "$*" == 'templates get test-alias --json' ]]; then
   exit 1
 fi
 
-if [[ "$*" == 'templates list --json' ]]; then
+if [[ "$*" == 'templates list --json --limit 100' ]]; then
   case "$MOCK_SCENARIO" in
     existing) printf '{"data":[{"id":"template-id","alias":"test-alias"}]}\n'; exit 0 ;;
     missing) printf '{"data":[]}\n'; exit 0 ;;
@@ -122,7 +122,7 @@ EOF
 run_case existing
 [[ "$CASE_STATUS" == 0 ]]
 grep -qx 'npm run export' "$CASE_CALLS"
-grep -qx 'templates list --json' "$CASE_CALLS"
+grep -qx 'templates list --json --limit 100' "$CASE_CALLS"
 grep -q 'templates update test-alias --name Test --subject Test subject --html-file .*template.html --var USER_NAME:string:researcher --var LOGIN_URL:string' "$CASE_CALLS"
 ! grep -q 'templates create' "$CASE_CALLS"
 

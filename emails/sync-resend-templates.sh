@@ -24,7 +24,13 @@ command -v resend >/dev/null 2>&1 || {
 }
 
 # Explicitly require Mike Farah yq v4; tests and CI may override YQ.
-YQ="${YQ:-$(command -v yq || true)}"
+if [[ -z "${YQ:-}" ]]; then
+  if [[ -x /snap/bin/yq ]]; then
+    YQ=/snap/bin/yq
+  else
+    YQ="$(command -v yq || true)"
+  fi
+fi
 
 [[ -n "$YQ" && -x "$YQ" ]] || {
   echo "ERROR: Mike Farah yq v4 was not found in PATH." >&2
@@ -65,9 +71,6 @@ if [[ "$COUNT" == "0" ]]; then
   exit 0
 fi
 
-echo
-echo "Fetching existing Resend templates..."
-
 redact_resend_output() {
   sed -E \
     -e "s/${RESEND_API_KEY//\//\\/}/[REDACTED_RESEND_API_KEY]/g" \
@@ -75,45 +78,77 @@ redact_resend_output() {
     -e 's/secret-[^[:space:]]+/[REDACTED_SECRET]/g'
 }
 
-if ! RAW_TEMPLATES_OUTPUT="$(resend templates list --json 2>&1)"; then
-  normalized_response="$(printf '%s' "$RAW_TEMPLATES_OUTPUT" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$normalized_response" == *"unauthorized"* ||
-        "$normalized_response" == *"forbidden"* ||
-        "$normalized_response" == *"invalid"* ]]; then
-    echo "ERROR: Resend template list failed due to authentication/authorization failure." >&2
-  else
-    echo "ERROR: Resend template list failed due to network failure." >&2
+echo
+echo "Fetching existing Resend templates..."
+
+# Read every page so an alias beyond the default first 10 results is not
+# mistaken for a missing template and sent to the create endpoint.
+EXISTING_ALIASES=()
+AFTER_CURSOR=""
+
+while true; do
+  LIST_ARGS=(templates list --json --limit 100)
+  if [[ -n "$AFTER_CURSOR" ]]; then
+    LIST_ARGS+=(--after "$AFTER_CURSOR")
   fi
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
-  exit 1
-fi
 
-TEMPLATES_JSON="$(
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" |
-    sed -n '/^[[:space:]]*{/,$p'
-)"
+  if ! RAW_TEMPLATES_OUTPUT="$(resend "${LIST_ARGS[@]}" 2>&1)"; then
+    normalized_response="$(printf '%s' "$RAW_TEMPLATES_OUTPUT" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$normalized_response" == *"unauthorized"* ||
+          "$normalized_response" == *"forbidden"* ||
+          "$normalized_response" == *"invalid"* ]]; then
+      echo "ERROR: Resend template list failed due to authentication/authorization failure." >&2
+    else
+      echo "ERROR: Resend template list failed due to network failure." >&2
+    fi
+    printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
+    exit 1
+  fi
 
-if [[ -z "$TEMPLATES_JSON" ]]; then
-  echo "ERROR: Resend returned no JSON when listing templates." >&2
-  echo "Raw output:" >&2
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
-  exit 1
-fi
+  TEMPLATES_JSON="$(
+    printf '%s\n' "$RAW_TEMPLATES_OUTPUT" |
+      sed -n '/^[[:space:]]*{/,$p'
+  )"
 
-if ! printf '%s' "$TEMPLATES_JSON" |
-  "$YQ" -e -p=json '.' - >/dev/null 2>&1; then
+  if [[ -z "$TEMPLATES_JSON" ]]; then
+    echo "ERROR: Resend returned no JSON when listing templates." >&2
+    echo "Raw output:" >&2
+    printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
+    exit 1
+  fi
 
-  echo "ERROR: Could not parse 'resend templates list --json' output." >&2
-  echo "Raw output:" >&2
-  printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
-  exit 1
-fi
+  if ! printf '%s' "$TEMPLATES_JSON" |
+    "$YQ" -e -p=json '.' - >/dev/null 2>&1; then
 
-# Read all existing Resend template aliases into a Bash array.
-mapfile -t EXISTING_ALIASES < <(
-  printf '%s' "$TEMPLATES_JSON" |
-    "$YQ" -r -p=json '.data[].alias' -
-)
+    echo "ERROR: Could not parse 'resend templates list --json' output." >&2
+    echo "Raw output:" >&2
+    printf '%s\n' "$RAW_TEMPLATES_OUTPUT" | redact_resend_output >&2
+    exit 1
+  fi
+
+  mapfile -t PAGE_ALIASES < <(
+    printf '%s' "$TEMPLATES_JSON" |
+      "$YQ" -r -p=json '.data[].alias' -
+  )
+  EXISTING_ALIASES+=("${PAGE_ALIASES[@]}")
+
+  HAS_MORE="$(
+    printf '%s' "$TEMPLATES_JSON" |
+      "$YQ" -r -p=json '.has_more // false' -
+  )"
+  if [[ "$HAS_MORE" != "true" ]]; then
+    break
+  fi
+
+  AFTER_CURSOR="$(
+    printf '%s' "$TEMPLATES_JSON" |
+      "$YQ" -r -p=json '.data[-1].id // ""' -
+  )"
+  if [[ -z "$AFTER_CURSOR" ]]; then
+    echo "ERROR: Resend reported another template page without a cursor." >&2
+    exit 1
+  fi
+done
 
 template_exists() {
   local wanted_alias="$1"
@@ -179,11 +214,9 @@ for ((i = 0; i < COUNT; i++)); do
       .templates[$i].variables // {}
       | to_entries
       | .[]
-      | if (.value | tag) == \"!!map\" then
-          \"\(.key):\(.value.type):\(.value.fallback)\"
-        else
-          \"\(.key):\(.value)\"
-        end
+      | [.key, (.value.type // .value), .value.fallback]
+      | map(select(. != null))
+      | join(\":\")
     " "$CONFIG"
   )
 
@@ -227,3 +260,7 @@ done
 
 echo
 echo "All Resend templates synced."
+
+
+# Run like this:
+# YQ=/snap/bin/yq npm run templates:sync
