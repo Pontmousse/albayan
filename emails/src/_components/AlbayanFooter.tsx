@@ -36,7 +36,7 @@ export function AlbayanFooter({
               valign="middle"
               width="18%"
               className="email-footer-corner-cell"
-              style={{ padding: "100px 0 0 8px" }}
+              style={{ padding: "172px 0 0 8px" }}
             >
               <Img
                 src={emailAssetUrl(assetBaseUrl, "footer-corner-left.png")}
@@ -147,7 +147,7 @@ export function AlbayanFooter({
               valign="middle"
               width="18%"
               className="email-footer-corner-cell"
-              style={{ padding: "100px 8px 0 0" }}
+              style={{ padding: "172px 8px 0 0" }}
             >
               <Img
                 src={emailAssetUrl(assetBaseUrl, "footer-corner-right.png")}

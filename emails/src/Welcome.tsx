@@ -36,18 +36,6 @@ export default function WelcomeEmail({
       assetBaseUrl={ASSET_BASE_URL}
     >
       <Section className="email-content" style={{ padding: "28px 34px 10px", textAlign: "center" }}>
-        <Text
-          style={{
-            color: colors.ink,
-            fontFamily,
-            fontSize: "16px",
-            lineHeight: "2",
-            margin: "0",
-            textAlign: "center",
-          }}
-        >
-          بسم الله الرحمن الرحيم، والصلاة والسلام على رسول الله صلى الله عليه وسلم
-        </Text>
         <GoldDivider spacing={22} assetBaseUrl={ASSET_BASE_URL} />
         <Heading
           className="email-title"
@@ -64,18 +52,6 @@ export default function WelcomeEmail({
         >
           مجلة البيان ترحب بكم
         </Heading>
-        <Text
-          style={{
-            color: colors.ink,
-            fontFamily,
-            fontSize: "17px",
-            lineHeight: "2",
-            margin: "22px 0 0",
-            textAlign: "center",
-          }}
-        >
-          السلام عليكم ورحمة الله وبركاته
-        </Text>
         <InfoPanel>
           أهلًا وسهلًا بكم، <strong>{USER_NAME}</strong>. يسعدنا انضمامكم إلى مجتمع مجلة البيان
           العلمي؛ فضاء محكّم للنشر الأكاديمي الجاد، يرحب بالبحث الرصين في
