@@ -1,5 +1,5 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { AuthHeader } from "@/components/auth-header";
 import { MainNav } from "@/components/main-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -41,12 +41,6 @@ export function SiteHeader() {
 
         <div className="flex shrink-0 items-center justify-end gap-1.5 sm:gap-3">
           <MainNav />
-          <Link
-            href="/balaghat"
-            className="hidden min-h-10 items-center rounded-md px-2.5 text-sm font-medium text-slate-700 transition-colors duration-150 hover:bg-[var(--journal-accent-soft)]/70 hover:text-[var(--journal-accent-strong)] md:inline-flex"
-          >
-            البلاغات
-          </Link>
           <div
             className="hidden h-5 w-px shrink-0 bg-[var(--journal-border)] sm:block"
             aria-hidden
