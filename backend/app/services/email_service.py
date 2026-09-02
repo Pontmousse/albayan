@@ -12,7 +12,7 @@ from datetime import datetime
 from fastapi import HTTPException
 
 from app.core.config import settings
-from app.core.dates import format_date_time
+from app.core.dates import format_date, format_date_time
 from app.models.enums import InvitationRole
 
 _ROLE_LABELS = {
@@ -64,6 +64,7 @@ def _common_variables() -> dict[str, str]:
         "SITE_URL": _site_url(),
         "CONTACT_EMAIL": _contact_email(),
         "ASSET_BASE_URL": _asset_base_url(),
+        "DATE_TEXT": format_date(datetime.now().astimezone()),
     }
 
 

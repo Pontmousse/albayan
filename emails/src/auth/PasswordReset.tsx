@@ -33,18 +33,6 @@ export default function PasswordResetEmail({
       assetBaseUrl={ASSET_BASE_URL}
     >
       <Section className="email-content" style={{ padding: "28px 34px 10px", textAlign: "center" }}>
-        <Text
-          style={{
-            color: colors.ink,
-            fontFamily,
-            fontSize: "16px",
-            lineHeight: "2",
-            margin: "0",
-            textAlign: "center",
-          }}
-        >
-          السلام عليكم ورحمة الله وبركاته
-        </Text>
         <GoldDivider spacing={22} assetBaseUrl={ASSET_BASE_URL} />
         <Heading
           className="email-title"

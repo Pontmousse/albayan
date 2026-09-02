@@ -7,6 +7,7 @@ templates:
     variables:
       USER_NAME: string
       LOGIN_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -24,6 +25,7 @@ templates:
         fallback: "ضيف مجلة البيان"
       RECIPIENT_EMAIL: string
       EXPIRES_TEXT: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -37,6 +39,7 @@ templates:
     variables:
       OTP_CODE: string
       RECIPIENT_EMAIL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -50,6 +53,7 @@ templates:
     variables:
       OTP_CODE: string
       RECIPIENT_EMAIL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -65,6 +69,7 @@ templates:
       ARTICLE_URL: string
       SUBMITTED_TEXT: string
       VERSION_NUMBER: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -79,6 +84,7 @@ templates:
       ARTICLE_TITLE: string
       AUTHOR_NAME: string
       ARTICLE_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -92,6 +98,7 @@ templates:
     variables:
       ARTICLE_TITLE: string
       ARTICLE_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -108,6 +115,7 @@ templates:
       INVITATION_URL: string
       EXPIRES_TEXT: string
       DUE_TEXT: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -122,6 +130,7 @@ templates:
       ARTICLE_TITLE: string
       REVIEW_URL: string
       DUE_TEXT: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -137,6 +146,7 @@ templates:
       REVIEW_URL: string
       DUE_TEXT: string
       REMINDER_TEXT: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -151,6 +161,7 @@ templates:
       ARTICLE_TITLE: string
       REVIEWER_NAME: string
       REPORT_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -166,6 +177,7 @@ templates:
       DECISION_TEXT: string
       ARTICLE_URL: string
       NEXT_STEP: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -179,6 +191,7 @@ templates:
     variables:
       ARTICLE_TITLE: string
       ARTICLE_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
@@ -192,6 +205,7 @@ templates:
     variables:
       UNREAD_COUNT: string
       NOTIFICATIONS_URL: string
+      DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
