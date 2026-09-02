@@ -1,5 +1,6 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import {
   useCallback,
@@ -16,7 +17,9 @@ import {
   type NavGroup,
 } from "@/lib/nav-config";
 import { isMcpEnabled } from "@/lib/mcp-enabled";
+import { readClerkRole } from "@/lib/clerk-role";
 import { AgentsNavLink } from "@/components/agents-nav-link";
+import { AdminNavLink } from "@/components/admin-nav-link";
 import { MobileSheet } from "@/components/mobile-sheet";
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -137,6 +140,8 @@ function NavTextLink({ href, label }: { href: string; label: string }) {
 
 /** قائمة موحّدة للشاشات الصغيرة */
 function MobileNav() {
+  const { user } = useUser();
+  const isAdmin = readClerkRole(user?.publicMetadata) === "admin";
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -169,9 +174,10 @@ function MobileNav() {
       </button>
       <MobileSheet open={open} onClose={close} title="القائمة">
         <div id={panelId} className="flex flex-col">
-          {isMcpEnabled() ? (
-            <div className="border-b border-[var(--journal-border)] px-4 py-3">
-              <AgentsNavLink onClick={close} />
+          {isMcpEnabled() || isAdmin ? (
+            <div className="flex flex-wrap gap-2 border-b border-[var(--journal-border)] px-4 py-3">
+              {isAdmin ? <AdminNavLink onClick={close} /> : null}
+              {isMcpEnabled() ? <AgentsNavLink onClick={close} /> : null}
             </div>
           ) : null}
           <ul className="py-1">
@@ -195,11 +201,15 @@ function MobileNav() {
 }
 
 export function MainNav() {
+  const { user } = useUser();
+  const isAdmin = readClerkRole(user?.publicMetadata) === "admin";
+
   return (
     <>
-      {isMcpEnabled() ? (
-        <div className="md:hidden">
-          <AgentsNavLink />
+      {isMcpEnabled() || isAdmin ? (
+        <div className="flex items-center gap-1.5 md:hidden">
+          {isAdmin ? <AdminNavLink /> : null}
+          {isMcpEnabled() ? <AgentsNavLink /> : null}
         </div>
       ) : null}
       <MobileNav />
@@ -212,6 +222,7 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
+        <AdminNavLink />
         {isMcpEnabled() ? <AgentsNavLink /> : null}
       </nav>
     </>
