@@ -10,7 +10,7 @@ import {
   type AdminArticleSummary,
 } from "@/lib/api/admin";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 function SummaryCard({
   label,
@@ -21,6 +21,7 @@ function SummaryCard({
   value: number;
   index: number;
 }) {
+  const { formatNumber } = useNumerals();
   return (
     <div
       className="stagger-item rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
@@ -31,13 +32,14 @@ function SummaryCard({
         className="mt-2 text-3xl font-bold text-[var(--journal-accent-strong)]"
         style={{ fontFamily: "var(--font-display-ar), serif" }}
       >
-        {value}
+        {formatNumber(value)}
       </p>
     </div>
   );
 }
 
 export default function AdminOverviewPage() {
+  const { formatDate } = useNumerals();
   const { getToken } = useAuth();
   const [articles, setArticles] = useState<AdminArticleSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);

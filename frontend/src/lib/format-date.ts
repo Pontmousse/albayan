@@ -1,37 +1,44 @@
-const HIJRI_LOCALE = "ar-SA-u-ca-islamic-umalqura";
+import type { NumeralSystem } from "@/lib/numerals";
 
-const dateFormatter = new Intl.DateTimeFormat(HIJRI_LOCALE, {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
-
-const dateTimeFormatter = new Intl.DateTimeFormat(HIJRI_LOCALE, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-const yearFormatter = new Intl.DateTimeFormat(HIJRI_LOCALE, {
-  year: "numeric",
-});
-
-const relativeFormatter = new Intl.RelativeTimeFormat("ar", {
-  numeric: "auto",
-});
-
-export function formatDate(iso: string): string {
-  return dateFormatter.format(new Date(iso));
+function hijriLocale(system: NumeralSystem): string {
+  return `ar-SA-u-ca-islamic-umalqura-nu-${system}`;
 }
 
-export function formatDateTime(value: Date): string {
-  return dateTimeFormatter.format(value);
+export function formatDate(iso: string, system: NumeralSystem = "arab"): string {
+  return new Intl.DateTimeFormat(hijriLocale(system), {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(iso));
 }
 
-export function formatHijriYear(value: Date = new Date()): string {
-  return yearFormatter.format(value);
+export function formatDateTime(
+  value: Date,
+  system: NumeralSystem = "arab",
+): string {
+  return new Intl.DateTimeFormat(hijriLocale(system), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
 }
 
-export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+export function formatHijriYear(
+  value: Date = new Date(),
+  system: NumeralSystem = "arab",
+): string {
+  return new Intl.DateTimeFormat(hijriLocale(system), {
+    year: "numeric",
+  }).format(value);
+}
+
+export function formatRelativeTime(
+  iso: string,
+  now: Date = new Date(),
+  system: NumeralSystem = "arab",
+): string {
+  const relativeFormatter = new Intl.RelativeTimeFormat(`ar-u-nu-${system}`, {
+    numeric: "auto",
+  });
   const date = new Date(iso);
   const diffSeconds = Math.round((date.getTime() - now.getTime()) / 1000);
   const absSeconds = Math.abs(diffSeconds);

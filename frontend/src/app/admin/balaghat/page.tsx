@@ -20,7 +20,7 @@ import {
   type IssueCategory,
   type IssueStatus,
 } from "@/lib/api/issues";
-import { formatDate, formatRelativeTime } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type StatusFilter = "all" | IssueStatus;
 type CategoryFilter = "all" | IssueCategory;
@@ -38,6 +38,7 @@ const STATUS_CLASS: Record<IssueStatus, string> = {
 };
 
 export default function AdminBalaghatPage() {
+  const { formatDate, formatNumber, formatRelativeTime } = useNumerals();
   const { getToken } = useAuth();
   const [issues, setIssues] = useState<AdminIssueRead[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -273,7 +274,7 @@ export default function AdminBalaghatPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                     <span>{ISSUE_CATEGORY_LABELS[issue.category]}</span>
                     <span aria-hidden>·</span>
-                    <span>{issue.upvote_count} تصويت</span>
+                    <span>{formatNumber(issue.upvote_count)} تصويت</span>
                     <span aria-hidden>·</span>
                     <time dateTime={issue.created_at}>
                       {formatRelativeTime(issue.created_at)}
@@ -335,7 +336,7 @@ export default function AdminBalaghatPage() {
                   <div className="flex justify-between gap-3">
                     <dt className="text-slate-500">التصويتات</dt>
                     <dd className="font-medium text-slate-800">
-                      {selectedIssue.upvote_count}
+                      {formatNumber(selectedIssue.upvote_count)}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3">

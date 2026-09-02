@@ -10,7 +10,7 @@ import {
   listMyAssignments,
   type AssignmentSummary,
 } from "@/lib/api/reviews";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 function reviewLabel(row: AssignmentSummary): string {
   if (row.assignment_status === "completed" || row.review?.status === "submitted") {
@@ -21,6 +21,7 @@ function reviewLabel(row: AssignmentSummary): string {
 }
 
 export default function MurajaatiPage() {
+  const { formatDate, formatDigits } = useNumerals();
   const { getToken } = useAuth();
   const [rows, setRows] = useState<AssignmentSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +87,7 @@ export default function MurajaatiPage() {
                     {row.article_title}
                   </Link>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>الإصدار v{row.version_number}</span>
+                    <span>الإصدار {formatDigits(`v${row.version_number}`)}</span>
                     <span aria-hidden>·</span>
                     <span>دُعيت في {formatDate(row.invited_at)}</span>
                     <span aria-hidden>·</span>

@@ -14,7 +14,7 @@ import {
   type VersionStatus,
 } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type Filter = "all" | "draft" | "submitted" | "under_review" | "finished";
 
@@ -38,6 +38,7 @@ function matchesFilter(article: ArticleSummary, filter: Filter): boolean {
 }
 
 export default function MaqalatiPage() {
+  const { formatDate, formatDigits } = useNumerals();
   const { getToken } = useAuth();
   const [articles, setArticles] = useState<ArticleSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -176,7 +177,7 @@ export default function MaqalatiPage() {
                     {article.title}
                   </Link>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>الإصدار v{article.version_number}</span>
+                    <span>الإصدار {formatDigits(`v${article.version_number}`)}</span>
                     <span aria-hidden>·</span>
                     <span>آخر تحديث: {formatDate(article.updated_at)}</span>
                   </p>

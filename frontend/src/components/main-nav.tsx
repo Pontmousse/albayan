@@ -21,6 +21,7 @@ import { readClerkRole } from "@/lib/clerk-role";
 import { AgentsNavLink } from "@/components/agents-nav-link";
 import { AdminNavLink } from "@/components/admin-nav-link";
 import { MobileSheet } from "@/components/mobile-sheet";
+import { NumeralToggle } from "@/components/numeral-toggle";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -174,6 +175,9 @@ function MobileNav() {
       </button>
       <MobileSheet open={open} onClose={close} title="القائمة">
         <div id={panelId} className="flex flex-col">
+          <div className="border-b border-[var(--journal-border)]">
+            <NumeralToggle mobile />
+          </div>
           {isMcpEnabled() || isAdmin ? (
             <div className="flex flex-wrap gap-2 border-b border-[var(--journal-border)] px-4 py-3">
               {isAdmin ? <AdminNavLink onClick={close} /> : null}

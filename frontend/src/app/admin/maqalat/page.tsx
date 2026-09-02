@@ -11,7 +11,7 @@ import {
   type AdminArticleSummary,
 } from "@/lib/api/admin";
 import type { VersionStatus } from "@/lib/api/articles";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type Filter = "all" | VersionStatus;
 
@@ -31,6 +31,7 @@ function matchesFilter(row: AdminArticleSummary, filter: Filter): boolean {
 }
 
 export default function AdminArticlesPage() {
+  const { formatDate, formatDigits, formatNumber } = useNumerals();
   const { getToken } = useAuth();
   const [rows, setRows] = useState<AdminArticleSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,11 +137,11 @@ export default function AdminArticlesPage() {
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       <span>{primaryAuthor}</span>
                       <span aria-hidden>·</span>
-                      <span>v{row.version_number}</span>
+                      <span>{formatDigits(`v${row.version_number}`)}</span>
                       <span aria-hidden>·</span>
-                      <span>{row.reviewers.length} مراجع</span>
+                      <span>{formatNumber(row.reviewers.length)} مراجع</span>
                       <span aria-hidden>·</span>
-                      <span>{row.editors.length} محرر</span>
+                      <span>{formatNumber(row.editors.length)} محرر</span>
                       <span aria-hidden>·</span>
                       <span>{formatDate(row.updated_at)}</span>
                     </p>

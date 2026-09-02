@@ -20,7 +20,7 @@ import {
   type AppInvitationRead,
 } from "@/lib/api/admin";
 import { buttonClassName, inputClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 import type { UserGender } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -53,6 +53,7 @@ function invitationStatusLabel(status: string): string {
 }
 
 export default function AdminUsersPage() {
+  const { formatDate } = useNumerals();
   const { getToken } = useAuth();
   const [rows, setRows] = useState<AdminUserListItem[] | null>(null);
   const [invitations, setInvitations] = useState<AppInvitationRead[] | null>(

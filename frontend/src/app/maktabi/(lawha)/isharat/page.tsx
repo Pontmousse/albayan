@@ -12,11 +12,12 @@ import {
   type NotificationRead,
 } from "@/lib/api/notifications";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatRelativeTime } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 const PAGE_SIZE = 20;
 
 export default function NotificationsPage() {
+  const { formatRelativeTime } = useNumerals();
   const { getToken } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<NotificationRead[] | null>(null);

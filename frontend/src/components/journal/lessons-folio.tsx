@@ -9,8 +9,8 @@ import {
   type PointerEvent,
 } from "react";
 import { useOpenTransition } from "@/hooks/use-open-transition";
+import { useNumerals } from "@/components/numeral-provider";
 import {
-  toEasternNumeral,
   tutorialEpisodeLabel,
   type TutorialLesson,
 } from "@/lib/tutorials";
@@ -73,6 +73,7 @@ function LessonStage({
   lesson: TutorialLesson;
   index: number;
 }) {
+  const { numeralSystem } = useNumerals();
   return (
     <article className="page-enter overflow-hidden rounded-2xl border border-[var(--journal-border)] bg-white/85 shadow-sm">
       <div className="h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-[var(--journal-accent)]" />
@@ -91,7 +92,7 @@ function LessonStage({
       )}
       <div className="space-y-2 ps-5 pe-5 py-5 sm:ps-7 sm:pe-7 sm:py-6">
         <p className="text-xs font-semibold tracking-wide text-[var(--journal-accent)]">
-          {tutorialEpisodeLabel(index)}
+          {tutorialEpisodeLabel(index, numeralSystem)}
         </p>
         <h2
           className="text-lg font-bold text-slate-900 sm:text-2xl"
@@ -117,6 +118,7 @@ function MobileLessonPicker({
   activeIndex: number;
   onSelect: (index: number) => void;
 }) {
+  const { formatNumber, numeralSystem } = useNumerals();
   const [open, setOpen] = useState(false);
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -165,7 +167,7 @@ function MobileLessonPicker({
             className="shrink-0 text-sm font-bold text-[var(--journal-gold)]"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
-            {toEasternNumeral(activeIndex + 1)}
+            {formatNumber(activeIndex + 1)}
           </span>
           <span className="truncate text-sm font-semibold text-slate-900">
             {active.title}
@@ -216,7 +218,7 @@ function MobileLessonPicker({
                       }`}
                       style={{ fontFamily: "var(--font-display-ar), serif" }}
                     >
-                      {toEasternNumeral(index + 1)}
+                      {formatNumber(index + 1)}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span
@@ -227,7 +229,7 @@ function MobileLessonPicker({
                         {lesson.title}
                       </span>
                       <span className="mt-0.5 block text-[11px] text-slate-500">
-                        {tutorialEpisodeLabel(index)}
+                        {tutorialEpisodeLabel(index, numeralSystem)}
                         {lesson.src ? "" : " · يُستكمل"}
                       </span>
                     </span>
@@ -243,6 +245,7 @@ function MobileLessonPicker({
 }
 
 export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
+  const { formatNumber, numeralSystem } = useNumerals();
   const [activeIndex, setActiveIndex] = useState(0);
   const headingId = useId();
   const pointerStartX = useRef<number | null>(null);
@@ -372,7 +375,7 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
                         }`}
                         style={{ fontFamily: "var(--font-display-ar), serif" }}
                       >
-                        {toEasternNumeral(index + 1)}
+                        {formatNumber(index + 1)}
                       </span>
                       <span
                         className={`text-sm font-semibold leading-6 ${
@@ -383,7 +386,7 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
                       </span>
                     </span>
                     <span className="mt-0.5 hidden text-[11px] text-slate-500 lg:block">
-                      {tutorialEpisodeLabel(index)}
+                      {tutorialEpisodeLabel(index, numeralSystem)}
                       {lesson.src ? "" : " · يُستكمل"}
                     </span>
                   </button>
@@ -423,8 +426,7 @@ export function LessonsFolio({ lessons }: { lessons: TutorialLesson[] }) {
                 السابق
               </button>
               <p className="text-xs font-medium text-slate-500" aria-live="polite">
-                {toEasternNumeral(activeIndex + 1)} من{" "}
-                {toEasternNumeral(lessons.length)}
+                {formatNumber(activeIndex + 1)} من {formatNumber(lessons.length)}
               </p>
               <button
                 type="button"

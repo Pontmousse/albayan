@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VersionRead } from "@/lib/api/articles";
+import { useNumerals } from "@/components/numeral-provider";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -28,6 +29,7 @@ const STATUS_COPY: Record<CompileStatus, string> = {
 };
 
 function PdfPages({ fileUrl }: { fileUrl: string }) {
+  const { formatNumber } = useNumerals();
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
   const [width, setWidth] = useState(640);
@@ -84,8 +86,8 @@ function PdfPages({ fileUrl }: { fileUrl: string }) {
             السابق
           </button>
           <span className="text-xs text-slate-600">
-            صفحة {page}
-            {numPages ? ` من ${numPages}` : ""}
+            صفحة {formatNumber(page)}
+            {numPages ? ` من ${formatNumber(numPages)}` : ""}
           </span>
           <button
             type="button"

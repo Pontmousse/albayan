@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent } from "react";
+import { useNumerals } from "@/components/numeral-provider";
 import { buttonClassName, inputClassName } from "@/lib/auth-ui";
+import { normalizeNumericInput } from "@/lib/numerals";
 
 type EmailCodeFormProps = {
   title: string;
@@ -32,6 +34,8 @@ export function EmailCodeForm({
   error = null,
   codeLength,
 }: EmailCodeFormProps) {
+  const { formatDigits } = useNumerals();
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await onSubmit();
@@ -57,8 +61,11 @@ export function EmailCodeForm({
           minLength={codeLength}
           maxLength={codeLength}
           dir="ltr"
-          value={code}
-          onChange={(event) => onCodeChange(event.target.value.trim())}
+          value={formatDigits(code)}
+          onChange={(event) => {
+            const normalized = normalizeNumericInput(event.target.value, codeLength);
+            if (normalized !== null) onCodeChange(normalized);
+          }}
           className={`${inputClassName} text-center font-mono text-lg tracking-[0.35em]`}
         />
       </div>

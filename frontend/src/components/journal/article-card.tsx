@@ -1,4 +1,6 @@
-import { formatDate } from "@/lib/format-date";
+"use client";
+
+import { useNumerals } from "@/components/numeral-provider";
 import { formatPublicAuthors, type PublicArticleSummary } from "@/lib/api/public";
 
 type ArticleCardProps = {
@@ -7,6 +9,7 @@ type ArticleCardProps = {
 
 /** بطاقة مقال منشور — بدون روابط وهمية أو DOI/ISSN مختلقة. */
 export function ArticleCard({ article }: ArticleCardProps) {
+  const { formatDate } = useNumerals();
   return (
     <article className="flex flex-col rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
       <div className="mb-3 text-xs text-slate-500">

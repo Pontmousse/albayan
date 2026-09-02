@@ -31,9 +31,10 @@ import {
   hashDocument,
 } from "@/lib/butex-latex";
 import { isDevMode } from "@/lib/dev-mode";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 export default function ArticleDetailPage() {
+  const { formatDate, formatDigits } = useNumerals();
   const { getToken } = useAuth();
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -257,7 +258,7 @@ export default function ArticleDetailPage() {
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
               <StatusBadge status={current.status} />
-              <span>الإصدار v{current.version_number}</span>
+              <span>الإصدار {formatDigits(`v${current.version_number}`)}</span>
               <span aria-hidden>·</span>
               <span>أُنشئ في {formatDate(article.created_at)}</span>
             </p>
@@ -398,7 +399,7 @@ export default function ArticleDetailPage() {
             >
               <span className="flex items-center gap-2.5">
                 <span className="font-semibold text-slate-800">
-                  v{version.version_number}
+                  {formatDigits(`v${version.version_number}`)}
                 </span>
                 <StatusBadge status={version.status} />
               </span>

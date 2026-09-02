@@ -10,7 +10,7 @@ import {
   listEditorArticles,
   type EditorArticleSummary,
 } from "@/lib/api/editor";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type Filter = "all" | "pending" | "accepted" | "rejected";
 
@@ -30,6 +30,7 @@ function matchesFilter(row: EditorArticleSummary, filter: Filter): boolean {
 }
 
 export default function TahririPage() {
+  const { formatDate, formatDigits, formatNumber } = useNumerals();
   const { getToken } = useAuth();
   const [rows, setRows] = useState<EditorArticleSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +131,7 @@ export default function TahririPage() {
                     {row.title}
                   </Link>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>الإصدار v{row.version_number}</span>
+                    <span>الإصدار {formatDigits(`v${row.version_number}`)}</span>
                     <span aria-hidden>·</span>
                     <span>
                       {row.submitted_at
@@ -141,7 +142,7 @@ export default function TahririPage() {
                     <span>
                       {row.submitted_reviews_count === 0
                         ? "لا تقارير بعد"
-                        : `${row.submitted_reviews_count} تقرير مُسلَّم`}
+                        : `${formatNumber(row.submitted_reviews_count)} تقرير مُسلَّم`}
                     </span>
                   </p>
                 </div>

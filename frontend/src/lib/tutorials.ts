@@ -1,3 +1,5 @@
+import { formatDigits, type NumeralSystem } from "@/lib/numerals";
+
 /** مسار صفحة الشروح التعليمية — slug عربي متسق مع الصفحات العامة. */
 export const TUTORIALS_HREF = "/al-durus";
 
@@ -25,15 +27,12 @@ const FEMININE_ORDINALS = [
   "العاشرة",
 ] as const;
 
-const EASTERN_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"] as const;
-
-export function toEasternNumeral(value: number): string {
-  return String(value).replace(/\d/g, (digit) => EASTERN_DIGITS[Number(digit)] ?? digit);
-}
-
-export function tutorialEpisodeLabel(index: number): string {
+export function tutorialEpisodeLabel(
+  index: number,
+  system: NumeralSystem = "arab",
+): string {
   const ordinal = FEMININE_ORDINALS[index];
-  return ordinal ? `الحلقة ${ordinal}` : `الحلقة ${toEasternNumeral(index + 1)}`;
+  return ordinal ? `الحلقة ${ordinal}` : `الحلقة ${formatDigits(index + 1, system)}`;
 }
 
 /**

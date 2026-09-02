@@ -30,7 +30,8 @@ import {
 } from "@/lib/api/admin";
 import type { VersionStatus } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
+import { normalizeNumericInput, parseBoundedInteger } from "@/lib/numerals";
 
 const OVERRIDE_STATUSES: { status: VersionStatus; label: string; confirm: boolean }[] =
   [
@@ -42,6 +43,7 @@ const OVERRIDE_STATUSES: { status: VersionStatus; label: string; confirm: boolea
   ];
 
 export default function AdminArticleDetailPage() {
+  const { formatDate, formatDigits, formatNumber } = useNumerals();
   const { getToken } = useAuth();
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -59,7 +61,9 @@ export default function AdminArticleDetailPage() {
   const [assignMode, setAssignMode] = useState<"user" | "email">("user");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [reviewDurationDays, setReviewDurationDays] = useState(14);
+  const [reviewDurationDays, setReviewDurationDays] = useState("14");
+  const reviewDurationValue = parseBoundedInteger(reviewDurationDays, 1, 365);
+  const reviewDurationIsValid = reviewDurationValue !== null;
 
   const [overrideReason, setOverrideReason] = useState("");
   const [pendingOverride, setPendingOverride] = useState<VersionStatus | null>(
@@ -116,21 +120,18 @@ export default function AdminArticleDetailPage() {
   }
 
   async function handleAssignOrInvite() {
+    if (assignRole === "reviewer" && !reviewDurationIsValid) {
+      setActionError(
+        `أدخل مهلة تحكيم صحيحة بين يوم واحد و${formatNumber(365)} يومًا.`,
+      );
+      return;
+    }
     const reviewDueAt =
       assignRole === "reviewer"
         ? new Date(
-            Date.now() + reviewDurationDays * 24 * 60 * 60 * 1000,
+            Date.now() + reviewDurationValue! * 24 * 60 * 60 * 1000,
           ).toISOString()
         : null;
-    if (
-      assignRole === "reviewer" &&
-      (!Number.isInteger(reviewDurationDays) ||
-        reviewDurationDays < 1 ||
-        reviewDurationDays > 365)
-    ) {
-      setActionError("أدخل مهلة تحكيم صحيحة بين يوم واحد و365 يومًا.");
-      return;
-    }
     if (assignMode === "user") {
       if (!selectedUserId) {
         setActionError("اختر مستخدماً للتعيين.");
@@ -231,7 +232,7 @@ export default function AdminArticleDetailPage() {
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
             <StatusBadge status={current.status} />
-            <span>الإصدار v{current.version_number}</span>
+            <span>الإصدار {formatDigits(`v${current.version_number}`)}</span>
             <span aria-hidden>·</span>
             <span>أُنشئ في {formatDate(article.created_at)}</span>
           </p>
@@ -448,26 +449,26 @@ export default function AdminArticleDetailPage() {
                 مهلة التحكيم بالأيام
               </span>
               <input
-                type="number"
-                min={1}
-                max={365}
-                step={1}
+                type="text"
+                inputMode="numeric"
+                maxLength={3}
                 required
-                value={reviewDurationDays}
-                onChange={(event) =>
-                  setReviewDurationDays(Number(event.target.value))
-                }
+                value={formatDigits(reviewDurationDays)}
+                onChange={(event) => {
+                  const normalized = normalizeNumericInput(event.target.value, 3);
+                  if (normalized !== null) {
+                    setReviewDurationDays(normalized);
+                  }
+                }}
                 className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
               />
-              {Number.isInteger(reviewDurationDays) &&
-              reviewDurationDays >= 1 &&
-              reviewDurationDays <= 365 ? (
+              {reviewDurationIsValid ? (
                 <span className="block text-xs text-slate-500">
                   موعد التسليم:{" "}
                   {formatDate(
                     new Date(
                       Date.now() +
-                        reviewDurationDays * 24 * 60 * 60 * 1000,
+                        reviewDurationValue! * 24 * 60 * 60 * 1000,
                     ).toISOString(),
                   )}
                 </span>
@@ -538,7 +539,7 @@ export default function AdminArticleDetailPage() {
         )}
         {pendingInvites.length > 0 ? (
           <p className="mt-3 text-xs text-slate-500">
-            {pendingInvites.length} دعوة معلّقة.
+            {formatNumber(pendingInvites.length)} دعوة معلّقة.
           </p>
         ) : null}
       </section>

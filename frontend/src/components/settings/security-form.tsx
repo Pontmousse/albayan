@@ -3,9 +3,10 @@
 import { useSession, useSessionList, useUser } from "@clerk/nextjs";
 import { FormEvent, useState } from "react";
 import { buttonClassName, cardClassName, inputClassName, translateClerkError } from "@/lib/auth-ui";
-import { formatDateTime } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 export function SecurityForm() {
+  const { formatDateTime } = useNumerals();
   const { user } = useUser();
   const { session: currentSession } = useSession();
   const { sessions, isLoaded } = useSessionList();

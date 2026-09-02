@@ -20,11 +20,12 @@ import {
   type AgentTokenSummary,
 } from "@/lib/api/agent-tokens";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type ModalMode = "closed" | "create" | "edit" | "reveal";
 
 export function AgentTokensPanel() {
+  const { formatDate } = useNumerals();
   const { getToken } = useAuth();
   const [tokens, setTokens] = useState<AgentTokenSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);

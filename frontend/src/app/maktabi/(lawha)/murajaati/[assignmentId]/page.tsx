@@ -9,7 +9,7 @@ import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-pr
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 import {
   fetchAssignmentAssetBlob,
   fetchAssignmentPdfBlob,
@@ -27,6 +27,7 @@ const RECOMMENDATIONS = Object.keys(
 ) as ReviewRecommendation[];
 
 export default function MurajaatiDetailPage() {
+  const { formatDate, formatDigits } = useNumerals();
   const { getToken } = useAuth();
   const params = useParams<{ assignmentId: string }>();
   const router = useRouter();
@@ -160,7 +161,7 @@ export default function MurajaatiDetailPage() {
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
             <StatusBadge status={assignment.version_status} />
-            <span>الإصدار v{assignment.version_number}</span>
+            <span>الإصدار {formatDigits(`v${assignment.version_number}`)}</span>
             <span aria-hidden>·</span>
             <span>دُعيت في {formatDate(assignment.invited_at)}</span>
           </p>

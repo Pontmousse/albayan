@@ -13,7 +13,7 @@ import {
   markNotificationRead,
   type NotificationRead,
 } from "@/lib/api/notifications";
-import { formatRelativeTime } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 function BellIcon() {
   return (
@@ -45,6 +45,7 @@ function NotificationRows({
   error: string | null;
   onItemClick: (notification: NotificationRead) => void;
 }) {
+  const { formatRelativeTime } = useNumerals();
   if (loading) {
     return (
       <div className="space-y-2 p-3">
@@ -120,6 +121,7 @@ function NotificationRows({
 }
 
 export function NotificationBell() {
+  const { formatDigits, formatNumber } = useNumerals();
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const router = useRouter();
   const mdUp = useMdUp();
@@ -274,7 +276,7 @@ export function NotificationBell() {
         <BellIcon />
         {count > 0 ? (
           <span className="absolute -end-1 -top-1 min-w-5 rounded-full bg-red-600 px-1.5 py-0.5 text-center text-[10px] font-bold leading-none text-white">
-            {count > 99 ? "99+" : count}
+            {count > 99 ? formatDigits("99+") : formatNumber(count)}
           </span>
         ) : null}
       </button>

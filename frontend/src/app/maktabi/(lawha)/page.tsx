@@ -16,7 +16,7 @@ import {
   type AssignmentSummary,
 } from "@/lib/api/reviews";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 const ACTIVE_STATUSES = ["submitted", "under_review"] as const;
 const DONE_STATUSES = ["accepted", "published"] as const;
@@ -31,6 +31,7 @@ function SummaryCard({
   value: number;
   index: number;
 }) {
+  const { formatNumber } = useNumerals();
   return (
     <div
       className="stagger-item rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
@@ -41,7 +42,7 @@ function SummaryCard({
         className="mt-2 text-3xl font-bold text-[var(--journal-accent-strong)]"
         style={{ fontFamily: "var(--font-display-ar), serif" }}
       >
-        {value}
+        {formatNumber(value)}
       </p>
     </div>
   );
@@ -54,6 +55,7 @@ function isPendingReview(row: AssignmentSummary): boolean {
 }
 
 export default function MaktabiOverviewPage() {
+  const { formatDate } = useNumerals();
   const { getToken } = useAuth();
   const { user } = useUser();
   const [articles, setArticles] = useState<ArticleSummary[] | null>(null);

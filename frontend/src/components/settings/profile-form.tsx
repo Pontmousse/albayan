@@ -2,10 +2,12 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useNumerals } from "@/components/numeral-provider";
 import { getCurrentUser, updateCurrentUser } from "@/lib/api";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
 
 export function ProfileForm() {
+  const { formatNumber } = useNumerals();
   const { getToken } = useAuth();
   const [fullName, setFullName] = useState("");
   const [affiliation, setAffiliation] = useState("");
@@ -107,7 +109,9 @@ export function ProfileForm() {
             onChange={(e) => setBio(e.target.value)}
             className={inputClassName}
           />
-          <p className="mt-1 text-xs text-slate-500">{bio.length}/500</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {formatNumber(bio.length)}/{formatNumber(500)}
+          </p>
         </div>
         <div>
           <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">

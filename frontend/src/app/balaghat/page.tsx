@@ -29,7 +29,7 @@ import {
   type IssueStatus,
 } from "@/lib/api/issues";
 import { buttonClassName } from "@/lib/auth-ui";
-import { formatDate, formatRelativeTime } from "@/lib/format-date";
+import { useNumerals } from "@/components/numeral-provider";
 
 type StatusFilter = "all" | IssueStatus;
 type CategoryFilter = "all" | IssueCategory;
@@ -48,6 +48,7 @@ const STATUS_CLASS: Record<IssueStatus, string> = {
 };
 
 export default function BalaghatPage() {
+  const { formatDate, formatNumber, formatRelativeTime } = useNumerals();
   const { getToken } = useAuth();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [issues, setIssues] = useState<IssueRead[] | null>(null);
@@ -567,7 +568,7 @@ export default function BalaghatPage() {
                     }`}
                   >
                     {issue.current_user_upvoted ? "صوّتَّ" : "تصويت"} ·{" "}
-                    {issue.upvote_count}
+                    {formatNumber(issue.upvote_count)}
                   </button>
                   <button
                     type="button"
