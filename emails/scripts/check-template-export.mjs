@@ -11,6 +11,7 @@ const templates = [
     variables: [
       "USER_NAME",
       "LOGIN_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -34,6 +35,7 @@ const templates = [
       "RECIPIENT_NAME",
       "RECIPIENT_EMAIL",
       "EXPIRES_TEXT",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -52,6 +54,7 @@ const templates = [
     variables: [
       "OTP_CODE",
       "RECIPIENT_EMAIL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -70,6 +73,7 @@ const templates = [
     variables: [
       "OTP_CODE",
       "RECIPIENT_EMAIL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -90,6 +94,7 @@ const templates = [
       "ARTICLE_URL",
       "SUBMITTED_TEXT",
       "VERSION_NUMBER",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -102,6 +107,7 @@ const templates = [
       "ARTICLE_TITLE",
       "AUTHOR_NAME",
       "ARTICLE_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -113,6 +119,7 @@ const templates = [
     variables: [
       "ARTICLE_TITLE",
       "ARTICLE_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -127,6 +134,7 @@ const templates = [
       "INVITATION_URL",
       "EXPIRES_TEXT",
       "DUE_TEXT",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -139,6 +147,7 @@ const templates = [
       "ARTICLE_TITLE",
       "REVIEW_URL",
       "DUE_TEXT",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -152,6 +161,7 @@ const templates = [
       "REVIEW_URL",
       "DUE_TEXT",
       "REMINDER_TEXT",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -164,6 +174,7 @@ const templates = [
       "ARTICLE_TITLE",
       "REVIEWER_NAME",
       "REPORT_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -177,6 +188,7 @@ const templates = [
       "DECISION_TEXT",
       "ARTICLE_URL",
       "NEXT_STEP",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -188,6 +200,7 @@ const templates = [
     variables: [
       "ARTICLE_TITLE",
       "ARTICLE_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -199,6 +212,7 @@ const templates = [
     variables: [
       "UNREAD_COUNT",
       "NOTIFICATIONS_URL",
+      "DATE_TEXT",
       "SITE_URL",
       "CONTACT_EMAIL",
       "ASSET_BASE_URL",
@@ -245,7 +259,7 @@ for (const template of templates) {
   assert.ok(!/transform:\s*scaleX/i.test(html), `${template.file} mirrors an image with CSS`);
   assert.match(
     html,
-    /email-footer-corner-cell[^}]*padding-top:\s*90px/i,
+    /email-footer-corner-cell[^}]*padding-top:\s*162px/i,
     `${template.file} is missing the lowered mobile footer corners`,
   );
   assert.ok(

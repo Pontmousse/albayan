@@ -13,6 +13,15 @@ from app.services import email_service
 
 
 class EmailServiceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        date_patch = patch.object(
+            email_service,
+            "format_date",
+            return_value="١٩ ربيع الأول ١٤٤٨ هـ",
+        )
+        date_patch.start()
+        self.addCleanup(date_patch.stop)
+
     def test_action_url_diagnostics_never_include_query_values(self) -> None:
         diagnostics = email_service._action_url_diagnostics(
             {
@@ -237,6 +246,7 @@ class EmailServiceTests(unittest.TestCase):
                 "variables": {
                     "USER_NAME": "د. أحمد",
                     "LOGIN_URL": "https://albayan-journal.org/maktabi",
+                    "DATE_TEXT": "١٩ ربيع الأول ١٤٤٨ هـ",
                     "SITE_URL": "https://albayan-journal.org",
                     "CONTACT_EMAIL": "support@albayan-journal.org",
                     "ASSET_BASE_URL": "https://albayan-journal.org/email",
@@ -301,6 +311,7 @@ class EmailServiceTests(unittest.TestCase):
                     "RECIPIENT_NAME": "أحمد الزهراني",
                     "RECIPIENT_EMAIL": "new-user@example.com",
                     "EXPIRES_TEXT": "١٥ ربيع الأول ١٤٤٨ هـ",
+                    "DATE_TEXT": "١٩ ربيع الأول ١٤٤٨ هـ",
                     "SITE_URL": "https://albayan-journal.org",
                     "CONTACT_EMAIL": "support@albayan-journal.org",
                     "ASSET_BASE_URL": "https://albayan-journal.org/email",
@@ -360,6 +371,7 @@ class EmailServiceTests(unittest.TestCase):
                 "variables": {
                     "OTP_CODE": "123456",
                     "RECIPIENT_EMAIL": "user@example.com",
+                    "DATE_TEXT": "١٩ ربيع الأول ١٤٤٨ هـ",
                     "SITE_URL": "https://albayan-journal.org",
                     "CONTACT_EMAIL": "support@albayan-journal.org",
                     "ASSET_BASE_URL": "https://albayan-journal.org/email",
@@ -414,6 +426,7 @@ class EmailServiceTests(unittest.TestCase):
                 "variables": {
                     "OTP_CODE": "654321",
                     "RECIPIENT_EMAIL": "user@example.com",
+                    "DATE_TEXT": "١٩ ربيع الأول ١٤٤٨ هـ",
                     "SITE_URL": "https://albayan-journal.org",
                     "CONTACT_EMAIL": "support@albayan-journal.org",
                     "ASSET_BASE_URL": "https://albayan-journal.org/email",
