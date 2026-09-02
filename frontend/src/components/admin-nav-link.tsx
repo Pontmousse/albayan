@@ -1,10 +1,19 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { readClerkRole } from "@/lib/clerk-role";
 
-export function AdminNavLink({ onClick }: { onClick?: () => void }) {
+export function AdminNavLink({
+  compact = false,
+  inMenu = false,
+  onClick,
+}: {
+  compact?: boolean;
+  inMenu?: boolean;
+  onClick?: () => void;
+}) {
   const { user } = useUser();
 
   if (readClerkRole(user?.publicMetadata) !== "admin") return null;
@@ -13,15 +22,15 @@ export function AdminNavLink({ onClick }: { onClick?: () => void }) {
     <Link
       href="/admin"
       onClick={onClick}
-      className="group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--admin-accent)]/40 bg-gradient-to-br from-[var(--admin-surface-strong)] to-white px-2.5 py-1 text-xs font-semibold text-[var(--admin-accent-strong)] shadow-sm transition-shadow duration-300 hover:shadow-md sm:px-3 sm:text-sm"
+      aria-label={compact && !inMenu ? "الانتقال إلى الإدارة" : undefined}
+      className={`nav-feature-link nav-feature-link--admin group ${
+        compact ? "nav-feature-link--compact" : ""
+      } ${inMenu ? "nav-feature-link--menu" : ""}`}
     >
-      <span
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--admin-accent)] text-xs font-bold text-white"
-        aria-hidden
-      >
-        أ
+      <span className="nav-feature-link__icon" aria-hidden>
+        <ShieldCheck strokeWidth={1.9} />
       </span>
-      <span>الإدارة</span>
+      <span className="nav-feature-link__label">الإدارة</span>
     </Link>
   );
 }
