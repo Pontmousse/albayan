@@ -22,6 +22,7 @@ import { AgentsNavLink } from "@/components/agents-nav-link";
 import { AdminNavLink } from "@/components/admin-nav-link";
 import { MobileSheet } from "@/components/mobile-sheet";
 import { NumeralToggle } from "@/components/numeral-toggle";
+import { ReportsNavLink } from "@/components/reports-nav-link";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -226,12 +227,11 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
-        {isMcpEnabled() || isAdmin ? (
-          <div className="ms-1.5 flex items-center gap-1.5 border-s border-[var(--journal-border)] ps-2">
-            {isAdmin ? <AdminNavLink /> : null}
-            {isMcpEnabled() ? <AgentsNavLink /> : null}
-          </div>
-        ) : null}
+        <div className="ms-1.5 flex items-center gap-1.5 border-s border-[var(--journal-border)] ps-2">
+          <ReportsNavLink />
+          {isAdmin ? <AdminNavLink /> : null}
+          {isMcpEnabled() ? <AgentsNavLink /> : null}
+        </div>
       </nav>
     </>
   );

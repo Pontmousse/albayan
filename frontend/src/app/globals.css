@@ -473,6 +473,13 @@ button:disabled,
   --feature-border: var(--admin-border);
 }
 
+.nav-feature-link--reports {
+  --feature-accent: #a34242;
+  --feature-ink: #7f2929;
+  --feature-surface: #fff3f1;
+  --feature-border: #edc8c3;
+}
+
 .nav-feature-link__icon {
   display: inline-grid;
   width: 1.75rem;
