@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Hash } from "lucide-react";
+import { Hash } from "lucide-react";
 import { useNumerals } from "@/components/numeral-provider";
 import { numeralSample } from "@/lib/numerals";
 
@@ -14,7 +14,7 @@ export function NumeralToggle({ mobile = false }: { mobile?: boolean }) {
   if (mobile) {
     const options = [
       { id: "arab" as const, label: "عربية مشرقية", sample: "١٢٣" },
-      { id: "latn" as const, label: "غربية", sample: "123" },
+      { id: "latn" as const, label: "عربية مغربية", sample: "123" },
     ];
 
     return (
@@ -69,12 +69,6 @@ export function NumeralToggle({ mobile = false }: { mobile?: boolean }) {
                 <span className="text-xs font-semibold leading-tight">
                   {option.label}
                 </span>
-                {selected ? (
-                  <Check
-                    className="absolute end-2 top-2 h-3.5 w-3.5"
-                    aria-hidden
-                  />
-                ) : null}
               </button>
             );
           })}
@@ -89,10 +83,17 @@ export function NumeralToggle({ mobile = false }: { mobile?: boolean }) {
       aria-label={actionLabel}
       aria-pressed={usingWestern}
       onClick={toggleNumeralSystem}
-      className="hidden min-h-10 min-w-10 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-2 text-sm font-bold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] md:inline-flex"
+      className="group hidden min-h-10 items-center gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-1.5 py-1 text-slate-700 shadow-sm transition duration-200 hover:border-[var(--journal-accent)] hover:bg-[var(--journal-accent-soft)]/45 hover:text-[var(--journal-accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)]/30 md:inline-flex"
     >
-      <span dir="ltr" aria-hidden>
+      <span
+        dir="ltr"
+        className="grid h-7 min-w-9 place-items-center rounded-md bg-[var(--journal-accent-soft)] px-1.5 text-sm font-bold text-[var(--journal-accent-strong)] transition group-hover:bg-white"
+        aria-hidden
+      >
         {numeralSample(numeralSystem)}
+      </span>
+      <span className="hidden pe-1 text-xs font-semibold leading-none lg:inline">
+        {usingWestern ? "عربية مغربية" : "عربية مشرقية"}
       </span>
       <span className="sr-only" aria-live="polite">
         {usingWestern ? "الأرقام الغربية مفعّلة" : "الأرقام العربية المشرقية مفعّلة"}
