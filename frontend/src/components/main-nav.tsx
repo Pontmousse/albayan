@@ -152,7 +152,6 @@ function MobileNav() {
 
   const flatLinks = [
     primaryNavLink,
-    { href: "/balaghat", label: "البلاغات" },
     ...navGroups.flatMap((g) => g.items),
     contactNavLink,
   ];
@@ -179,12 +178,11 @@ function MobileNav() {
           <div className="border-b border-[var(--journal-border)]">
             <NumeralToggle mobile />
           </div>
-          {isMcpEnabled() || isAdmin ? (
-            <div className="flex gap-2 border-b border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/35 px-4 py-3">
-              {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
-              {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
-            </div>
-          ) : null}
+          <div className="flex gap-2 border-b border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/35 px-4 py-3">
+            <ReportsNavLink inMenu onClick={close} />
+            {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
+            {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
+          </div>
           <ul className="py-1">
             {flatLinks.map((item) => (
               <li key={item.href} role="none">
@@ -211,12 +209,11 @@ export function MainNav() {
 
   return (
     <>
-      {isMcpEnabled() || isAdmin ? (
-        <div className="flex items-center gap-1 md:hidden">
-          {isAdmin ? <AdminNavLink compact /> : null}
-          {isMcpEnabled() ? <AgentsNavLink compact /> : null}
-        </div>
-      ) : null}
+      <div className="flex items-center gap-1 md:hidden">
+        <ReportsNavLink compact />
+        {isAdmin ? <AdminNavLink compact /> : null}
+        {isMcpEnabled() ? <AgentsNavLink compact /> : null}
+      </div>
       <MobileNav />
       <nav
         aria-label="التنقل الرئيسي"

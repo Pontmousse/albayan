@@ -523,17 +523,6 @@ button:disabled,
   font-size: 0.875rem;
 }
 
-@media (min-width: 640px) {
-  .nav-feature-link--compact {
-    width: auto;
-    padding: 0.3rem 0.7rem 0.3rem 0.8rem;
-  }
-
-  .nav-feature-link--compact .nav-feature-link__label {
-    display: inline;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .nav-feature-link,
   .nav-feature-link::after,
