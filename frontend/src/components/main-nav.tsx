@@ -22,6 +22,7 @@ import { AgentsNavLink } from "@/components/agents-nav-link";
 import { AdminNavLink } from "@/components/admin-nav-link";
 import { MobileSheet } from "@/components/mobile-sheet";
 import { NumeralToggle } from "@/components/numeral-toggle";
+import { ReportsNavLink } from "@/components/reports-nav-link";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
@@ -151,7 +152,6 @@ function MobileNav() {
 
   const flatLinks = [
     primaryNavLink,
-    { href: "/balaghat", label: "البلاغات" },
     ...navGroups.flatMap((g) => g.items),
     contactNavLink,
   ];
@@ -178,12 +178,11 @@ function MobileNav() {
           <div className="border-b border-[var(--journal-border)]">
             <NumeralToggle mobile />
           </div>
-          {isMcpEnabled() || isAdmin ? (
-            <div className="flex gap-2 border-b border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/35 px-4 py-3">
-              {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
-              {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
-            </div>
-          ) : null}
+          <div className="flex gap-2 border-b border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/35 px-4 py-3">
+            <ReportsNavLink inMenu onClick={close} />
+            {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
+            {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
+          </div>
           <ul className="py-1">
             {flatLinks.map((item) => (
               <li key={item.href} role="none">
@@ -210,12 +209,11 @@ export function MainNav() {
 
   return (
     <>
-      {isMcpEnabled() || isAdmin ? (
-        <div className="flex items-center gap-1 md:hidden">
-          {isAdmin ? <AdminNavLink compact /> : null}
-          {isMcpEnabled() ? <AgentsNavLink compact /> : null}
-        </div>
-      ) : null}
+      <div className="flex items-center gap-1 md:hidden">
+        <ReportsNavLink compact />
+        {isAdmin ? <AdminNavLink compact /> : null}
+        {isMcpEnabled() ? <AgentsNavLink compact /> : null}
+      </div>
       <MobileNav />
       <nav
         aria-label="التنقل الرئيسي"
@@ -226,12 +224,11 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
-        {isMcpEnabled() || isAdmin ? (
-          <div className="ms-1.5 flex items-center gap-1.5 border-s border-[var(--journal-border)] ps-2">
-            {isAdmin ? <AdminNavLink /> : null}
-            {isMcpEnabled() ? <AgentsNavLink /> : null}
-          </div>
-        ) : null}
+        <div className="ms-1.5 flex items-center gap-1.5 border-s border-[var(--journal-border)] ps-2">
+          <ReportsNavLink />
+          {isAdmin ? <AdminNavLink /> : null}
+          {isMcpEnabled() ? <AgentsNavLink /> : null}
+        </div>
       </nav>
     </>
   );

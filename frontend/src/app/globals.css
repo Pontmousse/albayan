@@ -473,6 +473,13 @@ button:disabled,
   --feature-border: var(--admin-border);
 }
 
+.nav-feature-link--reports {
+  --feature-accent: #a34242;
+  --feature-ink: #7f2929;
+  --feature-surface: #fff3f1;
+  --feature-border: #edc8c3;
+}
+
 .nav-feature-link__icon {
   display: inline-grid;
   width: 1.75rem;
@@ -514,17 +521,6 @@ button:disabled,
   flex: 1;
   justify-content: center;
   font-size: 0.875rem;
-}
-
-@media (min-width: 640px) {
-  .nav-feature-link--compact {
-    width: auto;
-    padding: 0.3rem 0.7rem 0.3rem 0.8rem;
-  }
-
-  .nav-feature-link--compact .nav-feature-link__label {
-    display: inline;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
