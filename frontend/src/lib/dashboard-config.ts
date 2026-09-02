@@ -38,12 +38,6 @@ export const dashboardSections: DashboardSection[] = [
     href: "/maktabi/tahriri",
     roles: ["editor"],
   },
-  {
-    id: "admin",
-    label: "إدارة",
-    href: "/admin",
-    roles: ["admin"],
-  },
 ];
 
 export function visibleSections(roles: DashboardRole[]) {
