@@ -65,6 +65,10 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `mcp_server/` — محوّل MCP رفيع فوق FastAPI؛ انسخ `mcp_server/.env.example` إلى `mcp_server/.env`.
 - `documentation/` — توثيق التصميم؛ راجع [database-schema.md](documentation/database-schema.md) لمخطط PostgreSQL.
 
+## تدقيقات الواجهة
+
+- [تدقيق الأرقام الظاهرة وخطة مفتاح الأرقام العربية/الغربية](docs/frontend-numeral-audit.md).
+
 ## Docker
 
 غير مضمّن في الإصدار الأول؛ يمكن إضافة صور منفصلة للواجهة والخلفية لاحقًا.
