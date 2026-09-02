@@ -1,25 +1,30 @@
 "use client";
 
+import { Bot } from "lucide-react";
 import Link from "next/link";
 
 export function AgentsNavLink({
+  compact = false,
+  inMenu = false,
   onClick,
 }: {
+  compact?: boolean;
+  inMenu?: boolean;
   onClick?: () => void;
 }) {
   return (
     <Link
       href="/wukala"
       onClick={onClick}
-      className="agents-nav-link group inline-flex min-h-10 items-center gap-1.5 rounded-full border border-emerald-500/45 bg-gradient-to-br from-emerald-50/90 to-white px-2.5 py-1 text-xs font-semibold text-emerald-900 shadow-sm transition-shadow duration-300 hover:shadow-md sm:px-3 sm:text-sm"
+      aria-label={compact && !inMenu ? "الانتقال إلى صفحة الوكلاء" : undefined}
+      className={`nav-feature-link nav-feature-link--agents group ${
+        compact ? "nav-feature-link--compact" : ""
+      } ${inMenu ? "nav-feature-link--menu" : ""}`}
     >
-      <span
-        className="agents-nav-link__plus inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--journal-accent)] text-xs font-bold text-white"
-        aria-hidden
-      >
-        +
+      <span className="nav-feature-link__icon" aria-hidden>
+        <Bot strokeWidth={1.9} />
       </span>
-      <span>وكلاء</span>
+      <span className="nav-feature-link__label">وكلاء</span>
     </Link>
   );
 }
