@@ -111,9 +111,6 @@ export function McpClientCarousel() {
             مراجعة هذه الإرشادات وتحديثها لتواكب أحدث الواجهات قدر الإمكان.
           </div>
         </div>
-        <p className="text-xs text-slate-500">
-          الأيقونات الرسمية تُضاف قريباً
-        </p>
       </div>
 
       {/* تبويبات — حاسوب */}
