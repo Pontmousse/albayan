@@ -1,4 +1,4 @@
-/** بيانات أدلة ربط MCP لكل عميل — الأيقونات تُضاف لاحقاً عبر iconSrc */
+/** بيانات أدلة ربط MCP لكل عميل */
 
 export type McpClientId = "cursor" | "chatgpt" | "claude";
 
@@ -6,7 +6,7 @@ export type McpClientGuide = {
   id: McpClientId;
   name: string;
   tagline: string;
-  /** مسار الأيقونة المستقبلي، مثال: /icons/mcp/cursor.svg */
+  /** مسار أيقونة العميل داخل مجلد public */
   iconSrc?: string;
   /** لون مؤقت حتى تُضاف الأيقونة */
   accentClass: string;
