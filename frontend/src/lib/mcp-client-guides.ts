@@ -28,6 +28,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "cursor",
     name: "Cursor",
+    iconSrc: "/wukala/cursor.png",
     tagline: "برنامج على الحاسوب — تربطه بمفتاح ربط من حسابك",
     accentClass: "from-slate-700 to-slate-900",
     authLabel: "مفتاح ربط (يبدأ بـ alb_…)",
@@ -51,6 +52,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "chatgpt",
     name: "ChatGPT",
+    iconSrc: "/wukala/chatgpt.webp",
     tagline: "من متصفح الحاسوب — تربطه بتسجيل دخول التطبيق",
     accentClass: "from-emerald-600 to-teal-800",
     authLabel: "تسجيل دخول التطبيق",
@@ -73,6 +75,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "claude",
     name: "Claude",
+    iconSrc: "/wukala/claude.png",
     tagline: "من claude.ai أو تطبيق الحاسوب — تربطه بتسجيل دخول التطبيق",
     accentClass: "from-amber-700 to-orange-900",
     authLabel: "تسجيل دخول التطبيق",
