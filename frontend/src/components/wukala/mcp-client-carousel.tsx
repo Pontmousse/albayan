@@ -106,6 +106,10 @@ export function McpClientCarousel() {
           <p className="mt-1 text-sm text-slate-600">
             اسحب البطاقات أو اضغط اسم البرنامج أعلاه
           </p>
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs leading-6 text-slate-600">
+            قد تتغيّر بعض خطوات الربط مع تحديث واجهات هذه البرامج والخدمات. نحرص على
+            مراجعة هذه الإرشادات وتحديثها لتواكب أحدث الواجهات قدر الإمكان.
+          </div>
         </div>
         <p className="text-xs text-slate-500">
           الأيقونات الرسمية تُضاف قريباً
