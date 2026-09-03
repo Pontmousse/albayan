@@ -20,7 +20,10 @@ import { isMcpEnabled } from "@/lib/mcp-enabled";
 import { readClerkRole } from "@/lib/clerk-role";
 import { AgentsNavLink } from "@/components/agents-nav-link";
 import { AdminNavLink } from "@/components/admin-nav-link";
-import { MobileSheet } from "@/components/mobile-sheet";
+import {
+  MobileSheet,
+  mobileSheetOptionClassName,
+} from "@/components/mobile-sheet";
 import { NumeralToggle } from "@/components/numeral-toggle";
 import { ReportsNavLink } from "@/components/reports-nav-link";
 
@@ -164,7 +167,7 @@ function MobileNav() {
         aria-controls={panelId}
         aria-label="قائمة التنقل"
         onClick={() => setOpen((value) => !value)}
-        className={`inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-xs font-semibold transition ${
+        className={`inline-flex min-h-12 items-center gap-1.5 rounded-md border px-4 text-sm font-semibold transition ${
           open
             ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]"
             : "border-[var(--journal-border)] bg-white text-slate-700 active:bg-[var(--journal-accent-soft)]"
@@ -190,7 +193,7 @@ function MobileNav() {
                   href={item.href}
                   role="menuitem"
                   onClick={close}
-                  className="flex min-h-11 items-center px-4 text-sm text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
+                  className={`${mobileSheetOptionClassName} text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]`}
                 >
                   {item.label}
                 </Link>

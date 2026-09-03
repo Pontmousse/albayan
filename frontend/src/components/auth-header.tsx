@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useClerk, useUser } from "@clerk/nextjs";
-import { MobileSheet } from "@/components/mobile-sheet";
+import {
+  MobileSheet,
+  mobileSheetOptionClassName,
+} from "@/components/mobile-sheet";
 import { useMdUp } from "@/hooks/use-md-up";
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -37,7 +40,7 @@ function MenuLink({
       href={href}
       role="menuitem"
       onClick={onClick}
-      className="flex min-h-11 items-center px-4 text-sm text-slate-700 transition-colors active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
+      className={`${mobileSheetOptionClassName} text-slate-700 transition-colors active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)] md:min-h-11 md:gap-3 md:px-4 md:py-2.5 md:text-sm md:font-normal md:leading-normal`}
     >
       {label}
     </Link>
@@ -112,7 +115,7 @@ export function AuthHeader() {
         close();
         void signOut({ redirectUrl: "/" });
       }}
-      className="flex min-h-11 w-full items-center px-4 text-start text-sm text-slate-600 transition-colors active:bg-rose-50 hover:bg-rose-50 hover:text-rose-800"
+      className={`${mobileSheetOptionClassName} text-slate-600 transition-colors active:bg-rose-50 hover:bg-rose-50 hover:text-rose-800 md:min-h-11 md:gap-3 md:px-4 md:py-2.5 md:text-sm md:font-normal md:leading-normal`}
     >
       خروج
     </button>

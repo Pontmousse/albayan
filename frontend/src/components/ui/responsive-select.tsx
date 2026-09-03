@@ -9,7 +9,10 @@ import {
   useState,
   type KeyboardEvent,
 } from "react";
-import { MobileSheet } from "@/components/mobile-sheet";
+import {
+  MobileSheet,
+  mobileSheetOptionClassName,
+} from "@/components/mobile-sheet";
 
 export type ResponsiveSelectOption<T extends string> = {
   value: T;
@@ -170,23 +173,43 @@ export function ResponsiveSelect<T extends string>({
             tabIndex={listOpen && index === activeIndex ? 0 : -1}
             onClick={() => choose(index)}
             onKeyDown={(event) => handleOptionKeyDown(event, index)}
-            className={`flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-start transition-colors duration-150 ${
+            className={`flex w-full items-center text-start transition-colors duration-150 ${
+              mobile
+                ? mobileSheetOptionClassName
+                : "min-h-11 gap-3 px-3.5 py-2.5"
+            } ${
               isSelected
                 ? "bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]"
                 : "text-slate-800 hover:bg-[var(--journal-accent-soft)]"
             }`}
           >
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium">{option.label}</span>
+              <span
+                className={`block ${
+                  mobile
+                    ? "text-base font-semibold leading-7"
+                    : "text-sm font-medium"
+                }`}
+              >
+                {option.label}
+              </span>
               {option.description ? (
-                <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                <span
+                  className={`block text-slate-500 ${
+                    mobile
+                      ? "mt-1 text-sm leading-6"
+                      : "mt-0.5 text-xs leading-relaxed"
+                  }`}
+                >
                   {option.description}
                 </span>
               ) : null}
             </span>
             <Check
               aria-hidden
-              className={`h-4 w-4 shrink-0 ${isSelected ? "opacity-100" : "opacity-0"}`}
+              className={`${mobile ? "h-5 w-5" : "h-4 w-4"} shrink-0 ${
+                isSelected ? "opacity-100" : "opacity-0"
+              }`}
             />
           </button>
         </li>
@@ -197,7 +220,7 @@ export function ResponsiveSelect<T extends string>({
     <div ref={rootRef} className="relative min-w-0">
       <span
         id={labelId}
-        className="mb-1.5 block text-xs font-semibold text-slate-700"
+        className="mb-1.5 block text-sm font-semibold text-slate-700 md:text-xs"
       >
         {label}
       </span>
@@ -212,7 +235,7 @@ export function ResponsiveSelect<T extends string>({
         disabled={disabled}
         onClick={() => (open ? close() : show())}
         onKeyDown={handleTriggerKeyDown}
-        className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-md border bg-white px-3 text-start text-sm outline-none transition disabled:cursor-wait disabled:opacity-70 ${
+        className={`flex min-h-12 w-full items-center justify-between gap-3 rounded-md border bg-white px-4 text-start text-base outline-none transition disabled:cursor-wait disabled:opacity-70 md:min-h-11 md:px-3 md:text-sm ${
           open
             ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)]/35 text-[var(--journal-accent-strong)] ring-2 ring-[var(--journal-accent-soft)]"
             : "border-[var(--journal-border)] text-slate-900 hover:border-[var(--journal-accent)] focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
@@ -221,7 +244,7 @@ export function ResponsiveSelect<T extends string>({
         <span className="min-w-0 truncate">{selected?.label}</span>
         <ChevronDown
           aria-hidden
-          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${
+          className={`h-5 w-5 shrink-0 text-slate-500 transition-transform duration-200 md:h-4 md:w-4 ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -255,7 +278,7 @@ export function ResponsiveSelect<T extends string>({
           id={openMode === "mobile" ? listId : undefined}
           role="listbox"
           aria-labelledby={labelId}
-          className="py-1"
+          className="py-2"
         >
           {optionItems(true)}
         </ul>

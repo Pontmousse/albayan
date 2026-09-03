@@ -17,6 +17,9 @@ const ENTER_MS = 380;
 const EXIT_MS = 300;
 const STAGGER_STEP_MS = 65;
 
+export const mobileSheetOptionClassName =
+  "flex min-h-16 w-full items-center gap-4 px-5 py-4 text-start text-base font-semibold leading-7";
+
 export function MobileSheet({
   open,
   onClose,

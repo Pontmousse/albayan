@@ -517,10 +517,10 @@ button:disabled,
 }
 
 .nav-feature-link--menu {
-  min-height: 3rem;
+  min-height: 3.5rem;
   flex: 1;
   justify-content: center;
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
