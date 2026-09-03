@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import unittest
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import ANY, MagicMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, Mock, patch
 
 from fastapi import HTTPException
+from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
@@ -265,6 +267,215 @@ class IssuePhase1Tests(unittest.TestCase):
         self.assertEqual(raised.exception.status_code, 429)
         db.add.assert_not_called()
         db.commit.assert_not_called()
+
+    def test_create_issue_with_zero_one_or_three_images_commits_once(self) -> None:
+        user_id = uuid.uuid4()
+
+        for image_count in (0, 1, 3):
+            with self.subTest(image_count=image_count):
+                db = Mock()
+                stored = Issue(
+                    id=uuid.uuid4(),
+                    user_id=user_id,
+                    title="عنوان",
+                    description="وصف",
+                    status=IssueStatus.OPEN,
+                    category=IssueCategory.BUG,
+                    upvote_count=0,
+                )
+                stored.reporter = _user(user_id)
+                stored.images = []
+                image_payloads = [
+                    (f"image-{index}".encode(), "image/png")
+                    for index in range(image_count)
+                ]
+
+                with patch.object(
+                    issue_service, "_recent_issue_count", return_value=0
+                ), patch.object(
+                    issue_service.workflow_notification_service,
+                    "admin_ids",
+                    return_value={uuid.uuid4()},
+                ), patch.object(
+                    issue_service.workflow_notification_service,
+                    "notify_many",
+                ) as notify, patch.object(
+                    issue_service.s3, "put_bytes"
+                ) as put_bytes, patch.object(
+                    issue_service, "get_issue", return_value=stored
+                ):
+                    result = issue_service.create_issue_with_images(
+                        db,
+                        user_id=user_id,
+                        title="عنوان",
+                        description="وصف",
+                        category=IssueCategory.BUG,
+                        images=image_payloads,
+                    )
+
+                self.assertIs(result, stored)
+                self.assertEqual(put_bytes.call_count, image_count)
+                added_images = [
+                    call.args[0]
+                    for call in db.add.call_args_list
+                    if isinstance(call.args[0], IssueImage)
+                ]
+                self.assertEqual(
+                    [image.position for image in added_images],
+                    list(range(image_count)),
+                )
+                db.commit.assert_called_once_with()
+                db.rollback.assert_not_called()
+                notify.assert_called_once()
+
+    def test_create_issue_with_images_rejects_all_bad_inputs_before_writes(self) -> None:
+        bad_inputs = [
+            [(b"image", "image/png")] * 4,
+            [(b"", "image/png")],
+            [(b"image", "text/plain")],
+            [(b"x" * (issue_service.MAX_ISSUE_IMAGE_BYTES + 1), "image/png")],
+        ]
+
+        for images in bad_inputs:
+            with self.subTest(count=len(images), content_type=images[0][1]):
+                db = Mock()
+                with patch.object(issue_service.s3, "put_bytes") as put_bytes:
+                    with self.assertRaises(HTTPException) as raised:
+                        issue_service.create_issue_with_images(
+                            db,
+                            user_id=uuid.uuid4(),
+                            title="عنوان",
+                            description="وصف",
+                            category=IssueCategory.BUG,
+                            images=images,
+                        )
+
+                self.assertEqual(raised.exception.status_code, 400)
+                db.add.assert_not_called()
+                db.commit.assert_not_called()
+                put_bytes.assert_not_called()
+
+    def test_create_issue_with_images_cleans_uploaded_files_on_s3_failure(self) -> None:
+        db = Mock()
+        storage_error = HTTPException(status_code=503, detail="storage failed")
+
+        with patch.object(
+            issue_service, "_recent_issue_count", return_value=0
+        ), patch.object(
+            issue_service.s3, "put_bytes", side_effect=[None, storage_error]
+        ), patch.object(issue_service.s3, "delete_key") as delete_key:
+            with self.assertRaises(HTTPException) as raised:
+                issue_service.create_issue_with_images(
+                    db,
+                    user_id=uuid.uuid4(),
+                    title="عنوان",
+                    description="وصف",
+                    category=IssueCategory.BUG,
+                    images=[(b"one", "image/png"), (b"two", "image/png")],
+                )
+
+        self.assertIs(raised.exception, storage_error)
+        db.rollback.assert_called_once_with()
+        db.commit.assert_not_called()
+        delete_key.assert_called_once()
+        self.assertIn("/images/", delete_key.call_args.args[0])
+
+    def test_create_issue_with_images_cleans_uploaded_files_on_commit_failure(self) -> None:
+        db = Mock()
+        db.commit.side_effect = RuntimeError("commit failed")
+
+        with patch.object(
+            issue_service, "_recent_issue_count", return_value=0
+        ), patch.object(
+            issue_service.workflow_notification_service,
+            "admin_ids",
+            return_value=set(),
+        ), patch.object(
+            issue_service.workflow_notification_service, "notify_many"
+        ), patch.object(issue_service.s3, "put_bytes"), patch.object(
+            issue_service.s3, "delete_key"
+        ) as delete_key:
+            with self.assertRaisesRegex(RuntimeError, "commit failed"):
+                issue_service.create_issue_with_images(
+                    db,
+                    user_id=uuid.uuid4(),
+                    title="عناون",
+                    description="وصف",
+                    category=IssueCategory.FEEDBACK,
+                    images=[(b"one", "image/webp"), (b"two", "image/jpeg")],
+                )
+
+        db.rollback.assert_called_once_with()
+        self.assertEqual(delete_key.call_count, 2)
+
+    def test_create_issue_with_images_route_reads_files_and_trims_payload(self) -> None:
+        user = _user()
+        file = Mock(content_type="image/png")
+        file.read = AsyncMock(return_value=b"image")
+        stored = Mock()
+        response = Mock()
+
+        with patch.object(issues, "current_user", return_value=user), patch.object(
+            issues.issue_service, "create_issue_with_images", return_value=stored
+        ) as create, patch.object(issues, "_read", return_value=response):
+            result = asyncio.run(
+                issues.create_issue_with_images(
+                    auth=Mock(),
+                    db=Mock(),
+                    title="  عنوان  ",
+                    description="\n وصف \n",
+                    category=IssueCategory.BUG,
+                    files=[file],
+                )
+            )
+
+        self.assertIs(result, response)
+        file.read.assert_awaited_once_with(issue_service.MAX_ISSUE_IMAGE_BYTES + 1)
+        create.assert_called_once_with(
+            ANY,
+            user_id=user.id,
+            title="عنوان",
+            description="وصف",
+            category=IssueCategory.BUG,
+            images=[(b"image", "image/png")],
+        )
+
+    def test_create_issue_with_images_route_rejects_bad_form_before_service(self) -> None:
+        user = _user()
+        files = [Mock(content_type="image/png") for _ in range(4)]
+        for file in files:
+            file.read = AsyncMock(return_value=b"image")
+
+        with patch.object(issues, "current_user", return_value=user), patch.object(
+            issues.issue_service, "create_issue_with_images"
+        ) as create:
+            with self.assertRaises(HTTPException) as too_many:
+                asyncio.run(
+                    issues.create_issue_with_images(
+                        auth=Mock(),
+                        db=Mock(),
+                        title="عنوان",
+                        description="وصف",
+                        category=IssueCategory.BUG,
+                        files=files,
+                    )
+                )
+            with self.assertRaises(RequestValidationError):
+                asyncio.run(
+                    issues.create_issue_with_images(
+                        auth=Mock(),
+                        db=Mock(),
+                        title="   ",
+                        description="وصف",
+                        category=IssueCategory.BUG,
+                        files=[],
+                    )
+                )
+
+        self.assertEqual(too_many.exception.status_code, 400)
+        create.assert_not_called()
+        for file in files:
+            file.read.assert_not_awaited()
 
     def test_route_lists_all_issues_and_marks_current_user_upvote_state(self) -> None:
         current = _user()

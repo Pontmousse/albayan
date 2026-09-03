@@ -48,7 +48,7 @@ export const ISSUE_CATEGORY_LABELS: Record<IssueCategory, string> = {
   feedback: "ملاحظة",
 };
 
-type GetToken = () => Promise<string | null>;
+type GetToken = (options?: { skipCache?: boolean }) => Promise<string | null>;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type IssueListParams = {
@@ -73,6 +73,49 @@ export function createIssue(getToken: GetToken, input: IssueCreateInput) {
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export async function createIssueWithImages(
+  getToken: GetToken,
+  input: IssueCreateInput,
+  files: readonly File[],
+): Promise<IssueRead> {
+  const token = await getToken({ skipCache: true });
+  const form = new FormData();
+  form.append("title", input.title);
+  form.append("description", input.description);
+  form.append("category", input.category);
+  files.forEach((file) => form.append("files", file));
+
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`${API_BASE}/api/v1/issues/with-images`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (!response.ok) {
+    let message = "تعذّر إرسال البلاغ.";
+    try {
+      const data = (await response.json()) as {
+        detail?: string | { msg?: string }[];
+      };
+      if (typeof data.detail === "string") message = data.detail;
+      if (Array.isArray(data.detail) && data.detail[0]?.msg) {
+        message = data.detail[0].msg;
+      }
+    } catch {
+      // ignore
+    }
+    if (response.status === 401) {
+      message = "انتهت الجلسة، سجّل دخولك مجدداً.";
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  return response.json() as Promise<IssueRead>;
 }
 
 export function getIssue(getToken: GetToken, id: string) {

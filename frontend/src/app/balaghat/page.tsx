@@ -14,9 +14,13 @@ import {
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { RowsSkeleton } from "@/components/dashboard/skeleton";
 import { IssueImageThumbnail } from "@/components/issues/issue-image-thumbnail";
+import {
+  ResponsiveSelect,
+  type ResponsiveSelectOption,
+} from "@/components/ui/responsive-select";
 import { getCurrentUser } from "@/lib/api";
 import {
-  createIssue,
+  createIssueWithImages,
   deleteIssueImage,
   ISSUE_CATEGORY_LABELS,
   ISSUE_STATUS_LABELS,
@@ -39,6 +43,26 @@ type SortDirection = "asc" | "desc";
 const CATEGORIES: IssueCategory[] = ["bug", "feature_request", "feedback"];
 const STATUSES: IssueStatus[] = ["open", "in_progress", "resolved", "closed"];
 const MAX_SELECTED_IMAGES = 3;
+
+const CATEGORY_OPTIONS: ResponsiveSelectOption<IssueCategory>[] = CATEGORIES.map(
+  (value) => ({ value, label: ISSUE_CATEGORY_LABELS[value] }),
+);
+const STATUS_FILTER_OPTIONS: ResponsiveSelectOption<StatusFilter>[] = [
+  { value: "all", label: "كل الحالات" },
+  ...STATUSES.map((value) => ({ value, label: ISSUE_STATUS_LABELS[value] })),
+];
+const CATEGORY_FILTER_OPTIONS: ResponsiveSelectOption<CategoryFilter>[] = [
+  { value: "all", label: "كل التصنيفات" },
+  ...CATEGORY_OPTIONS,
+];
+const SORT_OPTIONS: ResponsiveSelectOption<IssueSort>[] = [
+  { value: "date", label: "التاريخ" },
+  { value: "upvotes", label: "التصويتات" },
+];
+const DIRECTION_OPTIONS: ResponsiveSelectOption<SortDirection>[] = [
+  { value: "desc", label: "تنازلي" },
+  { value: "asc", label: "تصاعدي" },
+];
 
 const STATUS_CLASS: Record<IssueStatus, string> = {
   open: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -71,6 +95,7 @@ export default function BalaghatPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
   const queryIssueLoadedRef = useRef(false);
+  const createFileInputRef = useRef<HTMLInputElement>(null);
 
   const listParams = useMemo(
     () => ({
@@ -197,28 +222,19 @@ export default function BalaghatPage() {
     setError(null);
 
     try {
-      const created = await createIssue(getToken, { title, description, category });
-      let latest = created;
-      let uploadWarning: string | null = null;
-      for (const file of selectedFiles) {
-        try {
-          latest = await uploadIssueImage(getToken, created.id, file);
-        } catch (err) {
-          const message =
-            err instanceof Error ? err.message : "تعذّر رفع بعض الصور.";
-          uploadWarning =
-            `تم إنشاء البلاغ، لكن تعذّر رفع بعض الصور: ${message} يمكنك إعادة رفعها من تفاصيل البلاغ.`;
-          break;
-        }
-      }
+      const created = await createIssueWithImages(
+        getToken,
+        { title, description, category },
+        selectedFiles,
+      );
       setTitle("");
       setDescription("");
       setCategory("bug");
       setSelectedFiles([]);
-      setSelectedId(latest.id);
-      updateSelectedIssueInUrl(latest.id);
+      if (createFileInputRef.current) createFileInputRef.current.value = "";
+      setSelectedId(created.id);
+      updateSelectedIssueInUrl(created.id);
       await load();
-      if (uploadWarning) setError(uploadWarning);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر إرسال البلاغ.");
     } finally {
@@ -326,22 +342,12 @@ export default function BalaghatPage() {
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-              التصنيف
-            </span>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value as IssueCategory)}
-              className="h-11 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-            >
-              {CATEGORIES.map((item) => (
-                <option key={item} value={item}>
-                  {ISSUE_CATEGORY_LABELS[item]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ResponsiveSelect
+            label="التصنيف"
+            value={category}
+            options={CATEGORY_OPTIONS}
+            onChange={setCategory}
+          />
         </div>
 
         <label className="block">
@@ -363,6 +369,7 @@ export default function BalaghatPage() {
               الصور
             </span>
             <input
+              ref={createFileInputRef}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
               multiple
@@ -433,71 +440,30 @@ export default function BalaghatPage() {
       ) : null}
 
       <div className="grid gap-3 rounded-lg border border-[var(--journal-border)] bg-white/75 p-3 shadow-sm sm:grid-cols-4">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الحالة
-          </span>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="all">كل الحالات</option>
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {ISSUE_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            التصنيف
-          </span>
-          <select
-            value={categoryFilter}
-            onChange={(event) =>
-              setCategoryFilter(event.target.value as CategoryFilter)
-            }
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="all">كل التصنيفات</option>
-            {CATEGORIES.map((item) => (
-              <option key={item} value={item}>
-                {ISSUE_CATEGORY_LABELS[item]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الترتيب
-          </span>
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.target.value as IssueSort)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="date">التاريخ</option>
-            <option value="upvotes">التصويتات</option>
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الاتجاه
-          </span>
-          <select
-            value={direction}
-            onChange={(event) => setDirection(event.target.value as SortDirection)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="desc">تنازلي</option>
-            <option value="asc">تصاعدي</option>
-          </select>
-        </label>
+        <ResponsiveSelect
+          label="الحالة"
+          value={statusFilter}
+          options={STATUS_FILTER_OPTIONS}
+          onChange={setStatusFilter}
+        />
+        <ResponsiveSelect
+          label="التصنيف"
+          value={categoryFilter}
+          options={CATEGORY_FILTER_OPTIONS}
+          onChange={setCategoryFilter}
+        />
+        <ResponsiveSelect
+          label="الترتيب"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={setSort}
+        />
+        <ResponsiveSelect
+          label="الاتجاه"
+          value={direction}
+          options={DIRECTION_OPTIONS}
+          onChange={setDirection}
+        />
       </div>
 
       {issues === null && !error ? (

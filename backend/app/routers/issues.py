@@ -1,8 +1,10 @@
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
+from pydantic import ValidationError
 
 from app.core import s3
 from app.core.clerk import AuthDep, DbDep
@@ -76,6 +78,44 @@ def create_issue(payload: IssueCreate, auth: AuthDep, db: DbDep) -> IssueRead:
     return _read(issue, current_user_upvoted=False)
 
 
+@router.post("/with-images", response_model=IssueRead, status_code=201)
+async def create_issue_with_images(
+    auth: AuthDep,
+    db: DbDep,
+    title: str = Form(...),
+    description: str = Form(...),
+    category: IssueCategory = Form(...),
+    files: list[UploadFile] = File(default=[]),
+) -> IssueRead:
+    user = current_user(auth, db)
+    try:
+        payload = IssueCreate(
+            title=title,
+            description=description,
+            category=category,
+        )
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc
+    if len(files) > issue_service.MAX_ISSUE_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail="يمكن إرفاق ثلاث صور كحد أقصى لكل بلاغ.",
+        )
+    read_limit = issue_service.MAX_ISSUE_IMAGE_BYTES + 1
+    images = [
+        (await file.read(read_limit), file.content_type or "") for file in files
+    ]
+    issue = issue_service.create_issue_with_images(
+        db,
+        user_id=user.id,
+        title=payload.title,
+        description=payload.description,
+        category=payload.category,
+        images=images,
+    )
+    return _read(issue, current_user_upvoted=False)
+
+
 @router.get("/{issue_id}", response_model=IssueRead)
 def get_issue(issue_id: uuid.UUID, auth: AuthDep, db: DbDep) -> IssueRead:
     user = current_user(auth, db)
@@ -91,7 +131,7 @@ async def upload_issue_image(
     file: UploadFile = File(...),
 ) -> IssueRead:
     user = current_user(auth, db)
-    body = await file.read()
+    body = await file.read(issue_service.MAX_ISSUE_IMAGE_BYTES + 1)
     issue = issue_service.create_issue_image(
         db,
         issue_id=issue_id,

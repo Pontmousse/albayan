@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Literal
@@ -35,6 +36,8 @@ _ALLOWED_IMAGE_TYPES = {
     "image/webp": ".webp",
 }
 
+logger = logging.getLogger(__name__)
+
 
 def _recent_issue_count(db: Session, user_id: uuid.UUID) -> int:
     threshold = datetime.now(timezone.utc) - timedelta(hours=24)
@@ -48,7 +51,7 @@ def _recent_issue_count(db: Session, user_id: uuid.UUID) -> int:
     )
 
 
-def create_issue(
+def _add_issue(
     db: Session,
     *,
     user_id: uuid.UUID,
@@ -60,6 +63,7 @@ def create_issue(
         raise _RATE_LIMITED
 
     issue = Issue(
+        id=uuid.uuid4(),
         user_id=user_id,
         title=title,
         description=description,
@@ -69,6 +73,10 @@ def create_issue(
     )
     db.add(issue)
     db.flush()
+    return issue
+
+
+def _notify_issue_created(db: Session, issue: Issue) -> None:
     workflow_notification_service.notify_many(
         db,
         user_ids=workflow_notification_service.admin_ids(db),
@@ -76,13 +84,114 @@ def create_issue(
         title="بلاغ جديد",
         body=f"أُرسل بلاغ جديد بعنوان «{issue.title}».",
         link="/admin/balaghat",
-        actor_id=user_id,
+        actor_id=issue.user_id,
         event_scope=f"issue:{issue.id}:created",
-        metadata={"issue_id": str(issue.id), "category": category.value},
+        metadata={"issue_id": str(issue.id), "category": issue.category.value},
     )
+
+
+def create_issue(
+    db: Session,
+    *,
+    user_id: uuid.UUID,
+    title: str,
+    description: str,
+    category: IssueCategory,
+) -> Issue:
+    issue = _add_issue(
+        db,
+        user_id=user_id,
+        title=title,
+        description=description,
+        category=category,
+    )
+    _notify_issue_created(db, issue)
     db.commit()
     db.refresh(issue)
     return issue
+
+
+def _validated_image(body: bytes, content_type: str) -> tuple[str, str]:
+    normalized_type = content_type.split(";")[0].strip().lower()
+    ext = _ALLOWED_IMAGE_TYPES.get(normalized_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=400,
+            detail="نوع الملف غير مدعوم. استخدم JPEG أو PNG أو GIF أو WebP.",
+        )
+    if not body:
+        raise HTTPException(status_code=400, detail="الملف فارغ.")
+    if len(body) > MAX_ISSUE_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail="حجم الصورة يتجاوز الحد المسموح (5 ميغابايت).",
+        )
+    return normalized_type, ext
+
+
+def _cleanup_uploaded_issue_images(keys: list[str]) -> None:
+    for key in keys:
+        try:
+            s3.delete_key(key)
+        except Exception:
+            logger.exception("تعذّر تنظيف صورة بلاغ بعد فشل الإنشاء: %s", key)
+
+
+def create_issue_with_images(
+    db: Session,
+    *,
+    user_id: uuid.UUID,
+    title: str,
+    description: str,
+    category: IssueCategory,
+    images: list[tuple[bytes, str]],
+) -> Issue:
+    if len(images) > MAX_ISSUE_IMAGES:
+        raise HTTPException(
+            status_code=400,
+            detail="يمكن إرفاق ثلاث صور كحد أقصى لكل بلاغ.",
+        )
+
+    validated_images = [
+        (body, *_validated_image(body, content_type))
+        for body, content_type in images
+    ]
+    uploaded_keys: list[str] = []
+
+    try:
+        issue = _add_issue(
+            db,
+            user_id=user_id,
+            title=title,
+            description=description,
+            category=category,
+        )
+        storage_prefix = f"issues/{issue.id}/images"
+        for position, (body, normalized_type, ext) in enumerate(validated_images):
+            filename = f"{uuid.uuid4().hex}{ext}"
+            s3_key = f"{storage_prefix}/{filename}"
+            s3.put_bytes(storage_prefix, filename, body, normalized_type)
+            uploaded_keys.append(s3_key)
+            db.add(
+                IssueImage(
+                    issue_id=issue.id,
+                    s3_key=s3_key,
+                    position=position,
+                )
+            )
+
+        db.flush()
+        _notify_issue_created(db, issue)
+        db.commit()
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            logger.exception("تعذّر التراجع عن معاملة إنشاء البلاغ")
+        _cleanup_uploaded_issue_images(uploaded_keys)
+        raise
+
+    return get_issue(db, issue.id)
 
 
 def list_issues(
@@ -233,20 +342,7 @@ def create_issue_image(
     issue = get_issue(db, issue_id)
     _assert_reporter(issue, user_id)
 
-    normalized_type = content_type.split(";")[0].strip().lower()
-    ext = _ALLOWED_IMAGE_TYPES.get(normalized_type)
-    if ext is None:
-        raise HTTPException(
-            status_code=400,
-            detail="نوع الملف غير مدعوم. استخدم JPEG أو PNG أو GIF أو WebP.",
-        )
-    if not body:
-        raise HTTPException(status_code=400, detail="الملف فارغ.")
-    if len(body) > MAX_ISSUE_IMAGE_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail="حجم الصورة يتجاوز الحد المسموح (5 ميغابايت).",
-        )
+    normalized_type, ext = _validated_image(body, content_type)
 
     image_count = int(
         db.scalar(

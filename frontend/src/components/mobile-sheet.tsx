@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -21,11 +22,13 @@ export function MobileSheet({
   onClose,
   title,
   children,
+  initialFocusRef,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  initialFocusRef?: RefObject<HTMLElement | null>;
 }) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -66,8 +69,8 @@ export function MobileSheet({
   }, [mounted, onClose]);
 
   useEffect(() => {
-    if (visible) closeRef.current?.focus();
-  }, [visible]);
+    if (visible) (initialFocusRef?.current ?? closeRef.current)?.focus();
+  }, [initialFocusRef, visible]);
 
   if (!mounted) return null;
 

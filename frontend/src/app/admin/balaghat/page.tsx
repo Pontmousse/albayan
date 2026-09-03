@@ -10,6 +10,10 @@ import {
 } from "react";
 import { IssueImageThumbnail } from "@/components/issues/issue-image-thumbnail";
 import {
+  ResponsiveSelect,
+  type ResponsiveSelectOption,
+} from "@/components/ui/responsive-select";
+import {
   type AdminIssueRead,
   listAdminIssues,
   updateIssueStatus,
@@ -29,6 +33,29 @@ type SortDirection = "asc" | "desc";
 
 const STATUSES: IssueStatus[] = ["open", "in_progress", "resolved", "closed"];
 const CATEGORIES: IssueCategory[] = ["bug", "feature_request", "feedback"];
+
+const STATUS_OPTIONS: ResponsiveSelectOption<IssueStatus>[] = STATUSES.map(
+  (value) => ({ value, label: ISSUE_STATUS_LABELS[value] }),
+);
+const STATUS_FILTER_OPTIONS: ResponsiveSelectOption<StatusFilter>[] = [
+  { value: "all", label: "كل الحالات" },
+  ...STATUS_OPTIONS,
+];
+const CATEGORY_FILTER_OPTIONS: ResponsiveSelectOption<CategoryFilter>[] = [
+  { value: "all", label: "كل التصنيفات" },
+  ...CATEGORIES.map((value) => ({
+    value,
+    label: ISSUE_CATEGORY_LABELS[value],
+  })),
+];
+const SORT_OPTIONS: ResponsiveSelectOption<IssueSort>[] = [
+  { value: "date", label: "التاريخ" },
+  { value: "upvotes", label: "التصويتات" },
+];
+const DIRECTION_OPTIONS: ResponsiveSelectOption<SortDirection>[] = [
+  { value: "desc", label: "تنازلي" },
+  { value: "asc", label: "تصاعدي" },
+];
 
 const STATUS_CLASS: Record<IssueStatus, string> = {
   open: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -160,71 +187,30 @@ export default function AdminBalaghatPage() {
       ) : null}
 
       <div className="grid gap-3 rounded-lg border border-[var(--journal-border)] bg-white/75 p-3 shadow-sm sm:grid-cols-4">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الحالة
-          </span>
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="all">كل الحالات</option>
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {ISSUE_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            التصنيف
-          </span>
-          <select
-            value={categoryFilter}
-            onChange={(event) =>
-              setCategoryFilter(event.target.value as CategoryFilter)
-            }
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="all">كل التصنيفات</option>
-            {CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {ISSUE_CATEGORY_LABELS[category]}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الترتيب
-          </span>
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.target.value as IssueSort)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="date">التاريخ</option>
-            <option value="upvotes">التصويتات</option>
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-            الاتجاه
-          </span>
-          <select
-            value={direction}
-            onChange={(event) => setDirection(event.target.value as SortDirection)}
-            className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
-          >
-            <option value="desc">تنازلي</option>
-            <option value="asc">تصاعدي</option>
-          </select>
-        </label>
+        <ResponsiveSelect
+          label="الحالة"
+          value={statusFilter}
+          options={STATUS_FILTER_OPTIONS}
+          onChange={setStatusFilter}
+        />
+        <ResponsiveSelect
+          label="التصنيف"
+          value={categoryFilter}
+          options={CATEGORY_FILTER_OPTIONS}
+          onChange={setCategoryFilter}
+        />
+        <ResponsiveSelect
+          label="الترتيب"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={setSort}
+        />
+        <ResponsiveSelect
+          label="الاتجاه"
+          value={direction}
+          options={DIRECTION_OPTIONS}
+          onChange={setDirection}
+        />
       </div>
 
       {issues === null && !error ? (
@@ -297,28 +283,15 @@ export default function AdminBalaghatPage() {
                   </p>
                 </div>
 
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold text-slate-700">
-                    تحديث الحالة
-                  </span>
-                  <select
-                    value={selectedIssue.status}
-                    disabled={updatingId === selectedIssue.id}
-                    onChange={(event) =>
-                      handleStatusChange(
-                        selectedIssue,
-                        event.target.value as IssueStatus,
-                      )
-                    }
-                    className="h-10 w-full rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)] disabled:cursor-wait disabled:opacity-70"
-                  >
-                    {STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {ISSUE_STATUS_LABELS[status]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <ResponsiveSelect
+                  label="تحديث الحالة"
+                  value={selectedIssue.status}
+                  options={STATUS_OPTIONS}
+                  disabled={updatingId === selectedIssue.id}
+                  onChange={(status) =>
+                    void handleStatusChange(selectedIssue, status)
+                  }
+                />
 
                 <dl className="grid gap-2 text-sm">
                   <div className="flex justify-between gap-3">
