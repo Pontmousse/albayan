@@ -10,11 +10,13 @@ import {
 } from "@/lib/mcp-client-guides";
 
 function ClientIcon({
+  id,
   name,
   iconSrc,
   accentClass,
   size = "lg",
 }: {
+  id: McpClientId;
   name: string;
   iconSrc?: string;
   accentClass: string;
@@ -23,16 +25,35 @@ function ClientIcon({
   const box =
     size === "sm"
       ? "h-8 w-8 rounded-lg text-sm"
-      : "h-14 w-14 rounded-2xl text-lg shadow-md";
+      : "h-14 w-14 rounded-2xl text-lg shadow-sm";
+
+  const iconTheme: Record<McpClientId, { surface: string; image: string }> = {
+    cursor: {
+      surface: "border-stone-300/80 bg-gradient-to-br from-white to-stone-200",
+      image: size === "sm" ? "h-[21px] w-[21px]" : "h-9 w-9",
+    },
+    chatgpt: {
+      surface: "border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-teal-100",
+      // The source is a wide 16:9 canvas, so it needs more width to match the
+      // optical (rather than file) size of the two square logo files.
+      image: size === "sm" ? "h-7 w-10" : "h-12 w-16",
+    },
+    claude: {
+      surface: "border-orange-200/90 bg-gradient-to-br from-orange-50 to-amber-100",
+      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+    },
+  };
+  const theme = iconTheme[id];
 
   if (iconSrc) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={iconSrc}
-        alt=""
-        className={`${box} object-contain`}
-      />
+      <span
+        className={`flex shrink-0 items-center justify-center border ${box} ${theme.surface}`}
+        aria-hidden
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={iconSrc} alt="" className={`${theme.image} object-contain`} />
+      </span>
     );
   }
 
@@ -91,6 +112,14 @@ export function McpClientCarousel() {
   }, []);
 
   const active = MCP_CLIENT_GUIDES[activeIndex] ?? MCP_CLIENT_GUIDES[0];
+  const selectedTabClass: Record<McpClientId, string> = {
+    cursor:
+      "border-stone-400 bg-gradient-to-br from-white to-stone-200 text-slate-900 shadow-sm ring-1 ring-stone-300/50",
+    chatgpt:
+      "border-emerald-400/80 bg-gradient-to-br from-emerald-50 to-teal-100 text-emerald-950 shadow-sm ring-1 ring-emerald-200/60",
+    claude:
+      "border-orange-300 bg-gradient-to-br from-orange-50 to-amber-100 text-orange-950 shadow-sm ring-1 ring-orange-200/60",
+  };
 
   return (
     <section className="mt-10" aria-labelledby="mcp-setup-heading">
@@ -130,11 +159,12 @@ export function McpClientCarousel() {
               onClick={() => scrollToIndex(index)}
               className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 selected
-                  ? "border-[var(--journal-accent)] bg-[var(--journal-accent)] text-white shadow-sm"
+                  ? selectedTabClass[guide.id]
                   : "border-[var(--journal-border)] bg-white/80 text-slate-700 hover:border-[var(--journal-accent)]/50"
               }`}
             >
               <ClientIcon
+                id={guide.id}
                 name={guide.name}
                 iconSrc={guide.iconSrc}
                 accentClass={guide.accentClass}
@@ -162,6 +192,7 @@ export function McpClientCarousel() {
             >
               <div className="flex items-start gap-4">
                 <ClientIcon
+                  id={guide.id}
                   name={guide.name}
                   iconSrc={guide.iconSrc}
                   accentClass={guide.accentClass}
