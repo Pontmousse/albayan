@@ -44,6 +44,11 @@ export default function WukalaPage() {
 
         <McpClientCarousel />
 
+        <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm leading-7 text-slate-600">
+  قد تتغيّر خطوات الربط مع تحديث واجهات البرامج والخدمات المذكورة. نحرص على
+  مراجعة هذه الإرشادات وتحديثها بما يتوافق مع أحدث الواجهات قدر الإمكان.
+</div>
+
         <section
           className="stagger-item mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm"
           style={{ "--stagger-index": 0 } as CSSProperties}
