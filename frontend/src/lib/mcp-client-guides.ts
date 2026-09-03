@@ -52,7 +52,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "chatgpt",
     name: "ChatGPT",
-    iconSrc: "/wukala/chatgpt.webp",
+    iconSrc: "/wukala/chatgpt.png",
     tagline: "من متصفح الحاسوب — تربطه بتسجيل دخول التطبيق",
     accentClass: "from-emerald-600 to-teal-800",
     authLabel: "تسجيل دخول التطبيق",
