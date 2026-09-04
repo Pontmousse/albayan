@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useNumerals } from "@/components/numeral-provider";
 
 const verses = [
   "أَلَمْ تَرَ أَنَّ اللَّهَ أَنْزَلَ مِنَ السَّمَاءِ مَاءً فَأَخْرَجْنَا بِهِ ثَمَرَاتٍ مُخْتَلِفًا أَلْوَانُهَا ۚ وَمِنَ الْجِبَالِ جُدَدٌ بِيضٌ وَحُمْرٌ مُخْتَلِفٌ أَلْوَانُهَا وَغَرَابِيبُ سُودٌ",
@@ -9,6 +12,11 @@ const verses = [
 
 /** افتتاحية قرآنية + فلسفة المشروع — تُعرض في كلتا واجهتي الرئيسية. */
 export function QuranicOpening() {
+  const { formatNumber } = useNumerals();
+  const verseNumbers = [27, 28, 29, 30]
+    .map((number) => formatNumber(number))
+    .join("، ");
+
   return (
     <section className="relative overflow-hidden border-b border-[var(--journal-border)] bg-[linear-gradient(135deg,var(--journal-paper)_0%,var(--journal-accent-soft)_45%,#e9f1ec_100%)]">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-800 via-amber-600 to-slate-900" />
@@ -46,7 +54,7 @@ export function QuranicOpening() {
             className="mt-3 text-center text-base font-bold text-[var(--journal-accent)] sm:mt-4 sm:text-xl"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
-            سورة فاطر [٢٧، ٢٨، ٢٩، ٣٠]
+            سورة فاطر [{verseNumbers}]
           </p>
           <p className="mx-auto mt-4 max-w-4xl text-center text-sm leading-7 text-slate-700 sm:mt-5 sm:text-base">
             تنطلق «البيان» من أن عقيدة التوحيد والنظر في آيات الله في الكون لا

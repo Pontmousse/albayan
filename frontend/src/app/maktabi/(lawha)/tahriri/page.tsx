@@ -131,7 +131,7 @@ export default function TahririPage() {
                     {row.title}
                   </Link>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>الإصدار {formatDigits(`v${row.version_number}`)}</span>
+                    <span>الإصدار {formatDigits(row.version_number)}</span>
                     <span aria-hidden>·</span>
                     <span>
                       {row.submitted_at

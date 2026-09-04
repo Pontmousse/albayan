@@ -99,7 +99,7 @@ export function ExportedTexDevPanel({
             onClick={() => setJsonOpen(true)}
             className="min-h-9 rounded-md border border-amber-400 bg-white px-3 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
           >
-            See JSON
+            عرض JSON
           </button>
           <CopyButton value={tex} />
         </div>

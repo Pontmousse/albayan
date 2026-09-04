@@ -118,7 +118,9 @@ export function translateEnglishAuthMessage(message: string): string {
       return typeof replace === "function" ? replace(match) : replace;
     }
   }
-  return trimmed;
+  return /[\u0600-\u06ff]/u.test(trimmed)
+    ? trimmed
+    : "تعذّر إكمال عملية المصادقة. حاول مجدداً.";
 }
 
 export function translateClerkError(error: unknown): string {

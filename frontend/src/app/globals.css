@@ -50,6 +50,35 @@ body {
   display: none;
 }
 
+/* شريط تمرير هادئ لقائمة الإشعارات، متناسق مع ألوان المجلة */
+.notification-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--journal-accent) 68%, white)
+    color-mix(in srgb, var(--journal-accent-soft) 72%, white);
+  scrollbar-width: thin;
+}
+
+.notification-scrollbar::-webkit-scrollbar {
+  width: 0.65rem;
+}
+
+.notification-scrollbar::-webkit-scrollbar-track {
+  margin-block: 0.35rem;
+  background: color-mix(in srgb, var(--journal-accent-soft) 72%, white);
+  border-radius: 999px;
+}
+
+.notification-scrollbar::-webkit-scrollbar-thumb {
+  min-height: 2.5rem;
+  background: color-mix(in srgb, var(--journal-accent) 68%, white);
+  border: 2px solid color-mix(in srgb, var(--journal-accent-soft) 72%, white);
+  border-radius: 999px;
+  transition: background-color 150ms ease;
+}
+
+.notification-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--journal-accent);
+}
+
 @keyframes albayan-logo-sweep {
   0%,
   72%,

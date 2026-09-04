@@ -76,12 +76,7 @@ function NavDropdown({ group }: { group: NavGroup }) {
   useMenuDismiss(open, close, rootRef);
 
   return (
-    <div
-      ref={rootRef}
-      className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         aria-expanded={open}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import { arSA } from "@clerk/localizations";
 import type { ReactNode } from "react";
 
 /**
@@ -12,6 +13,7 @@ import type { ReactNode } from "react";
 export function AppClerkProvider({ children }: { children: ReactNode }) {
   return (
     <ClerkProvider
+      localization={arSA}
       signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/tawajjuh"}
       signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || "/tasjil"}
       signInFallbackRedirectUrl={

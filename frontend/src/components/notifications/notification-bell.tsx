@@ -77,7 +77,7 @@ function NotificationRows({
   }
 
   return (
-    <ul className="max-h-[22rem] overflow-y-auto py-1">
+    <ul className="notification-scrollbar max-h-[22rem] overflow-y-auto py-1">
       {notifications.map((notification) => (
         <li key={notification.id}>
           <button

@@ -41,28 +41,42 @@ export class ApiError extends Error {
   }
 }
 
-async function parseError(response: Response): Promise<string> {
+function containsArabic(value: string): boolean {
+  return /[\u0600-\u06ff]/u.test(value);
+}
+
+export function arabicApiErrorMessage(
+  data: unknown,
+  fallback: string,
+): string {
+  if (!data || typeof data !== "object") return fallback;
+  const detail = (data as {
+    detail?: string | { msg?: string }[] | { message?: string };
+  }).detail;
+  const candidate =
+    typeof detail === "string"
+      ? detail
+      : Array.isArray(detail)
+        ? detail[0]?.msg
+        : detail?.message;
+  return typeof candidate === "string" && containsArabic(candidate)
+    ? candidate
+    : fallback;
+}
+
+export async function apiErrorMessage(
+  response: Response,
+  fallback = "حدث خطأ أثناء الاتصال بالخادم.",
+): Promise<string> {
   try {
-    const data = (await response.json()) as {
-      detail?: string | { msg?: string }[] | { message?: string };
-    };
-    if (typeof data.detail === "string") return data.detail;
-    if (Array.isArray(data.detail) && data.detail[0]?.msg) {
-      return data.detail[0].msg;
-    }
-    if (
-      data.detail &&
-      !Array.isArray(data.detail) &&
-      typeof data.detail.message === "string"
-    ) {
-      return data.detail.message;
-    }
+    const message = arabicApiErrorMessage(await response.json(), "");
+    if (message) return message;
   } catch {
-    // ignore
+    // Use the localized status or operation fallback below.
   }
   if (response.status === 401) return "انتهت الجلسة، سجّل دخولك مجدداً.";
   if (response.status === 503) return "الخدمة غير متاحة مؤقتاً.";
-  return "حدث خطأ أثناء الاتصال بالخادم.";
+  return fallback;
 }
 
 export async function apiFetch<T>(
@@ -83,7 +97,7 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new ApiError(await parseError(response), response.status);
+    throw new ApiError(await apiErrorMessage(response), response.status);
   }
 
   if (response.status === 204) {

@@ -1,4 +1,4 @@
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiErrorMessage, apiFetch, ApiError } from "@/lib/api";
 import type { Document2Json } from "@drghaliasri/butex/document2";
 
 export type VersionStatus =
@@ -175,14 +175,10 @@ export async function uploadArticleAsset(
   });
 
   if (!response.ok) {
-    let message = "تعذّر رفع الصورة.";
-    try {
-      const data = (await response.json()) as { detail?: string };
-      if (typeof data.detail === "string") message = data.detail;
-    } catch {
-      // ignore
-    }
-    throw new ApiError(message, response.status);
+    throw new ApiError(
+      await apiErrorMessage(response, "تعذّر رفع الصورة."),
+      response.status,
+    );
   }
 
   return response.json() as Promise<ArticleAssetUpload>;

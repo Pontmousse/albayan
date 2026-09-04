@@ -65,4 +65,4 @@ export const footerLinks = {
   ],
 };
 
-export const contactEmail = "albayan@gmail.com";
+export const contactEmail = "support@albayan-journal.org";

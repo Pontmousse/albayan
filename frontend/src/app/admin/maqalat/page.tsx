@@ -137,7 +137,7 @@ export default function AdminArticlesPage() {
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       <span>{primaryAuthor}</span>
                       <span aria-hidden>·</span>
-                      <span>{formatDigits(`v${row.version_number}`)}</span>
+                      <span>الإصدار {formatDigits(row.version_number)}</span>
                       <span aria-hidden>·</span>
                       <span>{formatNumber(row.reviewers.length)} مراجع</span>
                       <span aria-hidden>·</span>

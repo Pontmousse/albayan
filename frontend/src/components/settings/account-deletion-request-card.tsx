@@ -3,12 +3,15 @@
 import { useAuth, useReverification } from "@clerk/nextjs";
 import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { FormEvent, useState } from "react";
-import { API_BASE, type AccountDeletionRequestRead } from "@/lib/api";
+import {
+  API_BASE,
+  arabicApiErrorMessage,
+  type AccountDeletionRequestRead,
+} from "@/lib/api";
 import { buttonClassName, cardClassName } from "@/lib/auth-ui";
 
 function parseError(data: Record<string, unknown>): string {
-  if (typeof data.detail === "string") return data.detail;
-  return "تعذّر إرسال طلب حذف الحساب.";
+  return arabicApiErrorMessage(data, "تعذّر إرسال طلب حذف الحساب.");
 }
 
 export function AccountDeletionRequestCard() {
