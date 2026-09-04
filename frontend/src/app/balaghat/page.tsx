@@ -364,7 +364,7 @@ export default function BalaghatPage() {
         </label>
 
         <div className="space-y-3">
-          <label className="block">
+          <div>
             <span className="mb-1.5 block text-xs font-semibold text-slate-700">
               الصور
             </span>
@@ -374,9 +374,21 @@ export default function BalaghatPage() {
               accept="image/jpeg,image/png,image/gif,image/webp"
               multiple
               onChange={(event) => handleCreateFiles(event.currentTarget.files)}
-              className="block w-full rounded-md border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-700 file:me-3 file:rounded-md file:border-0 file:bg-[var(--journal-accent-soft)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--journal-accent)]"
+              className="sr-only"
             />
-          </label>
+            <button
+              type="button"
+              onClick={() => createFileInputRef.current?.click()}
+              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-3 text-xs font-semibold text-[var(--journal-accent)] transition hover:bg-[var(--journal-accent-soft)]"
+            >
+              اختيار صور
+            </button>
+            <span className="ms-3 text-xs text-slate-500">
+              {selectedFiles.length > 0
+                ? `اختيرت ${formatNumber(selectedFiles.length)} من ${formatNumber(MAX_SELECTED_IMAGES)}`
+                : "لم تُختر صور"}
+            </span>
+          </div>
 
           {imageError ? (
             <p className="text-sm text-red-700" role="alert">

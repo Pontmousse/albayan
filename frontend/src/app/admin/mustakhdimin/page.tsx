@@ -45,11 +45,11 @@ const DELETION_STATUS_LABELS: Record<AccountDeletionRequestStatus, string> = {
 };
 
 function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role;
+  return ROLE_LABELS[role] ?? "دور غير معروف";
 }
 
 function invitationStatusLabel(status: string): string {
-  return INVITATION_STATUS_LABELS[status] ?? status;
+  return INVITATION_STATUS_LABELS[status] ?? "حالة غير معروفة";
 }
 
 export default function AdminUsersPage() {
