@@ -13,10 +13,12 @@
     "test:clerk-invitations": "node scripts/check-clerk-invitation-signup.mjs",
     "test:auth-flows": "node scripts/check-auth-email-and-deletion.mjs",
     "test:copy-hijri": "node --test scripts/check-copy-hijri.mjs",
+    "test:localization": "vitest run src/lib/api.test.ts src/lib/auth-ui.test.ts",
     "test:numerals": "vitest run src/lib/numerals.test.ts src/lib/format-date.test.ts",
     "test:numerals:e2e": "playwright test e2e/numeral-system.spec.ts"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.16.0",
     "@clerk/nextjs": "^7.5.9",
     "@drghaliasri/butex": "^6.1.1",
     "lucide-react": "^1.39.0",

@@ -330,7 +330,7 @@ export default function TahrirPage() {
                 disabled={phase !== "ready"}
                 className="min-h-9 rounded-md border border-amber-400 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                See JSON
+                عرض JSON
               </button>
             ) : null}
             <button

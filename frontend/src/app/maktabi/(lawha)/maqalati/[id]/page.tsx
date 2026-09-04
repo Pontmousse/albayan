@@ -258,7 +258,7 @@ export default function ArticleDetailPage() {
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
               <StatusBadge status={current.status} />
-              <span>الإصدار {formatDigits(`v${current.version_number}`)}</span>
+              <span>الإصدار {formatDigits(current.version_number)}</span>
               <span aria-hidden>·</span>
               <span>أُنشئ في {formatDate(article.created_at)}</span>
             </p>
@@ -399,7 +399,7 @@ export default function ArticleDetailPage() {
             >
               <span className="flex items-center gap-2.5">
                 <span className="font-semibold text-slate-800">
-                  {formatDigits(`v${version.version_number}`)}
+                  الإصدار {formatDigits(version.version_number)}
                 </span>
                 <StatusBadge status={version.status} />
               </span>

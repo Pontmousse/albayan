@@ -232,7 +232,7 @@ export default function AdminArticleDetailPage() {
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
             <StatusBadge status={current.status} />
-            <span>الإصدار {formatDigits(`v${current.version_number}`)}</span>
+            <span>الإصدار {formatDigits(current.version_number)}</span>
             <span aria-hidden>·</span>
             <span>أُنشئ في {formatDate(article.created_at)}</span>
           </p>

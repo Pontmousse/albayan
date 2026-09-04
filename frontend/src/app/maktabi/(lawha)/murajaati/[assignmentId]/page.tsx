@@ -161,7 +161,7 @@ export default function MurajaatiDetailPage() {
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
             <StatusBadge status={assignment.version_status} />
-            <span>الإصدار {formatDigits(`v${assignment.version_number}`)}</span>
+            <span>الإصدار {formatDigits(assignment.version_number)}</span>
             <span aria-hidden>·</span>
             <span>دُعيت في {formatDate(assignment.invited_at)}</span>
           </p>

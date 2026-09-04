@@ -1,4 +1,4 @@
-import { ApiError, apiFetch } from "@/lib/api";
+import { ApiError, apiErrorMessage, apiFetch } from "@/lib/api";
 
 export type IssueStatus = "open" | "in_progress" | "resolved" | "closed";
 export type IssueCategory = "bug" | "feature_request" | "feedback";
@@ -97,22 +97,10 @@ export async function createIssueWithImages(
   });
 
   if (!response.ok) {
-    let message = "تعذّر إرسال البلاغ.";
-    try {
-      const data = (await response.json()) as {
-        detail?: string | { msg?: string }[];
-      };
-      if (typeof data.detail === "string") message = data.detail;
-      if (Array.isArray(data.detail) && data.detail[0]?.msg) {
-        message = data.detail[0].msg;
-      }
-    } catch {
-      // ignore
-    }
-    if (response.status === 401) {
-      message = "انتهت الجلسة، سجّل دخولك مجدداً.";
-    }
-    throw new ApiError(message, response.status);
+    throw new ApiError(
+      await apiErrorMessage(response, "تعذّر إرسال البلاغ."),
+      response.status,
+    );
   }
 
   return response.json() as Promise<IssueRead>;
@@ -158,14 +146,10 @@ export async function uploadIssueImage(
   );
 
   if (!response.ok) {
-    let message = "تعذّر رفع الصورة.";
-    try {
-      const data = (await response.json()) as { detail?: string };
-      if (typeof data.detail === "string") message = data.detail;
-    } catch {
-      // ignore
-    }
-    throw new ApiError(message, response.status);
+    throw new ApiError(
+      await apiErrorMessage(response, "تعذّر رفع الصورة."),
+      response.status,
+    );
   }
 
   return response.json() as Promise<IssueRead>;
