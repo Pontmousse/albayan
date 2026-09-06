@@ -31,6 +31,7 @@ import {
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
+import { isButexDocumentValid } from "@/lib/butex-validation";
 import { isDevMode } from "@/lib/dev-mode";
 
 type EditorPhase = "loading" | "ready" | "blocked";
@@ -66,6 +67,7 @@ export default function TahrirPage() {
   const [assetsUploading, setAssetsUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [documentValid, setDocumentValid] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
@@ -111,6 +113,7 @@ export default function TahrirPage() {
         if (cancelled) return;
 
         latestDocumentJson.current = doc;
+        setDocumentValid(doc == null || isButexDocumentValid(doc));
         savedDocumentSnapshot.current = null;
         sessionRevision.current = revision;
         sessionNeedsDraftSave.current = revision > lastSavedRevision;
@@ -177,6 +180,7 @@ export default function TahrirPage() {
   const handleDocumentJsonChange = useCallback(
     (doc: Document2Json) => {
       latestDocumentJson.current = doc;
+      setDocumentValid(isButexDocumentValid(doc));
       const snapshot = JSON.stringify(doc);
 
       if (savedDocumentSnapshot.current === null) {
@@ -231,7 +235,9 @@ export default function TahrirPage() {
       setSaveMessage(
         changedWhileSaving
           ? "تم حفظ النسخة السابقة — توجد تغييرات أحدث غير محفوظة."
-          : "تم الحفظ.",
+          : isButexDocumentValid(documentToSave)
+            ? "تم الحفظ."
+            : "تم حفظ المسودة، لكن توجد مشكلة في المحرر يجب مراجعتها قبل إنشاء ملفّ المعاينة.",
       );
       if (changedWhileSaving) {
         setError("تغيّر المستند أثناء الحفظ؛ احفظ التغييرات الأحدث قبل التقديم.");
@@ -315,7 +321,10 @@ export default function TahrirPage() {
           </div>
           <div className="flex items-center gap-2.5">
             {saveMessage ? (
-              <span className="text-xs text-emerald-700" role="status">
+              <span
+                className={`text-xs ${documentValid ? "text-emerald-700" : "text-amber-700"}`}
+                role="status"
+              >
                 {saveMessage}
               </span>
             ) : dirty ? (
@@ -368,6 +377,16 @@ export default function TahrirPage() {
             role="alert"
           >
             {error}
+          </p>
+        ) : null}
+
+        {!documentValid ? (
+          <p
+            className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            role="status"
+          >
+            توجد مشكلة في المحرر. يمكنك حفظ المسودة، لكن يجب مراجعة الحقول
+            المعلّمة قبل إنشاء ملفّ المعاينة.
           </p>
         ) : null}
 
