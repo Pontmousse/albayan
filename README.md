@@ -69,6 +69,20 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - [تدقيق الأرقام الظاهرة وخطة مفتاح الأرقام العربية/الغربية](docs/frontend-numeral-audit.md).
 
+## Development
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Pontmousse/albayan.git
+```
+
+Create a branch before starting work:
+
+```bash
+git checkout -b feature/my-change
+```
+
 ## Docker
 
 غير مضمّن في الإصدار الأول؛ يمكن إضافة صور منفصلة للواجهة والخلفية لاحقًا.
