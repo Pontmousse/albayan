@@ -30,6 +30,7 @@ import {
   exportDocumentLatex,
   hashDocument,
 } from "@/lib/butex-latex";
+import { isButexDocumentValid } from "@/lib/butex-validation";
 import { isDevMode } from "@/lib/dev-mode";
 import { useNumerals } from "@/components/numeral-provider";
 
@@ -159,6 +160,11 @@ export default function ArticleDetailPage() {
   async function handleCompile() {
     if (documentJson == null) {
       throw new Error("لا توجد مخطوطة محفوظة لإنشاء ملفّ المعاينة.");
+    }
+    if (!isButexDocumentValid(documentJson)) {
+      throw new Error(
+        "لا يمكن إنشاء ملفّ المعاينة لوجود مشكلة في المحرر. ارجع إلى المحرر وراجع الحقول المعلّمة.",
+      );
     }
     if (article?.current_version.status === "draft") {
       await saveArticleDocument(getToken, articleId, documentJson);
