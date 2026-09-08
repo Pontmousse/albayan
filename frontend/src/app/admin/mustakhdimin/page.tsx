@@ -37,6 +37,16 @@ const INVITATION_STATUS_LABELS: Record<string, string> = {
   revoked: "ملغاة",
 };
 
+const EMAIL_DELIVERY_STATUS_LABELS: Record<string, string> = {
+  accepted: "قَبِلها مزود البريد",
+  delivered: "تم التسليم",
+  delayed: "التسليم متأخر",
+  bounced: "ارتدت الرسالة",
+  failed: "فشل التسليم",
+  complained: "أُبلغ عنها كمزعجة",
+  suppressed: "أوقفها مزود البريد",
+};
+
 const DELETION_STATUS_LABELS: Record<AccountDeletionRequestStatus, string> = {
   pending: "بانتظار المراجعة",
   approved: "مقبول",
@@ -50,6 +60,11 @@ function roleLabel(role: string): string {
 
 function invitationStatusLabel(status: string): string {
   return INVITATION_STATUS_LABELS[status] ?? "حالة غير معروفة";
+}
+
+function emailDeliveryStatusLabel(status: string | null): string {
+  if (!status) return "لا توجد بيانات إرسال";
+  return EMAIL_DELIVERY_STATUS_LABELS[status] ?? "حالة بريد غير معروفة";
 }
 
 export default function AdminUsersPage() {
@@ -146,7 +161,9 @@ export default function AdminUsersPage() {
       setEmail("");
       setInvitedName("");
       setInvitedGender(null);
-      setSuccess(`أُرسلت الدعوة إلى ${response.invitation.email}.`);
+      setSuccess(
+        `قَبِل مزود البريد طلب إرسال الدعوة إلى ${response.invitation.email}. ستتحدث حالة التسليم عند وصول نتيجة Resend.`,
+      );
       await refreshInvitations();
     } catch (err) {
       setInvitationError(
@@ -182,7 +199,10 @@ export default function AdminUsersPage() {
 
     try {
       await resendAppInvitation(getToken, invitationId);
-      setSuccess("أُعيد إرسال الدعوة.");
+      setSuccess(
+        "قَبِل مزود البريد محاولة الإرسال الجديدة. ستتحدث حالة التسليم تلقائياً.",
+      );
+      await refreshInvitations();
     } catch (err) {
       setInvitationError(
         err instanceof Error ? err.message : "تعذّرت إعادة إرسال الدعوة.",
@@ -336,10 +356,31 @@ export default function AdminUsersPage() {
                         ? ` · تنتهي ${formatDate(invitation.expires_at)}`
                         : ""}
                     </p>
+                    {invitation.email_provider_id ? (
+                      <p
+                        dir="ltr"
+                        className="mt-1 break-all text-start font-mono text-[11px] text-slate-400"
+                      >
+                        Resend: {invitation.email_provider_id}
+                      </p>
+                    ) : null}
+                    {invitation.email_delivery_failure_message ||
+                    invitation.email_delivery_failure_code ? (
+                      <p className="mt-1 max-w-2xl text-xs leading-5 text-red-700">
+                        {invitation.email_delivery_failure_code
+                          ? `${invitation.email_delivery_failure_code}: `
+                          : ""}
+                        {invitation.email_delivery_failure_message ||
+                          "لم يرسل مزود البريد وصفاً إضافياً للفشل."}
+                      </p>
+                    ) : null}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-[var(--journal-border)] bg-[var(--journal-accent-soft)] px-2.5 py-0.5 text-xs font-semibold text-[var(--journal-accent-strong)]">
-                      {invitationStatusLabel(invitation.status)}
+                      الدعوة: {invitationStatusLabel(invitation.status)}
+                    </span>
+                    <span className="rounded-full border border-[var(--journal-border)] bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                      البريد: {emailDeliveryStatusLabel(invitation.email_delivery_state)}
                     </span>
                     {invitation.status === "pending" ? (
                       <div className="flex items-center gap-2">
