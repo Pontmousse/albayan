@@ -105,6 +105,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "antigravity",
     name: "Antigravity",
+    iconSrc: "/wukala/antigravity.png",
     tagline: "بيئة تطوير من Google — تضيف إليها خادم البيان البعيد",
     accentClass: "from-sky-500 to-indigo-700",
     authLabel: "تسجيل دخول التطبيق",
@@ -127,6 +128,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "opencode",
     name: "OpenCode",
+    iconSrc: "/wukala/opencode.png",
     tagline: "وكيل مفتوح المصدر — يعمل من الطرفية أو تطبيق الحاسوب",
     accentClass: "from-cyan-600 to-blue-900",
     authLabel: "تسجيل دخول التطبيق تلقائياً",
@@ -149,6 +151,7 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "other",
     name: "برامج أخرى",
+    iconSrc: "/wukala/others.png",
     tagline: "أي برنامج يدعم خوادم MCP البعيدة أو الربط بمفتاح شخصي",
     accentClass: "from-violet-600 to-fuchsia-800",
     authLabel: "تسجيل دخول أو مفتاح ربط",
