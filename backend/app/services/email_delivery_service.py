@@ -106,7 +106,10 @@ def latest_delivery_for_context(*, email_kind: str, related_id: str) -> EmailDel
                 EmailDelivery.email_kind == email_kind,
                 EmailDelivery.related_id == related_id,
             )
-            .order_by(EmailDelivery.created_at.desc(), EmailDelivery.provider_accepted_at.desc())
+            .order_by(
+                EmailDelivery.created_at.desc(),
+                EmailDelivery.provider_accepted_at.desc(),
+            )
             .limit(1)
         )
 
@@ -123,7 +126,10 @@ def latest_deliveries_for_related_ids(
                 EmailDelivery.email_kind == email_kind,
                 EmailDelivery.related_id.in_(related_ids),
             )
-            .order_by(EmailDelivery.created_at.desc(), EmailDelivery.provider_accepted_at.desc())
+            .order_by(
+                EmailDelivery.created_at.desc(),
+                EmailDelivery.provider_accepted_at.desc(),
+            )
         ).all()
     latest: dict[str, EmailDelivery] = {}
     for row in rows:
@@ -137,16 +143,13 @@ def verify_resend_webhook(
 ) -> dict[str, Any]:
     secret = settings.resend_webhook_signing_secret
     if not secret:
-        raise HTTPException(
-            status_code=503,
-            detail="توقيع Resend Webhook غير مُهيّأ على الخادم.",
-        )
+        raise HTTPException(status_code=503, detail="Resend webhook signing is not configured.")
     try:
         event = Webhook(secret).verify(payload.decode("utf-8"), headers)
     except (WebhookVerificationError, UnicodeDecodeError) as exc:
-        raise HTTPException(status_code=400, detail="توقيع Resend Webhook غير صالح.") from exc
+        raise HTTPException(status_code=400, detail="Invalid Resend webhook signature.") from exc
     if not isinstance(event, dict):
-        raise HTTPException(status_code=400, detail="حمولة Resend Webhook غير صالحة.")
+        raise HTTPException(status_code=400, detail="Invalid Resend webhook payload.")
     return event
 
 
@@ -160,6 +163,12 @@ def _parse_datetime(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def _normalize_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
 
 
 def _safe_text(value: Any, limit: int) -> str | None:
@@ -190,8 +199,13 @@ def _should_apply_state(
     current_at = delivery.latest_provider_event_at
     if current_at is None:
         return True
+    current_at = _normalize_datetime(current_at)
     if event_at is None:
-        return _STATE_RANK.get(state, 0) >= _STATE_RANK.get(delivery.latest_state, 0)
+        return _STATE_RANK.get(state, 0) >= _STATE_RANK.get(
+            delivery.latest_state,
+            0,
+        )
+    event_at = _normalize_datetime(event_at)
     if event_at > current_at:
         return True
     if event_at < current_at:
@@ -208,16 +222,21 @@ def handle_resend_webhook(
 
     data = event.get("data")
     if not isinstance(data, dict):
-        raise HTTPException(status_code=400, detail="حمولة حدث Resend غير صالحة.")
+        raise HTTPException(status_code=400, detail="Invalid Resend event payload.")
     provider_email_id = data.get("email_id")
     if not isinstance(provider_email_id, str) or not provider_email_id.strip():
-        raise HTTPException(status_code=422, detail="حدث Resend لا يحتوي على معرّف بريد صالح.")
+        raise HTTPException(status_code=422, detail="Resend event is missing a valid email id.")
     provider_email_id = provider_email_id.strip()
 
-    event_at = _parse_datetime(event.get("created_at")) or _parse_datetime(data.get("created_at"))
+    event_at = _parse_datetime(event.get("created_at")) or _parse_datetime(
+        data.get("created_at")
+    )
     event_id = provider_event_id.strip() if provider_event_id else ""
     if not event_id:
-        fingerprint = f"{event_type}|{provider_email_id}|{event_at.isoformat() if event_at else ''}"
+        fingerprint = (
+            f"{event_type}|{provider_email_id}|"
+            f"{event_at.isoformat() if event_at else ''}"
+        )
         event_id = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
 
     state = _EVENT_STATES[event_type]
