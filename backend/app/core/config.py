@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     s3_secret_key: str = ""
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://albayan-journal.org"
     resend_api_key: SecretStr = SecretStr("")
+    resend_webhook_signing_secret: str = ""
     email_from: str = ""
     email_reply_to: str = ""
     resend_welcome_template: str = ""
