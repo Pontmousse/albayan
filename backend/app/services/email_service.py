@@ -14,6 +14,7 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.core.dates import format_date, format_date_time
 from app.models.enums import InvitationRole
+from app.services import email_delivery_service
 
 _ROLE_LABELS = {
     InvitationRole.REVIEWER: "مراجع",
@@ -83,6 +84,9 @@ def _send_resend_email(
     template_alias_or_id: str | None = None,
     variables: dict[str, str | int] | None = None,
     idempotency_key: str | None = None,
+    email_kind: str | None = None,
+    event_scope: str | None = None,
+    related_id: str | None = None,
 ) -> str | None:
     has_template = template_alias_or_id is not None
     has_raw_content = subject is not None or html is not None
@@ -140,6 +144,7 @@ def _send_resend_email(
     )
     recipient_id = _recipient_log_id(to)
     template_label = template_alias_or_id or "raw-content"
+    tracking_kind = email_kind or template_label
     logger.debug(
         "Email action URL diagnostics recipient=%s template=%s urls=%s",
         recipient_id,
@@ -154,22 +159,43 @@ def _send_resend_email(
                     detail=failure_detail,
                 )
             body = resp.read() if callable(getattr(resp, "read", None)) else b""
-            if not isinstance(body, bytes) or not body:
-                return None
+            message_id: str | None = None
+            if isinstance(body, bytes) and body:
+                try:
+                    data = json.loads(body.decode("utf-8"))
+                except Exception:
+                    data = None
+                candidate = data.get("id") if isinstance(data, dict) else None
+                if isinstance(candidate, str) and candidate.strip():
+                    message_id = candidate.strip()
+
             try:
-                data = json.loads(body.decode("utf-8"))
-            except Exception:
-                return None
-            message_id = data.get("id") if isinstance(data, dict) else None
-            if isinstance(message_id, str):
-                logger.info(
-                    "Email accepted recipient=%s template=%s message_id=%s",
+                email_delivery_service.record_accepted_email(
+                    provider_email_id=message_id,
+                    email_kind=tracking_kind,
+                    recipient=to,
+                    event_scope=event_scope,
+                    related_id=related_id,
+                    idempotency_key=idempotency_key,
+                )
+            except Exception as exc:
+                # Resend has already accepted this message. Do not convert a
+                # tracking-storage failure into a retry that could duplicate mail.
+                logger.error(
+                    "Email delivery recording failed recipient=%s template=%s message_id=%s error=%s",
                     recipient_id,
                     template_label,
                     message_id,
+                    type(exc).__name__,
                 )
-                return message_id
-            return None
+
+            logger.info(
+                "Email accepted recipient=%s template=%s message_id=%s",
+                recipient_id,
+                template_label,
+                message_id,
+            )
+            return message_id
     except HTTPException:
         raise
     except urllib.error.HTTPError as exc:
@@ -207,6 +233,7 @@ def send_welcome_email(*, to: str, user_name: str | None) -> None:
         to=to,
         failure_detail="تعذّر إرسال بريد الترحيب.",
         template_alias_or_id=template,
+        email_kind="welcome",
         variables={
             "USER_NAME": user_name or "الباحث الكريم",
             "LOGIN_URL": f"{site_url}/maktabi",
@@ -222,6 +249,7 @@ def send_app_invitation_email(
     invitation_url: str,
     expires_text: str | None,
     idempotency_key: str | None = None,
+    related_id: str | None = None,
 ) -> None:
     template = _require_template(
         settings.resend_app_invitation_template,
@@ -232,6 +260,8 @@ def send_app_invitation_email(
         to=to,
         failure_detail="تعذّر إرسال دعوة المستخدم.",
         template_alias_or_id=template,
+        email_kind="app_invitation",
+        related_id=related_id,
         variables={
             "INVITATION_URL": invitation_url,
             "RECIPIENT_NAME": recipient_name or "ضيف مجلة البيان",
@@ -258,6 +288,7 @@ def send_auth_verification_email(
         to=to,
         failure_detail="تعذّر إرسال رمز تحقق الحساب.",
         template_alias_or_id=template,
+        email_kind="auth_verification",
         variables={
             "OTP_CODE": otp_code,
             "RECIPIENT_EMAIL": to,
@@ -282,6 +313,7 @@ def send_password_reset_email(
         to=to,
         failure_detail="تعذّر إرسال رمز استعادة كلمة المرور.",
         template_alias_or_id=template,
+        email_kind="password_reset",
         variables={
             "OTP_CODE": otp_code,
             "RECIPIENT_EMAIL": to,
@@ -307,6 +339,7 @@ def send_submission_received_email(
         to=to,
         failure_detail="تعذّر إرسال تأكيد استلام البحث.",
         template_alias_or_id=template,
+        email_kind="submission_received",
         variables={
             "ARTICLE_TITLE": article_title,
             "ARTICLE_URL": article_url,
@@ -334,6 +367,7 @@ def send_new_submission_alert_email(
         to=to,
         failure_detail="تعذّر إرسال تنبيه البحث الجديد.",
         template_alias_or_id=template,
+        email_kind="new_submission_alert",
         variables={
             "ARTICLE_TITLE": article_title,
             "AUTHOR_NAME": author_name,
@@ -359,6 +393,7 @@ def send_editor_assigned_email(
         to=to,
         failure_detail="تعذّر إرسال بريد تعيين المحرر.",
         template_alias_or_id=template,
+        email_kind="editor_assigned",
         variables={
             "ARTICLE_TITLE": article_title,
             "ARTICLE_URL": article_url,
@@ -384,6 +419,7 @@ def send_reviewer_assigned_email(
         to=to,
         failure_detail="تعذّر إرسال بريد تعيين المراجع.",
         template_alias_or_id=template,
+        email_kind="reviewer_assigned",
         variables={
             "ARTICLE_TITLE": article_title,
             "REVIEW_URL": review_url,
@@ -411,6 +447,7 @@ def send_review_reminder_email(
         to=to,
         failure_detail="تعذّر إرسال تذكير المراجعة.",
         template_alias_or_id=template,
+        email_kind="review_reminder",
         variables={
             "ARTICLE_TITLE": article_title,
             "REVIEW_URL": review_url,
@@ -438,6 +475,7 @@ def send_review_submitted_email(
         to=to,
         failure_detail="تعذّر إرسال تنبيه تسليم المراجعة.",
         template_alias_or_id=template,
+        email_kind="review_submitted",
         variables={
             "ARTICLE_TITLE": article_title,
             "REVIEWER_NAME": reviewer_name,
@@ -465,6 +503,7 @@ def send_decision_email(
         to=to,
         failure_detail="تعذّر إرسال بريد القرار التحريري.",
         template_alias_or_id=template,
+        email_kind="editorial_decision",
         variables={
             "ARTICLE_TITLE": article_title,
             "DECISION_TEXT": decision_text,
@@ -491,6 +530,7 @@ def send_article_published_email(
         to=to,
         failure_detail="تعذّر إرسال بريد نشر المقال.",
         template_alias_or_id=template,
+        email_kind="article_published",
         variables={
             "ARTICLE_TITLE": article_title,
             "ARTICLE_URL": article_url,
@@ -515,6 +555,7 @@ def send_unread_notifications_digest_email(
         to=to,
         failure_detail="تعذّر إرسال ملخص الإشعارات.",
         template_alias_or_id=template,
+        email_kind="unread_notification_digest",
         variables={
             "UNREAD_COUNT": unread_count,
             "NOTIFICATIONS_URL": notifications_url,
@@ -541,6 +582,8 @@ def send_invitation_email(
             to=to,
             failure_detail="تعذّر إرسال بريد الدعوة، حاول مجدداً.",
             template_alias_or_id=settings.resend_review_invitation_template,
+            email_kind="article_invitation",
+            event_scope=role.value,
             variables={
                 "ARTICLE_TITLE": article_title,
                 "ROLE_LABEL": role_label,
@@ -575,4 +618,6 @@ def send_invitation_email(
         subject=subject,
         html=html,
         failure_detail="تعذّر إرسال بريد الدعوة، حاول مجدداً.",
+        email_kind="article_invitation",
+        event_scope=role.value,
     )
