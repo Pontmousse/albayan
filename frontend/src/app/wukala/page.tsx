@@ -2,21 +2,18 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { McpClientCarousel } from "@/components/wukala/mcp-client-carousel";
-import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
 
 export const metadata: Metadata = {
   title: "الوكلاء | البيان",
   description:
-    "اربط وكيلك الذكي بمجلة البيان عبر Cursor أو ChatGPT أو Claude أو Antigravity أو OpenCode وغيرها.",
+    "اربط وكيلك الذكي بمجلة البيان عبر برنامج يدعم MCP، واتبع خطوات الربط المناسبة له.",
 };
 
 export default function WukalaPage() {
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-6 lg:py-14">
-        <p className="text-xs font-semibold text-emerald-700">
-          ربط الوكيل الذكي
-        </p>
+        <p className="text-xs font-semibold text-emerald-700">ربط الوكيل الذكي</p>
         <h1
           className="mt-3 text-balance text-3xl font-bold text-slate-900 sm:text-4xl"
           style={{ fontFamily: "var(--font-display-ar), serif" }}
@@ -24,17 +21,12 @@ export default function WukalaPage() {
           اربط وكيلك الذكي بمجلة البيان
         </h1>
         <p className="mt-4 text-pretty text-sm leading-7 text-slate-600 sm:text-base">
-          اختر من ستة مسارات تشمل <strong className="font-semibold text-slate-800">Cursor</strong> و{" "}
-          <strong className="font-semibold text-slate-800">ChatGPT</strong> و{" "}
-          <strong className="font-semibold text-slate-800">Claude</strong> و{" "}
-          <strong className="font-semibold text-slate-800">Antigravity</strong> و{" "}
-          <strong className="font-semibold text-slate-800">OpenCode</strong>، أو اتبع
-          الدليل العام لأي برنامج آخر. الوكيل يساعدك في الكتابة، وأنت تحفظ
-          وتقدّم من منصة البيان.
+          اختر برنامجك واتبع خطوات الربط المناسبة له. الوكيل يساعدك في القراءة
+          والكتابة والمراجعة، بينما الحفظ والتقديم والقرارات النهائية تبقى من منصة
+          البيان.
         </p>
 
-        <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-          <WukalaCtaButton className="w-full sm:w-auto" />
+        <div className="mt-7">
           <Link
             href="/irshadat-al-mualifin"
             className="inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)]"
@@ -51,9 +43,9 @@ export default function WukalaPage() {
         >
           <h2 className="text-lg font-bold text-slate-900">كيف يعمل الربط؟</h2>
           <p className="mt-2 text-sm leading-7 text-slate-600">
-            الربط يعني أن برنامج الذكاء الاصطناعي يرى عملك في المجلة بعد أن
-            تسمح له — للمؤلفين والمراجعين والمحررين. نسمّي هذه الصلة MCP. لا
-            يقدّم المقال عنك ولا يتّخذ قرارات التحرير.
+            الربط يسمح لبرنامج الذكاء الاصطناعي بالوصول إلى عملك في المجلة بعد أن
+            تسمح له — للمؤلفين والمراجعين والمحررين. نسمّي هذه الصلة MCP. لا يقدّم
+            المقال عنك ولا يتّخذ قرارات التحرير.
           </p>
         </section>
 

@@ -20,7 +20,7 @@ test("CopyButton is an icon-only clipboard control", () => {
 
 const COPY_SITES = [
   "components/settings/agent-tokens-panel.tsx",
-  "components/wukala/chatgpt-detailed-guide.tsx",
+  "components/wukala/mcp-connection-guide.tsx",
   "components/dashboard/document-json-dev-dialog.tsx",
   "components/dashboard/exported-tex-dev-panel.tsx",
 ];

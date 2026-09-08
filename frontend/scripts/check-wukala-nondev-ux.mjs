@@ -66,12 +66,21 @@ test("wukala page and carousel have no Clerk and no English UI chrome", () => {
 test("wukala page and carousel use the locked Arabic headings", () => {
   const page = readSrc("app/wukala/page.tsx");
   const carousel = readSrc("components/wukala/mcp-client-carousel.tsx");
+  const connection = readSrc("components/wukala/mcp-connection-guide.tsx");
   assert.match(page, /ربط الوكيل الذكي/);
   assert.equal(page.includes("وضع تطوير"), false);
   assert.equal(page.includes("Model Context Protocol"), false);
   assert.match(carousel, /اختر برنامجك واتبع الخطوات/);
-  assert.match(carousel, /مثال ملف الربط في Cursor/);
-  assert.match(carousel, /سجّل الدخول إلى التطبيق/);
+  assert.match(connection, /مثال ملف الربط في Cursor/);
+  assert.match(connection, /بيانات الربط/);
+});
+
+test("wukala intro is concise and does not offer a global token CTA", () => {
+  const page = readSrc("app/wukala/page.tsx");
+  assert.equal(page.includes("WukalaCtaButton"), false);
+  assert.equal(page.includes("Antigravity"), false);
+  assert.equal(page.includes("OpenCode"), false);
+  assert.match(page, /اختر برنامجك واتبع خطوات الربط المناسبة له/);
 });
 
 test("AgentsNavLink has no DEV or وضع تطوير badge", () => {
@@ -141,13 +150,44 @@ test("agent token create UI has no scope checkboxes", () => {
   assert.match(source, /scopes: \[\.\.\.ALLOWED_AGENT_SCOPES\]/);
 });
 
-test("ChatGPT guide uses accordion motion and a wide connector description", () => {
-  const source = readSrc("components/wukala/chatgpt-detailed-guide.tsx");
+test("shared MCP connection guide owns copyable connection data and detailed instructions", () => {
+  const source = readSrc("components/wukala/mcp-connection-guide.tsx");
+  assert.match(source, /export function McpConnectionGuide/);
+  assert.match(source, /MCP_CONNECTION_NAME/);
+  assert.match(source, /MCP_CONNECTION_DESCRIPTION/);
+  assert.match(source, /MCP_SERVER_URL/);
+  assert.match(source, /CopyButton/);
+  assert.match(source, /WukalaCtaButton/);
+  assert.match(source, /guide\.id === "cursor" \|\| guide\.id === "other"/);
   assert.match(source, /accordion-panel/);
   assert.match(source, /useOpenTransition/);
+  assert.match(source, /DETAILED_GUIDE_OVERRIDES/);
+  assert.match(source, /التعليمات التفصيلية لـ/);
   assert.match(source, /صياغة المسودات/);
   assert.match(source, /دون تقديم المقال/);
   assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
+});
+
+test("desktop provider chooser shows every option without horizontal scrolling", () => {
+  const source = readSrc("components/wukala/mcp-client-carousel.tsx");
+  assert.match(source, /mt-5 hidden gap-2 sm:grid sm:grid-cols-3/);
+  assert.match(source, /mt-4 hidden sm:block/);
+  assert.match(source, /sm:hidden/);
+  assert.match(source, /ArrowLeft/);
+  assert.match(source, /ArrowRight/);
+  assert.match(source, /Home/);
+  assert.match(source, /End/);
+  assert.equal(
+    source.includes("absolute inset-y-0 start-0 end-0 hidden items-center justify-between sm:flex"),
+    false,
+  );
+});
+
+test("new provider logos are optically enlarged relative to their padded source files", () => {
+  const source = readSrc("components/wukala/mcp-client-carousel.tsx");
+  assert.match(source, /antigravity:[\s\S]*scale-\[1\.18\]/);
+  assert.match(source, /opencode:[\s\S]*scale-\[1\.2\]/);
+  assert.match(source, /other:[\s\S]*scale-\[1\.2\]/);
 });
 
 test("MCP server URL default is the Railway production endpoint", () => {

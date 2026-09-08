@@ -4,7 +4,13 @@ import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { buttonClassName } from "@/lib/auth-ui";
 
-export function WukalaCtaButton({ className = "" }: { className?: string }) {
+export function WukalaCtaButton({
+  className = "",
+  label = "أنشئ مفتاح ربط",
+}: {
+  className?: string;
+  label?: string;
+}) {
   const { isSignedIn } = useAuth();
   const router = useRouter();
 
@@ -22,7 +28,7 @@ export function WukalaCtaButton({ className = "" }: { className?: string }) {
       onClick={handleClick}
       className={`${buttonClassName} ${className}`.trim()}
     >
-      أنشئ مفتاحك الخاص
+      {label}
     </button>
   );
 }

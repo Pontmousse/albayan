@@ -1,11 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatGptDetailedGuide } from "@/components/wukala/chatgpt-detailed-guide";
 import {
-  CURSOR_MCP_STDIO_SNIPPET,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { McpConnectionGuide } from "@/components/wukala/mcp-connection-guide";
+import {
   MCP_CLIENT_GUIDES,
-  MCP_SERVER_URL,
+  type McpClientGuide,
   type McpClientId,
 } from "@/lib/mcp-client-guides";
 
@@ -34,8 +39,6 @@ function ClientIcon({
     },
     chatgpt: {
       surface: "border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-teal-100",
-      // The source is a wide 16:9 canvas, so it needs more width to match the
-      // optical (rather than file) size of the two square logo files.
       image: size === "sm" ? "h-7 w-10" : "h-12 w-16",
     },
     claude: {
@@ -44,15 +47,26 @@ function ClientIcon({
     },
     antigravity: {
       surface: "border-sky-200/90 bg-gradient-to-br from-sky-50 to-indigo-100",
-      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+      // Newer source files include more transparent padding; scale them by
+      // optical size so they read like Cursor, ChatGPT and Claude.
+      image:
+        size === "sm"
+          ? "h-9 w-9 scale-[1.18]"
+          : "h-[52px] w-[52px] scale-[1.18]",
     },
     opencode: {
       surface: "border-cyan-200/90 bg-gradient-to-br from-cyan-50 to-blue-100",
-      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+      image:
+        size === "sm"
+          ? "h-9 w-9 scale-[1.2]"
+          : "h-[52px] w-[52px] scale-[1.2]",
     },
     other: {
       surface: "border-violet-200/90 bg-gradient-to-br from-violet-50 to-fuchsia-100",
-      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+      image:
+        size === "sm"
+          ? "h-9 w-9 scale-[1.2]"
+          : "h-[52px] w-[52px] scale-[1.2]",
     },
   };
   const theme = iconTheme[id];
@@ -64,7 +78,11 @@ function ClientIcon({
         aria-hidden
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={iconSrc} alt="" className={`${theme.image} object-contain`} />
+        <img
+          src={iconSrc}
+          alt=""
+          className={`${theme.image} origin-center object-contain`}
+        />
       </span>
     );
   }
@@ -79,22 +97,109 @@ function ClientIcon({
   );
 }
 
+function ProviderSummary({
+  guide,
+  panelId,
+  tabId,
+  className = "",
+}: {
+  guide: McpClientGuide;
+  panelId: string;
+  tabId: string;
+  className?: string;
+}) {
+  return (
+    <article
+      id={panelId}
+      className={`rounded-2xl border border-[var(--journal-border)] bg-gradient-to-b from-white to-[var(--journal-accent-soft)]/40 p-5 shadow-sm ${className}`}
+      role="tabpanel"
+      aria-labelledby={tabId}
+    >
+      <div className="flex items-start gap-4">
+        <ClientIcon
+          id={guide.id}
+          name={guide.name}
+          iconSrc={guide.iconSrc}
+          accentClass={guide.accentClass}
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-bold text-slate-900">{guide.name}</h3>
+          <p className="mt-0.5 text-sm leading-6 text-slate-600">{guide.tagline}</p>
+          <span className="mt-2 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-[var(--journal-accent-strong)] ring-1 ring-[var(--journal-border)]">
+            {guide.authLabel}
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border border-[var(--journal-border)] bg-white/90 p-4">
+        <p className="text-xs font-bold text-slate-500">الخطوات الأولى</p>
+        <ol className="mt-2 list-decimal space-y-2 ps-5 text-sm leading-6 text-slate-700">
+          {guide.desktopSteps.slice(0, 3).map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        {guide.mobileSteps[0] ? (
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">
+            <strong className="font-semibold text-slate-700">على الجوال: </strong>
+            {guide.mobileSteps[0]}
+          </p>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 export function McpClientCarousel() {
   const [activeId, setActiveId] = useState<McpClientId>("cursor");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const activeIndex = MCP_CLIENT_GUIDES.findIndex((g) => g.id === activeId);
+  const activeIndex = Math.max(
+    0,
+    MCP_CLIENT_GUIDES.findIndex((guide) => guide.id === activeId),
+  );
+  const active = MCP_CLIENT_GUIDES[activeIndex] ?? MCP_CLIENT_GUIDES[0];
 
-  const scrollToIndex = useCallback((index: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const child = el.children[index] as HTMLElement | undefined;
+  const activateIndex = useCallback((index: number, scrollMobile: boolean) => {
+    const guide = MCP_CLIENT_GUIDES[index];
+    if (!guide) return;
+    setActiveId(guide.id);
+
+    if (!scrollMobile) return;
+    const child = scrollRef.current?.children[index] as HTMLElement | undefined;
     child?.scrollIntoView({
       behavior: "smooth",
       inline: "center",
       block: "nearest",
     });
-    setActiveId(MCP_CLIENT_GUIDES[index]?.id ?? "cursor");
   }, []);
+
+  function handleTabKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number,
+    idPrefix: "mobile" | "desktop",
+    scrollMobile: boolean,
+  ) {
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowLeft") {
+      nextIndex = Math.min(index + 1, MCP_CLIENT_GUIDES.length - 1);
+    } else if (event.key === "ArrowRight") {
+      nextIndex = Math.max(index - 1, 0);
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = MCP_CLIENT_GUIDES.length - 1;
+    }
+
+    if (nextIndex === null || nextIndex === index) return;
+    event.preventDefault();
+    activateIndex(nextIndex, scrollMobile);
+    const nextGuide = MCP_CLIENT_GUIDES[nextIndex];
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`${idPrefix}-tab-${nextGuide.id}`)
+        ?.focus();
+    });
+  }
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -103,18 +208,21 @@ export function McpClientCarousel() {
     const onScroll = () => {
       const container = scrollRef.current;
       if (!container) return;
-      const center = container.getBoundingClientRect().left + container.offsetWidth / 2;
+      const center =
+        container.getBoundingClientRect().left + container.offsetWidth / 2;
       let closest = 0;
       let minDist = Infinity;
-      Array.from(container.children).forEach((child, i) => {
+
+      Array.from(container.children).forEach((child, index) => {
         const rect = (child as HTMLElement).getBoundingClientRect();
         const childCenter = rect.left + rect.width / 2;
         const dist = Math.abs(center - childCenter);
         if (dist < minDist) {
           minDist = dist;
-          closest = i;
+          closest = index;
         }
       });
+
       const guide = MCP_CLIENT_GUIDES[closest];
       if (guide) setActiveId(guide.id);
     };
@@ -123,7 +231,6 @@ export function McpClientCarousel() {
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
-  const active = MCP_CLIENT_GUIDES[activeIndex] ?? MCP_CLIENT_GUIDES[0];
   const selectedTabClass: Record<McpClientId, string> = {
     cursor:
       "border-stone-400 bg-gradient-to-br from-white to-stone-200 text-slate-900 shadow-sm ring-1 ring-stone-300/50",
@@ -141,28 +248,24 @@ export function McpClientCarousel() {
 
   return (
     <section className="mt-10" aria-labelledby="mcp-setup-heading">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2
-            id="mcp-setup-heading"
-            className="text-xl font-bold text-slate-900"
-            style={{ fontFamily: "var(--font-display-ar), serif" }}
-          >
-            اختر برنامجك واتبع الخطوات
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            ستة مسارات واضحة — اسحب البطاقات أو اضغط اسم البرنامج أعلاه
-          </p>
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs leading-6 text-slate-600">
-            قد تتغيّر بعض خطوات الربط مع تحديث واجهات هذه البرامج والخدمات. نحرص على
-            مراجعة هذه الإرشادات وتحديثها لتواكب أحدث الواجهات قدر الإمكان.
-          </div>
+      <div>
+        <h2
+          id="mcp-setup-heading"
+          className="text-xl font-bold text-slate-900"
+          style={{ fontFamily: "var(--font-display-ar), serif" }}
+        >
+          اختر برنامجك واتبع الخطوات
+        </h2>
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          على الجوال اسحب بين البطاقات. على الحاسوب تظهر جميع البرامج أمامك وتُبدّل اللوحة مباشرة.
+        </p>
+        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs leading-6 text-slate-600">
+          قد تتغيّر أسماء بعض القوائم مع تحديث هذه البرامج؛ نراجع الإرشادات دورياً ونحافظ على بيانات الربط المشتركة في مكان واحد.
         </div>
       </div>
 
-      {/* تبويبات — حاسوب */}
       <div
-        className="mt-5 flex gap-2 overflow-x-auto nav-scroll pb-1"
+        className="nav-scroll mt-5 flex gap-2 overflow-x-auto pb-1 sm:hidden"
         role="tablist"
         aria-label="اختيار عميل الذكاء الاصطناعي"
       >
@@ -171,11 +274,16 @@ export function McpClientCarousel() {
           return (
             <button
               key={guide.id}
-              id={`tab-${guide.id}`}
+              id={`mobile-tab-${guide.id}`}
               type="button"
               role="tab"
               aria-selected={selected}
-              onClick={() => scrollToIndex(index)}
+              aria-controls={`mobile-panel-${guide.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => activateIndex(index, true)}
+              onKeyDown={(event) =>
+                handleTabKeyDown(event, index, "mobile", true)
+              }
               className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
                 selected
                   ? selectedTabClass[guide.id]
@@ -195,87 +303,69 @@ export function McpClientCarousel() {
         })}
       </div>
 
-      {/* بطاقات قابلة للسحب */}
-      <div className="relative mt-4">
+      <div
+        className="mt-5 hidden gap-2 sm:grid sm:grid-cols-3"
+        role="tablist"
+        aria-label="اختيار عميل الذكاء الاصطناعي"
+      >
+        {MCP_CLIENT_GUIDES.map((guide, index) => {
+          const selected = guide.id === activeId;
+          return (
+            <button
+              key={guide.id}
+              id={`desktop-tab-${guide.id}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`desktop-panel-${guide.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => activateIndex(index, false)}
+              onKeyDown={(event) =>
+                handleTabKeyDown(event, index, "desktop", false)
+              }
+              className={`inline-flex w-full min-w-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-start text-sm font-semibold transition ${
+                selected
+                  ? selectedTabClass[guide.id]
+                  : "border-[var(--journal-border)] bg-white/80 text-slate-700 hover:border-[var(--journal-accent)]/50"
+              }`}
+            >
+              <ClientIcon
+                id={guide.id}
+                name={guide.name}
+                iconSrc={guide.iconSrc}
+                accentClass={guide.accentClass}
+                size="sm"
+              />
+              <span className="truncate">{guide.name}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="relative mt-4 sm:hidden">
         <div
           ref={scrollRef}
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto nav-scroll scroll-smooth pb-2"
+          className="nav-scroll flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2"
           style={{ scrollPaddingInline: "0.5rem" }}
         >
           {MCP_CLIENT_GUIDES.map((guide) => (
-            <article
+            <ProviderSummary
               key={guide.id}
-              className="w-[min(92%,100%)] shrink-0 snap-center snap-always rounded-2xl border border-[var(--journal-border)] bg-gradient-to-b from-white to-[var(--journal-accent-soft)]/40 p-5 shadow-sm sm:min-w-full sm:w-full"
-              role="tabpanel"
-              aria-labelledby={`tab-${guide.id}`}
-            >
-              <div className="flex items-start gap-4">
-                <ClientIcon
-                  id={guide.id}
-                  name={guide.name}
-                  iconSrc={guide.iconSrc}
-                  accentClass={guide.accentClass}
-                />
-                <div className="min-w-0 flex-1">
-                  <h3
-                    className="text-lg font-bold text-slate-900"
-                  >
-                    {guide.name}
-                  </h3>
-                  <p className="mt-0.5 text-sm text-slate-600">{guide.tagline}</p>
-                  <span className="mt-2 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-[var(--journal-accent-strong)] ring-1 ring-[var(--journal-border)]">
-                    {guide.authLabel}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-[var(--journal-border)] bg-white/90 p-4">
-                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <span aria-hidden>🖥</span> على الحاسوب
-                  </p>
-                  <ol className="mt-3 list-decimal space-y-2 ps-4 text-sm leading-6 text-slate-700">
-                    {guide.desktopSteps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-                <div className="rounded-xl border border-[var(--journal-border)] bg-white/90 p-4">
-                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <span aria-hidden>📱</span> على الجوال
-                  </p>
-                  <ol className="mt-3 list-decimal space-y-2 ps-4 text-sm leading-6 text-slate-700">
-                    {guide.mobileSteps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-
-              {guide.notes.length > 0 && (
-                <ul className="mt-4 space-y-1.5 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2.5 text-sm text-amber-950/90">
-                  {guide.notes.map((note) => (
-                    <li key={note} className="flex gap-2">
-                      <span className="text-amber-600" aria-hidden>
-                        •
-                      </span>
-                      <span>{note}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </article>
+              guide={guide}
+              panelId={`mobile-panel-${guide.id}`}
+              tabId={`mobile-tab-${guide.id}`}
+              className="w-[min(92%,100%)] shrink-0 snap-center snap-always"
+            />
           ))}
         </div>
 
-        {/* مؤشرات */}
         <div className="mt-3 flex items-center justify-center gap-2">
           {MCP_CLIENT_GUIDES.map((guide, index) => (
             <button
               key={guide.id}
               type="button"
-              aria-label={`${guide.name}`}
-              onClick={() => scrollToIndex(index)}
+              aria-label={guide.name}
+              onClick={() => activateIndex(index, true)}
               className={`h-2 rounded-full transition-all ${
                 guide.id === activeId
                   ? "w-6 bg-[var(--journal-accent)]"
@@ -284,66 +374,18 @@ export function McpClientCarousel() {
             />
           ))}
         </div>
-
-        {/* أسهم — شاشات أوسع */}
-        <div className="pointer-events-none absolute inset-y-0 start-0 end-0 hidden items-center justify-between sm:flex">
-          <button
-            type="button"
-            aria-label="السابق"
-            className="pointer-events-auto ms-1 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--journal-border)] bg-white/95 text-slate-700 shadow-sm transition hover:bg-white disabled:opacity-40"
-            disabled={activeIndex <= 0}
-            onClick={() => scrollToIndex(activeIndex - 1)}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="التالي"
-            className="pointer-events-auto me-1 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--journal-border)] bg-white/95 text-slate-700 shadow-sm transition hover:bg-white disabled:opacity-40"
-            disabled={activeIndex >= MCP_CLIENT_GUIDES.length - 1}
-            onClick={() => scrollToIndex(activeIndex + 1)}
-          >
-            ›
-          </button>
-        </div>
       </div>
 
-      <div key={active.id} className="panel-crossfade">
-        {active.id === "cursor" && (
-          <div className="mt-6">
-            <h3 className="text-sm font-bold text-slate-900">
-              مثال ملف الربط في Cursor
-            </h3>
-            <p className="mt-1 text-xs text-slate-600">
-              استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاح
-              الربط بعد إنشائه.
-            </p>
-            <pre
-              dir="ltr"
-              className="mt-2 overflow-x-auto rounded-lg border border-[var(--journal-border)] bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
-            >
-              {CURSOR_MCP_STDIO_SNIPPET}
-            </pre>
-          </div>
-        )}
+      <div key={active.id} className="panel-crossfade mt-4 hidden sm:block">
+        <ProviderSummary
+          guide={active}
+          panelId={`desktop-panel-${active.id}`}
+          tabId={`desktop-tab-${active.id}`}
+        />
+      </div>
 
-        {active.id !== "cursor" && (
-          <div className="mt-6 rounded-xl border border-[var(--journal-border)] bg-white/80 p-4">
-            <p className="text-sm font-semibold text-slate-800">عنوان الخادم</p>
-            <p
-              dir="ltr"
-              className="mt-2 break-all rounded-md bg-slate-100 px-3 py-2 text-start text-sm font-mono text-slate-800"
-            >
-              {MCP_SERVER_URL}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-slate-600">
-              هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك،
-              أو اتبع طريقة المفتاح التي يدعمها برنامجك إن اخترت «برامج أخرى».
-            </p>
-          </div>
-        )}
-
-        {active.id === "chatgpt" && <ChatGptDetailedGuide />}
+      <div key={`connection-${active.id}`} className="panel-crossfade">
+        <McpConnectionGuide guide={active} />
       </div>
     </section>
   );
