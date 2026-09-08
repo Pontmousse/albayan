@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -34,6 +35,12 @@ _STATE_RANK = {
     "suppressed": 3,
     "complained": 4,
 }
+
+_EMAIL_LIKE_RE = re.compile(
+    r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
+    re.IGNORECASE,
+)
+_URL_RE = re.compile(r"https?://[^\s<>\"']+", re.IGNORECASE)
 
 
 def recipient_hash(address: str) -> str:
@@ -175,6 +182,8 @@ def _safe_text(value: Any, limit: int) -> str | None:
     if not isinstance(value, str):
         return None
     value = " ".join(value.split())
+    value = _EMAIL_LIKE_RE.sub("[redacted-email]", value)
+    value = _URL_RE.sub("[redacted-url]", value)
     return value[:limit] if value else None
 
 
