@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
 from sqlalchemy import create_engine, func, select
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import sessionmaker
 from svix.webhooks import WebhookVerificationError
 
@@ -117,6 +118,56 @@ class EmailDeliveryServiceTests(unittest.TestCase):
             )
         self.assertEqual(delivery.latest_state, "delivered")
         self.assertEqual(event_count, 2)
+
+    def test_webhook_before_acceptance_is_preserved_and_enriched(self) -> None:
+        delivered_event = {
+            "type": "email.delivered",
+            "created_at": "2026-09-08T10:05:00Z",
+            "data": {
+                "email_id": "email_early",
+                "to": ["person@example.com"],
+            },
+        }
+
+        result = email_delivery_service.handle_resend_webhook(
+            delivered_event,
+            provider_event_id="msg_early_delivered",
+        )
+        self.assertTrue(result["matched"])
+
+        with self.Session() as db:
+            placeholder = db.scalar(
+                select(EmailDelivery).where(
+                    EmailDelivery.provider_email_id == "email_early"
+                )
+            )
+        self.assertEqual(placeholder.latest_state, "delivered")
+        self.assertEqual(placeholder.email_kind, "pending")
+        self.assertNotIn("person@example.com", placeholder.recipient_hash)
+
+        row = email_delivery_service.record_accepted_email(
+            provider_email_id="email_early",
+            email_kind="app_invitation",
+            recipient="person@example.com",
+            related_id="inv_early",
+            accepted_at=datetime(2026, 9, 8, 10, 0, tzinfo=UTC),
+        )
+
+        self.assertEqual(row.email_kind, "app_invitation")
+        self.assertEqual(row.related_id, "inv_early")
+        self.assertEqual(row.latest_state, "delivered")
+        with self.Session() as db:
+            delivery_count = db.scalar(select(func.count()).select_from(EmailDelivery))
+            event_count = db.scalar(
+                select(func.count()).select_from(EmailDeliveryEvent)
+            )
+        self.assertEqual(delivery_count, 1)
+        self.assertEqual(event_count, 1)
+
+    def test_lifecycle_lookup_uses_row_lock(self) -> None:
+        statement = email_delivery_service._locked_delivery_query("email_locked")
+        sql = str(statement.compile(dialect=postgresql.dialect()))
+        self.assertIn("FOR UPDATE", sql)
 
     def test_bounce_stores_only_allowlisted_diagnostics(self) -> None:
         email_delivery_service.record_accepted_email(
