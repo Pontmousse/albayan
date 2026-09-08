@@ -252,6 +252,7 @@ def handle_resend_webhook(
 
         if _should_apply_state(delivery, state=state, event_at=event_at):
             delivery.latest_state = state
+            delivery.latest_provider_event = event_type
             delivery.latest_provider_event_at = event_at or datetime.now(UTC)
             if state in {"bounced", "failed", "complained", "suppressed"}:
                 delivery.failure_code = failure_code
