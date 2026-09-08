@@ -12,6 +12,7 @@ from app.core.clerk import AuthContext, clerk_client
 from app.core.config import settings
 from app.core.dates import format_date
 from app.models.enums import UserGender
+from app.services import email_delivery_service
 from app.services.email_service import send_app_invitation_email
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,11 @@ class AppInvitation:
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None
+    email_delivery_state: str | None = None
+    email_delivery_updated_at: datetime | None = None
+    email_provider_id: str | None = None
+    email_delivery_failure_code: str | None = None
+    email_delivery_failure_message: str | None = None
 
 
 def _normalize_email(email: str) -> str:
@@ -101,6 +107,26 @@ def _invitation_read(invitation: Any) -> AppInvitation:
         created_at=created_at or datetime.now(UTC),
         updated_at=updated_at or created_at or datetime.now(UTC),
         expires_at=_datetime_from_clerk_timestamp(_read_value(invitation, "expires_at")),
+    )
+
+
+def _with_delivery(app_invitation: AppInvitation, delivery=None) -> AppInvitation:
+    if delivery is None:
+        delivery = email_delivery_service.latest_delivery_for_context(
+            email_kind="app_invitation",
+            related_id=app_invitation.id,
+        )
+    if delivery is None:
+        return app_invitation
+    return replace(
+        app_invitation,
+        email_delivery_state=delivery.latest_state,
+        email_delivery_updated_at=(
+            delivery.latest_provider_event_at or delivery.provider_accepted_at
+        ),
+        email_provider_id=delivery.provider_email_id,
+        email_delivery_failure_code=delivery.failure_code,
+        email_delivery_failure_message=delivery.failure_message,
     )
 
 
@@ -207,6 +233,7 @@ def create_app_invitation(
             invitation_url=app_invitation.url,
             expires_text=_expires_text(app_invitation),
             idempotency_key=f"app-invitation/{app_invitation.id}",
+            related_id=app_invitation.id,
         )
     except Exception:
         try:
@@ -218,7 +245,7 @@ def create_app_invitation(
                 type(exc).__name__,
             )
         raise
-    return app_invitation
+    return _with_delivery(app_invitation)
 
 
 def resend_app_invitation(invitation_id: str) -> AppInvitation:
@@ -260,8 +287,9 @@ def resend_app_invitation(invitation_id: str) -> AppInvitation:
         recipient_name=invitation.full_name,
         invitation_url=invitation.url,
         expires_text=_expires_text(invitation),
+        related_id=invitation.id,
     )
-    return invitation
+    return _with_delivery(invitation)
 
 
 def list_app_invitations() -> list[AppInvitation]:
@@ -274,7 +302,15 @@ def list_app_invitations() -> list[AppInvitation]:
             detail="تعذّر تحميل دعوات المستخدمين من Clerk.",
         ) from exc
 
-    return [_invitation_read(row) for row in rows]
+    invitations = [_invitation_read(row) for row in rows]
+    deliveries = email_delivery_service.latest_deliveries_for_related_ids(
+        email_kind="app_invitation",
+        related_ids=[invitation.id for invitation in invitations],
+    )
+    return [
+        _with_delivery(invitation, deliveries.get(invitation.id))
+        for invitation in invitations
+    ]
 
 
 def revoke_app_invitation(invitation_id: str) -> None:
