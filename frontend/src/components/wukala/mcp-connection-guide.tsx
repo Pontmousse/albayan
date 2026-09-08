@@ -13,7 +13,7 @@ import {
 
 export const MCP_CONNECTION_NAME = "البيان";
 export const MCP_CONNECTION_DESCRIPTION =
-  "مساعدة في العمل العلمي بمجلة البيان: قراءة المخوطات، صياغة المسودات، ومساندة المراجعة والتحرير — دون تقديم المقال أو اتخاذ قرارات نهائية.";
+  "مساعدة في العمل العلمي بمجلة البيان: قراءة المخطوطات، صياغة المسودات، ومساندة المراجعة والتحرير — دون تقديم المقال أو اتخاذ قرارات نهائية.";
 
 const ACCORDION_EXIT_MS = 280;
 
@@ -105,6 +105,7 @@ function DetailedInstructions({ guide }: { guide: McpClientGuide }) {
   const [open, setOpen] = useState(false);
   const { mounted, visible } = useOpenTransition(open, ACCORDION_EXIT_MS);
   const sections = getDetailedSections(guide);
+  const panelId = `mcp-detailed-${guide.id}`;
 
   return (
     <section className="overflow-hidden rounded-2xl border-2 border-[var(--journal-border)] bg-white shadow-sm">
@@ -112,6 +113,7 @@ function DetailedInstructions({ guide }: { guide: McpClientGuide }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-controls={panelId}
         className="flex w-full items-center justify-between gap-4 bg-[var(--journal-accent-soft)]/55 px-5 py-4 text-start transition hover:bg-[var(--journal-accent-soft)]"
       >
         <span>
@@ -134,6 +136,7 @@ function DetailedInstructions({ guide }: { guide: McpClientGuide }) {
 
       {mounted ? (
         <div
+          id={panelId}
           className="accordion-panel motion-reduce:transition-none"
           data-visible={visible ? "true" : "false"}
         >
