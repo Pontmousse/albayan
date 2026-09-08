@@ -7,7 +7,7 @@ import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
 export const metadata: Metadata = {
   title: "الوكلاء | البيان",
   description:
-    "اربط وكيلك الذكي بمجلة البيان — Cursor أو ChatGPT أو Claude.",
+    "اربط وكيلك الذكي بمجلة البيان عبر Cursor أو ChatGPT أو Claude أو Antigravity أو OpenCode وغيرها.",
 };
 
 export default function WukalaPage() {
@@ -24,12 +24,13 @@ export default function WukalaPage() {
           اربط وكيلك الذكي بمجلة البيان
         </h1>
         <p className="mt-4 text-pretty text-sm leading-7 text-slate-600 sm:text-base">
-          اختر برنامجك (
-          <strong className="font-semibold text-slate-800">Cursor</strong> أو{" "}
-          <strong className="font-semibold text-slate-800">ChatGPT</strong> أو{" "}
-          <strong className="font-semibold text-slate-800">Claude</strong>
-          ) واتبع الخطوات. البرنامج يساعدك في الكتابة، وأنت تحفظ وتقدّم من
-          منصة البيان.
+          اختر من ستة مسارات تشمل <strong className="font-semibold text-slate-800">Cursor</strong> و{" "}
+          <strong className="font-semibold text-slate-800">ChatGPT</strong> و{" "}
+          <strong className="font-semibold text-slate-800">Claude</strong> و{" "}
+          <strong className="font-semibold text-slate-800">Antigravity</strong> و{" "}
+          <strong className="font-semibold text-slate-800">OpenCode</strong>، أو اتبع
+          الدليل العام لأي برنامج آخر. الوكيل يساعدك في الكتابة، وأنت تحفظ
+          وتقدّم من منصة البيان.
         </p>
 
         <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
