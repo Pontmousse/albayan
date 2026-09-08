@@ -54,6 +54,26 @@ def _value_hash(value: str | None) -> str | None:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def _apply_acceptance_metadata(
+    delivery: EmailDelivery,
+    *,
+    email_kind: str,
+    recipient: str,
+    event_scope: str | None,
+    related_id: str | None,
+    idempotency_key: str | None,
+    accepted_at: datetime,
+) -> None:
+    delivery.email_kind = email_kind[:120]
+    delivery.recipient_hash = recipient_hash(recipient)
+    delivery.event_scope = event_scope[:120] if event_scope else None
+    delivery.related_id = related_id[:255] if related_id else None
+    delivery.idempotency_key_hash = _value_hash(idempotency_key)
+    delivery.provider_accepted_at = accepted_at
+    if delivery.latest_provider_event_at is None:
+        delivery.latest_state = "accepted"
+
+
 def record_accepted_email(
     *,
     provider_email_id: str | None,
@@ -70,11 +90,22 @@ def record_accepted_email(
     with SessionLocal() as db:
         if provider_id:
             existing = db.scalar(
-                select(EmailDelivery).where(
-                    EmailDelivery.provider_email_id == provider_id
-                )
+                select(EmailDelivery)
+                .where(EmailDelivery.provider_email_id == provider_id)
+                .with_for_update()
             )
             if existing is not None:
+                _apply_acceptance_metadata(
+                    existing,
+                    email_kind=email_kind,
+                    recipient=recipient,
+                    event_scope=event_scope,
+                    related_id=related_id,
+                    idempotency_key=idempotency_key,
+                    accepted_at=accepted,
+                )
+                db.commit()
+                db.refresh(existing)
                 return existing
 
         delivery = EmailDelivery(
@@ -94,11 +125,22 @@ def record_accepted_email(
             db.rollback()
             if provider_id:
                 existing = db.scalar(
-                    select(EmailDelivery).where(
-                        EmailDelivery.provider_email_id == provider_id
-                    )
+                    select(EmailDelivery)
+                    .where(EmailDelivery.provider_email_id == provider_id)
+                    .with_for_update()
                 )
                 if existing is not None:
+                    _apply_acceptance_metadata(
+                        existing,
+                        email_kind=email_kind,
+                        recipient=recipient,
+                        event_scope=event_scope,
+                        related_id=related_id,
+                        idempotency_key=idempotency_key,
+                        accepted_at=accepted,
+                    )
+                    db.commit()
+                    db.refresh(existing)
                     return existing
             raise
         db.refresh(delivery)
@@ -222,6 +264,27 @@ def _should_apply_state(
     return _STATE_RANK.get(state, 0) >= _STATE_RANK.get(delivery.latest_state, 0)
 
 
+def _webhook_recipient_hash(data: dict[str, Any], provider_email_id: str) -> str:
+    recipients = data.get("to")
+    if isinstance(recipients, str) and recipients.strip():
+        return recipient_hash(recipients)
+    if isinstance(recipients, list):
+        for value in recipients:
+            if isinstance(value, str) and value.strip():
+                return recipient_hash(value)
+    # Resend lifecycle events normally include recipients. Keep the placeholder
+    # privacy-safe and non-null even when a malformed/minimal callback omits them.
+    return hashlib.sha256(f"resend:{provider_email_id}".encode("utf-8")).hexdigest()
+
+
+def _locked_delivery_query(provider_email_id: str):
+    return (
+        select(EmailDelivery)
+        .where(EmailDelivery.provider_email_id == provider_email_id)
+        .with_for_update()
+    )
+
+
 def handle_resend_webhook(
     event: dict[str, Any], *, provider_event_id: str | None
 ) -> dict[str, object]:
@@ -260,13 +323,32 @@ def handle_resend_webhook(
         if existing_event is not None:
             return {"ok": True, "duplicate": True}
 
-        delivery = db.scalar(
-            select(EmailDelivery).where(
-                EmailDelivery.provider_email_id == provider_email_id
-            )
-        )
+        delivery = db.scalar(_locked_delivery_query(provider_email_id))
         if delivery is None:
-            return {"ok": True, "matched": False}
+            delivery = EmailDelivery(
+                provider_email_id=provider_email_id,
+                email_kind="pending",
+                recipient_hash=_webhook_recipient_hash(data, provider_email_id),
+                provider_accepted_at=event_at or datetime.now(UTC),
+                latest_state="accepted",
+            )
+            db.add(delivery)
+            try:
+                db.flush()
+            except IntegrityError:
+                # The transport acceptance path may have inserted the same provider
+                # id between our lookup and flush. Restart and lock that row.
+                db.rollback()
+                existing_event = db.scalar(
+                    select(EmailDeliveryEvent).where(
+                        EmailDeliveryEvent.provider_event_id == event_id
+                    )
+                )
+                if existing_event is not None:
+                    return {"ok": True, "duplicate": True}
+                delivery = db.scalar(_locked_delivery_query(provider_email_id))
+                if delivery is None:
+                    raise
 
         db.add(
             EmailDeliveryEvent(
