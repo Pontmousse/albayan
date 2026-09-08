@@ -99,6 +99,11 @@ export type AppInvitationRead = {
   created_at: string;
   updated_at: string;
   expires_at: string | null;
+  email_delivery_state: string | null;
+  email_delivery_updated_at: string | null;
+  email_provider_id: string | null;
+  email_delivery_failure_code: string | null;
+  email_delivery_failure_message: string | null;
 };
 
 export type AppInvitationCreateResponse = {
