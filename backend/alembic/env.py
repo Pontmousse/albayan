@@ -13,6 +13,7 @@ from app.models.article import (  # noqa: F401
     ArticleVersion,
     Review,
 )
+from app.models.email_delivery import EmailDelivery, EmailDeliveryEvent  # noqa: F401
 from app.models.issue import Issue, IssueImage, IssueUpvote  # noqa: F401
 from app.models.invitation import Invitation  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
