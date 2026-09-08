@@ -28,6 +28,7 @@ def upgrade() -> None:
         sa.Column("idempotency_key_hash", sa.String(length=64), nullable=True),
         sa.Column("provider_accepted_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("latest_state", sa.String(length=32), nullable=False),
+        sa.Column("latest_provider_event", sa.String(length=80), nullable=True),
         sa.Column("latest_provider_event_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("failure_code", sa.String(length=160), nullable=True),
         sa.Column("failure_message", sa.String(length=1000), nullable=True),
