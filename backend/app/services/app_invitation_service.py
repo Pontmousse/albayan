@@ -1,7 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from email.utils import parseaddr
 from typing import Any
 
@@ -12,6 +12,7 @@ from app.core.clerk import AuthContext, clerk_client
 from app.core.config import settings
 from app.core.dates import format_date
 from app.models.enums import UserGender
+from app.services.email_action_handoff import create_handoff_token, verify_handoff_token
 from app.services.email_service import send_app_invitation_email
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,9 @@ _EMAIL_ADDRESS_RE = re.compile(
     r"(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+"
     r"[A-Za-z]{2,63}$"
 )
+
+_HANDOFF_KIND = "app_invitation"
+_HANDOFF_FALLBACK_LIFETIME = timedelta(hours=24)
 
 
 @dataclass(frozen=True)
@@ -144,6 +148,68 @@ def _expires_text(invitation: AppInvitation) -> str | None:
     return format_date(invitation.expires_at)
 
 
+def _handoff_expiry(invitation: AppInvitation) -> datetime:
+    if invitation.expires_at is not None:
+        return invitation.expires_at
+    # Clerk normally supplies expires_at. The short fallback prevents an
+    # unexpectedly long-lived handoff; continuation still re-checks Clerk.
+    return datetime.now(UTC) + _HANDOFF_FALLBACK_LIFETIME
+
+
+def _handoff_url(invitation: AppInvitation) -> str:
+    token = create_handoff_token(
+        kind=_HANDOFF_KIND,
+        subject=invitation.id,
+        expires_at=_handoff_expiry(invitation),
+    )
+    return (
+        f"{settings.frontend_base_url.rstrip('/')}"
+        f"/tasjil/invitation/{token}"
+    )
+
+
+def _find_app_invitation(invitation_id: str) -> AppInvitation | None:
+    offset = 0
+    while offset < 5000:
+        try:
+            page = clerk_client.invitations.list(
+                limit=100,
+                offset=offset,
+                order_by="-created_at",
+            )
+        except Exception as exc:
+            logger.warning("Clerk app invitation lookup failed (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="تعذّر تحميل دعوة المستخدم من Clerk.",
+            ) from exc
+        if not page:
+            return None
+        for row in page:
+            candidate = _invitation_read(row)
+            if candidate.id == invitation_id:
+                return candidate
+        if len(page) < 100:
+            return None
+        offset += len(page)
+    return None
+
+
+def continue_app_invitation_handoff(token: str) -> str:
+    claims = verify_handoff_token(token, expected_kind=_HANDOFF_KIND)
+    invitation = _find_app_invitation(claims.subject)
+    if invitation is None:
+        raise HTTPException(status_code=404, detail="الدعوة غير موجودة.")
+    if invitation.status != "pending":
+        raise HTTPException(status_code=409, detail="هذه الدعوة لم تعد متاحة.")
+    now = datetime.now(UTC)
+    if invitation.expires_at is not None and now >= invitation.expires_at:
+        raise HTTPException(status_code=410, detail="انتهت صلاحية الدعوة.")
+    if not invitation.url:
+        raise HTTPException(status_code=409, detail="رابط الدعوة غير متاح.")
+    return invitation.url
+
+
 def create_app_invitation(
     *,
     email: str,
@@ -204,7 +270,7 @@ def create_app_invitation(
         send_app_invitation_email(
             to=app_invitation.email,
             recipient_name=normalized_name,
-            invitation_url=app_invitation.url,
+            invitation_url=_handoff_url(app_invitation),
             expires_text=_expires_text(app_invitation),
             idempotency_key=f"app-invitation/{app_invitation.id}",
         )
@@ -222,32 +288,7 @@ def create_app_invitation(
 
 
 def resend_app_invitation(invitation_id: str) -> AppInvitation:
-    offset = 0
-    invitation: AppInvitation | None = None
-    while offset < 5000:
-        try:
-            page = clerk_client.invitations.list(
-                limit=100,
-                offset=offset,
-                order_by="-created_at",
-            )
-        except Exception as exc:
-            logger.warning("Clerk app invitation lookup failed (%s)", type(exc).__name__)
-            raise HTTPException(
-                status_code=502,
-                detail="تعذّر تحميل دعوة المستخدم من Clerk.",
-            ) from exc
-        if not page:
-            break
-        for row in page:
-            candidate = _invitation_read(row)
-            if candidate.id == invitation_id:
-                invitation = candidate
-                break
-        if invitation or len(page) < 100:
-            break
-        offset += len(page)
-
+    invitation = _find_app_invitation(invitation_id)
     if invitation is None:
         raise HTTPException(status_code=404, detail="الدعوة غير موجودة.")
     if invitation.status != "pending":
@@ -258,7 +299,7 @@ def resend_app_invitation(invitation_id: str) -> AppInvitation:
     send_app_invitation_email(
         to=invitation.email,
         recipient_name=invitation.full_name,
-        invitation_url=invitation.url,
+        invitation_url=_handoff_url(invitation),
         expires_text=_expires_text(invitation),
     )
     return invitation
