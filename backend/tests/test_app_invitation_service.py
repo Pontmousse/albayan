@@ -49,6 +49,22 @@ def _clerk_error(status_code: int, code: str) -> models.ClerkErrors:
 
 
 class AppInvitationServiceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        latest_patch = patch.object(
+            app_invitation_service.email_delivery_service,
+            "latest_delivery_for_context",
+            return_value=None,
+        )
+        list_patch = patch.object(
+            app_invitation_service.email_delivery_service,
+            "latest_deliveries_for_related_ids",
+            return_value={},
+        )
+        latest_patch.start()
+        list_patch.start()
+        self.addCleanup(latest_patch.stop)
+        self.addCleanup(list_patch.stop)
+
     def test_admin_invitation_endpoints_use_admin_dependency(self) -> None:
         self.assertEqual(
             inspect.signature(admin.create_app_invitation).parameters["auth"].annotation,
@@ -118,6 +134,7 @@ class AppInvitationServiceTests(unittest.TestCase):
             invitation_url=returned.url,
             expires_text="١٥ ربيع الأول ١٤٤٨ هـ",
             idempotency_key="app-invitation/inv_test",
+            related_id="inv_test",
         )
         self.assertEqual(invitation.id, "inv_test")
         self.assertEqual(invitation.status, "pending")
@@ -182,6 +199,7 @@ class AppInvitationServiceTests(unittest.TestCase):
             recipient_name=None,
             invitation_url=returned.url,
             expires_text=app_invitation_service.format_date(invitation.expires_at),
+            related_id="inv_test",
         )
 
     def test_list_returns_compact_clerk_invitations(self) -> None:
