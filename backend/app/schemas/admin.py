@@ -137,6 +137,11 @@ class AppInvitationRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     expires_at: datetime | None = None
+    email_delivery_state: str | None = None
+    email_delivery_updated_at: datetime | None = None
+    email_provider_id: str | None = None
+    email_delivery_failure_code: str | None = None
+    email_delivery_failure_message: str | None = None
 
 
 class AppInvitationCreateResponse(BaseModel):
