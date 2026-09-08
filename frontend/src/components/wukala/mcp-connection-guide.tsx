@@ -226,7 +226,7 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
             </p>
             <WukalaCtaButton
               className="mt-3 w-full sm:w-auto"
-              label="أنشئ مفتاح ربط"
+              label="أنشئ مفتاحك الخاص"
             />
           </div>
         ) : null}
