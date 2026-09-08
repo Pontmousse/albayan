@@ -24,6 +24,7 @@ class EmailDelivery(Base):
     idempotency_key_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     provider_accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     latest_state: Mapped[str] = mapped_column(String(32), default="accepted", index=True)
+    latest_provider_event: Mapped[str | None] = mapped_column(String(80), nullable=True)
     latest_provider_event_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
