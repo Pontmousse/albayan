@@ -42,6 +42,18 @@ function ClientIcon({
       surface: "border-orange-200/90 bg-gradient-to-br from-orange-50 to-amber-100",
       image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
     },
+    antigravity: {
+      surface: "border-sky-200/90 bg-gradient-to-br from-sky-50 to-indigo-100",
+      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+    },
+    opencode: {
+      surface: "border-cyan-200/90 bg-gradient-to-br from-cyan-50 to-blue-100",
+      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+    },
+    other: {
+      surface: "border-violet-200/90 bg-gradient-to-br from-violet-50 to-fuchsia-100",
+      image: size === "sm" ? "h-[22px] w-[22px]" : "h-[38px] w-[38px]",
+    },
   };
   const theme = iconTheme[id];
 
@@ -119,6 +131,12 @@ export function McpClientCarousel() {
       "border-emerald-400/80 bg-gradient-to-br from-emerald-50 to-teal-100 text-emerald-950 shadow-sm ring-1 ring-emerald-200/60",
     claude:
       "border-orange-300 bg-gradient-to-br from-orange-50 to-amber-100 text-orange-950 shadow-sm ring-1 ring-orange-200/60",
+    antigravity:
+      "border-sky-300 bg-gradient-to-br from-sky-50 to-indigo-100 text-sky-950 shadow-sm ring-1 ring-sky-200/60",
+    opencode:
+      "border-cyan-300 bg-gradient-to-br from-cyan-50 to-blue-100 text-cyan-950 shadow-sm ring-1 ring-cyan-200/60",
+    other:
+      "border-violet-300 bg-gradient-to-br from-violet-50 to-fuchsia-100 text-violet-950 shadow-sm ring-1 ring-violet-200/60",
   };
 
   return (
@@ -133,7 +151,7 @@ export function McpClientCarousel() {
             اختر برنامجك واتبع الخطوات
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            اسحب البطاقات أو اضغط اسم البرنامج أعلاه
+            ستة مسارات واضحة — اسحب البطاقات أو اضغط اسم البرنامج أعلاه
           </p>
           <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5 text-xs leading-6 text-slate-600">
             قد تتغيّر بعض خطوات الربط مع تحديث واجهات هذه البرامج والخدمات. نحرص على
@@ -153,6 +171,7 @@ export function McpClientCarousel() {
           return (
             <button
               key={guide.id}
+              id={`tab-${guide.id}`}
               type="button"
               role="tab"
               aria-selected={selected}
@@ -199,7 +218,6 @@ export function McpClientCarousel() {
                 />
                 <div className="min-w-0 flex-1">
                   <h3
-                    id={`tab-${guide.id}`}
                     className="text-lg font-bold text-slate-900"
                   >
                     {guide.name}
@@ -309,7 +327,7 @@ export function McpClientCarousel() {
           </div>
         )}
 
-        {(active.id === "chatgpt" || active.id === "claude") && (
+        {active.id !== "cursor" && (
           <div className="mt-6 rounded-xl border border-[var(--journal-border)] bg-white/80 p-4">
             <p className="text-sm font-semibold text-slate-800">عنوان الخادم</p>
             <p
@@ -319,8 +337,8 @@ export function McpClientCarousel() {
               {MCP_SERVER_URL}
             </p>
             <p className="mt-2 text-xs leading-5 text-slate-600">
-              هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك —
-              دون نسخ مفتاح ربط.
+              هذا العنوان هو صلة الوصل. سجّل الدخول إلى التطبيق عندما يُطلب منك،
+              أو اتبع طريقة المفتاح التي يدعمها برنامجك إن اخترت «برامج أخرى».
             </p>
           </div>
         )}

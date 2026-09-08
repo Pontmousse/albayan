@@ -79,8 +79,8 @@ test("AgentsNavLink has no DEV or وضع تطوير badge", () => {
   assert.equal(source.includes("DEV"), false);
   assert.equal(source.includes("وضع تطوير"), false);
   assert.match(source, /وكلاء/);
-  assert.match(source, /agents-nav-link/);
-  assert.match(source, /agents-nav-link__plus/);
+  assert.match(source, /nav-feature-link--agents/);
+  assert.match(source, /nav-feature-link__icon/);
 });
 
 test("MainNav renders AgentsNavLink on the mobile header, not as a plain list href", () => {
@@ -110,7 +110,7 @@ test("MobileSheet is a full-viewport dialog with logical positioning", () => {
 
 test("MobileNav uses MobileSheet and not an end-0 popover", () => {
   const source = readSrc("components/main-nav.tsx");
-  assert.match(source, /import \{ MobileSheet \} from "@\/components\/mobile-sheet"/);
+  assert.match(source, /import \{?[\s\S]*?MobileSheet,[\s\S]*?\}? from "@\/components\/mobile-sheet"/);
   assert.match(source, /<MobileSheet/);
   assert.match(source, /title="القائمة"/);
   const mobileNavStart = source.indexOf("function MobileNav");
@@ -122,7 +122,7 @@ test("MobileNav uses MobileSheet and not an end-0 popover", () => {
 
 test("AuthHeader uses MobileSheet on mobile and keeps the desktop popover", () => {
   const source = readSrc("components/auth-header.tsx");
-  assert.match(source, /import \{ MobileSheet \} from "@\/components\/mobile-sheet"/);
+  assert.match(source, /import \{?[\s\S]*?MobileSheet,[\s\S]*?\}? from "@\/components\/mobile-sheet"/);
   assert.match(source, /import \{ useMdUp \} from "@\/hooks\/use-md-up"/);
   assert.match(source, /<MobileSheet/);
   assert.match(source, /open=\{sheetOpen\}/);
@@ -157,4 +157,13 @@ test("MCP server URL default is the Railway production endpoint", () => {
     /https:\/\/albayan-mcp-production\.up\.railway\.app\/mcp/,
   );
   assert.equal(source.includes("mcp.albayan-journal.org"), false);
+});
+
+test("the MCP carousel offers all six client paths", () => {
+  const source = readSrc("lib/mcp-client-guides.ts");
+  const ids = ["cursor", "chatgpt", "claude", "antigravity", "opencode", "other"];
+  for (const id of ids) assert.match(source, new RegExp(`id: "${id}"`));
+  assert.equal((source.match(/\n\s+id: "/g) ?? []).length, 6);
+  assert.match(source, /opencode mcp auth albayan/);
+  assert.match(source, /لا يحتاج خادم البيان إلى مفتاح API داخل OpenCode/);
 });
