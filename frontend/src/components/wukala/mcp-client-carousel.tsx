@@ -101,13 +101,20 @@ function ProviderSummary({
   guide,
   panelId,
   tabId,
+  viewport,
   className = "",
 }: {
   guide: McpClientGuide;
   panelId: string;
   tabId: string;
+  viewport: "mobile" | "desktop";
   className?: string;
 }) {
+  const quickSteps =
+    viewport === "mobile"
+      ? guide.mobileSteps.slice(0, 3)
+      : guide.desktopSteps.slice(0, 3);
+
   return (
     <article
       id={panelId}
@@ -125,25 +132,18 @@ function ProviderSummary({
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-bold text-slate-900">{guide.name}</h3>
           <p className="mt-0.5 text-sm leading-6 text-slate-600">{guide.tagline}</p>
-          <span className="mt-2 inline-block rounded-full bg-white/90 px-2.5 py-0.5 text-xs font-medium text-[var(--journal-accent-strong)] ring-1 ring-[var(--journal-border)]">
-            {guide.authLabel}
-          </span>
         </div>
       </div>
 
       <div className="mt-5 rounded-xl border border-[var(--journal-border)] bg-white/90 p-4">
-        <p className="text-xs font-bold text-slate-500">الخطوات الأولى</p>
+        <p className="text-xs font-bold text-slate-500">
+          {viewport === "mobile" ? "على الجوال" : "الخطوات الأولى"}
+        </p>
         <ol className="mt-2 list-decimal space-y-2 ps-5 text-sm leading-6 text-slate-700">
-          {guide.desktopSteps.slice(0, 3).map((step) => (
+          {quickSteps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
-        {guide.mobileSteps[0] ? (
-          <p className="mt-3 border-t border-slate-100 pt-3 text-xs leading-5 text-slate-500">
-            <strong className="font-semibold text-slate-700">على الجوال: </strong>
-            {guide.mobileSteps[0]}
-          </p>
-        ) : null}
       </div>
     </article>
   );
@@ -354,6 +354,7 @@ export function McpClientCarousel() {
               guide={guide}
               panelId={`mobile-panel-${guide.id}`}
               tabId={`mobile-tab-${guide.id}`}
+              viewport="mobile"
               className="w-[min(92%,100%)] shrink-0 snap-center snap-always"
             />
           ))}
@@ -381,6 +382,7 @@ export function McpClientCarousel() {
           guide={active}
           panelId={`desktop-panel-${active.id}`}
           tabId={`desktop-tab-${active.id}`}
+          viewport="desktop"
         />
       </div>
 
