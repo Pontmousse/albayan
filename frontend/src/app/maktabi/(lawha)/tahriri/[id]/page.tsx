@@ -22,6 +22,7 @@ import {
   type EditorDecisionStatus,
 } from "@/lib/api/editor";
 import { RECOMMENDATION_LABELS } from "@/lib/api/reviews";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 const DECISIONS: {
   status: EditorDecisionStatus;
@@ -80,7 +81,7 @@ export default function TahririDetailPage() {
         setDocumentJson(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل المقال.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل المقال."));
     }
   }, [getToken, articleId]);
 
@@ -103,9 +104,7 @@ export default function TahririDetailPage() {
       setDecisionOk("تم تحديث القرار التحريري.");
       await load();
     } catch (err) {
-      setDecisionError(
-        err instanceof Error ? err.message : "تعذّر تحديث القرار.",
-      );
+      setDecisionError(userFacingErrorMessage(err, "تعذّر تحديث القرار."));
     } finally {
       setDeciding(false);
     }

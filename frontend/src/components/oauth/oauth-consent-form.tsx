@@ -100,8 +100,8 @@ function ConsentDecisionForm() {
           طلب تفويض غير مكتمل
         </h2>
         <p className="mt-3 text-sm leading-7 text-[var(--journal-muted)]">
-          تنقص معاملات OAuth المطلوبة (`client_id` و`redirect_uri`). أعد الربط من
-          تطبيق الوكيل (مثل ChatGPT) ولا تفتح هذه الصفحة يدوياً.
+          تعذّر إكمال طلب التفويض. أعد محاولة الربط من تطبيق الوكيل، ولا تفتح هذه
+          الصفحة يدوياً.
         </p>
       </div>
     );

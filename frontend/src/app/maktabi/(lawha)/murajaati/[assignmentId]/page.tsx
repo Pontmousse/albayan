@@ -21,6 +21,7 @@ import {
   type AssignmentDetail,
   type ReviewRecommendation,
 } from "@/lib/api/reviews";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 const RECOMMENDATIONS = Object.keys(
   RECOMMENDATION_LABELS,
@@ -59,7 +60,7 @@ export default function MurajaatiDetailPage() {
         setDocumentJson(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل التعيين.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل التعيين."));
     }
   }, [getToken, assignmentId]);
 
@@ -84,7 +85,7 @@ export default function MurajaatiDetailPage() {
       setFormOk("حُفظت المسودة.");
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "تعذّر حفظ المسودة.");
+      setFormError(userFacingErrorMessage(err, "تعذّر حفظ المسودة."));
     } finally {
       setSaving(false);
     }
@@ -108,7 +109,7 @@ export default function MurajaatiDetailPage() {
       setFormOk("سُلِّمت المراجعة بنجاح.");
       await load();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "تعذّر تسليم المراجعة.");
+      setFormError(userFacingErrorMessage(err, "تعذّر تسليم المراجعة."));
     } finally {
       setSubmitting(false);
     }

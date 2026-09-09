@@ -1,3 +1,5 @@
+import { isSafeArabicProductMessage } from "./user-facing-errors";
+
 const CLERK_ERROR_MAP: Record<string, string> = {
   form_password_incorrect: "كلمة المرور غير صحيحة.",
   form_password_or_identifier_incorrect: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
@@ -118,7 +120,7 @@ export function translateEnglishAuthMessage(message: string): string {
       return typeof replace === "function" ? replace(match) : replace;
     }
   }
-  return /[\u0600-\u06ff]/u.test(trimmed)
+  return isSafeArabicProductMessage(trimmed)
     ? trimmed
     : "تعذّر إكمال عملية المصادقة. حاول مجدداً.";
 }

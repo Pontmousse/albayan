@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/reviews";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 const ACTIVE_STATUSES = ["submitted", "under_review"] as const;
 const DONE_STATUSES = ["accepted", "published"] as const;
@@ -82,7 +83,7 @@ export default function MaktabiOverviewPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل البيانات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل البيانات."));
         }
       });
     return () => {

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VersionRead } from "@/lib/api/articles";
+import { isDevMode } from "@/lib/dev-mode";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 import { useNumerals } from "@/components/numeral-provider";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -177,8 +179,14 @@ export function CompiledPdfViewer({
         setBlobUrl(url);
       } catch (err) {
         if (!cancelled) {
+          if (isDevMode()) {
+            console.error("Compiled PDF loading failed.", err);
+          }
           setLoadError(
-            err instanceof Error ? err.message : "تعذّر تحميل ملفّ المعاينة.",
+            userFacingErrorMessage(
+              err,
+              "تعذّر تحميل ملفّ المعاينة. حاول مجدداً.",
+            ),
           );
         }
       }
@@ -203,8 +211,14 @@ export function CompiledPdfViewer({
     try {
       await onRequestCompile();
     } catch (err) {
+      if (isDevMode()) {
+        console.error("Article preview compilation failed.", err);
+      }
       setActionError(
-        err instanceof Error ? err.message : "تعذّر بدء إنشاء ملفّ المعاينة.",
+        userFacingErrorMessage(
+          err,
+          "تعذّر إنشاء ملفّ المعاينة. راجع المخطوطة ثم حاول مجدداً.",
+        ),
       );
     } finally {
       setCompiling(false);

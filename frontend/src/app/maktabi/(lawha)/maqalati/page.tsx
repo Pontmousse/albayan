@@ -15,6 +15,7 @@ import {
 } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type Filter = "all" | "draft" | "submitted" | "under_review" | "finished";
 
@@ -55,7 +56,7 @@ export default function MaqalatiPage() {
         setError(null);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل المقالات.");
+        setError(userFacingErrorMessage(err, "تعذّر تحميل المقالات."));
       });
   }, [getToken]);
 
@@ -67,7 +68,7 @@ export default function MaqalatiPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل المقالات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المقالات."));
         }
       });
     return () => {
@@ -84,7 +85,7 @@ export default function MaqalatiPage() {
       setPendingDelete(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حذف المسودة.");
+      setError(userFacingErrorMessage(err, "تعذّر حذف المسودة."));
       setPendingDelete(null);
     } finally {
       setDeleting(false);

@@ -17,4 +17,10 @@ describe("translateEnglishAuthMessage", () => {
   it("keeps Arabic authentication messages", () => {
     expect(translateEnglishAuthMessage("انتهت الجلسة.")).toBe("انتهت الجلسة.");
   });
+
+  it("does not expose Arabic messages mixed with provider internals", () => {
+    expect(
+      translateEnglishAuthMessage("تعذّر تسجيل الدخول بسبب Clerk session_id."),
+    ).toBe("تعذّر إكمال عملية المصادقة. حاول مجدداً.");
+  });
 });

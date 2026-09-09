@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { createArticle } from "@/lib/api/articles";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 export default function JadidPage() {
   const { getToken } = useAuth();
@@ -25,7 +26,7 @@ export default function JadidPage() {
       });
       router.push(`/maktabi/maqalati/${article.id}/tahrir`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إنشاء المقال.");
+      setError(userFacingErrorMessage(err, "تعذّر إنشاء المقال."));
       setSaving(false);
     }
   }

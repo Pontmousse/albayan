@@ -85,7 +85,7 @@ export function useButexImageResolver(
   const [urlMap, setUrlMap] = useState<Record<string, string>>({});
   const urlMapRef = useRef(urlMap);
   urlMapRef.current = urlMap;
-  const inflightRef = useRef(new Set<string>());
+  const inflightRef = useRef(new Map<string, Promise<void>>());
   const getTokenRef = useRef(getToken);
   getTokenRef.current = getToken;
   const fetchRef = useRef(fetchAssetBlob);
@@ -100,13 +100,12 @@ export function useButexImageResolver(
   }, []);
 
   const ensureAsset = useCallback(
-    async (assetKey: string) => {
-      if (!scopeId) return;
-      if (urlMapRef.current[assetKey] || inflightRef.current.has(assetKey)) {
-        return;
-      }
-      inflightRef.current.add(assetKey);
-      try {
+    (assetKey: string): Promise<void> => {
+      if (!scopeId || urlMapRef.current[assetKey]) return Promise.resolve();
+      const inflight = inflightRef.current.get(assetKey);
+      if (inflight) return inflight;
+
+      const request = (async () => {
         const blob = await fetchRef.current(
           getTokenRef.current,
           scopeId,
@@ -120,11 +119,13 @@ export function useButexImageResolver(
           }
           return { ...prev, [assetKey]: objectUrl };
         });
-      } catch {
-        // تُترك الصورة فارغة حتى إعادة المحاولة
-      } finally {
-        inflightRef.current.delete(assetKey);
-      }
+      })().finally(() => {
+        if (inflightRef.current.get(assetKey) === request) {
+          inflightRef.current.delete(assetKey);
+        }
+      });
+      inflightRef.current.set(assetKey, request);
+      return request;
     },
     [scopeId],
   );
@@ -132,7 +133,7 @@ export function useButexImageResolver(
   const prefetchFromDocument = useCallback(
     (documentJson: unknown) => {
       for (const key of collectAssetKeysFromDocument(documentJson)) {
-        void ensureAsset(key);
+        void ensureAsset(key).catch(() => undefined);
       }
     },
     [ensureAsset],
@@ -145,7 +146,7 @@ export function useButexImageResolver(
       if (key) {
         const cached = urlMap[key];
         if (cached) return cached;
-        void ensureAsset(key);
+        void ensureAsset(key).catch(() => undefined);
         return "";
       }
       if (/^https?:\/\//i.test(value) || value.startsWith("blob:")) {

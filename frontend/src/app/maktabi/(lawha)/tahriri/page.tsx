@@ -11,6 +11,7 @@ import {
   type EditorArticleSummary,
 } from "@/lib/api/editor";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type Filter = "all" | "pending" | "accepted" | "rejected";
 
@@ -44,7 +45,7 @@ export default function TahririPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل المقالات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المقالات."));
         }
       });
     return () => {

@@ -11,6 +11,7 @@ import {
   type AssignmentSummary,
 } from "@/lib/api/reviews";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 function reviewLabel(row: AssignmentSummary): string {
   if (row.assignment_status === "completed" || row.review?.status === "submitted") {
@@ -34,7 +35,7 @@ export default function MurajaatiPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل المراجعات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المراجعات."));
         }
       });
     return () => {

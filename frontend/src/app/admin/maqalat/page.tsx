@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin";
 import type { VersionStatus } from "@/lib/api/articles";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type Filter = "all" | VersionStatus;
 
@@ -45,7 +46,7 @@ export default function AdminArticlesPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل المقالات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المقالات."));
         }
       });
     return () => {

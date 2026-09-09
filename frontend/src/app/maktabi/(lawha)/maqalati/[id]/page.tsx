@@ -32,6 +32,10 @@ import {
 } from "@/lib/butex-latex";
 import { isButexDocumentValid } from "@/lib/butex-validation";
 import { isDevMode } from "@/lib/dev-mode";
+import {
+  UserFacingError,
+  userFacingErrorMessage,
+} from "@/lib/user-facing-errors";
 import { useNumerals } from "@/components/numeral-provider";
 
 export default function ArticleDetailPage() {
@@ -71,7 +75,7 @@ export default function ArticleDetailPage() {
         setDocumentJson(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل المقال.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل المقال."));
     }
   }, [getToken, articleId]);
 
@@ -96,7 +100,7 @@ export default function ArticleDetailPage() {
       setDialogOpen(false);
       await load();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "تعذّر تقديم المقال.");
+      setSubmitError(userFacingErrorMessage(err, "تعذّر تقديم المقال."));
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +114,7 @@ export default function ArticleDetailPage() {
       setDeleteDialogOpen(false);
       router.push("/maktabi/maqalati");
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "تعذّر حذف المسودة.");
+      setSubmitError(userFacingErrorMessage(err, "تعذّر حذف المسودة."));
       setDeleteDialogOpen(false);
     } finally {
       setDeleting(false);
@@ -150,7 +154,7 @@ export default function ArticleDetailPage() {
       setEditingMetadata(false);
     } catch (err) {
       setMetadataError(
-        err instanceof Error ? err.message : "تعذّر حفظ بيانات المسودة.",
+        userFacingErrorMessage(err, "تعذّر حفظ بيانات المسودة."),
       );
     } finally {
       setMetadataSaving(false);
@@ -159,10 +163,10 @@ export default function ArticleDetailPage() {
 
   async function handleCompile() {
     if (documentJson == null) {
-      throw new Error("لا توجد مخطوطة محفوظة لإنشاء ملفّ المعاينة.");
+      throw new UserFacingError("لا توجد مخطوطة محفوظة لإنشاء ملفّ المعاينة.");
     }
     if (!isButexDocumentValid(documentJson)) {
-      throw new Error(
+      throw new UserFacingError(
         "لا يمكن إنشاء ملفّ المعاينة لوجود مشكلة في المحرر. ارجع إلى المحرر وراجع الحقول المعلّمة.",
       );
     }
@@ -173,10 +177,11 @@ export default function ArticleDetailPage() {
     try {
       latex = exportDocumentLatex(documentJson);
     } catch (err) {
-      throw new Error(
-        err instanceof Error
-          ? `تعذّر تصدير المخطوطة: ${err.message}`
-          : "تعذّر تصدير المخطوطة.",
+      if (isDevMode()) {
+        console.error("Article preview export failed.", err);
+      }
+      throw new UserFacingError(
+        "تعذّر إنشاء ملفّ المعاينة. راجع المخطوطة ثم حاول مجدداً.",
       );
     }
     if (isDevMode()) {

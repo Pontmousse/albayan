@@ -111,8 +111,9 @@ All must push document undo snapshots.
 - `GET /api/v1/articles/{id}/assets` — S3 list under `assets/` (no migration).
 - `POST /api/v1/articles/{id}/assets` — upload.
 - `GET /api/v1/articles/{id}/assets/{filename}` — preview bytes.
-- Editor: **صور المقال** panel — upload to inventory, **إدراج في المستند** calls `insertImageBlock(asset_id)`.
-- After BuTeX ships contract: wire `onRequestImagePick` → same panel for empty in-editor figures.
+- Editor: **صور المقال** management panel — upload and review the article inventory.
+- `onRequestImagePick` opens the same panel in selection-only mode for empty or filled in-editor figures; selecting a thumbnail returns `assetId` + `value` through the existing BuTeX update flow.
+- The selection-only panel does not upload; authors use the standalone **صور المقال** button for uploads.
 
 ## 9. Acceptance tests (package)
 

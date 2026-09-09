@@ -32,6 +32,10 @@ import type { VersionStatus } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
 import { normalizeNumericInput, parseBoundedInteger } from "@/lib/numerals";
+import {
+  isSafeArabicProductMessage,
+  userFacingErrorMessage,
+} from "@/lib/user-facing-errors";
 
 const OVERRIDE_STATUSES: { status: VersionStatus; label: string; confirm: boolean }[] =
   [
@@ -86,7 +90,7 @@ export default function AdminArticleDetailPage() {
     load()
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل المقال.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المقال."));
         }
       });
     return () => {
@@ -102,6 +106,7 @@ export default function AdminArticleDetailPage() {
 
   async function runAction(
     label: string,
+    failureMessage: string,
     fn: () => Promise<unknown>,
     successMessage?: (result: unknown) => string,
   ) {
@@ -113,7 +118,7 @@ export default function AdminArticleDetailPage() {
       setActionOk(successMessage ? successMessage(result) : label);
       await load();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "تعذّر تنفيذ العملية.");
+      setActionError(userFacingErrorMessage(err, failureMessage));
     } finally {
       setBusy(false);
     }
@@ -139,6 +144,9 @@ export default function AdminArticleDetailPage() {
       }
       await runAction(
         assignRole === "reviewer" ? "تم تعيين المراجع." : "تم تعيين المحرر.",
+        assignRole === "reviewer"
+          ? "تعذّر تعيين المراجع."
+          : "تعذّر تعيين المحرر.",
         () =>
           assignRole === "reviewer"
             ? assignReviewer(getToken, articleId, selectedUserId, reviewDueAt)
@@ -154,6 +162,7 @@ export default function AdminArticleDetailPage() {
     }
     await runAction(
       "أُنشئت الدعوة.",
+      "تعذّر إنشاء الدعوة.",
       async () => {
         const res = await inviteToArticle(
           getToken,
@@ -168,7 +177,9 @@ export default function AdminArticleDetailPage() {
       (result) => {
         const res = result as { warning?: string | null };
         if (res?.warning) {
-          return `أُنشئت الدعوة — تنبيه: ${res.warning}`;
+          return isSafeArabicProductMessage(res.warning)
+            ? `أُنشئت الدعوة — تنبيه: ${res.warning}`
+            : "أُنشئت الدعوة، لكن تعذّر إرسالها بالبريد.";
         }
         return "أُنشئت الدعوة.";
       },
@@ -176,8 +187,16 @@ export default function AdminArticleDetailPage() {
   }
 
   async function applyOverride(status: VersionStatus) {
-    await runAction("تم تحديث حالة الإصدار.", () =>
-      overrideDecision(getToken, articleId, status, overrideReason.trim() || null),
+    await runAction(
+      "تم تحديث حالة الإصدار.",
+      "تعذّر تحديث حالة الإصدار.",
+      () =>
+        overrideDecision(
+          getToken,
+          articleId,
+          status,
+          overrideReason.trim() || null,
+        ),
     );
     setPendingOverride(null);
   }
@@ -316,8 +335,10 @@ export default function AdminArticleDetailPage() {
                   type="button"
                   disabled={busy}
                   onClick={() =>
-                    void runAction("أُلغي تعيين المراجع.", () =>
-                      unassignReviewer(getToken, articleId, row.user.id),
+                    void runAction(
+                      "أُلغي تعيين المراجع.",
+                      "تعذّر إلغاء تعيين المراجع.",
+                      () => unassignReviewer(getToken, articleId, row.user.id),
                     )
                   }
                   className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
@@ -353,8 +374,10 @@ export default function AdminArticleDetailPage() {
                   type="button"
                   disabled={busy}
                   onClick={() =>
-                    void runAction("أُلغي تعيين المحرر.", () =>
-                      unassignEditor(getToken, articleId, row.user.id),
+                    void runAction(
+                      "أُلغي تعيين المحرر.",
+                      "تعذّر إلغاء تعيين المحرر.",
+                      () => unassignEditor(getToken, articleId, row.user.id),
                     )
                   }
                   className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
@@ -511,8 +534,10 @@ export default function AdminArticleDetailPage() {
                       type="button"
                       disabled={busy}
                       onClick={() =>
-                        void runAction("أُعيد إرسال الدعوة.", () =>
-                          resendInvitation(getToken, inv.id),
+                        void runAction(
+                          "أُعيد إرسال الدعوة.",
+                          "تعذّرت إعادة إرسال الدعوة.",
+                          () => resendInvitation(getToken, inv.id),
                         )
                       }
                       className="rounded-md border border-[var(--journal-border)] px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:opacity-60"
@@ -523,8 +548,10 @@ export default function AdminArticleDetailPage() {
                       type="button"
                       disabled={busy}
                       onClick={() =>
-                        void runAction("أُلغيت الدعوة.", () =>
-                          cancelInvitation(getToken, inv.id),
+                        void runAction(
+                          "أُلغيت الدعوة.",
+                          "تعذّر إلغاء الدعوة.",
+                          () => cancelInvitation(getToken, inv.id),
                         )
                       }
                       className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"

@@ -25,6 +25,7 @@ import {
   type IssueStatus,
 } from "@/lib/api/issues";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type StatusFilter = "all" | IssueStatus;
 type CategoryFilter = "all" | IssueCategory;
@@ -98,7 +99,7 @@ export default function AdminBalaghatPage() {
         );
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل البلاغات.");
+        setError(userFacingErrorMessage(err, "تعذّر تحميل البلاغات."));
       });
   }, [getToken, listParams]);
 
@@ -117,7 +118,7 @@ export default function AdminBalaghatPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل البلاغات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل البلاغات."));
         }
       });
     return () => {
@@ -148,7 +149,7 @@ export default function AdminBalaghatPage() {
       applyIssueUpdate(updated);
     } catch (err) {
       setIssues(previous);
-      setError(err instanceof Error ? err.message : "تعذّر تحديث حالة البلاغ.");
+      setError(userFacingErrorMessage(err, "تعذّر تحديث حالة البلاغ."));
     } finally {
       setUpdatingId(null);
     }

@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useNumerals } from "@/components/numeral-provider";
 import { getCurrentUser, updateCurrentUser } from "@/lib/api";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 export function ProfileForm() {
   const { formatNumber } = useNumerals();
@@ -28,7 +29,7 @@ export function ProfileForm() {
       setBio(profile.bio ?? "");
       setEmail(profile.email);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل الملف الشخصي.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل الملف الشخصي."));
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export function ProfileForm() {
       setMessage("تم الحفظ بنجاح.");
       await loadProfile();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ التغييرات.");
+      setError(userFacingErrorMessage(err, "تعذّر حفظ التغييرات."));
     } finally {
       setSaving(false);
     }

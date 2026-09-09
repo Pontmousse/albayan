@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/admin";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 function SummaryCard({
   label,
@@ -52,7 +53,7 @@ export default function AdminOverviewPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل البيانات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل البيانات."));
         }
       });
     return () => {

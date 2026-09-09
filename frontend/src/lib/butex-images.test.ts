@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ArticleAssetSummary } from "./api/articles";
 import {
+  articleAssetToButexImageAsset,
   articleAssetDisplayLabel,
   articleAssetSize,
   articleAssetTypeLabel,
@@ -22,6 +23,16 @@ function asset(
 }
 
 describe("articleAssetsToButexImageAssets", () => {
+  it("maps one host asset to the canonical BuTeX picker result", () => {
+    expect(
+      articleAssetToButexImageAsset(asset("assets/figure.png")),
+    ).toEqual({
+      assetId: "assets/figure.png",
+      value: "assets/figure.png",
+      label: "figure.png",
+    });
+  });
+
   it("uses the article asset id as both BuTeX identity and value", () => {
     expect(articleAssetsToButexImageAssets([asset("assets/figure.png")])).toEqual(
       [

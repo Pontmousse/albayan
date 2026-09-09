@@ -22,6 +22,7 @@ import {
 import { buttonClassName, inputClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
 import type { UserGender } from "@/lib/api";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 const ROLE_LABELS: Record<string, string> = {
   author: "مؤلف",
@@ -103,9 +104,7 @@ export default function AdminUsersPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "تعذّر تحميل المستخدمين.",
-          );
+          setError(userFacingErrorMessage(err, "تعذّر تحميل المستخدمين."));
         }
       });
     return () => {
@@ -149,9 +148,7 @@ export default function AdminUsersPage() {
       setSuccess(`أُرسلت الدعوة إلى ${response.invitation.email}.`);
       await refreshInvitations();
     } catch (err) {
-      setInvitationError(
-        err instanceof Error ? err.message : "تعذّر إرسال الدعوة.",
-      );
+      setInvitationError(userFacingErrorMessage(err, "تعذّر إرسال الدعوة."));
     } finally {
       setSending(false);
     }
@@ -167,9 +164,7 @@ export default function AdminUsersPage() {
       setSuccess("أُلغيت الدعوة.");
       await refreshInvitations();
     } catch (err) {
-      setInvitationError(
-        err instanceof Error ? err.message : "تعذّر إلغاء الدعوة.",
-      );
+      setInvitationError(userFacingErrorMessage(err, "تعذّر إلغاء الدعوة."));
     } finally {
       setRevokingId(null);
     }
@@ -185,7 +180,7 @@ export default function AdminUsersPage() {
       setSuccess("أُعيد إرسال الدعوة.");
     } catch (err) {
       setInvitationError(
-        err instanceof Error ? err.message : "تعذّرت إعادة إرسال الدعوة.",
+        userFacingErrorMessage(err, "تعذّرت إعادة إرسال الدعوة."),
       );
     } finally {
       setResendingId(null);
@@ -206,7 +201,7 @@ export default function AdminUsersPage() {
       await refreshDeletionRequests();
     } catch (err) {
       setDeletionError(
-        err instanceof Error ? err.message : "تعذّر تحديث طلب حذف الحساب.",
+        userFacingErrorMessage(err, "تعذّر تحديث طلب حذف الحساب."),
       );
     } finally {
       setUpdatingDeletionId(null);

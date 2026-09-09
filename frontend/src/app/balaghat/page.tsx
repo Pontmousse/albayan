@@ -33,6 +33,7 @@ import {
   type IssueStatus,
 } from "@/lib/api/issues";
 import { buttonClassName } from "@/lib/auth-ui";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 import { useNumerals } from "@/components/numeral-provider";
 
 type StatusFilter = "all" | IssueStatus;
@@ -114,7 +115,7 @@ export default function BalaghatPage() {
         setError(null);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل البلاغات.");
+        setError(userFacingErrorMessage(err, "تعذّر تحميل البلاغات."));
       });
   }, [getToken, listParams]);
 
@@ -126,7 +127,7 @@ export default function BalaghatPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل البلاغات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل البلاغات."));
         }
       });
     return () => {
@@ -236,7 +237,7 @@ export default function BalaghatPage() {
       updateSelectedIssueInUrl(created.id);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر إرسال البلاغ.");
+      setError(userFacingErrorMessage(err, "تعذّر إرسال البلاغ."));
     } finally {
       setSubmitting(false);
     }
@@ -263,7 +264,7 @@ export default function BalaghatPage() {
       applyIssueUpdate(updated);
     } catch (err) {
       setIssues(previous);
-      setError(err instanceof Error ? err.message : "تعذّر تحديث التصويت.");
+      setError(userFacingErrorMessage(err, "تعذّر تحديث التصويت."));
     } finally {
       setVotingId(null);
     }
@@ -287,7 +288,7 @@ export default function BalaghatPage() {
       }
       applyIssueUpdate(updated);
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : "تعذّر رفع الصورة.");
+      setImageError(userFacingErrorMessage(err, "تعذّر رفع الصورة."));
     } finally {
       setUploadingImage(false);
     }
@@ -302,7 +303,7 @@ export default function BalaghatPage() {
       const updated = await deleteIssueImage(getToken, issue.id, imageId);
       applyIssueUpdate(updated);
     } catch (err) {
-      setImageError(err instanceof Error ? err.message : "تعذّر حذف الصورة.");
+      setImageError(userFacingErrorMessage(err, "تعذّر حذف الصورة."));
     } finally {
       setDeletingImageId(null);
     }

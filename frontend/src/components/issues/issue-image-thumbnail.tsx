@@ -7,6 +7,7 @@ import {
   fetchIssueImageBlob,
   type IssueImage,
 } from "@/lib/api/issues";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 export function IssueImageThumbnail({
   issueId,
@@ -37,7 +38,7 @@ export function IssueImageThumbnail({
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل الصورة.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل الصورة."));
         }
       });
 

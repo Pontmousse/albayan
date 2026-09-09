@@ -6,7 +6,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document2Json } from "@drghaliasri/butex/document2";
 import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
-import { ArticleAssetsPanel } from "@/components/dashboard/article-assets-panel";
+import {
+  ArticleAssetsPanel,
+  type ArticleAssetsPanelMode,
+} from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
@@ -25,6 +28,7 @@ import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 import { isButexDocumentValid } from "@/lib/butex-validation";
 import { isDevMode } from "@/lib/dev-mode";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type EditorPhase = "loading" | "ready" | "blocked";
 
@@ -52,7 +56,11 @@ export default function TahrirPage() {
   const [assetListRetrying, setAssetListRetrying] = useState(false);
   const [assetListRevision, setAssetListRevision] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [assetsPanelOpen, setAssetsPanelOpen] = useState(false);
+  const [assetsPanelMode, setAssetsPanelMode] =
+    useState<ArticleAssetsPanelMode | null>(null);
+  const [pickerCurrentAssetId, setPickerCurrentAssetId] = useState<
+    string | null
+  >(null);
   const [assetsUploading, setAssetsUploading] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -69,6 +77,10 @@ export default function TahrirPage() {
   const sessionNeedsDraftSave = useRef(false);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
+  const pendingImagePickRef = useRef<
+    ((asset: ImageAssetRef | null) => void) | null
+  >(null);
+  const assetsPanelReturnFocusRef = useRef<HTMLElement | null>(null);
   const showDevJson = isDevMode();
 
   const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
@@ -93,9 +105,7 @@ export default function TahrirPage() {
       setAssetListError(null);
       return assets;
     } catch (err) {
-      setAssetListError(
-        err instanceof Error ? err.message : "تعذّر تحميل صور المقال.",
-      );
+      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
       throw err;
     }
   }, [assetListRevision, imageAssetListCache]);
@@ -117,13 +127,69 @@ export default function TahrirPage() {
       setAssetListError(null);
       setAssetListRevision((revision) => revision + 1);
     } catch (err) {
-      setAssetListError(
-        err instanceof Error ? err.message : "تعذّر تحميل صور المقال.",
-      );
+      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
     } finally {
       setAssetListRetrying(false);
     }
   }, [imageAssetListCache]);
+
+  const resolvePendingImagePick = useCallback(
+    (asset: ImageAssetRef | null) => {
+      const resolve = pendingImagePickRef.current;
+      pendingImagePickRef.current = null;
+      resolve?.(asset);
+    },
+    [],
+  );
+
+  const restoreAssetsPanelFocus = useCallback(() => {
+    const returnFocus = assetsPanelReturnFocusRef.current;
+    assetsPanelReturnFocusRef.current = null;
+    if (!returnFocus) return;
+    requestAnimationFrame(() => {
+      if (returnFocus.isConnected) returnFocus.focus();
+    });
+  }, []);
+
+  const closeAssetsPanel = useCallback(() => {
+    setAssetsPanelMode(null);
+    setPickerCurrentAssetId(null);
+    resolvePendingImagePick(null);
+    restoreAssetsPanelFocus();
+  }, [resolvePendingImagePick, restoreAssetsPanelFocus]);
+
+  const handleImageAssetSelected = useCallback(
+    (asset: ImageAssetRef) => {
+      setAssetsPanelMode(null);
+      setPickerCurrentAssetId(null);
+      resolvePendingImagePick(asset);
+      restoreAssetsPanelFocus();
+    },
+    [resolvePendingImagePick, restoreAssetsPanelFocus],
+  );
+
+  const handleRequestImagePick = useCallback(
+    ({ current }: { blockId: string; current: ImageAssetRef | null }) => {
+      pendingImagePickRef.current?.(null);
+      assetsPanelReturnFocusRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      setPickerCurrentAssetId(current?.assetId ?? null);
+      setAssetsPanelMode("pick");
+      return new Promise<ImageAssetRef | null>((resolve) => {
+        pendingImagePickRef.current = resolve;
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    return () => {
+      pendingImagePickRef.current?.(null);
+      pendingImagePickRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +234,7 @@ export default function TahrirPage() {
         setPhase("ready");
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر فتح المحرر.");
+          setError(userFacingErrorMessage(err, "تعذّر فتح المحرر."));
         }
       }
     }
@@ -283,7 +349,7 @@ export default function TahrirPage() {
       }
       return !changedWhileSaving;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ المخطوطة.");
+      setError(userFacingErrorMessage(err, "تعذّر حفظ المخطوطة."));
       return false;
     } finally {
       setSaving(false);
@@ -305,7 +371,7 @@ export default function TahrirPage() {
       setDirty(false);
       router.push(`/maktabi/maqalati/${articleId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تقديم المقال.");
+      setError(userFacingErrorMessage(err, "تعذّر تقديم المقال."));
       setSubmitting(false);
       setDialogOpen(false);
     }
@@ -368,7 +434,11 @@ export default function TahrirPage() {
             ) : null}
             <button
               type="button"
-              onClick={() => setAssetsPanelOpen(true)}
+              onClick={(event) => {
+                assetsPanelReturnFocusRef.current = event.currentTarget;
+                setPickerCurrentAssetId(null);
+                setAssetsPanelMode("manage");
+              }}
               disabled={assetsUploading || phase !== "ready"}
               className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -455,6 +525,7 @@ export default function TahrirPage() {
             editableEquations
             resolveImageUrl={resolveImageUrl}
             listImageAssets={listButexImageAssets}
+            onRequestImagePick={handleRequestImagePick}
             onDocumentJsonChange={handleDocumentJsonChange}
           />
         ) : null}
@@ -476,12 +547,15 @@ export default function TahrirPage() {
       ) : null}
 
       <ArticleAssetsPanel
-        open={assetsPanelOpen}
+        open={assetsPanelMode !== null}
+        mode={assetsPanelMode ?? "manage"}
         articleId={articleId}
         getToken={getToken}
         resolveImageUrl={resolveImageUrl}
         ensureAsset={ensureAsset}
-        onClose={() => setAssetsPanelOpen(false)}
+        currentAssetId={pickerCurrentAssetId}
+        onSelectAsset={handleImageAssetSelected}
+        onClose={closeAssetsPanel}
         onAssetsListed={handleAssetsListed}
         onUploadingChange={setAssetsUploading}
       />

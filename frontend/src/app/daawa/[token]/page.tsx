@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { ApiError, apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { buttonClassName, cardClassName } from "@/lib/auth-ui";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type AcceptResponse = {
   id: string;
@@ -52,13 +53,7 @@ export default function DaawaPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(
-            err instanceof ApiError
-              ? err.message
-              : err instanceof Error
-                ? err.message
-                : "تعذّر قبول الدعوة.",
-          );
+          setError(userFacingErrorMessage(err, "تعذّر قبول الدعوة."));
         }
       })
       .finally(() => {

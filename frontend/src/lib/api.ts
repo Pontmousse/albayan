@@ -1,3 +1,8 @@
+import {
+  isSafeArabicProductMessage,
+  UserFacingError,
+} from "./user-facing-errors";
+
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type UserGender = "male" | "female";
@@ -32,17 +37,14 @@ export type AccountDeletionRequestRead = {
   resolution_note: string | null;
 };
 
-export class ApiError extends Error {
+export class ApiError extends UserFacingError {
   status: number;
 
   constructor(message: string, status: number) {
     super(message);
+    this.name = "ApiError";
     this.status = status;
   }
-}
-
-function containsArabic(value: string): boolean {
-  return /[\u0600-\u06ff]/u.test(value);
 }
 
 export function arabicApiErrorMessage(
@@ -59,7 +61,7 @@ export function arabicApiErrorMessage(
       : Array.isArray(detail)
         ? detail[0]?.msg
         : detail?.message;
-  return typeof candidate === "string" && containsArabic(candidate)
+  return isSafeArabicProductMessage(candidate)
     ? candidate
     : fallback;
 }

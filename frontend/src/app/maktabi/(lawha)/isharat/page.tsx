@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/notifications";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 const PAGE_SIZE = 20;
 
@@ -35,7 +36,7 @@ export default function NotificationsPage() {
         setNextCursor(page.next_cursor);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل الإشعارات.");
+        setError(userFacingErrorMessage(err, "تعذّر تحميل الإشعارات."));
       });
   }, [getToken]);
 
@@ -49,7 +50,7 @@ export default function NotificationsPage() {
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "تعذّر تحميل الإشعارات.");
+          setError(userFacingErrorMessage(err, "تعذّر تحميل الإشعارات."));
         }
       });
     return () => {
@@ -69,7 +70,7 @@ export default function NotificationsPage() {
       setItems((rows) => [...(rows ?? []), ...page.items]);
       setNextCursor(page.next_cursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل المزيد.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل المزيد."));
     } finally {
       setLoadingMore(false);
     }
@@ -94,7 +95,7 @@ export default function NotificationsPage() {
       );
     } catch (err) {
       setItems(previous);
-      setError(err instanceof Error ? err.message : "تعذّر تحديث الإشعار.");
+      setError(userFacingErrorMessage(err, "تعذّر تحديث الإشعار."));
     } finally {
       setMutatingId(null);
     }
@@ -122,7 +123,7 @@ export default function NotificationsPage() {
       await markAllNotificationsRead(getToken);
     } catch (err) {
       setItems(previous);
-      setError(err instanceof Error ? err.message : "تعذّر تحديث الإشعارات.");
+      setError(userFacingErrorMessage(err, "تعذّر تحديث الإشعارات."));
     } finally {
       setMarkingAll(false);
     }

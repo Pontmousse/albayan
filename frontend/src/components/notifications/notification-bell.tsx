@@ -14,6 +14,7 @@ import {
   type NotificationRead,
 } from "@/lib/api/notifications";
 import { useNumerals } from "@/components/numeral-provider";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 function BellIcon() {
   return (
@@ -160,7 +161,7 @@ export function NotificationBell() {
         setCount(unread.count);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "تعذّر تحميل الإشعارات.");
+        setError(userFacingErrorMessage(err, "تعذّر تحميل الإشعارات."));
       })
       .finally(() => setLoading(false));
   }, [getToken, isSignedIn]);
@@ -202,7 +203,7 @@ export function NotificationBell() {
     } catch (err) {
       setNotifications(previous);
       setCount(previous.filter((row) => !row.is_read).length);
-      setError(err instanceof Error ? err.message : "تعذّر تحديث الإشعارات.");
+      setError(userFacingErrorMessage(err, "تعذّر تحديث الإشعارات."));
     }
   }
 

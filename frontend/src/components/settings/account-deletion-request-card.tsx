@@ -5,10 +5,12 @@ import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { FormEvent, useState } from "react";
 import {
   API_BASE,
+  ApiError,
   arabicApiErrorMessage,
   type AccountDeletionRequestRead,
 } from "@/lib/api";
 import { buttonClassName, cardClassName } from "@/lib/auth-ui";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 function parseError(data: Record<string, unknown>): string {
   return arabicApiErrorMessage(data, "تعذّر إرسال طلب حذف الحساب.");
@@ -40,7 +42,7 @@ export function AccountDeletionRequestCard() {
         return data;
       }
       if (!response.ok) {
-        throw new Error(parseError(data));
+        throw new ApiError(parseError(data), response.status);
       }
       return data;
     },
@@ -62,7 +64,7 @@ export function AccountDeletionRequestCard() {
       if (isReverificationCancelledError(err)) {
         setError("أُلغي التحقق الأمني، ولم يُرسل طلب حذف الحساب.");
       } else {
-        setError(err instanceof Error ? err.message : "تعذّر إرسال الطلب.");
+        setError(userFacingErrorMessage(err, "تعذّر إرسال الطلب."));
       }
     } finally {
       setLoading(false);

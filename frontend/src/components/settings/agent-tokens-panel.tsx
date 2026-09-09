@@ -19,6 +19,7 @@ import {
   updateAgentToken,
   type AgentTokenSummary,
 } from "@/lib/api/agent-tokens";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 import { buttonClassName, cardClassName, inputClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
 
@@ -46,7 +47,7 @@ export function AgentTokensPanel() {
       const rows = await listAgentTokens(getToken);
       setTokens(rows);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل المفاتيح.");
+      setError(userFacingErrorMessage(err, "تعذّر تحميل المفاتيح."));
       setTokens([]);
     }
   }, [getToken]);
@@ -98,7 +99,7 @@ export function AgentTokensPanel() {
         await load();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حفظ المفتاح.");
+      setError(userFacingErrorMessage(err, "تعذّر حفظ المفتاح."));
     } finally {
       setSaving(false);
     }
@@ -113,7 +114,7 @@ export function AgentTokensPanel() {
       setDeleteTarget(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر حذف المفتاح.");
+      setError(userFacingErrorMessage(err, "تعذّر حذف المفتاح."));
     } finally {
       setDeleting(false);
     }

@@ -56,11 +56,17 @@ export function articleAssetSize(size: number): ArticleAssetSize | null {
 export function articleAssetsToButexImageAssets(
   assets: ArticleAssetSummary[],
 ): ImageAssetRef[] {
-  return assets.map((asset) => ({
+  return assets.map(articleAssetToButexImageAsset);
+}
+
+export function articleAssetToButexImageAsset(
+  asset: ArticleAssetSummary,
+): ImageAssetRef {
+  return {
     assetId: asset.asset_id,
     value: asset.asset_id,
     label: articleAssetDisplayLabel(asset),
-  }));
+  };
 }
 
 export type ButexImageAssetListCache = {
