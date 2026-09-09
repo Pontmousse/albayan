@@ -3,19 +3,9 @@
 import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentType,
-  type Ref,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Document2Json } from "@drghaliasri/butex/document2";
-import type {
-  ButexDocumentEditor2Props,
-  ButexDocumentEditor2Ref,
-} from "@drghaliasri/butex/react-document2";
+import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
 import { ArticleAssetsPanel } from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
@@ -23,11 +13,13 @@ import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import {
   getArticle,
   getArticleSession,
+  listArticleAssets,
   saveArticleSession,
   submitArticle,
   updateArticleSessionDocument,
   type ArticleDetail,
 } from "@/lib/api/articles";
+import { createButexImageAssetListCache } from "@/lib/butex-image-assets";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
@@ -44,12 +36,6 @@ const ButexDocumentEditor2 = dynamic(
   { ssr: false },
 );
 
-const ButexDocumentEditor2WithRef = ButexDocumentEditor2 as ComponentType<
-  ButexDocumentEditor2Props & {
-    ref?: Ref<ButexDocumentEditor2Ref>;
-  }
->;
-
 export default function TahrirPage() {
   const { getToken } = useAuth();
   const params = useParams<{ id: string }>();
@@ -62,6 +48,9 @@ export default function TahrirPage() {
     Document2Json | undefined
   >(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [assetListError, setAssetListError] = useState<string | null>(null);
+  const [assetListRetrying, setAssetListRetrying] = useState(false);
+  const [assetListRevision, setAssetListRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [assetsPanelOpen, setAssetsPanelOpen] = useState(false);
   const [assetsUploading, setAssetsUploading] = useState(false);
@@ -78,13 +67,63 @@ export default function TahrirPage() {
   const savedDocumentSnapshot = useRef<string | null>(null);
   const sessionRevision = useRef(0);
   const sessionNeedsDraftSave = useRef(false);
-  const editorRef = useRef<ButexDocumentEditor2Ref>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const showDevJson = isDevMode();
 
   const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
     useButexImageResolver(articleId, getToken);
+
+  const imageAssetListCache = useMemo(
+    () =>
+      createButexImageAssetListCache(async () => {
+        const { assets } = await listArticleAssets(getToken, articleId);
+        return assets;
+      }),
+    [articleId, getToken],
+  );
+
+  const listButexImageAssets = useCallback(async (): Promise<
+    ImageAssetRef[]
+  > => {
+    // يتغير المفتاح بعد تحديث الكاش كي تعيد كتل BuTeX قراءة المخزون.
+    void assetListRevision;
+    try {
+      const assets = await imageAssetListCache.list();
+      setAssetListError(null);
+      return assets;
+    } catch (err) {
+      setAssetListError(
+        err instanceof Error ? err.message : "تعذّر تحميل صور المقال.",
+      );
+      throw err;
+    }
+  }, [assetListRevision, imageAssetListCache]);
+
+  const handleAssetsListed = useCallback(
+    (assets: Parameters<typeof imageAssetListCache.prime>[0]) => {
+      imageAssetListCache.prime(assets);
+      setAssetListError(null);
+      setAssetListRevision((revision) => revision + 1);
+    },
+    [imageAssetListCache],
+  );
+
+  const handleRetryAssetList = useCallback(async () => {
+    imageAssetListCache.invalidate();
+    setAssetListRetrying(true);
+    try {
+      await imageAssetListCache.list();
+      setAssetListError(null);
+      setAssetListRevision((revision) => revision + 1);
+    } catch (err) {
+      setAssetListError(
+        err instanceof Error ? err.message : "تعذّر تحميل صور المقال.",
+      );
+    } finally {
+      setAssetListRetrying(false);
+    }
+  }, [imageAssetListCache]);
 
   useEffect(() => {
     let cancelled = false;
@@ -279,21 +318,6 @@ export default function TahrirPage() {
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
-  const handleInsertFigure = useCallback(
-    async (assetId: string) => {
-      if (phase !== "ready") return;
-      setError(null);
-      try {
-        await ensureAsset(assetId);
-        editorRef.current?.insertImageBlock?.(assetId);
-        setSaveMessage("أُدرجت الصورة في المستند — احفظ المخطوطة.");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "تعذّر إدراج الصورة.");
-      }
-    },
-    [ensureAsset, phase],
-  );
-
   return (
     <div
       ref={editorRootRef}
@@ -380,6 +404,26 @@ export default function TahrirPage() {
           </p>
         ) : null}
 
+        {assetListError ? (
+          <div
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            role="alert"
+          >
+            <p>
+              تعذّر تحميل مخزون صور المقال. قد تكون الصور موجودة؛
+              لكن تعذّر جلبها: {assetListError}
+            </p>
+            <button
+              type="button"
+              onClick={() => void handleRetryAssetList()}
+              disabled={assetListRetrying}
+              className="min-h-9 rounded-md border border-red-300 bg-white px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {assetListRetrying ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+            </button>
+          </div>
+        ) : null}
+
         {!documentValid ? (
           <p
             className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
@@ -401,8 +445,7 @@ export default function TahrirPage() {
         ) : null}
 
         {phase === "ready" ? (
-          <ButexDocumentEditor2WithRef
-            ref={editorRef}
+          <ButexDocumentEditor2
             className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={initialDocument}
             uiLocale="ar"
@@ -411,6 +454,7 @@ export default function TahrirPage() {
             mathOutput="svg"
             editableEquations
             resolveImageUrl={resolveImageUrl}
+            listImageAssets={listButexImageAssets}
             onDocumentJsonChange={handleDocumentJsonChange}
           />
         ) : null}
@@ -438,7 +482,7 @@ export default function TahrirPage() {
         resolveImageUrl={resolveImageUrl}
         ensureAsset={ensureAsset}
         onClose={() => setAssetsPanelOpen(false)}
-        onInsertFigure={(assetId) => void handleInsertFigure(assetId)}
+        onAssetsListed={handleAssetsListed}
         onUploadingChange={setAssetsUploading}
       />
     </div>

@@ -23,7 +23,7 @@ def _fake_jwt(payload: dict) -> str:
     return f"{header}.{body}.sig"
 
 
-MCP_RESOURCE = "https://albayan-mcp-production.up.railway.app/mcp"
+MCP_RESOURCE = "https://mcp.test.example/mcp"
 from app.core.agent_auth import (
     MCP_OAUTH_SCOPES,
     require_scope,

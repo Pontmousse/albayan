@@ -3,6 +3,7 @@
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { buttonClassName } from "@/lib/auth-ui";
+import { isDevMode } from "@/lib/dev-mode";
 
 export function WukalaCtaButton({
   className = "",
@@ -13,6 +14,10 @@ export function WukalaCtaButton({
 }) {
   const { isSignedIn } = useAuth();
   const router = useRouter();
+
+  if (!isDevMode()) {
+    return null;
+  }
 
   function handleClick() {
     if (isSignedIn) {

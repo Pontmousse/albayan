@@ -26,13 +26,17 @@ export const DEFAULT_AGENT_SCOPES: AgentScope[] = [
 
 export const MAX_AGENT_TOKENS = 5;
 
-export const CURSOR_MCP_EXAMPLE = `{
+/** عنوان FastAPI لمسار stdio المحلي المتقدم فقط، وليس إعداداً لعملاء MCP البعيدة. */
+export const LOCAL_STDIO_API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://api.albayan-journal.org";
+
+export const LOCAL_STDIO_MCP_EXAMPLE = `{
   "mcpServers": {
     "albayan": {
       "command": "python",
       "args": ["-m", "albayan_mcp"],
       "env": {
-        "ALBAYAN_API_URL": "https://api.albayan-journal.org",
+        "ALBAYAN_API_URL": "${LOCAL_STDIO_API_URL}",
         "ALBAYAN_AGENT_TOKEN": "alb_ضع_مفتاحك_هنا"
       }
     }

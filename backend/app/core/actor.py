@@ -38,7 +38,8 @@ def _bearer_token(request: Request) -> str | None:
 def _is_mcp_oauth_token(token: str) -> bool:
     """أقل تقييداً عمداً: أي Bearer بشكل JWT (ثلاثة أجزاء) يُوجَّه لمسار OAuth الوكيل.
 
-    توكنات ChatGPT من Clerk غالباً بلا aud؛ مطابقة MCP_RESOURCE_URL كانت ترفضها.
+    توكنات بعض عملاء MCP من Clerk قد تأتي بلا aud، لذلك لا نستخدم مطابقة مورد
+    محلية لتصنيفها.
     لا نتحقق من aud هنا — التحقق الفعلي عند Clerk في get_oauth_auth_context.
     """
     if not token or token.startswith("alb_"):

@@ -34,8 +34,9 @@ test("mcp-client-guides.ts has no Clerk or English UI chrome in copy", () => {
     );
   }
   assert.match(source, /authLabel: "تسجيل دخول التطبيق"/);
-  assert.match(source, /مفتاح ربط/);
   assert.match(source, /سجّل الدخول إلى التطبيق|تسجيل دخول التطبيق/);
+  assert.equal(source.includes("ALBAYAN_API_URL"), false);
+  assert.equal(source.includes("ALBAYAN_AGENT_TOKEN"), false);
 });
 
 const WUKALA_SURFACE_FILES = [
@@ -71,7 +72,7 @@ test("wukala page and carousel use the locked Arabic headings", () => {
   assert.equal(page.includes("وضع تطوير"), false);
   assert.equal(page.includes("Model Context Protocol"), false);
   assert.match(carousel, /اختر برنامجك واتبع الخطوات/);
-  assert.match(connection, /مثال ملف الربط في Cursor/);
+  assert.match(connection, /مثال الربط البعيد في/);
   assert.match(connection, /بيانات الربط/);
 });
 
@@ -80,7 +81,7 @@ test("wukala intro is concise and does not offer a global token CTA", () => {
   assert.equal(page.includes("WukalaCtaButton"), false);
   assert.equal(page.includes("Antigravity"), false);
   assert.equal(page.includes("OpenCode"), false);
-  assert.match(page, /اختر برنامجك واتبع خطوات الربط المناسبة له/);
+  assert.match(page, /اربطه بخادم البيان البعيد/);
 });
 
 test("AgentsNavLink has no DEV or وضع تطوير badge", () => {
@@ -158,7 +159,7 @@ test("shared MCP connection guide owns copyable connection data and detailed ins
   assert.match(source, /MCP_SERVER_URL/);
   assert.match(source, /CopyButton/);
   assert.match(source, /WukalaCtaButton/);
-  assert.match(source, /guide\.id === "cursor" \|\| guide\.id === "other"/);
+  assert.match(source, /isDevMode\(\).*guide\.id === "cursor" \|\| guide\.id === "other"/s);
   assert.match(source, /accordion-panel/);
   assert.match(source, /useOpenTransition/);
   assert.match(source, /DETAILED_GUIDE_OVERRIDES/);
@@ -166,6 +167,11 @@ test("shared MCP connection guide owns copyable connection data and detailed ins
   assert.match(source, /صياغة المسودات/);
   assert.match(source, /دون تقديم المقال/);
   assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
+  assert.ok(
+    source.indexOf("<DetailedInstructions") <
+      source.indexOf("showAdvancedManualSetup ?"),
+    "advanced manual setup must follow the normal remote instructions",
+  );
 });
 
 test("desktop provider chooser shows every option without horizontal scrolling", () => {
@@ -190,13 +196,10 @@ test("new provider logos are optically enlarged relative to their padded source 
   assert.match(source, /other:[\s\S]*scale-\[1\.2\]/);
 });
 
-test("MCP server URL default is the Railway production endpoint", () => {
+test("MCP server URL default is the canonical public endpoint", () => {
   const source = readSrc("lib/mcp-client-guides.ts");
-  assert.match(
-    source,
-    /https:\/\/albayan-mcp-production\.up\.railway\.app\/mcp/,
-  );
-  assert.equal(source.includes("mcp.albayan-journal.org"), false);
+  assert.match(source, /https:\/\/mcp\.albayan-journal\.org\/mcp/);
+  assert.equal(source.includes("up.railway.app"), false);
 });
 
 test("the MCP carousel offers all six client paths", () => {
@@ -206,4 +209,30 @@ test("the MCP carousel offers all six client paths", () => {
   assert.equal((source.match(/\n\s+id: "/g) ?? []).length, 6);
   assert.match(source, /opencode mcp auth albayan/);
   assert.match(source, /لا يحتاج خادم البيان إلى مفتاح API داخل OpenCode/);
+  assert.match(source, /"url": "\$\{MCP_SERVER_URL\}"/);
+  assert.match(source, /"serverUrl": "\$\{MCP_SERVER_URL\}"/);
+  assert.match(source, /"mcp": \{[\s\S]*"servers": \{[\s\S]*"type": "remote"/);
+});
+
+test("personal-key surfaces require dev mode while /wukala remains MCP-gated", () => {
+  const publicLayout = readSrc("app/wukala/layout.tsx");
+  const keyLayout = readSrc("app/al-idayat/wukala/layout.tsx");
+  const keyCta = readSrc("components/wukala/wukala-cta-button.tsx");
+  const settingsCard = readSrc("components/settings/dev-mode-agents-card.tsx");
+
+  assert.match(publicLayout, /<McpGate>\{children\}<\/McpGate>/);
+  assert.equal(publicLayout.includes("DevModeGate"), false);
+  assert.match(keyLayout, /<McpGate>[\s\S]*<DevModeGate>\{children\}<\/DevModeGate>/);
+  assert.match(keyCta, /if \(!isDevMode\(\)\) \{[\s\S]*return null/);
+  assert.match(settingsCard, /if \(!isAgentKeyUiEnabled\(\)\)/);
+});
+
+test("advanced agent card follows core account settings", () => {
+  const source = readSrc("app/al-idayat/page.tsx");
+  assert.ok(source.indexOf("<ProfileForm") < source.indexOf("<DevModeAgentsCard"));
+  assert.ok(source.indexOf("<SecurityForm") < source.indexOf("<DevModeAgentsCard"));
+  assert.ok(
+    source.indexOf("<AccountDeletionRequestCard") <
+      source.indexOf("<DevModeAgentsCard"),
+  );
 });

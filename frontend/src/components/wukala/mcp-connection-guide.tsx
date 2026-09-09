@@ -4,8 +4,9 @@ import { useState } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
 import { useOpenTransition } from "@/hooks/use-open-transition";
+import { LOCAL_STDIO_MCP_EXAMPLE } from "@/lib/agent-token-config";
+import { isDevMode } from "@/lib/dev-mode";
 import {
-  CURSOR_MCP_STDIO_SNIPPET,
   MCP_SERVER_URL,
   type McpClientGuide,
   type McpClientId,
@@ -177,8 +178,8 @@ function DetailedInstructions({ guide }: { guide: McpClientGuide }) {
 }
 
 export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
-  const usesRemoteServer = guide.id !== "cursor";
-  const canUseManualKey = guide.id === "cursor" || guide.id === "other";
+  const showAdvancedManualSetup =
+    isDevMode() && (guide.id === "cursor" || guide.id === "other");
 
   return (
     <div className="mt-5 space-y-4">
@@ -196,70 +197,92 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
           </span>
         </div>
 
-        {usesRemoteServer ? (
-          <div className="mt-4 grid gap-3">
-            <ConnectionValue label="عنوان خادم MCP" value={MCP_SERVER_URL} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <ConnectionValue
-                label="اسم الاتصال"
-                value={MCP_CONNECTION_NAME}
-                hint="استخدمه إذا طلب برنامجك اسماً للاتصال."
-              />
-              <ConnectionValue
-                label="وصف الاتصال"
-                value={MCP_CONNECTION_DESCRIPTION}
-                hint="استخدمه إذا طلب برنامجك وصفاً للاتصال."
-              />
-            </div>
-          </div>
-        ) : null}
-
-        {canUseManualKey ? (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white/90 p-4">
-            <p className="text-sm font-bold text-slate-900">
-              {guide.id === "cursor" ? "مفتاح الربط" : "مفتاح ربط يدوي — عند الحاجة فقط"}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              {guide.id === "cursor"
-                ? "أنشئ مفتاحاً خاصاً ثم ضعه في إعداد Cursor كما في المثال أدناه."
-                : "استخدم هذا المسار فقط إذا كان برنامجك لا يدعم تسجيل الدخول إلى خادم MCP البعيد."}
-            </p>
-            <WukalaCtaButton
-              className="mt-3 w-full sm:w-auto"
-              label="أنشئ مفتاحك الخاص"
+        <div className="mt-4 grid gap-3">
+          <ConnectionValue label="عنوان خادم MCP" value={MCP_SERVER_URL} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ConnectionValue
+              label="اسم الاتصال"
+              value={MCP_CONNECTION_NAME}
+              hint="استخدمه إذا طلب برنامجك اسماً للاتصال."
+            />
+            <ConnectionValue
+              label="وصف الاتصال"
+              value={MCP_CONNECTION_DESCRIPTION}
+              hint="استخدمه إذا طلب برنامجك وصفاً للاتصال."
             />
           </div>
-        ) : null}
+        </div>
 
-        {guide.id === "cursor" ? (
+        {guide.configSnippet ? (
           <div className="mt-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-slate-900">مثال ملف الربط في Cursor</p>
+              <p className="text-sm font-bold text-slate-900">
+                مثال الربط البعيد في {guide.name}
+              </p>
               <CopyButton
-                value={CURSOR_MCP_STDIO_SNIPPET}
-                ariaLabel="نسخ مثال ملف الربط"
+                value={guide.configSnippet}
+                ariaLabel={`نسخ مثال الربط في ${guide.name}`}
               />
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-600">
-              استبدل <code className="rounded bg-slate-100 px-1">alb_…</code> بمفتاح الربط بعد إنشائه.
+              لا تضف مفتاحاً شخصياً أو عنوان FastAPI إلى هذا الإعداد.
             </p>
             <pre
               dir="ltr"
               className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
             >
-              {CURSOR_MCP_STDIO_SNIPPET}
+              {guide.configSnippet}
             </pre>
           </div>
         ) : null}
 
         <p className="mt-4 border-t border-emerald-200/80 pt-3 text-xs leading-5 text-slate-600">
-          {canUseManualKey
-            ? "إذا أنشأت مفتاح ربط، احتفظ به في مكان خاص ولا تضعه في محادثة أو مستودع عام."
-            : "عند فتح صفحة التفويض، سجّل دخولك هناك مباشرة؛ لا تنسخ كلمة مرورك إلى برنامج الوكيل."}
+          عند فتح صفحة التفويض، سجّل دخولك هناك مباشرة؛ لا تنسخ كلمة مرورك إلى
+          برنامج الوكيل.
         </p>
       </section>
 
       <DetailedInstructions guide={guide} />
+
+      {showAdvancedManualSetup ? (
+        <section className="rounded-2xl border border-[var(--journal-border)] bg-slate-50/80 p-5">
+          <p className="text-xs font-bold text-slate-500">
+            متقدم — وضع التطوير
+          </p>
+          <h3 className="mt-1 text-base font-bold text-slate-900">
+            ربط محلي بمفتاح شخصي
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            هذا مسار توافق وتجارب غير تفاعلية لمن لا يستطيع استخدام التفويض
+            التفاعلي. الربط البعيد أعلاه هو المسار الموصى به للاستخدام المعتاد.
+          </p>
+          <WukalaCtaButton
+            className="mt-4 w-full sm:w-auto"
+            label="إدارة المفاتيح المتقدمة"
+          />
+          <div className="mt-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-slate-900">
+                مثال stdio المحلي
+              </p>
+              <CopyButton
+                value={LOCAL_STDIO_MCP_EXAMPLE}
+                ariaLabel="نسخ مثال stdio المحلي"
+              />
+            </div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              استبدل <code className="rounded bg-slate-100 px-1">alb_…</code>
+              بمفتاحك، واحفظ الملف محليًا ولا ترفعه إلى مستودع.
+            </p>
+            <pre
+              dir="ltr"
+              className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
+            >
+              {LOCAL_STDIO_MCP_EXAMPLE}
+            </pre>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

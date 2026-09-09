@@ -23,13 +23,13 @@ export default function SettingsPage() {
           عدّل ملفك الشخصي وإعدادات الأمان المرتبطة بحسابك.
         </p>
 
-        <DevModeAgentsCard />
-
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <ProfileForm />
           <SecurityForm />
           <AccountDeletionRequestCard />
         </div>
+
+        <DevModeAgentsCard />
       </main>
     </div>
   );

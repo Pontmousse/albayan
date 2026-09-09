@@ -35,6 +35,37 @@ describe("isButexDocumentValid", () => {
     ).toBe(true);
   });
 
+  it("tracks empty, selected, removed, and reselected image states", () => {
+    const figure = {
+      command: "\\includegraphics",
+      value: "",
+      asset_id: "",
+    };
+    const documentWith = (image: typeof figure) => ({
+      ...emptyDocument,
+      blocks: [image],
+    });
+
+    expect(isButexDocumentValid(documentWith(figure))).toBe(false);
+
+    const selected = {
+      ...figure,
+      value: "assets/first.png",
+      asset_id: "assets/first.png",
+    };
+    expect(isButexDocumentValid(documentWith(selected))).toBe(true);
+
+    const removed = { ...selected, value: "", asset_id: "" };
+    expect(isButexDocumentValid(documentWith(removed))).toBe(false);
+
+    const reselected = {
+      ...removed,
+      value: "assets/second.png",
+      asset_id: "assets/second.png",
+    };
+    expect(isButexDocumentValid(documentWith(reselected))).toBe(true);
+  });
+
   it("rejects an empty nested image block", () => {
     expect(
       isButexDocumentValid({

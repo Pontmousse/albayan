@@ -402,6 +402,14 @@ A later improvement could preserve or expose an optional human-readable upload n
 
 This is polish, not a blocker.
 
+### Current Al-Bayan limitation
+
+Al-Bayan does not currently persist the original upload filename. The upload
+endpoint replaces it with a generated UUID key, and the asset-list response
+exposes only that key, content type, size, and modification time. Phase 3 may
+derive a clearer label from those reliable fields, but preserving an original
+filename requires a separate storage/API change and is intentionally deferred.
+
 ## 2. Consider richer picker UI only if the built-in selector is insufficient
 
 BuTeX already supports host picker integration and a built-in asset selector.
@@ -409,6 +417,10 @@ BuTeX already supports host picker integration and a built-in asset selector.
 Do not introduce a custom image-block editor unless integration/testing demonstrates a concrete UX limitation that cannot reasonably be handled with the documented host API.
 
 If a richer picker is eventually justified, it should still use the same Al-Bayan-provided article asset inventory and update the current BuTeX block rather than creating another insertion workflow.
+
+Phase 3 keeps the built-in selector because no concrete usage finding currently
+shows that a custom picker is required. A richer picker should remain a separate
+follow-up backed by observed inventory size or asset-identification problems.
 
 ## 3. Optional article asset management
 
@@ -426,6 +438,9 @@ Any such optimization should preserve the existing ownership boundary:
 
 - Al-Bayan owns asset retrieval and browser-loadable URLs;
 - BuTeX owns the figure block and document mutation.
+
+The article inventory should lazily ensure thumbnails near the visible scroll
+area instead of fetching every asset blob when the list response arrives.
 
 ## Phase 3 acceptance criteria
 

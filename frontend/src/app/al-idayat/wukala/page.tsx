@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { AgentTokensPanel } from "@/components/settings/agent-tokens-panel";
 
 export const metadata: Metadata = {
-  title: "مفاتيح الوكلاء | البيان",
-  description: "إنشاء وإدارة مفاتيح الوكيل الذكي (MCP) لحسابك.",
+  title: "مفاتيح الوكلاء المتقدمة | البيان",
+  description: "إدارة مفاتيح الوكلاء للتطوير والربط المحلي غير التفاعلي.",
 };
 
 export default function AgentTokensPage() {
@@ -14,10 +14,11 @@ export default function AgentTokensPage() {
           className="text-3xl font-bold text-slate-900"
           style={{ fontFamily: "var(--font-display-ar), serif" }}
         >
-          مفاتيح الوكلاء
+          مفاتيح الوكلاء المتقدمة
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          مفاتيح شخصية لربط Cursor أو Claude Desktop بمنصة البيان عبر MCP.
+          مفاتيح شخصية للتطوير والأتمتة غير التفاعلية والربط المحلي. للاستخدام
+          المعتاد، استخدم خادم البيان البعيد وسجّل الدخول عبر برنامجك.
         </p>
         <div className="mt-8">
           <AgentTokensPanel />

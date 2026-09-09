@@ -160,7 +160,7 @@ export function AgentTokensPanel() {
         <>
           <EmptyState
             title="لا مفاتيح بعد"
-            description="أنشئ مفتاحاً لربط Cursor أو Claude Desktop بمنصة البيان."
+            description="أنشئ مفتاحاً فقط لتجربة محلية أو أتمتة غير تفاعلية تحتاج هذا المسار المتقدم."
           />
           <div className="mt-4 text-center">
             <button type="button" onClick={openCreate} className={buttonClassName}>

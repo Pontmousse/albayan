@@ -1,7 +1,7 @@
 # توثيق MCP — مجلة البيان
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
-> **آخر تحديث:** ٢٧ أغسطس ٢٠٢٦  
+> **آخر تحديث:** ٨ سبتمبر ٢٠٢٦
 > **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
 
@@ -9,45 +9,58 @@
 
 ## البنية الحالية (Current Architecture)
 
-`mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط:
+`mcp_server/` **محوّل رفيع (thin adapter)** فوق FastAPI فقط. حد التكامل
+العام للمستخدمين والعملاء المتوافقين هو:
+
+```text
+https://mcp.albayan-journal.org/mcp
+```
 
 - كل أدوات MCP تستدعي `GET/POST /api/v1/...` عبر `api_client.py` مع تمرير credential المستخدم كما هو (`alb_...` أو Clerk OAuth JWT).
 - **FastAPI** هو المسؤول النهائي عن: المصادقة، التفويض، منطق الأعمال، الملكية، حدود workflow، والوصول إلى قاعدة البيانات.
 - **ممنوع** داخل `mcp_server/`: اتصال DB مباشر، استيراد نماذج SQLAlchemy، الوصول المباشر إلى S3، أو تكرار business logic.
 
 ```text
-عميل AI → mcp_server (بروتوكول MCP فقط)
-              │  Authorization: Bearer <credential>
-              ▼
-          FastAPI /api/v1/...  ← المصدر الوحيد للحقيقة
+عميل MCP بعيد ── Streamable HTTP + OAuth ──→ mcp.albayan-journal.org/mcp
+                                                    │ Bearer المستخدم
+                                                    ▼
+                                       api.albayan-journal.org
 ```
 
-### النشر على Railway (بدون Dockerfile)
+العميل البعيد لا يحتاج إلى معرفة عنوان FastAPI أو إلى مفتاح `alb_...`.
+التشغيل المحلي عبر stdio ومفتاح شخصي باقٍ لمسارات التطوير والأتمتة غير
+التفاعلية فقط.
+
+### تشغيل الخدمة المستضافة
 
 | الإعداد | القيمة |
 |---------|--------|
 | Root Directory | `mcp_server` |
-| Builder | Nixpacks (تلقائي من `pyproject.toml`) |
 | Start Command | `python -m albayan_mcp --transport streamable-http --host 0.0.0.0` |
-| `PORT` | يحقنه Railway تلقائياً |
+| `MCP_RESOURCE_URL` | `https://mcp.albayan-journal.org/mcp` |
+| `ALBAYAN_API_URL` | `https://api.albayan-journal.org` |
 
-للتشغيل المحلي انسخ `mcp_server/.env.example` إلى `mcp_server/.env` وعدّل `ALBAYAN_API_URL` و`ALBAYAN_AGENT_TOKEN`.
+للتشغيل المحلي المتقدم انسخ `mcp_server/.env.example` إلى `mcp_server/.env`
+وعدّل `ALBAYAN_API_URL` و`ALBAYAN_AGENT_TOKEN`.
 
 ---
 
 ## القدرات المنفذة حالياً (Current Implemented Capabilities)
 
-> **التفعيل:** `NEXT_PUBLIC_MCP_ENABLED=true` (واجهة) + `MCP_ENABLED=true` (خلفية) + `alembic upgrade head`.
+> **التفعيل:** `NEXT_PUBLIC_MCP_ENABLED=true` (واجهة) + `MCP_ENABLED=true`
+> (خلفية) + `alembic upgrade head`. يضيف `NEXT_PUBLIC_DEV_MODE=true` أسطح
+> المفاتيح والربط المحلي المتقدمة، ولا يستبدل تجربة الربط البعيد.
 
 ### الواجهة (Next.js)
 
 | المكوّن / المسار | الوظيفة |
 |------------------|---------|
-| `AgentsNavLink` في `MainNav` | زر **«وكلاء»** في الهيدر (dev فقط) |
-| `DevModeGate` / `McpGate` | إعادة توجيه `/` إن لم تكن MCP مفعّلة |
-| `/wukala` | صفحة شرح MCP + مثال إعداد Cursor |
-| `/al-idayat/wukala` | إدارة مفاتيح الوكيل (محمية — تسجيل دخول) |
-| `DevModeAgentsCard` في `/al-idayat` | بطاقة رابط سريع لمفاتيح الوكلاء |
+| `AgentsNavLink` في `MainNav` | زر **«وكلاء»** في الهيدر عند تفعيل MCP |
+| `McpGate` | يحمي `/wukala` وميزة MCP العامة |
+| `/wukala` | أدلة الربط البعيد وOAuth بصيغة كل عميل |
+| `DevModeGate` | يخفي أسطح المفاتيح والربط المحلي خارج وضع التطوير |
+| `/al-idayat/wukala` | إدارة مفاتيح الوكيل في وضع التطوير فقط |
+| `DevModeAgentsCard` في `/al-idayat` | مدخل ثانوي لأدوات المفاتيح المتقدمة |
 | `AgentTokensPanel` | إنشاء، نسخ (مرة واحدة)، تعديل التسمية، حذف |
 | `frontend/src/lib/api/agent-tokens.ts` | عميل API للمفاتيح |
 | `frontend/src/lib/agent-token-config.ts` | نطاقات الصلاحيات (scopes) والحد الأقصى (٥ مفاتيح) |
@@ -117,7 +130,59 @@ Authoritative actions تبقى human-only داخل FastAPI، وليس فقط ل�
 
 ---
 
-## ربط ChatGPT — الدليل الكامل
+## الربط البعيد للعملاء
+
+الخادم المستضاف وOAuth هما المسار الافتراضي لكل عميل يدعمهما. لا تُنسخ صيغة
+عميل إلى آخر؛ تختلف أسماء الحقول وبنية ملفات الإعداد:
+
+### Cursor
+
+```json
+{
+  "mcpServers": {
+    "albayan": {
+      "url": "https://mcp.albayan-journal.org/mcp"
+    }
+  }
+}
+```
+
+### Google Antigravity
+
+```json
+{
+  "mcpServers": {
+    "albayan": {
+      "serverUrl": "https://mcp.albayan-journal.org/mcp"
+    }
+  }
+}
+```
+
+### OpenCode V2
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "albayan": {
+        "type": "remote",
+        "url": "https://mcp.albayan-journal.org/mcp"
+      }
+    }
+  }
+}
+```
+
+في Claude وChatGPT يُضاف العنوان من واجهة الموصلات/التطبيقات ثم يُستكمل
+التفويض في المتصفح. أما العملاء الآخرون فيُستخدم توثيق العميل نفسه متى دعم
+Streamable HTTP وOAuth؛ لا توجد صيغة JSON عامة تصلح للجميع.
+
+نتائج التحقق التقني المنشور وحدوده موثقة في
+[`docs/mcp-remote-interoperability-verification.md`](../docs/mcp-remote-interoperability-verification.md).
+
+## ربط ChatGPT — سجل التحقق والدليل الكامل
 
 > ثمرة تشخيص فعلي (٢٥ أغسطس ٢٠٢٦) انتهى بربط ناجح. كل خطوة هنا جُرّبت على الإنتاج.
 
@@ -128,7 +193,7 @@ ChatGPT (عميل OAuth) ──1── يكتشف metadata من mcp_server
         │                   /.well-known/oauth-protected-resource/mcp
         ├─2── يسجّل نفسه تلقائياً لدى Clerk (DCR)
         ├─3── المستخدم يوافق على شاشة تفويض Clerk
-        ├─4── يحصل على JWT (aud = عنوان مورد MCP)
+        ├─4── يحصل على JWT صالح من Clerk
         ├─5── POST /mcp + Bearer JWT ──→ mcp_server (تحقق شكلي)
         └─6── mcp_server يمرر نفس JWT ──→ FastAPI (تحقق فعلي عبر aud)
 ```
@@ -165,22 +230,19 @@ openid  profile  email  (+ offline_access يضيفه العميل)
 - **صلاحيات التطبيق** (قراءة المقالات، الملف الشخصي…) تُفرض في FastAPI،
   لا علاقة لها بنطاقات OAuth هذه.
 
-### ٣. متغيرات البيئة (Railway)
+### ٣. متغيرات بيئة الاستضافة
 
 **خدمة mcp_server:**
 
 | المتغير | مثال | ملاحظة |
 |---------|-------|--------|
-| `MCP_RESOURCE_URL` | `https://albayan-mcp-production.up.railway.app/mcp` | **مطابقة حرفية** للعنوان العام الذي يستدعيه ChatGPT (البروتوكول والمضيف والمسار) |
+| `MCP_RESOURCE_URL` | `https://mcp.albayan-journal.org/mcp` | **مطابقة حرفية** لعنوان مورد MCP العام |
 | `CLERK_ISSUER_URL` | `https://clerk.albayan-journal.org` | يساوي `iss` في JWT |
-| `ALBAYAN_API_URL` | `https://albayan-backend-production.up.railway.app` | عنوان FastAPI |
+| `ALBAYAN_API_URL` | `https://api.albayan-journal.org` | عنوان FastAPI الداخلي بالنسبة إلى محوّل MCP |
 
-**خدمة الخلفية (FastAPI):**
-
-| المتغير | القيمة |
-|---------|--------|
-| `MCP_ENABLED` | `true` |
-| `MCP_RESOURCE_URL` | نفس قيمة mcp_server — بها تُقبل توكنات OAuth (تحقق `aud`) |
+**خدمة الخلفية (FastAPI):** تحتاج إلى `MCP_ENABLED=true`. لا تستخدم نسخة
+FastAPI من `MCP_RESOURCE_URL`؛ التحقق الفعلي لهوية JWT يجري عبر Clerk، بينما
+ملكية عنوان مورد OAuth تخص خدمة `mcp_server`.
 
 **خدمة الواجهة (Next.js):** `NEXT_PUBLIC_MCP_ENABLED=true` — **قبل البناء**
 (المتغير يُخبز وقت `next build`؛ ضبطه بعد البناء بلا أثر حتى إعادة النشر).
@@ -191,7 +253,7 @@ openid  profile  email  (+ offline_access يضيفه العميل)
 2. الإعدادات → **التطبيقات والموصلات** → إعدادات متقدمة → فعّل **وضع المطوّر**.
 3. ارجع إلى الموصلات → **إنشاء** (Create).
 4. املأ: الاسم «البيان»، وصفاً قصيراً، وعنوان خادم MCP:
-   `https://albayan-mcp-production.up.railway.app/mcp`
+   `https://mcp.albayan-journal.org/mcp`
 5. (اختياري) افتح إعدادات OAuth المتقدمة وتحقق أن النطاقات المدعومة
    والـ DCR ظاهرة كما في metadata.
 6. وافق على الإقرار ثم **إنشاء** → يُفتح تبويب جديد بشاشة تفويض Clerk → **السماح**.
@@ -201,12 +263,12 @@ openid  profile  email  (+ offline_access يضيفه العميل)
 
 | العرض | التشخيص | السبب/الحل |
 |-------|---------|------------|
-| `POST /mcp → 401` ثم `GET /.well-known/... → 200` في سجلات Railway | **طبيعي** | أول طلب بلا توكن؛ هكذا يبدأ اكتشاف OAuth |
-| `curl -H "Authorization: Bearer test123"` على `/mcp` يرجع 401 | Railway يحذف الترويسة أو خطأ بيئة | مع التحقق الشكلي الحالي أي توكن غير فارغ يجب أن يرجع 200 |
+| `POST /mcp → 401` ثم `GET /.well-known/... → 200` في سجلات الاستضافة | **طبيعي** | أول طلب بلا توكن؛ هكذا يبدأ اكتشاف OAuth |
+| `curl -H "Authorization: Bearer test123"` على `/mcp` يرجع 401 | وسيط الاستضافة يحذف الترويسة أو خطأ بيئة | مع التحقق الشكلي الحالي أي توكن غير فارغ يجب أن يصل إلى طبقة التحقق |
 | `oauth_authorization.failed` في سجلات Clerk بسبب `code_challenge_missing` | طلب authorize بلا PKCE | طبيعي في الاختبار اليدوي؛ ChatGPT يرسل PKCE دائماً |
 | `invalid_scope … scope 'openid'` في رابط العودة إلى ChatGPT | العميل سُجّل بلا `openid` | أضف `openid` إلى `required_scopes` واحذف الموصل وأعد إنشاءه (DCR جديد) |
-| الأدوات ترجع 401 من FastAPI بعد نجاح `/mcp` | فحص `azp` الخاص بالمتصفح يرفض توكن الوكيل | اضبط `MCP_RESOURCE_URL` في الخلفية — التحقق عبر `aud` في مسار `ActorDep` |
-| `Could not resolve host` عند curl | نطاق DNS غير موجود | استخدم عنوان Railway حتى يُضبط النطاق المخصص |
+| الأدوات ترجع 401 من FastAPI بعد نجاح `/mcp` | التوكن لم يمر بمسار OAuth الخاص بالوكيل | راجع تحقق Clerk في `ActorDep` وسجلات المصدر والمُصدر من دون تسجيل التوكن نفسه |
+| `Could not resolve host` عند curl | نطاق DNS أو الشهادة غير جاهزين | أصلح النطاق الرسمي؛ لا تنشر عنوان الاستضافة الداخلي بديلاً للمستخدمين |
 | لقراءة سبب فشل authorize | سجلات Clerk → Logs → افتح الحدث | حقل `reason` في payload، أو راقب `?error=` في رابط العودة |
 
 **نصيحة تشخيص ذهبية:** أعد محاولة الربط ثم افتح أحدث حدث
@@ -491,10 +553,10 @@ agent_tokens
 | النمط | مناسب لـ | ملاحظة |
 |-------|----------|--------|
 | **stdio** | Cursor محلي، تطوير | المستخدم يشغّل الخادم على جهازه؛ الـ token في متغير بيئة |
-| **Streamable HTTP** | إنتاج على Railway | المستخدمون يضيفون URL في إعدادات الوكيل |
+| **Streamable HTTP** | الخدمة المستضافة | المسار العام الموصى به مع OAuth |
 | **SSE** | بديل قديم | MCP يتجه نحو HTTP |
 
-**للإنتاج على Railway:** Streamable HTTP على مسار مثل `https://albayan-mcp-production.up.railway.app/mcp` مع HTTPS إلزامي.
+**للإنتاج:** Streamable HTTP على `https://mcp.albayan-journal.org/mcp` مع HTTPS إلزامي.
 
 **مثال إعداد في Cursor (محلي):**
 
@@ -513,16 +575,13 @@ agent_tokens
 }
 ```
 
-**مثال إعداد عن بُعد (إنتاج):**
+**مثال إعداد Cursor عن بُعد (المسار المعتاد):**
 
 ```json
 {
   "mcpServers": {
     "albayan": {
-      "url": "https://albayan-mcp-production.up.railway.app/mcp",
-      "headers": {
-        "Authorization": "Bearer alb_xxxxxxxx"
-      }
+      "url": "https://mcp.albayan-journal.org/mcp"
     }
   }
 }

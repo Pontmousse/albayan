@@ -1,28 +1,91 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useNumerals } from "@/components/numeral-provider";
 import {
   listArticleAssets,
   uploadArticleAsset,
   type ArticleAssetSummary,
 } from "@/lib/api/articles";
+import {
+  articleAssetDisplayLabel,
+  articleAssetSize,
+  articleAssetTypeLabel,
+} from "@/lib/butex-image-assets";
 
 type GetToken = () => Promise<string | null>;
+type ResolveImageUrl = (ref: { assetId?: string; value: string }) => string;
 
 type ArticleAssetsPanelProps = {
   open: boolean;
   articleId: string;
   getToken: GetToken;
-  resolveImageUrl: (ref: { assetId?: string; value: string }) => string;
+  resolveImageUrl: ResolveImageUrl;
   ensureAsset: (assetKey: string) => Promise<void>;
   onClose: () => void;
-  /** إدراج شكل جديد في المستند بعد موضع التركيز الحالي */
-  onInsertFigure: (assetId: string) => void;
+  onAssetsListed?: (assets: ArticleAssetSummary[]) => void;
   onUploadingChange?: (uploading: boolean) => void;
 };
 
-function assetLabel(assetId: string): string {
-  return assetId.replace(/^assets\//, "");
+function LazyArticleAssetThumbnail({
+  asset,
+  resolveImageUrl,
+}: {
+  asset: ArticleAssetSummary;
+  resolveImageUrl: ResolveImageUrl;
+}) {
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || shouldLoad) return;
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setShouldLoad(true);
+        observer.disconnect();
+      },
+      { rootMargin: "200px 0px", threshold: 0.01 },
+    );
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  const label = articleAssetDisplayLabel(asset);
+  const previewUrl = shouldLoad
+    ? resolveImageUrl({
+        assetId: asset.asset_id,
+        value: asset.asset_id,
+      })
+    : "";
+
+  return (
+    <div
+      ref={rootRef}
+      className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-slate-50"
+    >
+      {previewUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={previewUrl}
+          alt={label}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <span className="text-xs text-slate-400">
+          {shouldLoad ? "جارٍ تحميل المعاينة…" : "معاينة الصورة"}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function ArticleAssetsPanel({
@@ -32,9 +95,10 @@ export function ArticleAssetsPanel({
   resolveImageUrl,
   ensureAsset,
   onClose,
-  onInsertFigure,
+  onAssetsListed,
   onUploadingChange,
 }: ArticleAssetsPanelProps) {
+  const { formatNumber } = useNumerals();
   const [assets, setAssets] = useState<ArticleAssetSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,13 +111,13 @@ export function ArticleAssetsPanel({
     try {
       const { assets: listed } = await listArticleAssets(getToken, articleId);
       setAssets(listed);
-      await Promise.all(listed.map((item) => ensureAsset(item.asset_id)));
+      onAssetsListed?.(listed);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر تحميل الصور.");
     } finally {
       setLoading(false);
     }
-  }, [articleId, ensureAsset, getToken]);
+  }, [articleId, getToken, onAssetsListed]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,11 +151,6 @@ export function ArticleAssetsPanel({
     }
   }
 
-  function handleInsert(assetId: string) {
-    onInsertFigure(assetId);
-    onClose();
-  }
-
   if (!open) return null;
 
   return (
@@ -116,7 +175,7 @@ export function ArticleAssetsPanel({
               صور المقال
             </h2>
             <p className="mt-0.5 text-xs text-slate-500">
-              ارفع الصور هنا ثم أدرجها في المستند — الرفع لا يُضيف شكلاً تلقائياً.
+              ارفع صور المقال وراجعها هنا، ثم اخترها من كتلة الصورة في المحرر.
             </p>
           </div>
           <button
@@ -129,6 +188,9 @@ export function ArticleAssetsPanel({
         </header>
 
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--journal-border)] px-4 py-3">
+          <p className="w-full text-xs text-slate-500">
+            JPEG، PNG، GIF أو WebP — بحد أقصى 5 ميغابايت.
+          </p>
           <input
             ref={fileInputRef}
             type="file"
@@ -168,50 +230,51 @@ export function ArticleAssetsPanel({
             <p className="text-center text-sm text-slate-500">جارٍ التحميل…</p>
           ) : null}
 
-          {!loading && assets.length === 0 ? (
+          {!loading && !error && assets.length === 0 ? (
             <p className="rounded-md border border-dashed border-[var(--journal-border)] bg-white px-4 py-8 text-center text-sm text-slate-500">
-              لا توجد صور بعد. ارفع صورة لتظهر في المعرض، ثم أدرجها في المستند.
+              لا توجد صور بعد. ارفع صورة لتظهر في مخزون المقال.
             </p>
           ) : null}
 
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-2">
             {assets.map((asset) => {
-              const previewUrl = resolveImageUrl({
-                assetId: asset.asset_id,
-                value: asset.asset_id,
-              });
+              const displayLabel = articleAssetDisplayLabel(asset);
+              const typeLabel = articleAssetTypeLabel(asset);
+              const size = articleAssetSize(asset.size);
               return (
                 <li
                   key={asset.asset_id}
                   className="overflow-hidden rounded-lg border border-[var(--journal-border)] bg-white"
                 >
-                  <div className="flex aspect-[4/3] items-center justify-center bg-slate-50">
-                    {previewUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={previewUrl}
-                        alt=""
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-xs text-slate-400">معاينة…</span>
-                    )}
-                  </div>
-                  <div className="space-y-2 p-2">
+                  <LazyArticleAssetThumbnail
+                    asset={asset}
+                    resolveImageUrl={resolveImageUrl}
+                  />
+                  <div className="space-y-2 p-2.5">
+                    <p
+                      className="truncate text-xs font-semibold text-slate-700"
+                      dir="auto"
+                      title={asset.asset_id}
+                    >
+                      {displayLabel}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold">
+                        {typeLabel}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                        {size
+                          ? `${formatNumber(size.value, { maximumFractionDigits: 1 })} ${size.unit}`
+                          : "الحجم غير متاح"}
+                      </span>
+                    </div>
                     <p
                       className="truncate text-[10px] text-slate-500"
                       dir="ltr"
                       title={asset.asset_id}
                     >
-                      {assetLabel(asset.asset_id)}
+                      {asset.asset_id}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => handleInsert(asset.asset_id)}
-                      className="w-full min-h-8 rounded-md border border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] px-2 text-xs font-semibold text-[var(--journal-accent-strong)] transition hover:bg-white"
-                    >
-                      إدراج في المستند
-                    </button>
                   </div>
                 </li>
               );
