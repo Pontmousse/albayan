@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
 import { useOpenTransition } from "@/hooks/use-open-transition";
-import { LOCAL_STDIO_MCP_EXAMPLE } from "@/lib/agent-token-config";
+import { CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE } from "@/lib/agent-token-config";
 import { isDevMode } from "@/lib/dev-mode";
 import {
   MCP_SERVER_URL,
@@ -225,7 +225,7 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
               />
             </div>
             <p className="mt-1 text-xs leading-5 text-slate-600">
-              لا تضف مفتاحاً شخصياً أو عنوان FastAPI إلى هذا الإعداد.
+              لا تضف مفتاحاً شخصياً إلى هذا الإعداد المعتاد.
             </p>
             <pre
               dir="ltr"
@@ -250,37 +250,49 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
             متقدم — وضع التطوير
           </p>
           <h3 className="mt-1 text-base font-bold text-slate-900">
-            ربط محلي بمفتاح شخصي
+            ربط بعيد بمفتاح شخصي
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            هذا مسار توافق وتجارب غير تفاعلية لمن لا يستطيع استخدام التفويض
-            التفاعلي. الربط البعيد أعلاه هو المسار الموصى به للاستخدام المعتاد.
+            هذا مسار متقدم للأتمتة غير التفاعلية. استخدم خادم البيان البعيد
+            نفسه، وأرسل مفتاحك كترويسة Bearer. يبقى تسجيل دخول التطبيق أعلاه
+            هو المسار الموصى به للاستخدام المعتاد.
           </p>
           <WukalaCtaButton
             className="mt-4 w-full sm:w-auto"
             label="إدارة المفاتيح المتقدمة"
           />
-          <div className="mt-5">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-bold text-slate-900">
-                مثال stdio المحلي
+          {guide.id === "cursor" ? (
+            <div className="mt-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-slate-900">
+                  مثال Cursor بمفتاح شخصي
+                </p>
+                <CopyButton
+                  value={CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE}
+                  ariaLabel="نسخ مثال Cursor بمفتاح شخصي"
+                />
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-600">
+                احفظ مفتاحك في متغير البيئة
+                <code className="mx-1 rounded bg-slate-100 px-1">
+                  ALBAYAN_AGENT_TOKEN
+                </code>
+                قبل تشغيل Cursor. لا تضع قيمة المفتاح نفسها في ملف الإعداد.
               </p>
-              <CopyButton
-                value={LOCAL_STDIO_MCP_EXAMPLE}
-                ariaLabel="نسخ مثال stdio المحلي"
-              />
+              <pre
+                dir="ltr"
+                className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
+              >
+                {CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE}
+              </pre>
             </div>
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              استبدل <code className="rounded bg-slate-100 px-1">alb_…</code>
-              بمفتاحك، واحفظ الملف محليًا ولا ترفعه إلى مستودع.
+          ) : (
+            <p className="mt-5 text-sm leading-6 text-slate-600">
+              أضف ترويسة Authorization بقيمة Bearer ثم مفتاحك عبر آلية الأسرار
+              التي يدعمها برنامجك. راجع وثائق البرنامج لصيغة الإعداد الدقيقة،
+              ولا تضع المفتاح في ملف تشاركه مع الآخرين.
             </p>
-            <pre
-              dir="ltr"
-              className="mt-2 overflow-x-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-start text-xs leading-6 text-emerald-100"
-            >
-              {LOCAL_STDIO_MCP_EXAMPLE}
-            </pre>
-          </div>
+          )}
         </section>
       ) : null}
     </div>
