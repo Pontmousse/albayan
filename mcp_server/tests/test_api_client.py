@@ -31,7 +31,7 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
 
         with patch(
             "albayan_mcp.api_client.get_access_token",
-            return_value=SimpleNamespace(token="http-token"),
+            return_value=SimpleNamespace(token="alb_hosted"),
         ), patch.object(
             api_client.settings,
             "albayan_api_url",
@@ -47,7 +47,7 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
         request.assert_awaited_once()
         self.assertEqual(
             request.await_args.kwargs["headers"]["Authorization"],
-            "Bearer http-token",
+            "Bearer alb_hosted",
         )
 
     async def test_stdio_path_uses_albayan_agent_token(self) -> None:

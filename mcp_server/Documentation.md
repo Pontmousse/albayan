@@ -1,7 +1,7 @@
 # توثيق MCP — مجلة البيان
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
-> **آخر تحديث:** ٨ سبتمبر ٢٠٢٦
+> **آخر تحديث:** ٩ سبتمبر ٢٠٢٦
 > **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
 
@@ -21,15 +21,17 @@ https://mcp.albayan-journal.org/mcp
 - **ممنوع** داخل `mcp_server/`: اتصال DB مباشر، استيراد نماذج SQLAlchemy، الوصول المباشر إلى S3، أو تكرار business logic.
 
 ```text
-عميل MCP بعيد ── Streamable HTTP + OAuth ──→ mcp.albayan-journal.org/mcp
-                                                    │ Bearer المستخدم
-                                                    ▼
-                                       api.albayan-journal.org
+عميل MCP بعيد ── Streamable HTTP ──→ mcp.albayan-journal.org/mcp
+                  OAuth أو alb_...              │ Bearer المستخدم
+                                                ▼
+                                      FastAPI الداخلي
 ```
 
-العميل البعيد لا يحتاج إلى معرفة عنوان FastAPI أو إلى مفتاح `alb_...`.
-التشغيل المحلي عبر stdio ومفتاح شخصي باقٍ لمسارات التطوير والأتمتة غير
-التفاعلية فقط.
+العميل البعيد لا يحتاج إلى معرفة عنوان FastAPI في الحالتين: التفويض التفاعلي
+عبر OAuth، أو الأتمتة المتقدمة بمفتاح شخصي `alb_...`. في الحالة الثانية يرسل
+العميل المفتاح إلى عنوان MCP العام كترويسة Bearer، ويمرّره الخادم المستضاف إلى
+FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهمين الذين يطوّرون أو يختبرون
+تنفيذ `mcp_server` نفسه.
 
 ### تشغيل الخدمة المستضافة
 
@@ -40,8 +42,9 @@ https://mcp.albayan-journal.org/mcp
 | `MCP_RESOURCE_URL` | `https://mcp.albayan-journal.org/mcp` |
 | `ALBAYAN_API_URL` | `https://api.albayan-journal.org` |
 
-للتشغيل المحلي المتقدم انسخ `mcp_server/.env.example` إلى `mcp_server/.env`
-وعدّل `ALBAYAN_API_URL` و`ALBAYAN_AGENT_TOKEN`.
+لتطوير خادم MCP نفسه محليًا، انسخ `mcp_server/.env.example` إلى
+`mcp_server/.env` وعدّل `ALBAYAN_API_URL` و`ALBAYAN_AGENT_TOKEN`. هذه إعدادات
+داخلية للمحوّل المحلي وليست إعدادات عميل أو جزءًا من دليل `/wukala`.
 
 ---
 
@@ -49,7 +52,7 @@ https://mcp.albayan-journal.org/mcp
 
 > **التفعيل:** `NEXT_PUBLIC_MCP_ENABLED=true` (واجهة) + `MCP_ENABLED=true`
 > (خلفية) + `alembic upgrade head`. يضيف `NEXT_PUBLIC_DEV_MODE=true` أسطح
-> المفاتيح والربط المحلي المتقدمة، ولا يستبدل تجربة الربط البعيد.
+> المفاتيح والربط البعيد المتقدم بها، ولا يستبدل تجربة OAuth المعتادة.
 
 ### الواجهة (Next.js)
 
@@ -57,8 +60,8 @@ https://mcp.albayan-journal.org/mcp
 |------------------|---------|
 | `AgentsNavLink` في `MainNav` | زر **«وكلاء»** في الهيدر عند تفعيل MCP |
 | `McpGate` | يحمي `/wukala` وميزة MCP العامة |
-| `/wukala` | أدلة الربط البعيد وOAuth بصيغة كل عميل |
-| `DevModeGate` | يخفي أسطح المفاتيح والربط المحلي خارج وضع التطوير |
+| `/wukala` | أدلة الربط البعيد عبر OAuth، ومثال Cursor المتقدم بالمفتاح الشخصي |
+| `DevModeGate` | يخفي أسطح المفاتيح والربط المتقدم خارج وضع التطوير |
 | `/al-idayat/wukala` | إدارة مفاتيح الوكيل في وضع التطوير فقط |
 | `DevModeAgentsCard` في `/al-idayat` | مدخل ثانوي لأدوات المفاتيح المتقدمة |
 | `AgentTokensPanel` | إنشاء، نسخ (مرة واحدة)، تعديل التسمية، حذف |
@@ -542,23 +545,46 @@ agent_tokens
 - التحقق من `scopes` قبل تنفيذ كل أداة MCP.
 - endpoints الجلسة: `GET/PUT /articles/{id}/session` — الوكيل يستخدم PUT على الجلسة فقط.
 
-#### لماذا ليس Clerk OAuth مباشرة في المرحلة الأولى؟
+#### لماذا يوجد مساران للمصادقة؟
 
-- OAuth 2.1 لـ MCP Remote موجود لكنه أعقد (authorization server، consent screen، token refresh).
-- مفاتيح شخصية أبسط وأشبه بـ GitHub PAT — مناسبة لمرحلة تجريبية.
-- يمكن إضافة OAuth لاحقاً للمستخدمين الذين لا يريدون نسخ مفاتيح يدوياً.
+- OAuth هو المسار الأساسي للمستخدمين التفاعليين، ولا يتطلب نسخ مفتاح شخصي.
+- مفاتيح `alb_...` مسار ثانوي للتطوير والأتمتة غير التفاعلية فقط.
+- كلا المسارين يتصل بخادم MCP المستضاف نفسه؛ تشغيل محوّل محلي ليس شرطًا
+  لاستخدام المفتاح الشخصي.
 
 ### 1.8 نقل البيانات (Transport)
 
 | النمط | مناسب لـ | ملاحظة |
 |-------|----------|--------|
-| **stdio** | Cursor محلي، تطوير | المستخدم يشغّل الخادم على جهازه؛ الـ token في متغير بيئة |
-| **Streamable HTTP** | الخدمة المستضافة | المسار العام الموصى به مع OAuth |
+| **stdio** | تطوير `mcp_server` محليًا | المساهم يشغّل المحوّل على جهازه ويضبط اعتماده على FastAPI |
+| **Streamable HTTP** | كل عملاء الخدمة المستضافة | المسار العام مع OAuth أو مفتاح `alb_...` كترويسة Bearer |
 | **SSE** | بديل قديم | MCP يتجه نحو HTTP |
 
 **للإنتاج:** Streamable HTTP على `https://mcp.albayan-journal.org/mcp` مع HTTPS إلزامي.
 
-**مثال إعداد في Cursor (محلي):**
+**مثال Cursor بعيد بمفتاح شخصي (مسار متقدم غير تفاعلي):**
+
+يحفظ المستخدم المفتاح في متغير البيئة `ALBAYAN_AGENT_TOKEN` قبل تشغيل Cursor؛
+ويدعم Cursor رسميًا interpolation داخل قيم `headers` في `mcp.json` وفق
+[توثيق MCP الرسمي](https://prod.cursor.com/docs/mcp).
+
+```json
+{
+  "mcpServers": {
+    "albayan": {
+      "url": "https://mcp.albayan-journal.org/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:ALBAYAN_AGENT_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+**تطوير `mcp_server` محليًا عبر stdio — للمساهمين فقط:**
+
+هذا المثال مخصص لمن يعمل على تنفيذ محوّل MCP نفسه. ليس مطلوبًا لمستهلك
+Headless أو لمستخدم مفتاح شخصي، ولا ينبغي نقله إلى `/wukala`.
 
 ```json
 {

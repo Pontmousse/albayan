@@ -64,6 +64,48 @@ test("wukala page and carousel have no Clerk and no English UI chrome", () => {
   }
 });
 
+test("all wukala client configuration stays on the hosted MCP boundary", () => {
+  const clientConfigurationFiles = [
+    "components/wukala/mcp-connection-guide.tsx",
+    "lib/agent-token-config.ts",
+    "lib/mcp-client-guides.ts",
+  ];
+
+  for (const rel of clientConfigurationFiles) {
+    const source = readSrc(rel);
+    for (const pattern of [
+      /ALBAYAN_API_URL/,
+      /api\.albayan-journal\.org/,
+      /python\s+-m\s+albayan_mcp/,
+      /ربط محلي بمفتاح/,
+      /مثال stdio المحلي/,
+    ]) {
+      assert.equal(
+        pattern.test(source),
+        false,
+        `internal/local MCP pattern ${pattern} found in ${rel}`,
+      );
+    }
+  }
+
+  const connection = readSrc("components/wukala/mcp-connection-guide.tsx");
+  const agentConfig = readSrc("lib/agent-token-config.ts");
+  assert.match(connection, /ربط بعيد بمفتاح شخصي/);
+  assert.match(connection, /guide\.id === "cursor"/);
+  assert.match(connection, /آلية الأسرار/);
+  assert.match(agentConfig, /CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE/);
+  assert.equal(
+    agentConfig.includes('"url": "${MCP_SERVER_URL}"'),
+    true,
+  );
+  assert.equal(
+    agentConfig.includes(
+      '"Authorization": "Bearer \\${env:ALBAYAN_AGENT_TOKEN}"',
+    ),
+    true,
+  );
+});
+
 test("wukala page and carousel use the locked Arabic headings", () => {
   const page = readSrc("app/wukala/page.tsx");
   const carousel = readSrc("components/wukala/mcp-client-carousel.tsx");

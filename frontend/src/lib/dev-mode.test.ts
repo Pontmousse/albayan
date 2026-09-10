@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE } from "./agent-token-config";
 import { isAgentKeyUiEnabled, isDevMode } from "./dev-mode";
 import { MCP_CLIENT_GUIDES, MCP_SERVER_URL } from "./mcp-client-guides";
 import { isMcpEnabled } from "./mcp-enabled";
@@ -59,5 +60,24 @@ describe("remote MCP client configurations", () => {
       expect(snippet).not.toContain("ALBAYAN_API_URL");
       expect(snippet).not.toContain("ALBAYAN_AGENT_TOKEN");
     }
+  });
+
+  it("uses the hosted MCP endpoint for Cursor personal keys", () => {
+    const snippet = JSON.parse(CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE);
+
+    expect(snippet.mcpServers.albayan).toEqual({
+      url: MCP_SERVER_URL,
+      headers: {
+        Authorization: "Bearer ${env:ALBAYAN_AGENT_TOKEN}",
+      },
+    });
+    expect(CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE).not.toContain(
+      "ALBAYAN_API_URL",
+    );
+    expect(CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE).not.toContain(
+      "api.albayan-journal.org",
+    );
+    expect(CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE).not.toContain('"command"');
+    expect(CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE).not.toContain('"args"');
   });
 });

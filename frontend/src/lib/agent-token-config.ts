@@ -1,3 +1,5 @@
+import { MCP_SERVER_URL } from "./mcp-client-guides";
+
 export const ALLOWED_AGENT_SCOPES = [
   "profile:read",
   "articles:read",
@@ -26,18 +28,13 @@ export const DEFAULT_AGENT_SCOPES: AgentScope[] = [
 
 export const MAX_AGENT_TOKENS = 5;
 
-/** عنوان FastAPI لمسار stdio المحلي المتقدم فقط، وليس إعداداً لعملاء MCP البعيدة. */
-export const LOCAL_STDIO_API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "https://api.albayan-journal.org";
-
-export const LOCAL_STDIO_MCP_EXAMPLE = `{
+/** إعداد Cursor المتقدم: المفتاح يبقى في البيئة ويُرسل إلى خادم MCP المستضاف. */
+export const CURSOR_REMOTE_AGENT_KEY_MCP_EXAMPLE = `{
   "mcpServers": {
     "albayan": {
-      "command": "python",
-      "args": ["-m", "albayan_mcp"],
-      "env": {
-        "ALBAYAN_API_URL": "${LOCAL_STDIO_API_URL}",
-        "ALBAYAN_AGENT_TOKEN": "alb_ضع_مفتاحك_هنا"
+      "url": "${MCP_SERVER_URL}",
+      "headers": {
+        "Authorization": "Bearer \${env:ALBAYAN_AGENT_TOKEN}"
       }
     }
   }
