@@ -3,7 +3,7 @@ import {
   document2Latex,
   type Document2Node,
 } from "@drghaliasri/butex/document2";
-import { normalizeAssetKey } from "@/lib/butex-images";
+import { collectAssetKeysFromDocument } from "./butex-image-references";
 
 /** يطابق json.dumps(..., sort_keys=True, separators=(",", ":"), ensure_ascii=False) في بايثون. */
 function canonicalize(value: unknown): unknown {
@@ -47,33 +47,5 @@ export function exportDocumentLatex(documentJson: unknown): string {
 }
 
 export function collectAssetKeys(documentJson: unknown): string[] {
-  const keys = new Set<string>();
-
-  function visitBlocks(blocks: unknown) {
-    if (!Array.isArray(blocks)) return;
-    for (const block of blocks) {
-      if (!block || typeof block !== "object") continue;
-      const b = block as Record<string, unknown>;
-      if (b.kind === "image" || b.command === "\\includegraphics") {
-        for (const candidate of [b.assetId, b.asset_id, b.value, b.src]) {
-          if (typeof candidate === "string") {
-            const key = normalizeAssetKey(candidate);
-            if (key) keys.add(key);
-          }
-        }
-      }
-      if (b.kind === "list" && Array.isArray(b.items)) {
-        for (const item of b.items) {
-          if (item && typeof item === "object") {
-            visitBlocks((item as { blocks?: unknown }).blocks);
-          }
-        }
-      }
-    }
-  }
-
-  if (documentJson && typeof documentJson === "object") {
-    visitBlocks((documentJson as { blocks?: unknown }).blocks);
-  }
-  return [...keys].sort();
+  return collectAssetKeysFromDocument(documentJson);
 }

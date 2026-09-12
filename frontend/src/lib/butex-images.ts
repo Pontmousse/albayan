@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchArticleAssetBlob } from "@/lib/api/articles";
+import {
+  collectAssetKeysFromDocument,
+  normalizeAssetKey,
+} from "./butex-image-references";
+
+export { collectAssetKeysFromDocument, normalizeAssetKey } from "./butex-image-references";
 
 type GetToken = () => Promise<string | null>;
 
@@ -16,62 +22,11 @@ type ImageRef = {
   value: string;
 };
 
-/** يحوّل قيمة مسار إلى مفتاح أصل نسبي مثل assets/uuid.jpg */
-export function normalizeAssetKey(raw: string | undefined | null): string | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("blob:")) {
-    return null;
-  }
-  if (trimmed.startsWith("assets/")) {
-    const name = trimmed.slice("assets/".length);
-    if (!name || name.includes("/") || name.includes("..")) return null;
-    return `assets/${name}`;
-  }
-  return null;
-}
+const trackedAssetKeysByScope = new Map<string, string[]>();
 
-function collectAssetKeysFromDocument(documentJson: unknown): string[] {
-  const keys = new Set<string>();
-
-  function visitBlocks(blocks: unknown) {
-    if (!Array.isArray(blocks)) return;
-    for (const block of blocks) {
-      if (!block || typeof block !== "object") continue;
-      const b = block as Record<string, unknown>;
-      if (b.kind === "image" || b.command === "\\includegraphics") {
-        const fromId = normalizeAssetKey(
-          typeof b.assetId === "string"
-            ? b.assetId
-            : typeof b.asset_id === "string"
-              ? b.asset_id
-              : null,
-        );
-        const fromValue = normalizeAssetKey(
-          typeof b.value === "string"
-            ? b.value
-            : typeof b.src === "string"
-              ? b.src
-              : null,
-        );
-        if (fromId) keys.add(fromId);
-        if (fromValue) keys.add(fromValue);
-      }
-      if (b.kind === "list" && Array.isArray(b.items)) {
-        for (const item of b.items) {
-          if (item && typeof item === "object") {
-            visitBlocks((item as { blocks?: unknown }).blocks);
-          }
-        }
-      }
-    }
-  }
-
-  if (documentJson && typeof documentJson === "object") {
-    visitBlocks((documentJson as { blocks?: unknown }).blocks);
-  }
-  return [...keys];
+/** آخر مفاتيح صور رآها محرر المقال في الذاكرة، بما فيها التعديلات غير المحفوظة بعد. */
+export function getTrackedArticleAssetKeys(scopeId: string): string[] {
+  return [...(trackedAssetKeysByScope.get(scopeId) ?? [])];
 }
 
 /**
@@ -96,8 +51,9 @@ export function useButexImageResolver(
       for (const url of Object.values(urlMapRef.current)) {
         URL.revokeObjectURL(url);
       }
+      if (scopeId) trackedAssetKeysByScope.delete(scopeId);
     };
-  }, []);
+  }, [scopeId]);
 
   const ensureAsset = useCallback(
     (assetKey: string): Promise<void> => {
@@ -132,11 +88,13 @@ export function useButexImageResolver(
 
   const prefetchFromDocument = useCallback(
     (documentJson: unknown) => {
-      for (const key of collectAssetKeysFromDocument(documentJson)) {
+      const keys = collectAssetKeysFromDocument(documentJson);
+      if (scopeId) trackedAssetKeysByScope.set(scopeId, keys);
+      for (const key of keys) {
         void ensureAsset(key).catch(() => undefined);
       }
     },
-    [ensureAsset],
+    [ensureAsset, scopeId],
   );
 
   const resolveImageUrl = useCallback(
