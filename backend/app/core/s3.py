@@ -158,6 +158,11 @@ def delete_key(key: str) -> None:
         raise _FAILED from exc
 
 
+def delete_bytes(storage_prefix: str, relative_key: str) -> None:
+    """يحذف كائناً واحداً تحت storage_prefix/relative_key."""
+    delete_key(_object_key(storage_prefix, relative_key))
+
+
 class ListedObject(TypedDict):
     relative_key: str
     size: int
