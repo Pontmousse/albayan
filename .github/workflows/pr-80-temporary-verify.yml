@@ -22,7 +22,7 @@ jobs:
         run: python -m pip install -r requirements.txt pytest
         working-directory: backend
       - name: Run article asset tests
-        run: pytest -q tests/test_article_assets.py
+        run: PYTHONPATH=. pytest -q tests/test_article_assets.py
         working-directory: backend
 
   frontend-checks:
