@@ -27,6 +27,10 @@ _NOT_FOUND = HTTPException(
     status_code=404,
     detail="الملف غير موجود.",
 )
+_ASSET_IN_USE = HTTPException(
+    status_code=409,
+    detail="لا يمكن حذف صورة مستخدمة داخل المقال. أزلها أو استبدلها في المحرر ثم احفظ المسودة قبل حذفها.",
+)
 
 
 @lru_cache(maxsize=1)
@@ -158,9 +162,34 @@ def delete_key(key: str) -> None:
         raise _FAILED from exc
 
 
+def _document_uses_asset(value: Any, asset_key: str) -> bool:
+    if isinstance(value, list):
+        return any(_document_uses_asset(item, asset_key) for item in value)
+    if not isinstance(value, dict):
+        return False
+
+    is_image_node = value.get("kind") == "image" or value.get("command") == "\\includegraphics"
+    if is_image_node:
+        for field in ("assetId", "asset_id", "value", "src"):
+            candidate = value.get(field)
+            if isinstance(candidate, str) and candidate.strip() == asset_key:
+                return True
+
+    return any(
+        _document_uses_asset(child, asset_key)
+        for child in value.values()
+        if isinstance(child, (dict, list))
+    )
+
+
 def delete_bytes(storage_prefix: str, relative_key: str) -> None:
-    """يحذف كائناً واحداً تحت storage_prefix/relative_key."""
-    delete_key(_object_key(storage_prefix, relative_key))
+    """يحذف كائناً واحداً؛ ويمنع حذف أصل صورة ما دام document.json يستخدمه."""
+    normalized = relative_key.lstrip("/")
+    if normalized.startswith("assets/"):
+        document = get_json(storage_prefix)
+        if document is not None and _document_uses_asset(document, normalized):
+            raise _ASSET_IN_USE
+    delete_key(_object_key(storage_prefix, normalized))
 
 
 class ListedObject(TypedDict):
