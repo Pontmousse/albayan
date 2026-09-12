@@ -109,7 +109,7 @@ def test_article_pdf_uses_sanitized_utf8_download_filename() -> None:
     user.id = uuid.uuid4()
     user.full_name = " أحمد / بن: علي "
     article = MagicMock()
-    article.title = " مقاصد * الشريعة؟ "
+    article.title = " مقاصد * الشريعة? "
     version = MagicMock()
     version.storage_prefix = "articles/test/versions/v3/"
     version.version_number = 3
