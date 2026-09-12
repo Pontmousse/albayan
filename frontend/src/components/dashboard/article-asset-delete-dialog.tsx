@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, Trash2, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useOpenTransition } from "@/hooks/use-open-transition";
 
 const DELETE_DIALOG_EXIT_MS = 220;
@@ -20,7 +20,12 @@ export function ArticleAssetDeleteDialog({
   onCancel: () => void;
 }) {
   const { mounted, visible } = useOpenTransition(open, DELETE_DIALOG_EXIT_MS);
+  const [snapshotLabel, setSnapshotLabel] = useState(assetLabel);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open) setSnapshotLabel(assetLabel);
+  }, [assetLabel, open]);
 
   useEffect(() => {
     if (!visible) return;
@@ -33,6 +38,7 @@ export function ArticleAssetDeleteDialog({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || deleting) return;
       event.preventDefault();
+      event.stopPropagation();
       onCancel();
     }
     document.addEventListener("keydown", onKeyDown);
@@ -54,6 +60,7 @@ export function ArticleAssetDeleteDialog({
           ? "var(--motion-ease-out)"
           : "var(--motion-ease-in)",
       }}
+      onClick={(event) => event.stopPropagation()}
     >
       <button
         type="button"
@@ -119,7 +126,7 @@ export function ArticleAssetDeleteDialog({
                 سيتم حذف
                 {" "}
                 <strong className="font-semibold text-slate-800" dir="auto">
-                  «{assetLabel}»
+                  «{snapshotLabel}»
                 </strong>
                 {" "}
                 نهائياً من صور المقال. هذه الصورة غير مستخدمة حالياً داخل المستند،
