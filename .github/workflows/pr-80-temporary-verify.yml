@@ -1,0 +1,45 @@
+name: PR 80 temporary verification
+
+on:
+  push:
+    branches:
+      - feat/issues-78-79-assets-pdf-filename
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r requirements.txt pytest
+        working-directory: backend
+      - name: Run article asset tests
+        run: pytest -q tests/test_article_assets.py
+        working-directory: backend
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: frontend
+      - name: Type-check frontend
+        run: npx tsc --noEmit
+        working-directory: frontend
