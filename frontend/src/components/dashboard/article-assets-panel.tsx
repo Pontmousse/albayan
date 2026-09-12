@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, ImageOff, RefreshCw } from "lucide-react";
+import { Check, ImageOff, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
 import { useNumerals } from "@/components/numeral-provider";
 import {
+  deleteArticleAsset,
   listArticleAssets,
   uploadArticleAsset,
   type ArticleAssetSummary,
@@ -154,6 +155,7 @@ export function ArticleAssetsPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -238,6 +240,26 @@ export function ArticleAssetsPanel({
     }
   }
 
+  async function handleDelete(asset: ArticleAssetSummary) {
+    if (mode !== "manage" || deletingAssetId) return;
+    const label = articleAssetDisplayLabel(asset);
+    const confirmed = window.confirm(
+      `هل تريد حذف «${label}» من صور المقال؟ إذا كانت الصورة مستخدمة داخل المستند، فستحتاج إلى استبدالها ثم إعادة إنشاء ملفّ المعاينة.`,
+    );
+    if (!confirmed) return;
+
+    setDeletingAssetId(asset.asset_id);
+    setError(null);
+    try {
+      await deleteArticleAsset(getToken, articleId, asset.asset_id);
+      await refreshAssets();
+    } catch (err) {
+      setError(userFacingErrorMessage(err, "تعذّر حذف الصورة."));
+    } finally {
+      setDeletingAssetId(null);
+    }
+  }
+
   if (!open) return null;
 
   const picking = mode === "pick";
@@ -299,7 +321,7 @@ export function ArticleAssetsPanel({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
+                disabled={uploading || deletingAssetId !== null}
                 className="min-h-11 rounded-md bg-[var(--journal-accent)] px-4 text-xs font-semibold text-white transition hover:bg-[var(--journal-accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)]/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {uploading ? "جارٍ الرفع…" : "رفع صورة"}
@@ -309,7 +331,7 @@ export function ArticleAssetsPanel({
           <button
             type="button"
             onClick={() => void refreshAssets()}
-            disabled={loading}
+            disabled={loading || deletingAssetId !== null}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-[var(--journal-border)] bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--journal-accent)]/30 disabled:opacity-60"
           >
             <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -354,6 +376,7 @@ export function ArticleAssetsPanel({
               const typeLabel = articleAssetTypeLabel(asset);
               const size = articleAssetSize(asset.size);
               const selected = picking && currentAssetId === asset.asset_id;
+              const deleting = deletingAssetId === asset.asset_id;
               const accessibleSize = size
                 ? `${formatNumber(size.value, { maximumFractionDigits: 1 })} ${size.unit}`
                 : "الحجم غير متاح";
@@ -394,6 +417,17 @@ export function ArticleAssetsPanel({
                     >
                       {asset.asset_id}
                     </p>
+                    {!picking ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(asset)}
+                        disabled={deletingAssetId !== null || uploading}
+                        className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-md border border-red-200 bg-white px-3 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 aria-hidden className="h-3.5 w-3.5" />
+                        {deleting ? "جارٍ الحذف…" : "حذف الصورة"}
+                      </button>
+                    ) : null}
                   </div>
                   {selected ? (
                     <span className="pointer-events-none absolute start-2 top-2 z-20 inline-flex items-center gap-1 rounded-full bg-[var(--journal-accent)] px-2 py-1 text-[10px] font-semibold text-white shadow-sm">

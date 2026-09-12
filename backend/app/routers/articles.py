@@ -1,5 +1,8 @@
+import re
+import unicodedata
 import uuid
 from pathlib import PurePosixPath
+from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -42,6 +45,8 @@ _ALLOWED_IMAGE_TYPES = {
     "image/webp": ".webp",
 }
 _MAX_ASSET_BYTES = 5 * 1024 * 1024
+_FILENAME_UNSAFE_RE = re.compile(r'[\x00-\x1f\x7f/\\:*?"<>|]+')
+_FILENAME_WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _current_user(auth: AuthDep, db: DbDep):
@@ -58,6 +63,32 @@ def _detail(db, article) -> ArticleDetail:
         updated_at=article.updated_at,
         current_version=VersionRead.model_validate(versions[0]),
         versions=[VersionRead.model_validate(v) for v in versions],
+    )
+
+
+def _sanitize_download_filename_part(value: str | None, fallback: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value or "").strip()
+    cleaned = _FILENAME_UNSAFE_RE.sub("", normalized)
+    cleaned = _FILENAME_WHITESPACE_RE.sub("_", cleaned).strip(" ._")
+    cleaned = cleaned[:80].rstrip(" ._")
+    return cleaned or fallback
+
+
+def _pdf_download_filename(
+    user_full_name: str | None,
+    article_title: str,
+    version_number: int,
+) -> str:
+    author = _sanitize_download_filename_part(user_full_name, "المؤلف")
+    article = _sanitize_download_filename_part(article_title, "المقال")
+    return f"{author}_{article}_الإصدار_{version_number}.pdf"
+
+
+def _pdf_content_disposition(filename: str, version_number: int) -> str:
+    encoded = quote(filename, safe="")
+    return (
+        f'inline; filename="article-v{version_number}.pdf"; '
+        f"filename*=UTF-8''{encoded}"
     )
 
 
@@ -302,6 +333,37 @@ async def upload_asset(
     return {"asset_id": asset_id, "content_type": content_type}
 
 
+@router.delete("/{article_id}/assets/{filename}", status_code=204)
+def delete_asset(
+    article_id: uuid.UUID,
+    filename: str,
+    auth: AuthDep,
+    db: DbDep,
+) -> None:
+    """يحذف صورة واحدة من مخزون المقال — مسودة فقط."""
+    name = PurePosixPath(filename).name
+    if name != filename or not name or name in (".", ".."):
+        raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
+    if _guess_image_content_type(f"assets/{name}") is None:
+        raise HTTPException(status_code=400, detail="نوع ملف الصورة غير صالح.")
+
+    user = _current_user(auth, db)
+    article = article_service.assert_is_author(db, article_id, user.id)
+    version = article_service.current_version(db, article_id)
+    article_service.assert_draft(version)
+
+    s3.delete_bytes(version.storage_prefix, f"assets/{name}")
+
+    # حذف أصل قد يجعل ملف المعاينة الناجح قديماً حتى لو لم يتغير document.json.
+    version.compile_status = CompileStatus.PENDING
+    version.active_compile_id = None
+    version.compiled_document_hash = None
+    db.execute(
+        update(Article).where(Article.id == article.id).values(updated_at=func.now())
+    )
+    db.commit()
+
+
 @router.get("/{article_id}/assets/{filename}")
 def get_asset(
     article_id: uuid.UUID,
@@ -358,11 +420,16 @@ def compile_article(
 def get_article_pdf(
     article_id: uuid.UUID, auth: AuthDep, db: DbDep
 ) -> Response:
-    """يبث compiled.pdf للإصدار الحالي."""
+    """يبث ملف PDF للإصدار الحالي باسم وصفي للمؤلف."""
     user = _current_user(auth, db)
-    article_service.assert_is_author(db, article_id, user.id)
+    article = article_service.assert_is_author(db, article_id, user.id)
     version = article_service.current_version(db, article_id)
     body = compile_service.get_compiled_pdf(version.storage_prefix)
+    filename = _pdf_download_filename(
+        user.full_name,
+        article.title,
+        version.version_number,
+    )
     return Response(
         content=body,
         media_type="application/pdf",
@@ -370,7 +437,10 @@ def get_article_pdf(
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
             "Pragma": "no-cache",
             "Expires": "0",
-            "Content-Disposition": 'inline; filename="compiled.pdf"',
+            "Content-Disposition": _pdf_content_disposition(
+                filename,
+                version.version_number,
+            ),
         },
     )
 
