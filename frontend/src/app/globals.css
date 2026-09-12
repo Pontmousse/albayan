@@ -134,8 +134,8 @@ body {
   top: var(--article-editor-site-header-height, 0px);
 }
 
-.article-editor .butex-document2-widget__toolbar {
-  top: calc(
+.article-editor .butex-document2-widget {
+  --butex-document2-sticky-top: calc(
     var(--article-editor-site-header-height, 0px) +
       var(--article-editor-actions-height, 0px)
   );
