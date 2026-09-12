@@ -3,6 +3,9 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote
 
+import pytest
+from fastapi import HTTPException
+
 from app.core import s3
 from app.models.enums import CompileStatus
 from app.routers import articles
@@ -30,13 +33,68 @@ def test_delete_bytes_scopes_object_to_version_prefix() -> None:
     client = MagicMock()
     with patch.object(s3, "_client", return_value=client), patch.object(
         s3.settings, "s3_bucket", "bucket"
-    ):
+    ), patch.object(s3, "get_json", return_value=None):
         s3.delete_bytes("articles/x/versions/v1/", "assets/photo.jpg")
 
     client.delete_object.assert_called_once_with(
         Bucket="bucket",
         Key="articles/x/versions/v1/assets/photo.jpg",
     )
+
+
+def test_delete_bytes_rejects_asset_referenced_in_nested_document() -> None:
+    document = {
+        "blocks": [
+            {
+                "kind": "section",
+                "children": [
+                    {
+                        "kind": "list",
+                        "items": [
+                            {
+                                "blocks": [
+                                    {
+                                        "kind": "image",
+                                        "assetId": "assets/photo.jpg",
+                                        "value": "assets/photo.jpg",
+                                    }
+                                ]
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+    with patch.object(s3, "get_json", return_value=document), patch.object(
+        s3, "delete_key"
+    ) as delete_key:
+        with pytest.raises(HTTPException) as exc_info:
+            s3.delete_bytes("articles/x/versions/v1/", "assets/photo.jpg")
+
+    assert exc_info.value.status_code == 409
+    assert "مستخدمة داخل المقال" in str(exc_info.value.detail)
+    delete_key.assert_not_called()
+
+
+def test_delete_bytes_allows_unreferenced_asset() -> None:
+    document = {
+        "blocks": [
+            {
+                "kind": "image",
+                "assetId": "assets/other.jpg",
+                "value": "assets/other.jpg",
+            }
+        ]
+    }
+
+    with patch.object(s3, "get_json", return_value=document), patch.object(
+        s3, "delete_key"
+    ) as delete_key:
+        s3.delete_bytes("articles/x/versions/v1/", "assets/photo.jpg")
+
+    delete_key.assert_called_once_with("articles/x/versions/v1/assets/photo.jpg")
 
 
 def test_list_assets_endpoint_returns_s3_inventory() -> None:
