@@ -3,7 +3,7 @@ import {
   document2Latex,
   type Document2Node,
 } from "@drghaliasri/butex/document2";
-import { collectAssetKeysFromDocument } from "@/lib/butex-images";
+import { collectAssetKeysFromDocument } from "./butex-image-references";
 
 /** يطابق json.dumps(..., sort_keys=True, separators=(",", ":"), ensure_ascii=False) في بايثون. */
 function canonicalize(value: unknown): unknown {
