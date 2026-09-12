@@ -8,6 +8,7 @@ import {
   articleAssetsToButexImageAssets,
   createButexImageAssetListCache,
 } from "./butex-image-assets";
+import { collectAssetKeysFromDocument } from "./butex-images";
 
 function asset(
   assetId: string,
@@ -89,6 +90,55 @@ describe("articleAssetsToButexImageAssets", () => {
       value: 5,
       unit: "ميغابايت",
     });
+  });
+});
+
+describe("collectAssetKeysFromDocument", () => {
+  it("finds image assets through nested document structures", () => {
+    const document = {
+      blocks: [
+        {
+          kind: "section",
+          children: [
+            {
+              kind: "list",
+              items: [
+                {
+                  blocks: [
+                    {
+                      kind: "image",
+                      assetId: "assets/first.png",
+                      value: "assets/first.png",
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          command: "\\includegraphics",
+          src: "assets/second.jpg",
+        },
+      ],
+    };
+
+    expect(collectAssetKeysFromDocument(document)).toEqual([
+      "assets/first.png",
+      "assets/second.jpg",
+    ]);
+  });
+
+  it("ignores remote URLs and malformed nested paths", () => {
+    const document = {
+      blocks: [
+        { kind: "image", value: "https://example.com/photo.jpg" },
+        { kind: "image", assetId: "assets/nested/photo.jpg" },
+        { kind: "image", assetId: "assets/../photo.jpg" },
+      ],
+    };
+
+    expect(collectAssetKeysFromDocument(document)).toEqual([]);
   });
 });
 
