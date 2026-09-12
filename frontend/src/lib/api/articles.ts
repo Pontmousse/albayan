@@ -152,6 +152,19 @@ export function listArticleAssets(getToken: GetToken, id: string) {
   );
 }
 
+export function deleteArticleAsset(
+  getToken: GetToken,
+  id: string,
+  assetKey: string,
+) {
+  const filename = assetKey.replace(/^assets\//, "");
+  return apiFetch<void>(
+    `/api/v1/articles/${id}/assets/${encodeURIComponent(filename)}`,
+    getToken,
+    { method: "DELETE" },
+  );
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export async function uploadArticleAsset(
@@ -224,7 +237,25 @@ export function requestArticleCompile(
   });
 }
 
-/** يجلب compiled.pdf للإصدار الحالي */
+function pdfFilenameFromResponse(response: Response): string {
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const utf8Match = disposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim());
+    } catch {
+      // Fall through to the ASCII filename below.
+    }
+  }
+
+  const quotedMatch = disposition.match(/filename\s*=\s*"([^"]+)"/i);
+  if (quotedMatch?.[1]) return quotedMatch[1];
+
+  const plainMatch = disposition.match(/filename\s*=\s*([^;]+)/i);
+  return plainMatch?.[1]?.trim() || "compiled.pdf";
+}
+
+/** يجلب ملف PDF للإصدار الحالي مع الاحتفاظ باسم التنزيل من الخادم. */
 export async function fetchArticlePdfBlob(
   getToken: GetToken,
   id: string,
@@ -250,7 +281,11 @@ export async function fetchArticlePdfBlob(
     throw new ApiError("تعذّر تحميل ملفّ المعاينة.", response.status);
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  const filename = pdfFilenameFromResponse(response);
+  return new File([blob], filename, {
+    type: blob.type || "application/pdf",
+  });
 }
 
 /** يجلب compile.log — متاح فقط عند DEV_MODE على الخادم. */
