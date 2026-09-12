@@ -8,7 +8,7 @@ import {
   articleAssetsToButexImageAssets,
   createButexImageAssetListCache,
 } from "./butex-image-assets";
-import { collectAssetKeysFromDocument } from "./butex-images";
+import { collectAssetKeysFromDocument } from "./butex-image-references";
 
 function asset(
   assetId: string,
