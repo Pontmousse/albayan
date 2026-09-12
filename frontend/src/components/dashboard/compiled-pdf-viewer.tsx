@@ -30,7 +30,13 @@ const STATUS_COPY: Record<CompileStatus, string> = {
   failed: "تعذّر إنشاء ملفّ المعاينة. يمكنك إعادة المحاولة بعد مراجعة المخطوطة.",
 };
 
-function PdfPages({ fileUrl }: { fileUrl: string }) {
+function PdfPages({
+  fileUrl,
+  downloadFilename,
+}: {
+  fileUrl: string;
+  downloadFilename: string;
+}) {
   const { formatNumber } = useNumerals();
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
@@ -102,7 +108,7 @@ function PdfPages({ fileUrl }: { fileUrl: string }) {
         </div>
         <a
           href={fileUrl}
-          download="compiled.pdf"
+          download={downloadFilename}
           className="text-xs font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
         >
           تنزيل ملفّ المعاينة
@@ -147,6 +153,7 @@ export function CompiledPdfViewer({
   onRefreshStatus,
 }: CompiledPdfViewerProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [downloadFilename, setDownloadFilename] = useState("compiled.pdf");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [compiling, setCompiling] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -165,6 +172,7 @@ export function CompiledPdfViewer({
     if (compileStatus !== "success") {
       revoke();
       setBlobUrl(null);
+      setDownloadFilename("compiled.pdf");
       return;
     }
     let cancelled = false;
@@ -176,6 +184,9 @@ export function CompiledPdfViewer({
         revoke();
         const url = URL.createObjectURL(blob);
         blobUrlRef.current = url;
+        setDownloadFilename(
+          blob instanceof File && blob.name ? blob.name : "compiled.pdf",
+        );
         setBlobUrl(url);
       } catch (err) {
         if (!cancelled) {
@@ -265,7 +276,7 @@ export function CompiledPdfViewer({
       ) : null}
 
       {compileStatus === "success" && blobUrl ? (
-        <PdfPages fileUrl={blobUrl} />
+        <PdfPages fileUrl={blobUrl} downloadFilename={downloadFilename} />
       ) : compileStatus === "processing" ? (
         <p className="px-4 py-10 text-center text-sm text-slate-500">
           يُرجى الانتظار أثناء إنشاء ملفّ المعاينة…
