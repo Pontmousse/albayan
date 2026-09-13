@@ -216,7 +216,9 @@ def register_session_tools(server: MCPServer) -> None:
             "the session unless the stable IDs and latest revision are already known. Pass that "
             "revision as base_revision. Use a new command_id for each logical mutation and never "
             "reuse it for another payload. On revision_conflict, re-read before retrying. FastAPI "
-            "owns permissions, provenance, assets, revisions, idempotency, and session storage."
+            "owns permissions, provenance, assets, revisions, idempotency, and session storage. "
+            "Agents must use update_article_metadata for title/abstract and cannot change "
+            "update_document_meta.authors."
         ),
     )
     async def apply_session_command(

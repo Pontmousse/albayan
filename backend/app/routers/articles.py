@@ -94,7 +94,7 @@ def _pdf_content_disposition(filename: str, version_number: int) -> str:
 
 @router.get("/me", response_model=list[ArticleSummary])
 def list_my_articles(actor: ActorDep, db: DbDep) -> list[ArticleSummary]:
-    # Read-only article listing is agent-safe; mutations remain human-only.
+    # Listing and draft-only lifecycle operations are agent-safe.
     rows = article_service.list_articles_for_author(db, actor.user_id)
     return [
         ArticleSummary(
@@ -110,16 +110,19 @@ def list_my_articles(actor: ActorDep, db: DbDep) -> list[ArticleSummary]:
 
 
 @router.post("", response_model=ArticleDetail, status_code=201)
-def create_article(payload: ArticleCreate, auth: AuthDep, db: DbDep) -> ArticleDetail:
-    user = _current_user(auth, db)
-    article = article_service.create_article(db, user.id, payload.title, payload.abstract)
+def create_article(payload: ArticleCreate, actor: ActorDep, db: DbDep) -> ArticleDetail:
+    article = article_service.create_article(
+        db,
+        actor.user_id,
+        payload.title,
+        payload.abstract,
+    )
     return _detail(db, article)
 
 
 @router.get("/{article_id}", response_model=ArticleDetail)
-def get_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> ArticleDetail:
-    user = _current_user(auth, db)
-    article = article_service.assert_is_author(db, article_id, user.id)
+def get_article(article_id: uuid.UUID, actor: ActorDep, db: DbDep) -> ArticleDetail:
+    article = article_service.assert_is_author(db, article_id, actor.user_id)
     return _detail(db, article)
 
 
@@ -127,13 +130,14 @@ def get_article(article_id: uuid.UUID, auth: AuthDep, db: DbDep) -> ArticleDetai
 def update_article(
     article_id: uuid.UUID,
     payload: ArticleUpdate,
-    auth: AuthDep,
+    actor: ActorDep,
     db: DbDep,
 ) -> ArticleDetail:
-    user = _current_user(auth, db)
-    article = article_service.assert_is_author(db, article_id, user.id)
-    article = article_service.update_draft_metadata(
-        db, article, payload.title, payload.abstract
+    article = article_session_service.update_article_metadata(
+        db,
+        article_id,
+        actor,
+        payload,
     )
     return _detail(db, article)
 

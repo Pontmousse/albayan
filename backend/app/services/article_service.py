@@ -120,23 +120,6 @@ def assert_draft(version: ArticleVersion) -> None:
         raise _FROZEN
 
 
-def update_draft_metadata(
-    db: Session,
-    article: Article,
-    title: str,
-    abstract: str | None,
-) -> Article:
-    """يحدّث بيانات صف المقال فقط؛ لا يقرأ أو يكتب مستند BuTeX."""
-    version = current_version(db, article.id)
-    assert_draft(version)
-    article.title = title
-    article.abstract = abstract
-    article.updated_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(article)
-    return article
-
-
 def _normalized_metadata(value: object) -> str:
     """يوحّد الفراغات الطرفية فقط، ويعامل القيم غير النصية كقيمة مفقودة."""
     return value.strip() if isinstance(value, str) else ""

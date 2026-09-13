@@ -121,6 +121,19 @@ remove_reference: reference_key
 move_reference: reference_key, reference anchor
 ```
 
+`Article.title` and `Article.abstract` are authoritative host metadata. Session
+creation overwrites the corresponding normalized Document2 values from the
+Article row. The draft metadata endpoint updates an active current session in
+the same FastAPI service operation and increments its revision when the session
+document changes; a later session save persists those values to draft
+`document.json`. With no active session, the next session creation performs the
+same synchronization.
+
+An agent-issued `update_document_meta` command also synchronizes title and
+abstract back to the Article row. FastAPI rejects `authors` on agent-issued
+commands: article authorship is relational `ArticleAuthor` state and is not an
+agent-editable Document2 string. MCP never performs this synchronization itself.
+
 Hijri dates use day 1-30, years 1400-1500, and BuTeX's twelve Arabic month
 identifiers. Reference fields are `key`, `authors`, `title`, `year`, `venue`,
 `url`, and `field_separator` (`","` or `"،"`). The worker NFC-normalizes

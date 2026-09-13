@@ -2,18 +2,15 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import CompileStatus, SourceType, VersionStatus
 from app.schemas.document2 import DocumentCommand
 
 
 class ArticleCreate(BaseModel):
-    title: str = Field(min_length=1, max_length=500)
-    abstract: str | None = Field(default=None, max_length=5000)
+    model_config = ConfigDict(extra="forbid")
 
-
-class ArticleUpdate(BaseModel):
     title: str = Field(min_length=1, max_length=500)
     abstract: str | None = Field(default=None, max_length=5000)
 
@@ -21,6 +18,26 @@ class ArticleUpdate(BaseModel):
     @classmethod
     def _strip_surrounding_whitespace(cls, value: object) -> object:
         return value.strip() if isinstance(value, str) else value
+
+
+class ArticleUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    abstract: str | None = Field(default=None, max_length=5000)
+
+    @field_validator("title", "abstract", mode="before")
+    @classmethod
+    def _strip_surrounding_whitespace(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
+
+    @model_validator(mode="after")
+    def _require_a_metadata_change(self):
+        if not self.model_fields_set.intersection({"title", "abstract"}):
+            raise ValueError("يجب إرسال title أو abstract على الأقل.")
+        if "title" in self.model_fields_set and self.title is None:
+            raise ValueError("title لا يقبل null.")
+        return self
 
 
 class VersionRead(BaseModel):

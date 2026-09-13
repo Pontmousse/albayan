@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,7 +18,7 @@ from app.core import s3
 from app.core.actor import Actor
 from app.models.article import Article, ArticleSession, ArticleVersion
 from app.models.enums import CompileStatus
-from app.schemas.article import DocumentCommandPayload
+from app.schemas.article import ArticleUpdate, DocumentCommandPayload
 from app.schemas.document2 import BLOCK_INSERTION_OPERATIONS
 from app.services import article_service, butex_worker_client, compile_service
 
@@ -49,6 +50,23 @@ def _empty_document(article: Article) -> dict[str, Any]:
         },
         "blocks": [],
     }
+
+
+def _synchronize_document_metadata(
+    document: dict[str, Any],
+    *,
+    title: str,
+    abstract: str | None,
+) -> dict[str, Any]:
+    """Apply authoritative host metadata through the worker's typed command path."""
+    return butex_worker_client.apply_document_command(
+        document,
+        {
+            "op": "update_document_meta",
+            "title": title,
+            "abstract": abstract or "",
+        },
+    )
 
 
 def _now_iso() -> str:
@@ -212,6 +230,30 @@ def _lock_current_session(db: Session, article_id: uuid.UUID) -> ArticleSession 
     )
 
 
+def _lock_metadata_rows(
+    db: Session,
+    article_id: uuid.UUID,
+) -> tuple[Article, ArticleVersion]:
+    article = db.scalar(
+        select(Article)
+        .where(Article.id == article_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    version = db.scalar(
+        select(ArticleVersion)
+        .where(ArticleVersion.article_id == article_id)
+        .order_by(ArticleVersion.version_number.desc())
+        .limit(1)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if not article or not version:
+        raise HTTPException(status_code=404, detail="المقال غير موجود.")
+    article_service.assert_draft(version)
+    return article, version
+
+
 def _current_draft_article_and_version(
     db: Session,
     article_id: uuid.UUID,
@@ -233,6 +275,16 @@ def get_or_create_session(
     if session and session.article_version_id == version.id:
         return session, _session_document(article_id)
 
+    # Serialize first-session creation with metadata updates. Re-read both the
+    # session and authoritative rows after acquiring their locks so a session
+    # created while this request was waiting cannot be duplicated or seeded
+    # from stale Article metadata.
+    session = _lock_current_session(db, article_id)
+    article, version = _lock_metadata_rows(db, article_id)
+    session = _lock_current_session(db, article_id)
+    if session and session.article_version_id == version.id:
+        return session, _session_document(article_id)
+
     if session:
         s3.delete_prefix(f"{session_storage_prefix(article_id)}{SESSION_PREFIX}/")
         db.delete(session)
@@ -241,6 +293,11 @@ def get_or_create_session(
     base_document = s3.get_json(version.storage_prefix)
     document = base_document if isinstance(base_document, dict) else _empty_document(article)
     document = butex_worker_client.normalize_document(document)
+    document = _synchronize_document_metadata(
+        document,
+        title=article.title,
+        abstract=article.abstract,
+    )
 
     session = ArticleSession(
         article_id=article.id,
@@ -300,6 +357,57 @@ def get_session_blocks(
     }
 
 
+def update_article_metadata(
+    db: Session,
+    article_id: uuid.UUID,
+    actor: Actor,
+    payload: ArticleUpdate,
+) -> Article:
+    """Update authoritative metadata and an active current session as one operation."""
+    _current_draft_article_and_version(db, article_id, actor)
+    session = _lock_current_session(db, article_id)
+    article, version = _lock_metadata_rows(db, article_id)
+    if session is None:
+        # A concurrent first-session creator may have committed while this
+        # request waited for the Article lock.
+        session = _lock_current_session(db, article_id)
+    title = payload.title if "title" in payload.model_fields_set else article.title
+    abstract = (
+        payload.abstract
+        if "abstract" in payload.model_fields_set
+        else article.abstract
+    )
+
+    session_changed = False
+    if session and session.article_version_id == version.id:
+        current_document = _session_document(article_id)
+        next_document = _synchronize_document_metadata(
+            current_document,
+            title=title,
+            abstract=abstract,
+        )
+        if next_document != current_document:
+            session.revision += 1
+            session.updated_by = actor.user_id
+            session.updated_at = datetime.now(UTC)
+            s3.put_json_at(
+                session_storage_prefix(article_id),
+                SESSION_DOCUMENT,
+                next_document,
+            )
+            session_changed = True
+
+    article.title = title
+    article.abstract = abstract
+    article.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(article)
+    if session_changed and session:
+        db.refresh(session)
+        _write_meta(article_id, session)
+    return article
+
+
 def _assert_asset_exists(
     article_id: uuid.UUID,
     version: ArticleVersion,
@@ -320,7 +428,32 @@ def apply_session_command(
     actor: Actor,
     payload: DocumentCommandPayload,
 ) -> dict[str, Any]:
-    _, version = _current_draft_article_and_version(db, article_id, actor)
+    article, version = _current_draft_article_and_version(db, article_id, actor)
+    submitted_command = payload.command.model_dump(exclude_unset=True)
+    if (
+        actor.auth_method == "agent"
+        and submitted_command.get("op") == "update_document_meta"
+        and "authors" in submitted_command
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="لا تسمح أدوات الوكيل بتعديل مؤلفي المقال.",
+        )
+    metadata_update: ArticleUpdate | None = None
+    if submitted_command.get("op") == "update_document_meta":
+        metadata_fields = {
+            field: submitted_command[field]
+            for field in ("title", "abstract")
+            if field in submitted_command
+        }
+        if metadata_fields:
+            try:
+                metadata_update = ArticleUpdate.model_validate(metadata_fields)
+            except ValidationError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="بيانات عنوان المقال أو ملخصه غير صالحة.",
+                ) from exc
     session, current_document = get_or_create_session(db, article_id, actor)
     request_hash = _request_hash(payload)
 
@@ -344,6 +477,17 @@ def apply_session_command(
         )
 
     command = _worker_command(payload, actor)
+    if command.get("op") == "update_document_meta":
+        command["title"] = (
+            metadata_update.title
+            if metadata_update and "title" in metadata_update.model_fields_set
+            else article.title
+        )
+        command["abstract"] = (
+            metadata_update.abstract
+            if metadata_update and "abstract" in metadata_update.model_fields_set
+            else article.abstract
+        ) or ""
     if command.get("op") in {"insert_figure", "update_figure"}:
         asset_id = command.get("asset_id")
         if command.get("op") == "insert_figure" and not isinstance(asset_id, str):
@@ -369,10 +513,37 @@ def apply_session_command(
             return response
         raise HTTPException(status_code=502, detail="سجل أمر الجلسة غير صالح.")
 
+    if command.get("op") == "update_document_meta":
+        locked_article, locked_version = _lock_metadata_rows(db, article_id)
+        if locked_version.id != locked.article_version_id:
+            raise _CONFLICT
+        locked_command = deepcopy(command)
+        locked_command["title"] = (
+            metadata_update.title
+            if metadata_update and "title" in metadata_update.model_fields_set
+            else locked_article.title
+        )
+        locked_command["abstract"] = (
+            metadata_update.abstract
+            if metadata_update and "abstract" in metadata_update.model_fields_set
+            else locked_article.abstract
+        ) or ""
+        if locked_command != command:
+            next_document = butex_worker_client.apply_document_command(
+                current_document,
+                locked_command,
+            )
+        command = locked_command
+        article = locked_article
+
     affected_block_ids = _affected_block_ids(current_document, next_document, command)
     locked.revision += 1
     locked.updated_by = actor.user_id
     locked.updated_at = datetime.now(UTC)
+    if command.get("op") == "update_document_meta":
+        article.title = command["title"]
+        article.abstract = command["abstract"] or None
+        article.updated_at = datetime.now(UTC)
     response = {
         "ok": True,
         "revision": locked.revision,

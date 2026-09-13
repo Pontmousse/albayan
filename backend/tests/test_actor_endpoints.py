@@ -8,10 +8,12 @@ from unittest.mock import MagicMock, patch
 
 from app.core.actor import Actor, ActorDep
 from app.core.clerk import AuthDep
-from app.models.article import Article, ArticleVersion
+from app.models.article import Article, ArticleAuthor, ArticleVersion
 from app.models.enums import VersionStatus
 from app.models.user import User
 from app.routers import articles, editor, reviews, users
+from app.schemas.article import ArticleCreate
+from app.services import article_service
 
 
 class ActorEndpointTests(unittest.TestCase):
@@ -99,8 +101,82 @@ class ActorEndpointTests(unittest.TestCase):
         self.assertEqual(response, [])
         list_mock.assert_called_once_with(db, user_id)
 
+    def test_draft_article_lifecycle_endpoints_use_actor_dependency(self) -> None:
+        for endpoint in (
+            articles.create_article,
+            articles.get_article,
+            articles.update_article,
+        ):
+            with self.subTest(endpoint=endpoint.__name__):
+                annotation = inspect.signature(endpoint).parameters["actor"].annotation
+                self.assertEqual(annotation, ActorDep)
+
+    def test_agent_can_create_article_using_authenticated_user_id(self) -> None:
+        user_id = uuid.uuid4()
+        actor = Actor(
+            user_id=user_id,
+            clerk_id="agent_test",
+            auth_method="agent",
+        )
+        article = Article(id=uuid.uuid4(), submitted_by=user_id, title="عنوان")
+        expected = MagicMock()
+
+        with patch.object(
+            articles.article_service,
+            "create_article",
+            return_value=article,
+        ) as create, patch.object(
+            articles,
+            "_detail",
+            return_value=expected,
+        ):
+            result = articles.create_article(
+                ArticleCreate(title="عنوان", abstract="ملخص"),
+                actor,
+                MagicMock(),
+            )
+
+        self.assertIs(result, expected)
+        create.assert_called_once()
+        self.assertEqual(create.call_args.args[1:], (user_id, "عنوان", "ملخص"))
+
+    def test_create_service_links_creator_as_corresponding_author(self) -> None:
+        user_id = uuid.uuid4()
+        article_id = uuid.uuid4()
+        db = MagicMock()
+        added: list[object] = []
+        db.add.side_effect = added.append
+
+        def assign_article_id() -> None:
+            created_article = next(item for item in added if isinstance(item, Article))
+            created_article.id = article_id
+
+        db.flush.side_effect = assign_article_id
+
+        created = article_service.create_article(
+            db,
+            user_id,
+            "عنوان",
+            "ملخص",
+        )
+
+        author_link = next(item for item in added if isinstance(item, ArticleAuthor))
+        self.assertEqual(created.submitted_by, user_id)
+        self.assertEqual(author_link.article_id, article_id)
+        self.assertEqual(author_link.user_id, user_id)
+        self.assertEqual(author_link.author_order, 1)
+        self.assertTrue(author_link.is_corresponding)
+        db.commit.assert_called_once_with()
+
     def test_submit_article_remains_human_only(self) -> None:
         annotation = inspect.signature(articles.submit_article).parameters[
+            "auth"
+        ].annotation
+
+        self.assertEqual(annotation, AuthDep)
+
+    def test_delete_article_remains_human_only(self) -> None:
+        annotation = inspect.signature(articles.delete_article).parameters[
             "auth"
         ].annotation
 

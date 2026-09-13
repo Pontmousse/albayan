@@ -63,6 +63,10 @@ class ArticleSessionServiceTests(unittest.TestCase):
             "node_type": "DocumentObject",
             "blocks": [{"id": "block_1", "value": "نص"}],
         }
+        synchronized = {
+            **normalized,
+            "meta": {"title": article.title, "abstract": article.abstract},
+        }
         db = MagicMock()
         db.scalar.return_value = None
         db.refresh.side_effect = lambda obj: setattr(
@@ -78,6 +82,10 @@ class ArticleSessionServiceTests(unittest.TestCase):
             "current_version",
             return_value=version,
         ), patch.object(
+            article_session_service,
+            "_lock_metadata_rows",
+            return_value=(article, version),
+        ), patch.object(
             article_session_service.s3,
             "get_json",
             return_value={"blocks": [{"value": "نص"}]},
@@ -86,6 +94,10 @@ class ArticleSessionServiceTests(unittest.TestCase):
             "normalize_document",
             return_value=normalized,
         ) as normalize, patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+            return_value=synchronized,
+        ) as apply_command, patch.object(
             article_session_service.s3,
             "put_json_at",
         ) as put_json_at:
@@ -98,8 +110,16 @@ class ArticleSessionServiceTests(unittest.TestCase):
         self.assertEqual(session.article_id, article_id)
         self.assertEqual(session.article_version_id, version.id)
         self.assertEqual(session.revision, 0)
-        self.assertEqual(document, normalized)
+        self.assertEqual(document, synchronized)
         normalize.assert_called_once_with({"blocks": [{"value": "نص"}]})
+        apply_command.assert_called_once_with(
+            normalized,
+            {
+                "op": "update_document_meta",
+                "title": article.title,
+                "abstract": article.abstract,
+            },
+        )
         written_keys = [call.args[1] for call in put_json_at.call_args_list]
         self.assertIn("session/document.json", written_keys)
         self.assertIn("session/meta.json", written_keys)
@@ -274,6 +294,246 @@ class ArticleSessionServiceTests(unittest.TestCase):
                         worker_command["metadata"],
                         {"source": expected_source},
                     )
+
+    def test_document_meta_command_synchronizes_article_title_and_abstract(self) -> None:
+        article_id = uuid.uuid4()
+        actor = Actor(
+            user_id=uuid.uuid4(),
+            clerk_id="agent_test",
+            auth_method="agent",
+        )
+        article = _article(article_id)
+        article.title = "قديم"
+        article.abstract = "ملخص باقٍ"
+        version = _version(article_id)
+        session = _session(article_id, version.id, revision=2)
+        before = {
+            "node_type": "DocumentObject",
+            "meta": {"title": "قديم", "abstract": "ملخص باقٍ"},
+            "blocks": [],
+        }
+        after = {
+            "node_type": "DocumentObject",
+            "meta": {"title": "جديد", "abstract": "ملخص باقٍ"},
+            "blocks": [],
+        }
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=2,
+            command={"op": "update_document_meta", "title": "  جديد  "},
+        )
+        db = MagicMock()
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(article, version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+            return_value=(session, before),
+        ), patch.object(
+            article_session_service,
+            "_command_record",
+            side_effect=[None, None],
+        ), patch.object(
+            article_session_service,
+            "_lock_current_session",
+            return_value=session,
+        ), patch.object(
+            article_session_service,
+            "_lock_metadata_rows",
+            return_value=(article, version),
+        ), patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+            return_value=after,
+        ) as worker, patch.object(
+            article_session_service.s3,
+            "put_json_at",
+        ):
+            result = article_session_service.apply_session_command(
+                db,
+                article_id,
+                actor,
+                payload,
+            )
+
+        worker.assert_called_once_with(
+            before,
+            {
+                "op": "update_document_meta",
+                "title": "جديد",
+                "abstract": "ملخص باقٍ",
+            },
+        )
+        self.assertEqual(article.title, "جديد")
+        self.assertEqual(article.abstract, "ملخص باقٍ")
+        self.assertEqual(result["revision"], 3)
+        db.commit.assert_called_once_with()
+
+    def test_document_meta_command_reloads_authoritative_fields_after_session_lock(
+        self,
+    ) -> None:
+        article_id = uuid.uuid4()
+        actor = Actor(
+            user_id=uuid.uuid4(),
+            clerk_id="agent_test",
+            auth_method="agent",
+        )
+        initial_article = _article(article_id)
+        initial_article.title = "عنوان قديم"
+        initial_article.abstract = "ملخص قديم"
+        locked_article = _article(article_id)
+        locked_article.title = "عنوان متزامن"
+        locked_article.abstract = "ملخص قديم"
+        version = _version(article_id)
+        session = _session(article_id, version.id, revision=2)
+        before = {
+            "node_type": "DocumentObject",
+            "meta": {"title": "عنوان قديم", "abstract": "ملخص قديم"},
+            "blocks": [],
+        }
+        stale_result = {
+            **before,
+            "meta": {"title": "عنوان قديم", "abstract": "ملخص جديد"},
+        }
+        synchronized_result = {
+            **before,
+            "meta": {"title": "عنوان متزامن", "abstract": "ملخص جديد"},
+        }
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=2,
+            command={"op": "update_document_meta", "abstract": "ملخص جديد"},
+        )
+        db = MagicMock()
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(initial_article, version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+            return_value=(session, before),
+        ), patch.object(
+            article_session_service,
+            "_command_record",
+            side_effect=[None, None],
+        ), patch.object(
+            article_session_service,
+            "_lock_current_session",
+            return_value=session,
+        ), patch.object(
+            article_session_service,
+            "_lock_metadata_rows",
+            return_value=(locked_article, version),
+        ), patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+            side_effect=[stale_result, synchronized_result],
+        ) as worker, patch.object(
+            article_session_service.s3,
+            "put_json_at",
+        ):
+            result = article_session_service.apply_session_command(
+                db,
+                article_id,
+                actor,
+                payload,
+            )
+
+        self.assertEqual(worker.call_count, 2)
+        self.assertEqual(
+            worker.call_args_list[-1].args[1],
+            {
+                "op": "update_document_meta",
+                "title": "عنوان متزامن",
+                "abstract": "ملخص جديد",
+            },
+        )
+        self.assertEqual(result["document"], synchronized_result)
+        self.assertEqual(locked_article.title, "عنوان متزامن")
+        self.assertEqual(locked_article.abstract, "ملخص جديد")
+
+    def test_document_meta_command_rejects_invalid_host_metadata(self) -> None:
+        article_id = uuid.uuid4()
+        actor = Actor(
+            user_id=uuid.uuid4(),
+            clerk_id="agent_test",
+            auth_method="agent",
+        )
+        article = _article(article_id)
+        version = _version(article_id)
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=0,
+            command={"op": "update_document_meta", "title": "   "},
+        )
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(article, version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+        ) as get_session, self.assertRaises(HTTPException) as raised:
+            article_session_service.apply_session_command(
+                MagicMock(),
+                article_id,
+                actor,
+                payload,
+            )
+
+        self.assertEqual(raised.exception.status_code, 422)
+        get_session.assert_not_called()
+
+    def test_agent_document_meta_command_cannot_mutate_authors(self) -> None:
+        article_id = uuid.uuid4()
+        actor = Actor(
+            user_id=uuid.uuid4(),
+            clerk_id="agent_test",
+            auth_method="agent",
+        )
+        article = _article(article_id)
+        version = _version(article_id)
+        session = _session(article_id, version.id)
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=0,
+            command={"op": "update_document_meta", "authors": "اسم مزيف"},
+        )
+        db = MagicMock()
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(article, version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+            return_value=(session, {"blocks": []}),
+        ) as get_session, patch.object(
+            article_session_service,
+            "_command_record",
+            return_value=None,
+        ), patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+        ) as worker, self.assertRaises(HTTPException) as raised:
+            article_session_service.apply_session_command(
+                db,
+                article_id,
+                actor,
+                payload,
+            )
+
+        self.assertEqual(raised.exception.status_code, 403)
+        get_session.assert_not_called()
+        worker.assert_not_called()
+        db.commit.assert_not_called()
 
     def test_update_figure_validates_new_asset_before_worker_dispatch(self) -> None:
         article_id = uuid.uuid4()
