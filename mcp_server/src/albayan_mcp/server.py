@@ -3,6 +3,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 from pydantic import AnyHttpUrl
 
+from albayan_mcp.call_logging import McpCallLoggingMiddleware
 from albayan_mcp.settings import settings
 from albayan_mcp.token_verifier import PassThroughTokenVerifier
 from albayan_mcp.tools.articles import register_article_tools
@@ -45,6 +46,7 @@ def create_server() -> MCPServer:
         ),
         auth=auth,
         token_verifier=token_verifier,
+        middleware=[McpCallLoggingMiddleware()],
     )
 
     # Tool implementations belong under tools/; keep this module composition-only.

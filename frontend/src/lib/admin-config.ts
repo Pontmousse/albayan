@@ -1,3 +1,5 @@
+import { isMcpEnabled } from "@/lib/mcp-enabled";
+
 export type AdminSection = {
   id: string;
   label: string;
@@ -9,4 +11,7 @@ export const adminSections: AdminSection[] = [
   { id: "articles", label: "المقالات", href: "/admin/maqalat" },
   { id: "issues", label: "إدارة البلاغات", href: "/admin/balaghat" },
   { id: "users", label: "المستخدمون", href: "/admin/mustakhdimin" },
+  ...(isMcpEnabled()
+    ? [{ id: "mcp", label: "إحصاءات MCP", href: "/admin/mcp" }]
+    : []),
 ];

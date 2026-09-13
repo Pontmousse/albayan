@@ -18,6 +18,7 @@ import {
   type NumeralSystem,
 } from "@/lib/numerals";
 import {
+  formatAnalyticsBucket as formatAnalyticsBucketValue,
   formatDate as formatDateValue,
   formatDateTime as formatDateTimeValue,
   formatHijriYear as formatHijriYearValue,
@@ -69,6 +70,7 @@ type NumeralContextValue = {
   formatDateTime: (value: Date) => string;
   formatHijriYear: (value?: Date) => string;
   formatRelativeTime: (iso: string, now?: Date) => string;
+  formatAnalyticsBucket: (iso: string, granularity: "hour" | "day") => string;
 };
 
 const NumeralContext = createContext<NumeralContextValue | null>(null);
@@ -106,6 +108,8 @@ export function NumeralProvider({ children }: { children: ReactNode }) {
       formatHijriYear: (date) => formatHijriYearValue(date, numeralSystem),
       formatRelativeTime: (iso, now) =>
         formatRelativeTimeValue(iso, now, numeralSystem),
+      formatAnalyticsBucket: (iso, granularity) =>
+        formatAnalyticsBucketValue(iso, granularity, numeralSystem),
     }),
     [numeralSystem, setNumeralSystem, toggleNumeralSystem],
   );

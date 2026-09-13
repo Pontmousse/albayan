@@ -4,11 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import (
     admin,
+    admin_mcp,
     agent_tokens,
     articles,
     editor,
     invitations,
     issues,
+    mcp_logs,
     notifications,
     public,
     reviews,
@@ -37,6 +39,8 @@ app.include_router(webhooks.router)
 app.include_router(agent_tokens.router)
 app.include_router(articles.router)
 app.include_router(admin.router)
+app.include_router(admin_mcp.router)
+app.include_router(mcp_logs.router)
 app.include_router(invitations.router)
 app.include_router(reviews.router)
 app.include_router(editor.router)

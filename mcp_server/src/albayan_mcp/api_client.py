@@ -170,13 +170,14 @@ async def api_request(
     json: Any | None = None,
     params: dict[str, Any] | None = None,
     headers: dict[str, str] | None = None,
+    timeout: float = 30.0,
 ) -> Any:
     bearer = get_backend_bearer_token()
     base = settings.albayan_api_url.rstrip("/")
     request_headers = dict(headers or {})
     request_headers["Authorization"] = f"Bearer {bearer}"
 
-    async with httpx.AsyncClient(base_url=base, timeout=30.0) as client:
+    async with httpx.AsyncClient(base_url=base, timeout=timeout) as client:
         response = await client.request(
             method,
             path,

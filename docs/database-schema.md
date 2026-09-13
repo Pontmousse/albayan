@@ -40,6 +40,7 @@ erDiagram
     articles ||--o{ article_versions : has
     articles ||--o{ article_authors : has
     users ||--o{ article_authors : writes
+    users ||--o{ mcp_call_logs : invokes
     articles ||--o{ article_reviewers : has
     users ||--o{ article_reviewers : assigned_as_reviewer
     article_reviewers ||--o{ reviews : writes
@@ -190,6 +191,32 @@ LIMIT 1;
 | `updated_at` | timestamptz | |
 
 **فهارس:** `ix_reviews_article_reviewer_id`, `ix_reviews_article_version_id`
+
+### 4.7 `mcp_call_logs`
+
+سجل تشغيلي منقّح لاستدعاءات أدوات MCP الفعلية، وليس لطلبات FastAPI المباشرة.
+
+| العمود | النوع | ملاحظات |
+|--------|--------|---------|
+| `id` | UUID PK | يملكه الخادم |
+| `created_at` | timestamptz | يملكه الخادم |
+| `user_id` | UUID FK → `users.id`, nullable | `ON DELETE SET NULL` |
+| `trace_id` | varchar(32), nullable | معرّف OpenTelemetry للربط المستقبلي |
+| `tool_name` | varchar(100) | اسم أداة MCP |
+| `command_name` | varchar(100), nullable | قيمة `arguments.command.op` إن وُجدت |
+| `status` | varchar(16) | `success` أو `error` |
+| `duration_ms` | integer | غير سالب |
+| `input` | JSONB | لقطة منقّحة بحد 32 KiB |
+| `output` | JSONB, nullable | لقطة نجاح منقّحة بحد 64 KiB |
+| `error` | text, nullable | رسالة آمنة بحد 2000 محرف |
+
+**الفهارس:** `created_at`، و`(tool_name, created_at)`، و
+`(command_name, created_at)`، و`(status, created_at)`، و
+`(user_id, created_at)`.
+
+مدة الاحتفاظ 90 يوماً، وتنفذها المهمة اليومية
+`python -m app.jobs.cleanup_mcp_logs`. تبقى أسماء الأدوات والأوامر نصوصاً حرة
+حتى تظهر القدرات الجديدة في التحليلات بلا تعديل للمخطط.
 
 ---
 

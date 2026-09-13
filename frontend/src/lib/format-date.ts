@@ -31,6 +31,18 @@ export function formatHijriYear(
   }).format(value);
 }
 
+export function formatAnalyticsBucket(
+  iso: string,
+  granularity: "hour" | "day",
+  system: NumeralSystem = "arab",
+): string {
+  return new Intl.DateTimeFormat(hijriLocale(system), {
+    ...(granularity === "hour"
+      ? { hour: "numeric" as const }
+      : { month: "short" as const, day: "numeric" as const }),
+  }).format(new Date(iso));
+}
+
 export function formatRelativeTime(
   iso: string,
   now: Date = new Date(),

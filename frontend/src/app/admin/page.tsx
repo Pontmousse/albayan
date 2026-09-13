@@ -6,12 +6,17 @@ import { useEffect, useState } from "react";
 import { CardsSkeleton, RowsSkeleton } from "@/components/dashboard/skeleton";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import {
+  getMcpAnalytics,
   listAdminArticles,
   type AdminArticleSummary,
+  type McpAnalyticsRead,
 } from "@/lib/api/admin";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
 import { userFacingErrorMessage } from "@/lib/user-facing-errors";
+import { isMcpEnabled } from "@/lib/mcp-enabled";
+
+const MCP_ENABLED = isMcpEnabled();
 
 function SummaryCard({
   label,
@@ -40,9 +45,11 @@ function SummaryCard({
 }
 
 export default function AdminOverviewPage() {
-  const { formatDate } = useNumerals();
+  const { formatDate, formatNumber } = useNumerals();
   const { getToken } = useAuth();
   const [articles, setArticles] = useState<AdminArticleSummary[] | null>(null);
+  const [mcpAnalytics, setMcpAnalytics] = useState<McpAnalyticsRead | null>(null);
+  const [mcpSummaryUnavailable, setMcpSummaryUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +62,21 @@ export default function AdminOverviewPage() {
         if (!cancelled) {
           setError(userFacingErrorMessage(err, "تعذّر تحميل البيانات."));
         }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken]);
+
+  useEffect(() => {
+    if (!MCP_ENABLED) return;
+    let cancelled = false;
+    getMcpAnalytics(getToken, "7d")
+      .then((data) => {
+        if (!cancelled) setMcpAnalytics(data);
+      })
+      .catch(() => {
+        if (!cancelled) setMcpSummaryUnavailable(true);
       });
     return () => {
       cancelled = true;
@@ -109,6 +131,31 @@ export default function AdminOverviewPage() {
             <SummaryCard label="مقبولة" value={accepted} index={2} />
             <SummaryCard label="مرفوضة" value={rejected} index={3} />
           </div>
+
+          {MCP_ENABLED ? (
+            <Link
+              href="/admin/mcp"
+              className="block rounded-xl border border-blue-200 bg-gradient-to-l from-blue-50 to-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-bold text-[var(--journal-accent-strong)]">
+                    إحصاءات MCP خلال 7 أيام
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {mcpAnalytics
+                      ? `${formatNumber(mcpAnalytics.summary.total_calls)} استدعاء · ${formatNumber(mcpAnalytics.summary.success_rate)}% ناجحة · ${formatNumber(mcpAnalytics.summary.commands_run)} أمر Document2`
+                      : mcpSummaryUnavailable
+                        ? "تعذّر تحميل الملخص؛ افتح لوحة الإحصاءات للمحاولة مجدداً."
+                        : "جارٍ تحميل ملخص استخدام أدوات الوكلاء..."}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-[var(--journal-accent)]">
+                  فتح لوحة الإحصاءات
+                </span>
+              </div>
+            </Link>
+          ) : null}
 
           <section>
             <div className="flex items-center justify-between">

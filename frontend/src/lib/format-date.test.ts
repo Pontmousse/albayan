@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAnalyticsBucket,
   formatDate,
   formatDateTime,
   formatHijriYear,
@@ -28,5 +29,13 @@ describe("Hijri date formatting", () => {
     const fiveMinutesAgo = new Date(DATE.getTime() - 5 * 60 * 1000).toISOString();
     expect(formatRelativeTime(fiveMinutesAgo, DATE, "arab")).toContain("٥");
     expect(formatRelativeTime(fiveMinutesAgo, DATE, "latn")).toContain("5");
+  });
+
+  it("formats analytics chart buckets through the Umm al-Qura utility", () => {
+    const day = formatAnalyticsBucket(DATE.toISOString(), "day", "latn");
+    const hour = formatAnalyticsBucket(DATE.toISOString(), "hour", "arab");
+    expect(day).toMatch(/[0-9]/);
+    expect(day).toMatch(/[\u0600-\u06ff]/);
+    expect(hour).toMatch(/[٠-٩]/);
   });
 });

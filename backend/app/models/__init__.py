@@ -29,6 +29,7 @@ from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.models.invitation import Invitation
 from app.models.email_digest_state import EmailDigestState
 from app.models.notification import Notification
+from app.models.mcp_call_log import McpCallLog
 from app.models.user import User
 
 __all__ = [
@@ -56,6 +57,7 @@ __all__ = [
     "EmailDigestState",
     "Notification",
     "NotificationType",
+    "McpCallLog",
     "Review",
     "ReviewRecommendation",
     "ReviewStatus",

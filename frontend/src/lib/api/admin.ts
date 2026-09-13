@@ -5,6 +5,7 @@ import type {
   IssueImage,
   IssueStatus,
 } from "@/lib/api/issues";
+import { buildMcpCallsPath } from "@/lib/api/admin-mcp-query";
 
 export type ReviewerAssignmentStatus =
   | "invited"
@@ -165,6 +166,98 @@ export type AdminIssueListParams = {
   category?: IssueCategory | null;
   sort?: "date" | "upvotes";
   direction?: "asc" | "desc";
+};
+
+export type McpAnalyticsPeriod = "24h" | "7d" | "30d" | "90d";
+export type McpCallStatus = "success" | "error";
+
+export type McpAnalyticsSummary = {
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  success_rate: number;
+  average_duration_ms: number;
+  commands_run: number;
+  unique_users: number;
+  previous_period_change_percent: number | null;
+};
+
+export type McpTimeBucket = {
+  started_at: string;
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+};
+
+export type McpToolUsage = {
+  tool_name: string;
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  average_duration_ms: number;
+  share_percent: number;
+};
+
+export type McpCommandUsage = {
+  command_name: string;
+  total_calls: number;
+  successful_calls: number;
+  failed_calls: number;
+  share_percent: number;
+};
+
+export type McpCommandGroupUsage = {
+  key: string;
+  total_calls: number;
+  commands: McpCommandUsage[];
+};
+
+export type McpAnalyticsRead = {
+  period: McpAnalyticsPeriod;
+  starts_at: string;
+  ends_at: string;
+  bucket_granularity: "hour" | "day";
+  summary: McpAnalyticsSummary;
+  timeline: McpTimeBucket[];
+  tools: McpToolUsage[];
+  command_groups: McpCommandGroupUsage[];
+};
+
+export type McpCallActor = {
+  id: string;
+  email: string;
+  full_name: string | null;
+};
+
+export type McpCallListItem = {
+  id: string;
+  created_at: string;
+  actor: McpCallActor | null;
+  trace_id: string | null;
+  tool_name: string;
+  command_name: string | null;
+  status: McpCallStatus;
+  duration_ms: number;
+};
+
+export type McpCallListRead = {
+  items: McpCallListItem[];
+  next_cursor: string | null;
+};
+
+export type McpCallDetailRead = McpCallListItem & {
+  input: Record<string, unknown>;
+  output: Record<string, unknown> | null;
+  error: string | null;
+};
+
+export type McpCallListParams = {
+  period?: McpAnalyticsPeriod;
+  tool?: string | null;
+  command?: string | null;
+  status?: McpCallStatus | null;
+  cursor?: string | null;
+  limit?: number;
 };
 
 type GetToken = () => Promise<string | null>;
@@ -378,6 +471,30 @@ export function updateIssueStatus(
     `/api/v1/admin/issues/${issueId}/status`,
     getToken,
     { method: "PATCH", body: JSON.stringify({ status }) },
+  );
+}
+
+export function getMcpAnalytics(
+  getToken: GetToken,
+  period: McpAnalyticsPeriod = "7d",
+) {
+  return apiFetch<McpAnalyticsRead>(
+    `/api/v1/admin/mcp/analytics?period=${encodeURIComponent(period)}`,
+    getToken,
+  );
+}
+
+export function listMcpCalls(
+  getToken: GetToken,
+  params: McpCallListParams = {},
+) {
+  return apiFetch<McpCallListRead>(buildMcpCallsPath(params), getToken);
+}
+
+export function getMcpCall(getToken: GetToken, callId: string) {
+  return apiFetch<McpCallDetailRead>(
+    `/api/v1/admin/mcp/calls/${encodeURIComponent(callId)}`,
+    getToken,
   );
 }
 
