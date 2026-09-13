@@ -11,10 +11,13 @@ from albayan_mcp.tools.profile import ProfileResult, register_profile_tools
 class FakeServer:
     def __init__(self, *args: object, **kwargs: object) -> None:
         self.tools: dict[str, object] = {}
+        self.tool_options: dict[str, dict[str, object]] = {}
+        self.options = kwargs
 
     def tool(self, *, name: str, **kwargs: object):
         def decorator(func):
             self.tools[name] = func
+            self.tool_options[name] = kwargs
             return func
 
         return decorator

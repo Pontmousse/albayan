@@ -28,7 +28,17 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
         ):
             mcp = server_module.create_server()
 
-        self.assertEqual(set(mcp.tools), {"get_my_profile", "read_articles"})
+        self.assertEqual(
+            set(mcp.tools),
+            {
+                "get_my_profile",
+                "read_articles",
+                "get_session_outline",
+                "get_session_blocks",
+                "apply_session_command",
+                "save_session",
+            },
+        )
 
     async def test_read_articles_calls_backend_and_returns_structured_output(self) -> None:
         fake_server = FakeServer()

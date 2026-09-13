@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import json
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+
+from mcp.server.mcpserver.exceptions import ToolError
 
 from albayan_mcp import api_client
 
@@ -129,6 +132,103 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
             async_client,
         ):
             self.assertIsNone(await api_client.api_request("DELETE", "/x"))
+
+    async def test_revision_conflict_becomes_safe_structured_tool_error(self) -> None:
+        response = self._response(
+            {
+                "detail": {
+                    "code": "revision_conflict",
+                    "message": "تغيرت الجلسة؛ أعد قراءتها.",
+                    "current_revision": 8,
+                }
+            },
+            status_code=409,
+        )
+        async_client, _ = self._async_client(response)
+
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-token"),
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            with self.assertRaises(api_client.BackendApiError) as ctx:
+                await api_client.api_request(
+                    "POST", "/api/v1/articles/a/session/commands"
+                )
+
+        self.assertEqual(
+            json.loads(str(ctx.exception)),
+            {
+                "status": 409,
+                "code": "revision_conflict",
+                "message": "تغيرت الجلسة؛ أعد قراءتها.",
+                "current_revision": 8,
+            },
+        )
+        self.assertIsInstance(ctx.exception, ToolError)
+        response.raise_for_status.assert_not_called()
+
+    async def test_validation_details_are_not_exposed_verbatim(self) -> None:
+        response = self._response(
+            {
+                "detail": [
+                    {
+                        "type": "missing",
+                        "loc": ["body", "command", "field_id"],
+                        "msg": "Field required",
+                        "input": {"secret": "must-not-leak"},
+                    }
+                ]
+            },
+            status_code=422,
+        )
+        async_client, _ = self._async_client(response)
+
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-token"),
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            with self.assertRaises(api_client.BackendApiError) as ctx:
+                await api_client.api_request("POST", "/api/v1/example")
+
+        payload = json.loads(str(ctx.exception))
+        self.assertEqual(payload["status"], 422)
+        self.assertEqual(payload["code"], "validation_error")
+        self.assertIn("body.command.field_id", payload["message"])
+        self.assertIn("Field required", payload["message"])
+        self.assertNotIn("must-not-leak", str(ctx.exception))
+
+    async def test_session_post_forwards_caller_bearer_and_payload(self) -> None:
+        response = self._response({"ok": True})
+        async_client, request = self._async_client(response)
+        payload = {
+            "command_id": "command-1",
+            "base_revision": 3,
+            "command": {"op": "remove_block", "block_id": "block-1"},
+        }
+
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-bearer"),
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            await api_client.api_post_object(
+                "/api/v1/articles/article-1/session/commands",
+                json=payload,
+            )
+
+        self.assertEqual(
+            request.await_args.kwargs["headers"]["Authorization"],
+            "Bearer caller-bearer",
+        )
+        self.assertEqual(request.await_args.kwargs["json"], payload)
 
 
 if __name__ == "__main__":

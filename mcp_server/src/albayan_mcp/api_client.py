@@ -9,10 +9,97 @@ from typing import Any
 
 import httpx
 from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.mcpserver.exceptions import ToolError
 
 from albayan_mcp.settings import settings
 
 logger = logging.getLogger(__name__)
+
+
+class BackendApiError(ToolError):
+    """Safe, machine-readable FastAPI failure surfaced as an MCP tool error."""
+
+    def __init__(
+        self,
+        *,
+        status: int,
+        code: str,
+        message: str,
+        current_revision: int | None = None,
+    ) -> None:
+        self.status = status
+        self.code = code
+        self.message = message
+        self.current_revision = current_revision
+        payload: dict[str, Any] = {
+            "status": status,
+            "code": code,
+            "message": message,
+        }
+        if current_revision is not None:
+            payload["current_revision"] = current_revision
+        super().__init__(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+
+
+def _backend_error(response: httpx.Response) -> BackendApiError:
+    default_messages = {
+        401: "تعذرت المصادقة لدى الخادم الخلفي.",
+        403: "ليست لديك صلاحية لتنفيذ هذه العملية.",
+        404: "تعذر العثور على المورد المطلوب.",
+        409: "تعذر تنفيذ العملية بسبب تعارض في الحالة الحالية.",
+        422: "رفض الخادم الخلفي بيانات الطلب.",
+    }
+    code = "backend_error"
+    message = default_messages.get(
+        response.status_code,
+        "تعذر إكمال الطلب لدى الخادم الخلفي.",
+    )
+    current_revision: int | None = None
+
+    try:
+        body = response.json()
+    except ValueError:
+        body = None
+    detail = body.get("detail") if isinstance(body, dict) else None
+    if isinstance(detail, dict):
+        if isinstance(detail.get("code"), str) and detail["code"].strip():
+            code = detail["code"].strip()
+        if isinstance(detail.get("message"), str) and detail["message"].strip():
+            message = detail["message"].strip()
+        value = detail.get("current_revision")
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            current_revision = value
+    elif isinstance(detail, list):
+        issues: list[str] = []
+        for item in detail[:5]:
+            if not isinstance(item, dict):
+                continue
+            location_parts = item.get("loc")
+            if isinstance(location_parts, list):
+                location = ".".join(
+                    str(part)
+                    for part in location_parts
+                    if isinstance(part, (str, int)) and not isinstance(part, bool)
+                )
+            else:
+                location = ""
+            issue_message = item.get("msg")
+            if not isinstance(issue_message, str) or not issue_message.strip():
+                continue
+            summary = issue_message.strip()[:160]
+            issues.append(f"{location}: {summary}" if location else summary)
+        code = "validation_error"
+        if issues:
+            message = "بيانات الطلب غير صالحة: " + "; ".join(issues)
+    elif isinstance(detail, str) and detail.strip():
+        message = detail.strip()
+
+    return BackendApiError(
+        status=response.status_code,
+        code=code,
+        message=message,
+        current_revision=current_revision,
+    )
 
 
 def _safe_jwt_claims(token: str) -> dict[str, Any] | None:
@@ -98,16 +185,15 @@ async def api_request(
             headers=request_headers,
         )
         if response.status_code >= 400:
-            body = (response.text or "")[:500]
+            error = _backend_error(response)
             logger.warning(
-                "Backend response: %s %s %s -> %s %s",
+                "Backend request failed: %s %s -> status=%s code=%s",
                 method,
                 path,
-                response.status_code,
-                response.reason_phrase,
-                body,
+                error.status,
+                error.code,
             )
-        response.raise_for_status()
+            raise error
         if response.status_code == 204:
             return None
         try:

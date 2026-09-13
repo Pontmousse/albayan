@@ -7,6 +7,7 @@ from albayan_mcp.settings import settings
 from albayan_mcp.token_verifier import PassThroughTokenVerifier
 from albayan_mcp.tools.articles import register_article_tools
 from albayan_mcp.tools.profile import register_profile_tools
+from albayan_mcp.tools.sessions import register_session_tools
 
 
 def create_server() -> MCPServer:
@@ -32,7 +33,13 @@ def create_server() -> MCPServer:
         title="مجلة البيان",
         instructions=(
             "خادم MCP لمجلة البيان. يستدعي واجهة FastAPI فقط — "
-            "المصادقة والتفويض على الخادم الخلفي."
+            "المصادقة والتفويض والجلسات والمراجعات والحفظ على الخادم الخلفي. "
+            "قبل تحرير المقال افحص outline للتنقل أو blocks للهويات الدقيقة، ولا تخترع "
+            "معرّفات الكتل أو الحقول أو الرموز أو القوائم أو الجداول. استخدم أحدث revision "
+            "كـ base_revision، وعند revision_conflict أعد قراءة الجلسة قبل المحاولة. "
+            "خصّص command_id واحدًا لكل تعديل منطقي ولا تعِد استخدامه لحمولة مختلفة. "
+            "فضّل أمر Document2 موجهاً على إنشاء مستند خام كامل، ولا تستدع save_session "
+            "إلا بطلب صريح من المستخدم."
         ),
         auth=auth,
         token_verifier=token_verifier,
@@ -41,5 +48,6 @@ def create_server() -> MCPServer:
     # Tool implementations belong under tools/; keep this module composition-only.
     register_profile_tools(server)
     register_article_tools(server)
+    register_session_tools(server)
 
     return server

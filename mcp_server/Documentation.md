@@ -1,7 +1,7 @@
 # توثيق MCP — مجلة البيان
 
 > **الغرض:** مرجع موحّد لخادم MCP (Model Context Protocol) والتفاعل مع المنصة عبر الوكلاء الذكية.  
-> **آخر تحديث:** ٩ سبتمبر ٢٠٢٦
+> **آخر تحديث:** ١٣ سبتمبر ٢٠٢٦
 > **الموقع:** `mcp_server/` في جذر المستودع  
 > **مرجع سابق:** نُقل من `docs/afkar-al-mashrou.md` — القسم ٥.
 
@@ -77,6 +77,10 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 | `ActorDep` في `backend/app/core/actor.py` | هوية موحدة لمسارات human-or-agent الآمنة |
 | `GET /api/v1/users/me` | Agent-safe: قراءة الملف الشخصي |
 | `GET /api/v1/articles/me` | Agent-safe: قراءة مقالات المستخدم |
+| `GET /api/v1/articles/{id}/session/outline` | ملخص دلالي للجلسة مع المعرّفات الثابتة والمراجعة الحالية |
+| `GET /api/v1/articles/{id}/session/blocks` | كتل Document2 القانونية للتحرير الدقيق |
+| `POST /api/v1/articles/{id}/session/commands` | تطبيق أمر Document2 واحد مع revision وcommand_id |
+| `POST /api/v1/articles/{id}/session/save` | حفظ الجلسة في المسودة الحالية بطلب صريح |
 | `AuthDep` | يبقى مسار المصادقة البشري فقط لمسارات submit/review/editor/admin |
 
 ### خادم MCP
@@ -88,6 +92,8 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 | `api_client.py` | تمرير Bearer إلى FastAPI، معالجة HTTP مركزية، helpers للـ object/list |
 | `tools/profile.py` | أداة `get_my_profile` |
 | `tools/articles.py` | أداة `read_articles` |
+| `tools/sessions.py` | أدوات outline وblocks وتطبيق أمر Document2 وحفظ الجلسة |
+| `schemas/document2.py` | مرآة مستقلة صارمة لاتحاد أوامر Document2 ذي ٢٩ عملية |
 | `server.py` | تركيب الخادم وتسجيل الأدوات فقط |
 
 ### قاعدة البيانات
@@ -102,7 +108,7 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 
 - `profile:read` — قراءة الملف الشخصي
 - `articles:read` — قراءة المقالات
-- `articles:session:write` — كتابة مسودة الجلسة (مستقبلاً)
+- `articles:session:write` — قراءة جلسة المقال وتعديلها وحفظها في المسودة الحالية
 - `reviews:read` — قراءة تعيينات المراجعة
 - `reviews:draft:write` — مسودة ملاحظات المراجعة
 - `editor:read` — قراءة مقالات التحرير
@@ -111,10 +117,13 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 
 ## حد قدرات الوكيل (Agent Capability Boundary)
 
-الوكلاء حالياً يقرأون فقط:
+الوكلاء يستطيعون القراءة والعمل على جلسة المقال القابلة للمراجعة:
 
 - `get_my_profile` → `GET /api/v1/users/me`
 - `read_articles` → `GET /api/v1/articles/me`
+- `get_session_outline` و`get_session_blocks` → فحص الجلسة ومعرّفاتها الثابتة
+- `apply_session_command` → تعديل موجّه واحد عبر عقد Document2 المقيّد
+- `save_session` → حفظ الجلسة في المسودة الحالية، بطلب صريح من المستخدم فقط
 
 القاعدة الثابتة:
 
@@ -127,7 +136,7 @@ Authoritative actions تبقى human-only داخل FastAPI، وليس فقط ل�
 - اتخاذ قرار تحريري.
 - النشر.
 - إجراءات الإدارة.
-- أي commit أو save يحول مسودة الجلسة إلى محتوى معتمد.
+- استبدال المستند كاملاً، حذف المقال، أو تجاوز حدود الجلسة والمراجعات.
 
 لا يكفي حذف أداة MCP مثل `submit_article`. يجب أن يبقى endpoint نفسه على `AuthDep` أو اعتماد بشري صريح، وألا يستخدم `ActorDep` إلا إذا صُنّف المسار بأنه agent-safe.
 
@@ -260,7 +269,8 @@ FastAPI من `MCP_RESOURCE_URL`؛ التحقق الفعلي لهوية JWT يج�
 5. (اختياري) افتح إعدادات OAuth المتقدمة وتحقق أن النطاقات المدعومة
    والـ DCR ظاهرة كما في metadata.
 6. وافق على الإقرار ثم **إنشاء** → يُفتح تبويب جديد بشاشة تفويض Clerk → **السماح**.
-7. عد إلى ChatGPT — الموصل جاهز، وأدوات `get_my_profile` و`read_articles` تعمل.
+7. عد إلى ChatGPT — الموصل جاهز، وتظهر أدوات الملف والمقالات وجلسة Document2
+   الست في قائمة الأدوات.
 
 ### ٥. دليل استكشاف الأخطاء (من التجربة الفعلية)
 
@@ -287,732 +297,120 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 ---
 
-## البنية المخططة للكتابة والجلسات (Planned Writing/Session Architecture)
+## القدرات المخططة المتبقية (Remaining Planned Capabilities)
 
-لم تُنفّذ بعد أدوات الكتابة أو طبقة الجلسة المشتركة. الاتجاه المعماري المعتمد عند إضافتها لاحقاً:
-
-- الوكيل لا يكتب مباشرة إلى `document.json` المعتمد.
-- الكتابة المستقبلية تستهدف `session/document.json` أو endpoint جلسة في FastAPI.
-- المستخدم يراجع تغييرات الجلسة داخل المنصة.
-- المستخدم وحده يعتمد الجلسة أو يقدّم المقال أو يرسل المراجعة.
-- مراجعات المستقبل يمكن أن تسمح بمسودة مراجعة فقط، لا إرسال المراجعة.
+أدوات جلسة Document2 الأربع وطبقة الجلسة المشتركة منفّذة كما يوضح القسم ٢.
+تبقى مسودات المراجعة والموارد القابلة للتنزيل وإدارة الأصول عبر MCP قدرات
+مستقبلية. يظل تقديم المقال وإرسال المراجعة والقرار التحريري خارج أدوات MCP.
 
 ---
 
-## ملاحظات التصميم التاريخية (Historical Design Notes)
-
-النص التالي منقول من دراسة ٢٢ أغسطس ٢٠٢٦. يحتوي أسماء أدوات ومسارات وحالات كانت مخططة أو تاريخية، مثل `list_my_articles` وبعض عبارات “لم يُنفَّذ بعد”. المرجع الحالي الموثوق هو الأقسام أعلاه؛ هذا القسم يحفظ سياق التصميم طويل المدى فقط.
-
-## 1. خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية
-
-> **الغرض:** تمكين مستخدمي المنصة من التفاعل مع «البيان» عبر وكلائهم الذكية (Cursor، Claude Desktop، وغيرهما) من خلال خادم **MCP** (Model Context Protocol).  
-> **الحالة:** **جزئي** — واجهة مفاتيح الوكيل + API + جدول `agent_tokens` (فرع dev). خادم MCP والجلسة المشتركة لم يُنفَّذا بعد.  
-> **تاريخ الدراسة:** ٢٢ أغسطس ٢٠٢٦
-
-### 1.1 ملخص تنفيذي
-
-منصة البيان لديها اليوم واجهة **Next.js** وخلفية **FastAPI** منظّمة جيداً (~٤٠ endpoint تحت `/api/v1/`)، مع مصادقة **Clerk** وأدوار (مؤلف، مراجع، محرر، مدير). هذا يجعلها **جاهزة تقنياً** لخادم MCP يغلّف الـ API الحالي دون إعادة بناء المنطق.
-
-**قرار تصميم أساسي:** الاستعمال الرئيسي للوكلاء هو **الجلسة المشتركة** بين المستخدم (المستأجر/العميل) والوكيل — يعملان على **نفس مسودة الجلسة**؛ المستخدم يرى تغييرات الوكيل في سياق التحرير، يراجعها، يعدّل يدوياً، ثم **يحفظ ويعتمد** بنفسه. **التقديم** (مقال، مراجعة، قرار تحريري) يتم **يدوياً من المنصة فقط** — وليس عبر الوكيل.
-
-**ما ينقص:** مسار مصادقة للوكلاء (middleware)، خادم MCP منفصل، **طبقة مسودة الجلسة المشتركة** (`session/document.json`)، مزامنة المحرر مع الجلسة، طبقة تجريد نصية لـ BuTeX، ومنع صريح لأدوات التقديم/الإرسال من MCP.
-
-### 1.2 كيف يعمل التطبيق اليوم (سياق للتصميم)
-
-#### مخطط عام
-
-```text
-المتصفح (Next.js + BuTeX)
-    ↓  Authorization: Bearer <Clerk JWT>
-FastAPI (/api/v1/*)
-    ↓
-PostgreSQL + S3 (document.json, assets, PDF) + مترجم LaTeX خارجي
-```
-
-#### الطبقات الرئيسية
-
-| الطبقة | التقنية | ملاحظة |
-|--------|---------|--------|
-| الواجهة | Next.js 15، Clerk | لا يوجد BFF — المتصفح يتصل مباشرة بـ FastAPI |
-| الخلفية | FastAPI، SQLAlchemy، Alembic | خدمات: article, review, editor, admin, compile, invitation |
-| المصادقة | Clerk JWT | `authenticate_request` + `authorized_parties` محددة |
-| الأدوار | مزيج | **admin** من Clerk `publicMetadata.role`؛ author/reviewer/editor من جداول الربط |
-| المحتوى | BuTeX `document.json` في S3 | مقال واحد = ملف JSON واحد لكل إصدار |
-| سير العمل | draft → submitted → under_review → accepted/rejected → published | المسودة فقط قابلة للتحرير |
-
-#### نقاط مهمة لـ MCP
-
-- المنصة ليست CRUD بسيطاً: التحرير يمر عبر `document.json` (BuTeX Document v2).
-- **اليوم:** صفحة التحرير تحتفظ بالتغييرات في **ذاكرة المتصفح** فقط (`dirty`) حتى زر «حفظ» — الوكيل لا يمكنه المشاركة في هذه الحالة.
-- التقديم يتطلب تطابق العنوان/الملخص مع المستند + تجميع PDF ناجح (`compile_status=success`).
-- الصلاحيات تُفرض في الخلفية؛ الوصول غير المصرّح يُرجع **404** (وليس 403) لإخفاء وجود المورد.
-- المسودة المجمّدة (`status != draft`) ترفض أي تعديل (409).
-
-### 1.3 فلسفة الاستعمال — ماذا يفعل الوكيل وماذا يفعل المستخدم؟
-
-| الدور | الوكيل (MCP) | المستخدم (المنصة — يدوياً) |
-|------|--------------|----------------------------|
-| **مؤلف** | كتابة وتحرير **مسودة الجلسة** المشتركة؛ قراءة المقال؛ طلب تجميع PDF للمعاينة | فتح المحرر، **مراجعة** ما كتبه الوكيل، تعديل يدوي، **حفظ** المعتمد، **تقديم** المقال |
-| **مراجع** | قراءة المخطوطة (PDF/مستند)؛ صياغة **مسودة** ملاحظات المراجعة | مراجعة الملاحظات في صفحة المراجعة، تعديل، **إرسال** التقرير والتوصية |
-| **محرر** | قراءة المقال والمراجعات (لاحقاً — مساعدة في الصياغة) | **قرار تحريري** من واجهة «تحريري» فقط |
-| **مدير** | قراءة وإحصاءات (لاحقاً) | تعيين مراجعين، تجاوز قرارات، إلخ — من `/admin` |
-
-**مبدأ ثابت:** الوكيل **مساعد كتابة وتحرير** — وليس منفّذ قرارات نهائية (تقديم، إرسال مراجعة، قبول/رفض).
-
-### 1.4 الجلسة المشتركة — التصميم المعتمد
-
-#### المشكلة في التصميم الحالي
-
-```text
-S3: document.json          ← المعتمد (ما يُجمَّع ويُقدَّم)
-        ↓ تحميل
-صفحة التحرير (React)       ← تغييرات في الذاكرة فقط (dirty) — غير مرئية للوكيل
-        ↓ زر «حفظ»
-PUT /document              ← استبدال كامل لـ document.json
-```
-
-إذا كتب الوكيل مباشرة على `document.json` (كما يفعل `PUT` اليوم): لا مراجعة قبل الاعتماد، وتعارض محتمل مع محرر مفتوح بتغييرات غير محفوظة.
-
-#### الحل المعتمد: مسودة جلسة مشتركة (Session Draft)
-
-```text
-document.json              ← المعتمد (canonical) — يُحدَّث فقط بزر «حفظ» من المستخدم
-session/document.json      ← مسودة الجلسة — يكتب فيها الوكيل والمستخدم معاً
-session/meta.json          ← (اختياري) آخر تعديل، المصدر (agent|user)، revision
-```
-
-```mermaid
-sequenceDiagram
-    participant U as المستخدم (المحرر)
-    participant A as الوكيل (MCP)
-    participant S as مسودة الجلسة
-    participant C as document.json المعتمد
-
-    Note over C: آخر نسخة محفوظة
-    U->>S: يفتح «متابعة التحرير» — تحميل الجلسة
-    A->>S: update_session_from_text / save_session_document
-    S-->>U: إشعار «الوكيل عدّل المسودة»
-    U->>U: يراجع في المحرر (تغييرات غير محفوظة على المعتمد)
-    alt راضٍ عن النتيجة
-        U->>C: زر «حفظ» — نقل الجلسة → المعتمد
-        U->>U: معاينة PDF، ثم تقديم يدوي
-    else يريد التراجع
-        U->>S: «تراجع للمعتمد» — إعادة الجلسة من document.json
-    end
-```
-
-**ما نعنيه بـ «جلسة مشتركة»:**
-
-- **ليس** بالضرورة تحريراً متزامناً حرفاً بحرف (مثل Google Docs) في المرحلة الأولى.
-- **نعني:** مسودة عمل **واحدة على الخادم** يراها المحرر والوكيل؛ التغييرات تظهر للمستخدم في صفحة التحرير قبل أي اعتماد على `document.json`.
-- الوكيل **لا يكتب أبداً** مباشرة على `document.json` المعتمد.
-
-#### قواعد الجلسة
-
-| القاعدة | السبب |
-|---------|--------|
-| الوكيل يكتب في `session/` فقط | المعتمد لا يتغير حتى يحفظ المستخدم |
-| المحرر يحمّل `session/` إن وُجدت، وإلا ينسخ من `document.json` عند أول فتح | بداية جلسة نظيفة |
-| زر «حفظ» ينقل `session` → `document.json` | حد الاعتماد = قرار المستخدم |
-| زر «تراجع للمعتمد» يستبدل `session` من `document.json` | رجوع بعد أخطاء الوكيل |
-| snapshot اختياري قبل كل «حفظ» | `snapshots/{timestamp}.json` للرجوع لاحقاً |
-| إن كان المحرر `dirty` ووصل تحديث من الوكيل | تنبيه: «الوكيل عدّل الجلسة — إعادة تحميل؟» (لا دمج صامت) |
-| التقديم (`submit`) | **من الواجهة فقط** — لا أداة MCP |
-
-#### تخزين S3 المقترح (تحت `storage_prefix`)
-
-```text
-articles/{id}/versions/v{n}/
-  document.json           ← معتمد
-  session/
-    document.json         ← جلسة مشتركة
-    meta.json             ← revision, updated_by, updated_at
-  snapshots/              ← (اختياري) قبل كل حفظ
-    2026-08-23T12-00-00Z.json
-  assets/*
-  compiled.pdf
-```
-
-#### مزامنة المحرر (واجهة)
-
-| المرحلة | الآلية |
-|---------|--------|
-| **أولى** | polling كل N ثوانٍ أثناء فتح `/tahrir` — إن تغيّر `session/meta.revision` → banner «تحديث من الوكيل» |
-| **لاحقة** | WebSocket أو SSE لإشعار فوري |
-
-تمييز بصري اختياري: كتل أُضيفت من الوكيل بلون خفيف (يتطلب توسيع BuTeX أو metadata على الكتل).
-
-#### المراجع — جلسة أبسط
-
-مسودة المراجعة **موجودة أصلاً على الخادم** (`reviews` — `comments_to_author`، إلخ). الوكيل يحدّث **مسودة المراجعة** فقط؛ المستخدم يفتح صفحة المراجعة، يراجع، **يرسل يدوياً**. لا حاجة لطبقة `session/` منفصلة على مستند BuTeX للمراجع.
-
-### 1.5 ما هو MCP في سياقنا؟
-
-خادم MCP يعرض على الوكيل الذكي ثلاثة أنواع من الواجهات:
-
-| النوع | الغرض | مثال في البيان |
-|-------|--------|----------------|
-| **Tools** | إجراءات يستدعيها الوكيل | `update_session_from_text`، `save_review_draft` |
-| **Resources** | بيانات للقراءة عبر URI | `albayan://articles/{id}/session` |
-| **Prompts** | قوالب جاهزة | «ساعدني في صياغة ملخص المقال» |
-
-المستخدم يضيف خادم MCP في إعدادات وكيله، فيصبح الوكيل قادراً على التفاعل مع المنصة **نيابة عنه** — بشرط أن يكون **مصادقاً كمستخدم حقيقي** وبنفس صلاحياته. كل كتابة للمقال تذهب إلى **مسودة الجلسة** حتى يعتمدها المستخدم في المحرر.
-
-### 1.6 التوصية المعمارية
-
-#### خادم MCP منفصل + API جلسة في الخلفية
-
-```text
-mcp_server/                    ← بروتوكول MCP (thin adapter → FastAPI)
-    ↓ HTTP
-backend FastAPI
-    ├── /api/v1/articles/.../session   ← جديد: جلسة مشتركة
-    ├── /api/v1/articles/.../document  ← معتمد (حفظ المستخدم فقط)
-    └── ...
-    ↓
-PostgreSQL + S3 (document.json + session/ + snapshots/)
-```
-
-**لماذا منفصل وليس داخل FastAPI مباشرة؟**
-
-- بروتوكول MCP (stdio / Streamable HTTP) مختلف عن REST.
-- يمكن نشره على Railway كخدمة مستقلة.
-- يعيد استخدام منطق الخدمات دون تكرار الصلاحيات.
-- عزل أسهل: rate limiting، audit log، تعطيل MCP دون المساس بالواجهة.
-
-#### ما لا ننصح به
-
-1. فتح FastAPI بدون مصادقة للوكلاء.
-2. إعطاء الوكيل وصول admin افتراضياً.
-3. **`PUT /document` مباشرة من الوكيل** — يتجاوز مراجعة المستخدم.
-4. أدوات `submit_article` / `submit_review` / `post_editor_decision` في MCP.
-5. بناء MCP داخل Next.js (يجب أن يكون خدمة خلفية).
-6. دمج صامت عند تعارض المحرر المحلي مع تحديث الوكيل.
-
-### 1.7 المصادقة — مفاتيح وكيل شخصية (Personal Agent Tokens)
-
-```text
-المستخدم → صفحة في /al-idayat/wukala → «إنشاء مفتاح وكيل»
-    ↓
-يُنشأ token (يُعرض مرة واحدة) مرتبط بـ user_id + نطاق صلاحيات (scopes)
-    ↓
-المستخدم يضعه في إعدادات MCP client
-    ↓
-خادم MCP يتحقق منه ويمرّر Authorization إلى FastAPI
-```
-
-**جدول `agent_tokens` (مُنفَّذ):**
-
-```sql
-agent_tokens
-  id            UUID PK
-  user_id       UUID FK → users.id
-  token_hash    varchar(64)    -- SHA-256 للمفتاح؛ لا يُخزَّن النص الصريح
-  label         varchar(100)   -- مثال: «Cursor على جهازي»
-  scopes        JSONB          -- انظر الجدول أدناه
-  expires_at    timestamptz    -- nullable
-  last_used_at  timestamptz
-  revoked_at    timestamptz    -- nullable
-  created_at    timestamptz
-  updated_at    timestamptz
-```
-
-**النطاقات (scopes) المقترحة:**
-
-| Scope | ماذا يسمح |
-|-------|-----------|
-| `profile:read` | قراءة الملف الشخصي |
-| `articles:read` | قراءة مقالاتي، المعتمد، وجلسة التحرير |
-| `articles:session:write` | كتابة **مسودة الجلسة** فقط (لا المعتمد) |
-| `reviews:read` | قراءة تعيينات المراجعة والمخطوطة |
-| `reviews:draft:write` | حفظ **مسودة** ملاحظات المراجعة (لا الإرسال) |
-| `editor:read` | قراءة مقالات التحرير |
-| `admin:read` | قراءة إدارية (لاحقاً) |
-
-**ما لا يُمنح للوكيل (محظور بالتصميم — لا scope):**
-
-| إجراء | السبب |
-|-------|--------|
-| `articles:submit` | التقديم يدوي من المنصة |
-| `reviews:submit` | إرسال المراجعة يدوي |
-| `editor:decision` | القرار التحريري يدوي |
-| `admin:write` | إدارة المنصة يدوية |
-
-**تعديل مطلوب في الخلفية (لاحقاً):**
-
-- middleware يقبل إما Clerk JWT **أو** Agent Token.
-- Agent Token يُحوَّل إلى `AuthContext` نفسه (`clerk_id` / `user_id`).
-- التحقق من `scopes` قبل تنفيذ كل أداة MCP.
-- endpoints الجلسة: `GET/PUT /articles/{id}/session` — الوكيل يستخدم PUT على الجلسة فقط.
-
-#### لماذا يوجد مساران للمصادقة؟
-
-- OAuth هو المسار الأساسي للمستخدمين التفاعليين، ولا يتطلب نسخ مفتاح شخصي.
-- مفاتيح `alb_...` مسار ثانوي للتطوير والأتمتة غير التفاعلية فقط.
-- كلا المسارين يتصل بخادم MCP المستضاف نفسه؛ تشغيل محوّل محلي ليس شرطًا
-  لاستخدام المفتاح الشخصي.
-
-### 1.8 نقل البيانات (Transport)
-
-| النمط | مناسب لـ | ملاحظة |
-|-------|----------|--------|
-| **stdio** | تطوير `mcp_server` محليًا | المساهم يشغّل المحوّل على جهازه ويضبط اعتماده على FastAPI |
-| **Streamable HTTP** | كل عملاء الخدمة المستضافة | المسار العام مع OAuth أو مفتاح `alb_...` كترويسة Bearer |
-| **SSE** | بديل قديم | MCP يتجه نحو HTTP |
-
-**للإنتاج:** Streamable HTTP على `https://mcp.albayan-journal.org/mcp` مع HTTPS إلزامي.
-
-**مثال Cursor بعيد بمفتاح شخصي (مسار متقدم غير تفاعلي):**
-
-يحفظ المستخدم المفتاح في متغير البيئة `ALBAYAN_AGENT_TOKEN` قبل تشغيل Cursor؛
-ويدعم Cursor رسميًا interpolation داخل قيم `headers` في `mcp.json` وفق
-[توثيق MCP الرسمي](https://prod.cursor.com/docs/mcp).
+## 2. أدوات جلسة Document2 عبر MCP
+
+أصبح عقد BuTeX 7.0.2 متاحاً للعملاء عبر أداة تحرير MCP واحدة ذات مخطط
+مميّز بـ `op`. يبقى MCP محوّلاً رفيعاً؛ كل أداة أدناه تستدعي FastAPI ولا
+تتصل بالعامل الخاص أو التخزين أو قاعدة البيانات مباشرة.
+
+### 2.1 الأدوات المتاحة
+
+| أداة MCP | مسار FastAPI | الغرض |
+|----------|---------------|-------|
+| `get_session_outline(article_id)` | `GET /api/v1/articles/{id}/session/outline` | فحص خفيف للمراجعة الحالية، أنواع الكتل، مقتطفاتها ومعرّفاتها الثابتة |
+| `get_session_blocks(article_id)` | `GET /api/v1/articles/{id}/session/blocks` | قراءة كتل Document2 القانونية ومعرّفات الحقول والرموز والقوائم والجداول قبل تحرير دقيق |
+| `apply_session_command(article_id, command_id, base_revision, command)` | `POST /api/v1/articles/{id}/session/commands` | تطبيق أمر Document2 واحد من الاتحاد المقيّد ذي ٢٩ عملية |
+| `save_session(article_id)` | `POST /api/v1/articles/{id}/session/save` | حفظ حالة الجلسة الحالية في مسودة المقال، ولا يُستدعى إلا بطلب صريح |
+
+النتائج مقيّدة أيضاً: أدوات القراءة تعيد `revision` و
+`last_saved_revision` مع outline أو blocks؛ نتيجة الأمر تعيد المستند القانوني
+و`affected_block_ids`؛ ونتيجة الحفظ تعيد المراجعة المحفوظة. نماذج كتل
+الاستجابة تثبّت حقول الهوية والبنية المعروفة وتسمح بحقول BuTeX الإضافية كي لا
+تُحذف عند تطور الحزمة.
+
+### 2.2 مخطط أمر التحرير
+
+حقل `command` ليس JSON عشوائياً. مخطط اكتشاف MCP ينشر `oneOf` لكل العمليات
+الـ٢٩ ويستخدم `op` كمميّز. تشمل العائلات: الكتل والأشكال، بيانات المقال
+والمراجع، الرموز المضمّنة للنص والمعادلات والاستشهادات والإحالات، القوائم،
+والجداول وصفوفها وأعمدتها.
+
+مثال إدراج جدول في نهاية المستند:
 
 ```json
 {
-  "mcpServers": {
-    "albayan": {
-      "url": "https://mcp.albayan-journal.org/mcp",
-      "headers": {
-        "Authorization": "Bearer ${env:ALBAYAN_AGENT_TOKEN}"
-      }
-    }
+  "article_id": "11111111-1111-1111-1111-111111111111",
+  "command_id": "22222222-2222-2222-2222-222222222222",
+  "base_revision": 12,
+  "command": {
+    "op": "insert_table",
+    "rows": [["A", "B"]],
+    "columns": "ll",
+    "anchor": {"end": true}
   }
 }
 ```
 
-**تطوير `mcp_server` محليًا عبر stdio — للمساهمين فقط:**
-
-هذا المثال مخصص لمن يعمل على تنفيذ محوّل MCP نفسه. ليس مطلوبًا لمستهلك
-Headless أو لمستخدم مفتاح شخصي، ولا ينبغي نقله إلى `/wukala`.
+مثال إدراج رمز نصي في حقل معروف:
 
 ```json
 {
-  "mcpServers": {
-    "albayan": {
-      "command": "python",
-      "args": ["-m", "albayan_mcp"],
-      "env": {
-        "ALBAYAN_API_URL": "https://api.albayan-journal.org",
-        "ALBAYAN_AGENT_TOKEN": "alb_xxxxxxxx"
-      }
-    }
+  "article_id": "11111111-1111-1111-1111-111111111111",
+  "command_id": "33333333-3333-3333-3333-333333333333",
+  "base_revision": 13,
+  "command": {
+    "op": "insert_inline_token",
+    "field_id": "field_7",
+    "token": {"kind": "text", "text": "إضافة"},
+    "anchor": {"end": true}
   }
 }
 ```
 
-**مثال إعداد Cursor عن بُعد (المسار المعتاد):**
+يحافظ MCP على الفرق بين الحقل المحذوف و`null` الصريح؛ لذلك يصل
+`update_figure.asset_id: null` إلى FastAPI لمسح أصل الشكل. FastAPI هو من
+يتحقق من الأصول ويستبدل provenance لأي كتلة منشأة، ولا يثق في
+`metadata.source` القادمة من العميل.
+
+### 2.3 سير عمل العميل
+
+1. استخدم `get_session_outline` للتنقل الخفيف إن لم تحتج المحتوى الكامل.
+2. استخدم `get_session_blocks` عندما تحتاج هوية field أو token أو list أو
+   item أو table أو بنية المحتوى الدقيقة.
+3. لا تخترع أي معرّف؛ خذه من آخر استجابة للجلسة.
+4. مرّر أحدث `revision` في `base_revision`.
+5. أنشئ `command_id` جديداً لكل تعديل منطقي، ولا تعِد استخدامه لحمولة أخرى.
+6. استخدم أمراً موجهاً بدلاً من تصنيع مستند خام كامل.
+7. عند نجاح الأمر استخدم `revision` الجديد للعملية التالية.
+8. عند `revision_conflict` أعد قراءة الجلسة قبل إعادة بناء المحاولة.
+9. لا تستدع `save_session` إلا عندما يطلب المستخدم صراحةً حفظ التغييرات.
+
+لا ترسل أدوات MCP `article_id` أو credential المستخدم أو بيانات actor إلى
+عامل BuTeX. هي ترسل الطلب إلى FastAPI فقط، وFastAPI يحتفظ بملكية المصادقة
+والصلاحيات وprovenance والأصول والجلسة والمراجعات وidempotency والحفظ.
+
+### 2.4 الأخطاء والتعافي
+
+إخفاق FastAPI يظهر كخطأ أداة MCP، لا كنتيجة نجاح مزيفة. نص الخطأ JSON آمن
+وقابل للقراءة آلياً:
 
 ```json
 {
-  "mcpServers": {
-    "albayan": {
-      "url": "https://mcp.albayan-journal.org/mcp"
-    }
-  }
+  "status": 409,
+  "code": "revision_conflict",
+  "message": "تغيرت الجلسة؛ أعد قراءتها.",
+  "current_revision": 14
 }
 ```
 
-### 1.9 تصميم الأدوات (Tools) — مبني على الجلسة المشتركة
-
-#### API جلسة جديد (خلفية — للمحرر والوكيل)
-
-| Method | المسار | من يستخدمه | الوصف |
-|--------|--------|------------|--------|
-| `GET` | `/articles/{id}/session` | محرر + وكيل | قراءة مسودة الجلسة |
-| `PUT` | `/articles/{id}/session` | وكيل (MCP) + محرر | تحديث مسودة الجلسة |
-| `DELETE` | `/articles/{id}/session` | محرر (المستخدم) | تراجع — إعادة الجلسة من المعتمد |
-| `POST` | `/articles/{id}/session/commit` | محرر (المستخدم فقط) | نقل الجلسة → `document.json` (= زر «حفظ») |
-| `GET` | `/articles/{id}/session/meta` | محرر (polling) | `revision`، `updated_by`، `updated_at` |
-
-`PUT /articles/{id}/document` يبقى **للمستخدم عبر المحرر** عند الاعتماد (أو يُستبدل بـ `session/commit`).
-
-#### المرحلة 1 — قراءة
-
-| Tool | يستدعي | الغرض |
-|------|--------|--------|
-| `get_my_profile` | `GET /users/me` | معلومات الحساب |
-| `list_my_articles` | `GET /articles/me` | قائمة المقالات |
-| `get_article` | `GET /articles/{id}` | تفاصيل + حالة |
-| `get_article_document` | `GET /articles/{id}/document` | المحتوى **المعتمد** |
-| `get_session_document` | `GET /articles/{id}/session` | مسودة **الجلسة** الحالية |
-| `get_session_as_text` | تحويل محلي | نص الجلسة للوكيل |
-| `list_my_reviews` | `GET /reviews/me` | تعيينات المراجعة |
-| `get_review_assignment` | `GET /reviews/assignments/{id}` | تفاصيل تعيين |
-
-#### المرحلة 2 — كتابة الجلسة (مؤلف)
-
-| Tool | يستدعي | ملاحظة |
-|------|--------|--------|
-| `create_article` | `POST /articles` | إنشاء مقال + تهيئة جلسة فارغة |
-| `update_article_metadata` | `PATCH /articles/{id}` | عنوان/ملخص — مسودة فقط |
-| `update_session_from_text` | تحويل + `PUT /session` | **الأداة الرئيسية للكتابة** |
-| `save_session_document` | `PUT /session` | JSON كامل — للمطورين بحذر |
-| `upload_article_image` | `POST /assets` | صور تُستخدم في الجلسة |
-| `request_compile` | `POST /compile` | يُجمّع من **المعتمد**؛ يذكّر المستخدم بالحفظ أولاً إن تغيّرت الجلسة |
-
-**لا يوجد في MCP:** `submit_article`، `commit_session` (الاعتماد = حفظ المستخدم في المحرر).
-
-#### المرحلة 3 — مراجع
-
-| Tool | يستدعي | ملاحظة |
-|------|--------|--------|
-| `get_assignment_document` / PDF | قراءة | للمخطوطة |
-| `save_review_draft` | `PUT .../review` | مسودة ملاحظات فقط |
-| **محظور** | `POST .../review/submit` | الإرسال يدوي من المنصة |
-
-#### ما لن يُضاف إلى MCP (قرار ثابت)
-
-| إجراء | البديل |
-|-------|--------|
-| تقديم مقال | المستخدم: زر «تقديم» في `/maktabi/maqalati/{id}` |
-| إرسال مراجعة | المستخدم: زر «إرسال» في `/maktabi/murajaati/{id}` |
-| قرار تحريري | المستخدم: `/maktabi/tahriri/{id}` |
-| إدارة admin | `/admin` فقط |
-
-### 1.10 تحرير المحتوى — طبقة نصية على الجلسة
-
-BuTeX Document v2 JSON معقد. الوكيل يتعامل مع **الجلسة** عبر نص مبسّط:
-
-```text
-get_session_as_text(article_id)       → قراءة ما في الجلسة
-update_session_from_text(article_id, section?, text)  → كتابة في الجلسة
-```
-
-| مسار | الاستعمال |
-|------|-----------|
-| **نصي على الجلسة** | المسار الافتراضي للمؤلفين — يظهر في المحرر بعد المزامنة |
-| **أدوات كتل** (`insert_paragraph`, …) | لاحقاً — تعديلات موضعية أدق |
-| **JSON خام على الجلسة** | `save_session_document` — dev فقط |
-
-**الفرق عن التصميم السابق:** كل الكتابة تستهدف `session/` — **ليس** `document.json` المعتمد.
-
-### 1.11 Resources (للقراءة السريعة)
-
-```
-albayan://profile
-albayan://articles
-albayan://articles/{id}
-albayan://articles/{id}/document          ← معتمد
-albayan://articles/{id}/session           ← جلسة مشتركة
-albayan://articles/{id}/session/meta      ← revision للمزامنة
-albayan://articles/{id}/status
-albayan://reviews/assignments/{id}
-```
-
-### 1.12 Prompts مفيدة (قوالب جاهزة)
-
-| Prompt | الغرض |
-|--------|--------|
-| `draft-abstract` | صياغة ملخص (يُكتب في الجلسة أو metadata) |
-| `continue-session` | متابعة الكتابة من `get_session_as_text` |
-| `review-checklist` | قائمة تحقق للمراجع |
-| `status-summary` | ملخص حالة مقالاتي |
-| `remind-save` | تذكير المستخدم بالحفظ قبل التجميع/التقديم |
-
-### 1.13 الأمان
-
-| المخاطرة | الحل |
-|----------|------|
-| الوكيل يعتمد محتوى دون المستخدم | **لا** `commit` / `submit` من MCP؛ الجلسة ≠ المعتمد |
-| تعارض محرر + وكيل | polling + تنبيه؛ لا دمج صامت |
-| الوكيل يفسد JSON | الكتابة على الجلسة + «تراجع للمعتمد» |
-| تسريب مسودة | سياسة 404 الحالية |
-| token مسروق | انتهاء، إلغاء، scopes ضيقة (`session:write` لا `commit`) |
-| إساءة استخدام | rate limit + audit log |
-| رفع صور | نفس قيود MIME والحجم (٥ م.ب) |
-
-**جدول audit log مقترح:**
-
-```sql
-mcp_audit_log
-  id          UUID PK
-  user_id     UUID FK → users.id
-  token_id    UUID FK → agent_tokens.id (nullable)
-  tool_name   varchar(100)
-  target      varchar(50)     -- session | review_draft | ...
-  args_hash   varchar(64)
-  status      varchar(20)
-  error_code  integer (nullable)
-  ip_address  inet (nullable)
-  created_at  timestamptz
-```
-
-### 1.14 هيكل مشروع MCP مقترح
-
-```text
-mcp_server/
-└── src/albayan_mcp/
-    ├── tools/
-    │   ├── session.py          ← update_session_from_text، get_session_*
-    │   ├── articles.py
-    │   └── reviews.py
-    ├── converters/
-    │   └── document_text.py    # يعمل على جلسة، ليس معتمداً
-    └── ...
-```
-
-**تعديلات الواجهة (frontend) المطلوبة:**
-
-- `/tahrir`: تحميل من `/session`؛ polling على `/session/meta`.
-- banner «الوكيل عدّل المسودة — إعادة تحميل؟».
-- زر «حفظ» → `POST .../session/commit`.
-- زر «تراجع للمعتمد» → `DELETE .../session`.
-
-### 1.15 تجربة المستخدم — سيناريو الجلسة المشتركة
-
-```text
-1. المستخدم ينشئ مفتاح وكيل في /al-idayat/wukala ويضيفه في Cursor
-2. يفتح مقالاً → «متابعة التحرير» (اختياري — يمكن أن يبدأ الوكيل أولاً)
-3. في Cursor: «اكتب مقدمة للمقال X»
-4. الوكيل: get_session_as_text → update_session_from_text → PUT /session
-5. في المحرر (أو عند فتحه): «الوكيل عدّل المسودة» — يرى النص، يعدّل يدوياً
-6. إن أخطأ الوكيل: «تراجع للمعتمد»
-7. إن رضي: «حفظ» → session → document.json المعتمد
-8. معاينة PDF، ثم «تقديم» يدوياً من صفحة المقال — ليس عبر الوكيل
-```
-
-**مراجع:** يقرأ الوكيل المخطوطة، يكتب `save_review_draft`؛ المستخدم يفتح مراجعاتي، يراجع، **يرسل** يدوياً.
-
-### 1.16 ربط بـ API الحالي
-
-| الدور | مسارات | عبر MCP |
-|-------|--------|---------|
-| مؤلف | `/articles/*/session`، `/document` (قراءة معتمد) | كتابة جلسة فقط |
-| مراجع | `/reviews/*` | مسودة مراجعة فقط |
-| محرر/مدير | قراءة لاحقاً | بدون قرارات من MCP |
-
-### 1.17 خارطة تنفيذ مقترحة
-
-| المرحلة | المحتوى | الحالة |
-|---------|---------|--------|
-| **0** | `agent_tokens` + واجهة إدارة المفاتيح | **منجز** (فرع dev) |
-| **0b** | middleware مصادقة Agent Token | مخطّط |
-| **1** | API الجلسة (`session/`) + تعديل المحرر (تحميل، commit، تراجع، polling) | مخطّط |
-| **2** | MCP read-only + `get_session_*` | مخطّط |
-| **3** | `update_session_from_text` + محوّل BuTeX ↔ نص | مخطّط |
-| **4** | `save_review_draft` للمراجع | مخطّط |
-| **5** | WebSocket/SSE + تمييز بصري لكتل الوكيل (اختياري) | مخطّط |
-| **6** | OAuth 2.1 (اختياري) | لاحقاً |
-
-### 1.18 أسئلة مفتوحة
-
-1. فترة polling الافتراضية في المحرر (٣ ث؟ ٥ ث؟).
-2. هل `request_compile` يُجمّع من الجلسة مباشرة (معاينة قبل الحفظ) أم من المعتمد فقط؟
-3. حد أقصى لحجم `session/document.json` أو عدد revisions؟
-4. واجهة محادثة داخل المنصة تستخدم نفس API الجلسة؟
-5. snapshots تلقائية قبل كل commit — كم نسخة نحتفظ؟
-
-### 1.19 الخلاصة
-
-| جاهز اليوم | ينقص (مع الجلسة المشتركة) |
-|------------|---------------------------|
-| API مقالات ومراجع | طبقة `session/` في S3 + endpoints |
-| محرر BuTeX | مزامنة مع الجلسة + commit/تراجع |
-| مسودة مراجعة على الخادم | ربط MCP بـ `save_review_draft` فقط |
-| واجهة + API مفاتيح الوكيل (`agent_tokens`) | middleware مصادقة بالمفتاح |
-| | خادم MCP فعلي |
-| | منع submit من الوكيل (تصميم، ليس فقط policy) |
-
-**القرار المعتمد:** الجلسة المشتركة (مسودة جلسة على الخادم) هي نموذج التحرير الأساسي بين المستخدم والوكيل؛ الاعتماد والتقديم يبقيان في يد المستخدم على المنصة.
-
----
-
-## 2. استنتاجات تحليل BuTeX والتحرير عبر MCP
-
-> **التاريخ:** ٢٧ أغسطس ٢٠٢٦  
-> **السياق:** مراجعة `@drghaliasri/butex@5.6.1` (`ButexDocumentEditor2` + `document2`)، تكامل مجلة البيان، ومتطلبات الكتابة عبر الوكيل.  
-> **مرجع أصول الصور (منفّذ في المنصة):** `docs/butex-figure-host-contract.md` — PR #26.
-
-هذا القسم يجمع قرارات التصميم الناتجة عن التحليل. **ليس** كل ما هنا منفّذاً بعد؛ يوضّح ما يُبنى في المنصة مقابل ما يُطلب من حزمة BuTeX.
-
-### 2.1 فصل المسؤوليات: بروتوكول MCP ≠ حزمة BuTeX
-
-| الطبقة | المسؤولية |
-|--------|-----------|
-| **`mcp_server/`** | محوّل بروتوكول رفيع: أدوات MCP → استدعاءات HTTP لـ FastAPI فقط |
-| **FastAPI** | مصادقة، تفويض (agent-safe vs human-only)، جلسة، أوامر المستند، رفع/سرد الأصول |
-| **S3** | `document.json` المعتمد، `session/document.json`، `assets/*`، `session/revisions/*` |
-| **`@drghaliasri/butex` (headless `document2`)** | نموذج المستند، تحويلات JSON، دوال mutation صافية |
-| **`ButexDocumentEditor2` (React)** | تجربة المؤلف؛ تركيز المؤشر (caret) للإدراج التفاعلي فقط |
-| **Next.js** | مزامنة المحرر مع الجلسة، معرض الصور، `resolveImageUrl` |
-
-**قاعدة ثابتة:** لا يكتب الوكيل مباشرة على S3 ولا يستدعي مراجع React في المحرر. لا يُضاف بروتوكول MCP داخل حزمة BuTeX.
-
-```text
-عميل AI
-   │
-   ▼
-mcp_server (أدوات MCP)
-   │
-   ▼
-FastAPI  POST /articles/{id}/session/commands  (وما شابه)
-   │
-   ├── applyDocument2Command / mutators من butex/document2
-   └── PUT session/document.json (+ revision)
-   │
-   ▼
-المحرر (polling) يعيد تحميل الجلسة — اختياري commit → document.json المعتمد (بشري فقط)
-```
-
-### 2.2 أين يقع «موضع الإدراج» اليوم — ولماذا لا يكفي للوكيل
-
-في `ButexDocumentEditor2`، موضع إدراج كتلة جديدة (فقرة، قسم، شكل، …) يعتمد على **حالة تركيز React داخلية** (`editorFocus`: `blockId`, `fieldId`, `caretOffset`, …) وليس على `Document2Json` المحفوظ.
-
-قواعد الإدراج (مختصرة):
-
-1. إن وُجد `blockId` مركّز → أدرج **بعد** ذلك الكتلة.
-2. وإلا استنتج الكتلة من `fieldId`.
-3. وإلا أدرج بعد آخر كتلة في المستند.
-
-هذا مناسب للمؤلف في المتصفح (يضغط زر الإدراج بعد وضع المؤشر). **الوكيل لا يرى هذا التركيز** — يحتاج **عنواناً صريحاً** في طلب HTTP:
-
-```json
-{ "anchor": { "after_block_id": "block_3" } }
-{ "anchor": { "end": true } }
-{ "block_id": "block_5", "text": "" }
-```
-
-`insertImageBlock` على `ButexDocumentEditor2Ref` يتبع نفس قاعدة التركيز؛ مناسب للواجهة بعد رفع صورة من المعرض، **ليس** لمسار MCP.
-
-### 2.3 الصور: رفع ≠ إدراج (منفّذ في المنصة — بدون migration)
-
-**قرار:** مخزون الأصول منفصل عن عقدة الشكل في JSON.
-
-| العملية | أين | ماذا يحدث |
-|---------|-----|-----------|
-| **رفع** | `POST /api/v1/articles/{id}/assets` | بايتات → S3 `assets/{uuid}.ext` — **لا يغيّر المستند** |
-| **سرد** | `GET /api/v1/articles/{id}/assets` | قائمة من S3 (`list_prefix`) — **لا جدول `assets` في PostgreSQL** |
-| **معاينة** | `GET .../assets/{filename}` + `resolveImageUrl` | blob URL في المتصفح |
-| **إدراج** | `insertImageBlock(asset_id)` أو أمر جلسة لاحقاً | عقدة `\includegraphics` في `document.json` / جلسة |
-
-واجهة المحرر: لوحة **«صور المقال»** — رفع يملأ المعرض فقط؛ **«إدراج في المستند»** يستدعي `insertImageBlock`.
-
-**فجوة BuTeX (للفريق):** المحرر ما زال يعرض textarea لمسار الصورة في كتلة الشكل؛ العقد المطلوب في `docs/butex-figure-host-contract.md` (`onRequestImagePick`, شكل فارغ «لا صورة محددة»، `asset_id` + `value` عند الإنشاء). بعد شحن الحزمة نربط المعرض بـ `onRequestImagePick`.
-
-### 2.4 هل نحتاج تغييرات في BuTeX **قبل** MCP؟
-
-| هدف MCP | هل يتطلب إصدار BuTeX؟ |
-|---------|------------------------|
-| قراءة المقالات، الملف، القوائم | لا |
-| كتابة جلسة عبر **طبقة نصية** (`update_session_from_text`) | لا — محوّل في FastAPI |
-| إدراج/تحرير/مسح فقرات وأقسام **بموضع دقيق** | **نعم** — انظر 2.5 |
-| إدراج أشكال بـ `asset_id` من جلسة الوكيل | **جزئياً** — الإدراج عبر mutation headless؛ عرض المعرض في المحرر يحتاج عقد الصور |
-| تراجع/إعادة جلسة | **لا** — تخزين المنصة (2.6) |
-| محرر المعادلات | خارج نطاق MCP v1 |
-
-**خلاصة:** يمكن البدء بـ MCP + جلسة + نص مبسّط **بدون** انتظار BuTeX. للأدوات الهيكلية (`insert_paragraph`, `edit_paragraph`, `insert_figure` بموضع محدد) نحتاج توسيعات الحزمة أدناه.
-
-### 2.5 ما يجب إضافته في BuTeX لتحرير متوافق مع MCP
-
-الطبقة headless `butex/document2` تحتوي أغلب دوال الـ mutation (`addDocument2TextBlock`, `addDocument2ImageBlock`, `updateTextToken`, `removeDocument2BlockById`, …). الفجوات الحرجة:
-
-#### أ) معرّفات ثابتة في `Document2Json`
-
-اليوم: الكتل والرموز لها `id` في الذاكرة (`block_1`, …) لكن **`toDocumentJson2` لا يصدّرها** — إعادة التحميل تولّد ids جديدة. الوكيل لا يستطيع قول «عدّل الكتلة X» عبر قراءات متتالية للجلسة.
-
-**مطلوب:** حقل `id` مستقر على الكتل (ولاحقاً الرموز إن لزم) في JSON السلكي، مع الحفاظ عند `fromDocumentJson2`.
-
-#### ب) API أوامر موحّد على JSON
-
-**مطلوب:** نقطة دخول واحدة (مثال):
-
-```ts
-applyDocumentCommand(json: Document2Json, cmd: DocumentCommand): Document2Json
-```
-
-أو مجموعة دوال موثّقة تستدعيها FastAPI فقط. أمثلة أوامر:
-
-```json
-{ "op": "insert_text_block", "kind": "paragraph", "text": "…", "anchor": { "after_block_id": "…" } }
-{ "op": "replace_text_block", "block_id": "…", "text": "…" }
-{ "op": "insert_figure", "asset_id": "assets/….jpg", "anchor": { "end": true }, "caption": "…" }
-{ "op": "remove_block", "block_id": "…" }
-```
-
-**الإدراج والاستبدال والحذف أوامر صريحة:** لا تستخدم `upsert_block` في مسار الوكيل.
-
-#### ج) `document2Outline(json)`
-
-ملخص رخيص للقراءة: `id`, نوع الكتلة، مقتطف نص — لأداة MCP `get_session_outline` دون إغراق الوكيل بـ JSON كامل.
-
-#### د) أشكال و`asset_id`
-
-`insertImageBlock` / `addDocument2ImageBlock` يجب أن يضبط **`asset_id` و`value`** معاً (اليوم غالباً `value` فقط). مرجع العقد: `docs/butex-figure-host-contract.md`.
-
-**ما لا يُبنى في BuTeX:** جلسة، تراجع، MCP، رفع S3، معرض الصور.
-
-### 2.6 تراجع وإعادة الجلسة (للوكيل) — جلسة واحدة، ليس «جلسات متعددة»
-
-لا ننشئ جلسة وكيل منفصلة عن جلسة المستخدم — ذلك يشتت مصدر الحقيقة.
-
-| المستوى | الآلية | الاستعمال |
-|---------|--------|-----------|
-| **1 — تراجع للمعتمد** | `DELETE /session` أو نسخ من `document.json` | «الوكيل أفسد المسودة» — إعادة ضبط كاملة |
-| **2 — مكدس revisions** | قبل كل كتابة: `session/revisions/{n}.json` + `meta.revision` | `POST /session/undo` و`redo` |
-| **3 — تراجع BuTeX في المتصفح** | Ctrl+Z داخل المحرر | **محلي فقط** — لا يتراجع عن تعديل الوكيل |
-
-كل revision يُوسَم بـ `source: "agent" | "user"` لتمكين «تراجع عن آخر تعديل للوكيل».
-
-**BuTeX:** لا تغيير مطلوب لمكدس الجلسة — يستهلك/ينتج `Document2Json` صالحاً فقط.
-
-### 2.7 مسار REST الموصى به لأوامر الكتابة (FastAPI)
-
-الوكيل **لا يستدعي الحزمة مباشرة**. FastAPI يحمّل الجلسة، يطبّق mutation، يحفظ revision، يرفع `meta.revision`.
-
-```http
-POST /api/v1/articles/{id}/session/commands
-Content-Type: application/json
-
-{ "op": "insert_text_block", "kind": "section", "text": "المقدمة", "anchor": { "after_block_id": "block_intro" } }
-```
-
-| أداة MCP (مقترحة) | HTTP |
-|-------------------|------|
-| `get_session_outline` | `GET /session` + outline |
-| `get_session_document` | `GET /session` |
-| `update_session_command` | `POST /session/commands` |
-| `list_article_assets` | `GET /assets` |
-| `upload_article_asset` | `POST /assets` |
-| `insert_figure` | `POST /session/commands` (`insert_figure`) |
-| `undo_session` / `redo_session` | `POST /session/undo` / `redo` |
-| `revert_session_to_authoritative` | `DELETE /session` |
-
-**محظور من MCP:** `POST .../submit`، `POST .../session/commit` (الاعتماد = زر «حفظ» بشري في المحرر).
-
-### 2.8 مراحل التنفيذ المقترحة (تقنية)
-
-```text
-1. طبقة session/ في S3 + GET/PUT + revisions + undo/redo + revert
-2. POST /session/commands → butex/document2 mutators (بعد stable ids في الحزمة)
-3. mcp_server: أدوات رفيعة → تلك المسارات
-4. المحرر: تحميل من session، polling، commit بشري
-5. (موازٍ) أصول: GET /assets + معرض — منجز جزئياً في المنصة
-6. (بعد BuTeX) onRequestImagePick + stable asset_id على الأشكال
-7. لاحقاً: معادلات، أدوات مراجعة، SSE
-```
-
-### 2.9 تسلسل الكتابة النصية vs الهيكلية
-
-| المرحلة | مسار الوكيل | متى |
-|---------|-------------|-----|
-| **أولى** | `get_session_as_text` + `update_session_from_text` | قبل stable ids؛ مقالات بسيطة |
-| **ثانية** | `update_session_command` + outline | تحرير موضعي (فقرات، عناوين، أشكال) |
-
-لا نمنع الطبقة النصية عند وجود الأوامر الهيكلية — تبقى مفيدة للملخصات والمسودات السريعة.
-
-### 2.10 خلاصة القرارات
-
-| السؤال | القرار |
-|--------|--------|
-| أين يعيش MCP؟ | `mcp_server/` → FastAPI فقط |
-| أين تُحفظ مسودة الوكيل؟ | `session/document.json` — ليس المعتمد |
-| كيف يُحدَّد موضع الإدراج للوكيل؟ | `anchor` / `block_id` في API — ليس caret React |
-| رفع صورة vs إدراج شكل؟ | منفصلان؛ S3 inventory vs عقدة JSON |
-| جدول assets في DB؟ | **لا** — S3 فقط |
-| تراجع الوكيل؟ | revision stack + revert للمعتمد؛ جلسة واحدة |
-| ماذا نطلب من BuTeX؟ | stable ids، command API، outline، عقد أشكال للواجهة |
-| ماذا لا نطلب من BuTeX؟ | MCP، session storage، undo على الخادم |
+يظهر `current_revision` حين يوفره FastAPI. تفاصيل التحقق الخام، حمولة الطلب،
+آثار المكدس، والتوكنات لا تُعرض للعميل ولا تُسجّل. في تعارض المراجعة يجب أن
+يعيد العميل الفحص؛ أما خطأ التحقق فيُصلح الأمر وفق المخطط المنشور قبل المحاولة.
+
+### 2.5 الحدود المؤجلة
+
+`list_article_assets` مرشح طبيعي لأداة قراءة لاحقة، لكن ليس ضمن هذه الدفعة.
+كذلك لا تُضاف أدوات رفع الأصول، استبدال المستند كاملاً، تقديم المقال، حذف
+المقال، أو أي mutation عالية الأثر. عرض محتوى PDF أو الأصل وروابطه ينتظر
+تصميم عقد التنزيل والعرض والتفويض.
 
 ---
 
@@ -1025,3 +423,4 @@ Content-Type: application/json
 | ٢٥/٠٨/٢٠٢٦ | تحديث الحالة الحالية بعد Batch 1-3؛ إضافة حد قدرات الوكيل؛ ووسم التصميم القديم كتاريخي/مخطط |
 | ٢٥/٠٨/٢٠٢٦ | إضافة «ربط ChatGPT — الدليل الكامل»: DCR، النطاقات، متغيرات Railway، خطوات الواجهة، واستكشاف الأخطاء من التجربة الفعلية |
 | ٢٧/٠٨/٢٠٢٦ | إضافة القسم ٢: استنتاجات تحليل BuTeX (موضع الإدراج، فصل رفع/إدراج الأصول، متطلبات الحزمة، تراجع الجلسة، مسار REST/MCP) |
+| ١٣/٠٩/٢٠٢٦ | توثيق أدوات جلسة Document2 الأربع واتحاد الأوامر المقيّد وسير التعافي من تعارض المراجعة |
