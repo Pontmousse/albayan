@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any
 
@@ -17,6 +18,7 @@ from app.core.actor import Actor
 from app.models.article import Article, ArticleSession, ArticleVersion
 from app.models.enums import CompileStatus
 from app.schemas.article import DocumentCommandPayload
+from app.schemas.document2 import BLOCK_INSERTION_OPERATIONS
 from app.services import article_service, butex_worker_client, compile_service
 
 SESSION_PREFIX = "session"
@@ -64,7 +66,7 @@ def _stable_json(data: Any) -> str:
 def _request_hash(payload: DocumentCommandPayload) -> str:
     body = {
         "base_revision": payload.base_revision,
-        "command": payload.command.model_dump(exclude_none=True),
+        "command": payload.command.model_dump(exclude_unset=True),
     }
     return hashlib.sha256(_stable_json(body).encode("utf-8")).hexdigest()
 
@@ -115,9 +117,17 @@ def _affected_block_ids(
     after: dict[str, Any],
     command: dict[str, Any],
 ) -> list[str]:
-    block_id = command.get("block_id")
-    if isinstance(block_id, str):
-        return [block_id]
+    for target_field in ("block_id", "list_id", "table_id"):
+        target_id = command.get(target_field)
+        if isinstance(target_id, str):
+            return [target_id]
+
+    field_id = command.get("field_id")
+    if isinstance(field_id, str):
+        owner_id = _block_id_for_field(before, field_id) or _block_id_for_field(
+            after, field_id
+        )
+        return [owner_id] if owner_id else []
 
     before_ids = {
         block.get("id")
@@ -130,6 +140,63 @@ def _affected_block_ids(
         if isinstance(block, dict) and isinstance(block.get("id"), str)
     ]
     return [block_id for block_id in after_ids if block_id not in before_ids]
+
+
+def _block_id_for_field(document: dict[str, Any], field_id: str) -> str | None:
+    def inline_ids_match(value: object) -> bool:
+        return isinstance(value, dict) and value.get("field_id") == field_id
+
+    def find_in_block(block: object) -> str | None:
+        if not isinstance(block, dict):
+            return None
+        block_id = block.get("id")
+        owner_id = block_id if isinstance(block_id, str) else None
+
+        if inline_ids_match(block.get("inline_ids")):
+            return owner_id
+
+        cell_inline_ids = block.get("cell_inline_ids")
+        if isinstance(cell_inline_ids, list):
+            for row in cell_inline_ids:
+                if isinstance(row, list) and any(
+                    inline_ids_match(cell) for cell in row
+                ):
+                    return owner_id
+
+        items = block.get("items")
+        if isinstance(items, list):
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                if inline_ids_match(item.get("inline_ids")):
+                    return owner_id
+                nested_blocks = item.get("blocks")
+                if isinstance(nested_blocks, list):
+                    for nested_block in nested_blocks:
+                        nested_owner = find_in_block(nested_block)
+                        if nested_owner:
+                            return nested_owner
+        return None
+
+    blocks = document.get("blocks")
+    if not isinstance(blocks, list):
+        return None
+    for block in blocks:
+        owner_id = find_in_block(block)
+        if owner_id:
+            return owner_id
+    return None
+
+
+def _worker_command(
+    payload: DocumentCommandPayload,
+    actor: Actor,
+) -> dict[str, Any]:
+    command = deepcopy(payload.command.model_dump(exclude_unset=True))
+    if command.get("op") in BLOCK_INSERTION_OPERATIONS:
+        source = "agent" if actor.auth_method == "agent" else "user"
+        command["metadata"] = {"source": source}
+    return command
 
 
 def _select_current_session(db: Session, article_id: uuid.UUID) -> ArticleSession | None:
@@ -276,12 +343,13 @@ def apply_session_command(
             },
         )
 
-    command = payload.command.model_dump(exclude_none=True)
-    if command.get("op") == "insert_figure":
+    command = _worker_command(payload, actor)
+    if command.get("op") in {"insert_figure", "update_figure"}:
         asset_id = command.get("asset_id")
-        if not isinstance(asset_id, str):
+        if command.get("op") == "insert_figure" and not isinstance(asset_id, str):
             raise HTTPException(status_code=422, detail="مفتاح الصورة غير صالح.")
-        _assert_asset_exists(article_id, version, asset_id)
+        if isinstance(asset_id, str):
+            _assert_asset_exists(article_id, version, asset_id)
 
     next_document = butex_worker_client.apply_document_command(
         current_document,

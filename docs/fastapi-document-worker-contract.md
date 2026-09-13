@@ -1,29 +1,23 @@
-# Al-Bayan FastAPI to BuTeX Worker Contract
+# Al-Bayan FastAPI to BuTeX 7.0.2 Worker Contract
 
-## Purpose
+## Purpose and ownership
 
-- This is the Al-Bayan host integration contract for its deployed BuTeX Node
-  worker, whose Railway service name is `albayan-butex`.
-- The existing ownership model remains unchanged:
+The deployed Railway worker service is `albayan-butex`:
 
 ```text
 Agent -> mcp_server -> FastAPI -> private BuTeX worker
                               -> session storage and revision
 ```
 
-- `mcp_server` remains a thin FastAPI client and never calls the worker.
-- FastAPI owns users, articles, authorization, sessions, revisions, idempotency,
-  assets, S3, commit, and submission.
-- The worker owns only stateless `documentJson` normalization, outlines, and
-  one-command transformations.
-- FastAPI keeps one ephemeral `article_sessions` row per active article
-  workbench. The row points at the current draft `article_versions` row; the
-  session document and command idempotency records live in S3.
+`mcp_server` is a thin FastAPI client and never calls the worker directly.
+FastAPI owns users, articles, permissions, sessions, revisions, idempotency,
+assets, storage, save/commit, and submission. The worker is stateless and owns
+only Document2 normalization, outlines, and one-command transformations.
 
-## Railway Configuration
+## Railway configuration
 
-The worker and FastAPI must run in the same Railway project and environment.
-The worker needs no public domain.
+The worker and FastAPI run in the same Railway project and environment. The
+worker needs no public domain.
 
 Worker service:
 
@@ -38,7 +32,7 @@ BUTEX_WORKER_URL=http://${{albayan-butex.RAILWAY_PRIVATE_DOMAIN}}:${{albayan-but
 BUTEX_WORKER_TOKEN=${{shared.BUTEX_WORKER_TOKEN}}
 ```
 
-FastAPI sends these headers to every transform endpoint:
+Every transform request uses:
 
 ```http
 Authorization: Bearer <BUTEX_WORKER_TOKEN>
@@ -46,214 +40,259 @@ Content-Type: application/json
 X-Request-ID: <host request or trace ID>
 ```
 
-Do not put either worker variable in Next.js public variables or `mcp_server`.
-`BUTEX_WORKER_URL` is an Al-Bayan FastAPI setting; it is not read by the BuTeX
-package or worker process itself.
+Neither variable belongs in Next.js public variables or `mcp_server`.
 
-## Private Worker HTTP API
+## Private worker HTTP API
 
-| Method and path | Request body | Successful response |
-|---|---|---|
-| `GET /health` | none | `{ "ok": true, "service": "butex-document2" }` |
-| `POST /v1/document2/normalize` | `{ "document": documentJson }` | `{ "ok": true, "document": documentJson }` |
-| `POST /v1/document2/outline` | `{ "document": documentJson }` | `{ "ok": true, "outline": documentOutlineEntry[] }` |
-| `POST /v1/document2/commands` | `{ "document": documentJson, "command": documentCommand }` | `{ "ok": true, "document": documentJson }` |
+- `GET /health` returns `{ "ok": true, "service": "butex-document2" }`.
+- `POST /v1/document2/normalize` accepts `{ "document": Document2Json }`.
+- `POST /v1/document2/outline` accepts `{ "document": Document2Json }`.
+- `POST /v1/document2/commands` accepts
+  `{ "document": Document2Json, "command": Document2Command }`.
 
-- Transform endpoints require the bearer token; `/health` does not.
-- The `/health` value `service: "butex-document2"` identifies the packaged
-  worker process; the Railway service containing it is `albayan-butex`.
-- The maximum request body is 5 MiB.
-- The worker request timeout is 15 seconds.
-- HTTP request bodies do not include an `action`; the route selects the action.
+Transform routes require the bearer token; health does not. Bodies are limited
+to 5 MiB and requests time out after 15 seconds. The route selects the action;
+HTTP bodies do not contain an `action` field.
 
-### Normalize
+Normalize legacy or external JSON once when opening a session and persist the
+returned canonical document. Outlines require unique canonical block IDs and
+return top-level entries in document order. Kinds are `section`, `subsection`,
+`subsubsection`, `paragraph`, `list`, `table`, `figure`, `bibliography`, or `raw`.
 
-Use this once when creating a session from legacy or externally supplied JSON.
-Persist the returned canonical document so later outlines and commands use stable
-block IDs.
+## Canonical identities and provenance
 
-```json
-{
-  "document": {
-    "node_type": "DocumentObject",
-    "blocks": [
-      { "command": "\\paragraph", "value": "Legacy paragraph" }
-    ]
-  }
-}
-```
-
-### Outline
-
-Input must be canonical JSON with unique block IDs. Entries remain in top-level
-document order:
-
-```json
-{
-  "ok": true,
-  "outline": [
-    {
-      "id": "block_1",
-      "kind": "paragraph",
-      "command": "\\paragraph",
-      "excerpt": "Legacy paragraph"
-    }
-  ]
-}
-```
-
-`kind` is one of `section`, `subsection`, `subsubsection`, `paragraph`, `list`,
-`table`, `figure`, `bibliography`, or `raw`. Excerpts have normalized whitespace
-and are limited to 160 characters.
-
-## Command Contract
-
-Commands operate on top-level blocks only.
+Text-bearing fields carry an identity sidecar:
 
 ```ts
-type documentCommand =
-  | {
-      op: 'insert_text_block';
-      kind: 'section' | 'subsection' | 'subsubsection' | 'paragraph';
-      text: string;
-      anchor: { after_block_id: string } | { end: true };
-    }
-  | { op: 'replace_text_block'; block_id: string; text: string }
-  | { op: 'remove_block'; block_id: string }
-  | {
-      op: 'insert_figure';
-      asset_id: string;
-      value?: string;
-      caption?: string;
-      label?: string;
-      anchor: { after_block_id: string } | { end: true };
-    };
+type InlineIds = {
+  field_id: string;
+  tokens: Array<{
+    id: string;
+    kind: 'text' | 'math' | 'cite' | 'ref';
+    start: number;
+    end: number;
+  }>;
+};
 ```
 
-Example worker request:
+Text blocks use `inline_ids`; list items use stable `id` and `inline_ids`; table
+cells use `cell_inline_ids` parallel to `rows`. Offsets are JavaScript string
+offsets. FastAPI never constructs or repairs these sidecars.
+
+Every block may contain `metadata: { source: 'agent' | 'user' }`, recording its
+creator rather than its latest editor. For `insert_text_block`, `insert_figure`,
+`insert_bibliography`, `insert_list`, and `insert_table`, FastAPI overwrites
+caller metadata from the authenticated actor: agent credentials produce
+`agent`; browser credentials produce `user`.
+
+## Command contract
+
+Block anchors are exactly one of `{ before_block_id }`, `{ after_block_id }`, or
+`{ end: true }`. Inline anchors use `before_token_id`, `after_token_id`,
+`start: true`, or `end: true`. Item anchors use `before_item_id`,
+`after_item_id`, or `end: true`. Reference anchors use `before_reference_key`,
+`after_reference_key`, or `end: true`.
+
+### Blocks and figures
+
+```text
+insert_text_block: kind, text, block anchor, optional metadata
+replace_text_block: block_id, text
+remove_block: block_id
+move_block: block_id, block anchor
+insert_figure: asset_id, optional value/caption/label/metadata, block anchor
+update_figure: block_id plus asset_id and/or value
+update_float_meta: block_id plus centered/caption_enabled/caption/label_enabled/label
+insert_bibliography: block anchor, optional metadata
+```
+
+`update_figure.asset_id: null` clears only the host identity and must remain an
+explicit null on the wire. `value: ""` clears only the include value. FastAPI
+authorizes every non-null asset supplied to `insert_figure` or `update_figure`
+before dispatch.
+
+### Article metadata and references
+
+```text
+update_document_meta: one or more of title, authors, abstract, partial date
+insert_reference: key, optional bibliographic fields, reference anchor
+update_reference: reference_key plus one or more bibliographic fields
+remove_reference: reference_key
+move_reference: reference_key, reference anchor
+```
+
+Hijri dates use day 1-30, years 1400-1500, and BuTeX's twelve Arabic month
+identifiers. Reference fields are `key`, `authors`, `title`, `year`, `venue`,
+`url`, and `field_separator` (`","` or `"،"`). The worker NFC-normalizes
+keys and enforces their shared namespace with figure, table, and equation labels.
+Removing or renaming a reference does not rewrite citation tokens.
+
+### Inline tokens
+
+```ts
+type InlineTokenInput =
+  | { kind: 'text'; text: string; style?: {
+      bold?: true; italic?: true; underline?: true
+    } }
+  | { kind: 'math'; source: string; math_object: MathObjectJson }
+  | { kind: 'cite'; keys: string[] }
+  | { kind: 'ref'; keys: string[]; ref_command: 'ref' | 'eqref' };
+```
+
+`insert_inline_token`, `replace_inline_token`, and `remove_inline_token` carry
+`field_id`; replacement/removal carry `token_id`; insertion carries an inline
+anchor. Math supplies exactly one complete delimited source and a matching
+structured `MathObject`. The worker never parses raw equation LaTeX into an AST.
+
+Whole-field replacement is rejected for styled or structured content. Citation
+and reference token arrays retain at least one non-empty key.
+
+### Lists
+
+```text
+insert_list: ordered, non-empty items[], block anchor, optional metadata
+insert_list_item: list_id, text, item anchor
+replace_list_item: list_id, item_id, text
+remove_list_item: list_id, item_id
+move_list_item: list_id, item_id, item anchor
+```
+
+List lookup is recursive and every list retains at least one item.
+
+### Tables
+
+```text
+insert_table: non-empty rectangular rows[][], columns, block anchor,
+              optional caption/label/metadata
+replace_table_cell: table_id, row_index, column_index, text
+insert_table_row: table_id, index, values[]
+remove_table_row: table_id, index
+move_table_row: table_id, from_index, to_index
+insert_table_column: table_id, index, values[], columns
+remove_table_column: table_id, index, columns
+move_table_column: table_id, from_index, to_index, columns
+```
+
+Indexes are zero-based. Tables retain at least one row and column. Column shape
+commands provide the complete resulting non-empty LaTeX `columns` specification.
+
+### Host and worker request example
+
+The public host request is:
 
 ```json
 {
-  "document": {
-    "node_type": "DocumentObject",
-    "blocks": []
-  },
+  "command_id": "62ca7688-7f10-4d35-8ef8-71fd77d6b3b8",
+  "base_revision": 12,
   "command": {
     "op": "insert_text_block",
     "kind": "paragraph",
     "text": "New paragraph",
-    "anchor": { "end": true }
+    "anchor": { "before_block_id": "block_4" },
+    "metadata": { "source": "user" }
   }
 }
 ```
 
-Rules:
+For an authenticated agent, FastAPI dispatches only:
 
-- An unknown `after_block_id` is an error; it never silently appends.
-- `replace_text_block` rejects formatted or structured inline content to avoid
-  losing equations, citations, or formatting.
-- `insert_figure.asset_id` is the host-owned stable asset identity. The worker
-  does not list, upload, authorize, resolve, or fetch the asset.
-- The input document is not stored or mutated outside the request. Only the
-  returned canonical document may be saved by FastAPI.
-- The worker response does not include revisions, command IDs, or article IDs.
+```json
+{
+  "document": { "node_type": "DocumentObject", "blocks": [] },
+  "command": {
+    "op": "insert_text_block",
+    "kind": "paragraph",
+    "text": "New paragraph",
+    "anchor": { "before_block_id": "block_4" },
+    "metadata": { "source": "agent" }
+  }
+}
+```
+
+`command_id`, `base_revision`, actor data, article IDs, and session IDs never go
+to the worker.
 
 ## Errors
 
-Every failure body has one shape:
+Worker failures have one shape:
 
 ```json
 {
   "ok": false,
   "error": {
     "code": "block_not_found",
-    "message": "Document block was not found: block_9"
+    "message": "Document block was not found"
   }
 }
 ```
 
-| Status | Meaning |
-|---|---|
-| `400` | malformed JSON or invalid worker request |
-| `401` | missing or invalid worker bearer token |
-| `404` | unknown worker route |
-| `413` | request body exceeds 5 MiB |
-| `422` | valid protocol request with an invalid document or command |
-| `500` | unexpected worker failure |
+- `400`: malformed JSON or request.
+- `401`: missing or invalid worker token.
+- `404`: unknown worker route.
+- `413`: request over 5 MiB.
+- `422`: invalid document or command semantics.
+- `500`: unexpected worker failure.
 
-Expected `422` codes include `invalid_document`, `invalid_command`,
-`missing_block_id`, `duplicate_block_id`, `anchor_not_found`, `block_not_found`,
-`block_kind_mismatch`, and `unsupported_inline_content`.
+Expected command codes include `invalid_document`, `invalid_command`,
+`invalid_anchor`, `anchor_not_found`, `block_not_found`,
+`block_kind_mismatch`, `field_not_found`, `token_not_found`, `list_not_found`,
+`item_not_found`, `table_not_found`, `invalid_table_shape`,
+`index_out_of_range`, `minimum_structure`, `invalid_inline_token`,
+`math_object_mismatch`, `unsupported_inline_content`, `reference_not_found`,
+`invalid_key`, `duplicate_key`, and `bibliography_exists`.
 
-FastAPI should preserve expected worker error codes for its caller, map an
-unreachable or invalid worker response to `502`, and map a worker timeout to
-`504`. Never log the bearer token or full document body.
+FastAPI preserves expected worker statuses and codes, maps unreachable or
+invalid responses to `502`, and maps timeouts to `504`. Never log the token or a
+complete document body.
 
-## FastAPI Session Command API
+## FastAPI session command API
 
-The public host endpoint is separate from the private worker endpoint. A
-recommended host request is:
+The public route is:
 
 ```http
 POST /api/v1/articles/{article_id}/session/commands
-Content-Type: application/json
 ```
 
-```json
-{
-  "command_id": "a client-generated UUID",
-  "base_revision": 12,
-  "command": {
-    "op": "replace_text_block",
-    "block_id": "block_4",
-    "text": "Replacement text"
-  }
-}
+FastAPI authenticates the actor, replays an already completed matching
+`command_id`, loads the canonical session document, rejects stale revisions,
+adds host provenance, validates figure assets, dispatches one command, performs
+compare-and-swap persistence, records the result, and increments the revision.
+
+Repeated command IDs return the stored response only when the submitted command
+and base revision hash match. Indexes and anchors are never retried against a
+newer revision.
+
+`affected_block_ids` returns direct `block_id`, `list_id`, or `table_id`
+targets, resolves an inline `field_id` to its containing block, and detects a
+new top-level ID after insertion. Metadata and reference commands return `[]`.
+
+## Verification
+
+Run the contract tests from the repository root:
+
+```bash
+PYTHONPATH=backend backend/.venv/bin/python -m unittest \
+  backend.tests.test_document2_command_schemas \
+  backend.tests.test_article_sessions \
+  backend.tests.test_butex_worker_client \
+  backend.tests.test_butex_real_worker_integration
 ```
 
-`command_id` and `base_revision` are mandatory host fields. FastAPI does not
-forward them to the worker.
+The integration test starts the installed BuTeX HTTP CLI on loopback and skips
+with an explicit reason when Node, frontend dependencies, or loopback sockets
+are unavailable.
 
-For each session command, FastAPI must:
+For a Railway private-network smoke check, open a shell in FastAPI and run:
 
-1. Authenticate and authorize the actor.
-2. Return the previous result when `command_id` was already completed.
-3. Load the active `article_sessions` row and `session/document.json`.
-4. Reject a stale `base_revision` with the host's revision-conflict response.
-5. Call the worker with only `{ "document": current_document, "command": command }`.
-6. Require HTTP `200`, `ok: true`, and a valid returned `documentJson`.
-7. Save the returned document with compare-and-swap revision handling on the
-   `article_sessions.revision` value.
-8. Record `command_id` in S3, increment the session revision, and return the
-   new revision.
+```bash
+curl --fail --silent "$BUTEX_WORKER_URL/health"
+curl --fail --silent \
+  -H "Authorization: Bearer $BUTEX_WORKER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"document":{"node_type":"DocumentObject","blocks":[]}}' \
+  "$BUTEX_WORKER_URL/v1/document2/normalize"
+```
 
-The worker returns the whole next document but no affected IDs. If MCP needs
-`affected_block_ids`, FastAPI can use the command's `block_id` or compare the
-top-level IDs before and after an insertion.
-
-## MCP Mapping
-
-Recommended first tools:
-
-| MCP tool | FastAPI behavior |
-|---|---|
-| `get_session_outline` | load the session and call worker `/outline` |
-| `get_session_blocks` | load and select canonical blocks in FastAPI |
-| `apply_session_command` | validate revision/idempotency and call worker `/commands` |
-| `list_article_assets` | use the existing host asset inventory; no worker call |
-
-Do not expose the private worker URL or token to MCP. Do not add direct MCP tools
-for whole-document replacement, commit, submission, shared undo/redo, or asset
-upload until the host explicitly designs those permissions.
-
-## Host Implementation Checklist
-
-- Add a small private worker client module inside the FastAPI backend.
-- Add typed request/response validation at the client boundary.
-- Normalize and persist legacy session documents before returning an outline.
-- Replace old host documentation examples using `upsert_block` with the four
-  implemented command operations above.
-- Implement the ephemeral `article_sessions` row and S3 command-id handling
-  before exposing write tools.
-- Run the private-network checks in `test/CLI_manual_tests/smoke_test.md`.
-- Keep editor polling/SSE pointed at FastAPI; the browser never calls the worker.
+Finally, apply a command through the public session endpoint and verify that the
+revision increments once, a command record is persisted, and retrying the same
+`command_id` returns the original result.

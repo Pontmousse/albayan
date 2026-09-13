@@ -180,7 +180,7 @@ class ArticleSessionServiceTests(unittest.TestCase):
             article_session_service.butex_worker_client,
             "apply_document_command",
             return_value=after,
-        ), patch.object(
+        ) as worker, patch.object(
             article_session_service.s3,
             "put_json_at",
         ) as put_json_at:
@@ -194,6 +194,16 @@ class ArticleSessionServiceTests(unittest.TestCase):
         self.assertEqual(result["revision"], 1)
         self.assertEqual(result["affected_block_ids"], ["block_1"])
         self.assertEqual(session.revision, 1)
+        worker.assert_called_once_with(
+            before,
+            {
+                "op": "insert_text_block",
+                "kind": "paragraph",
+                "text": "نص",
+                "anchor": {"end": True},
+                "metadata": {"source": "user"},
+            },
+        )
         self.assertTrue(
             any(
                 call.args[1] == "session/document.json"
@@ -207,6 +217,218 @@ class ArticleSessionServiceTests(unittest.TestCase):
             )
         )
         db.commit.assert_called_once_with()
+
+    def test_worker_command_owns_provenance_for_every_block_insertion(self) -> None:
+        commands = [
+            {
+                "op": "insert_text_block",
+                "kind": "paragraph",
+                "text": "نص",
+                "anchor": {"end": True},
+            },
+            {
+                "op": "insert_figure",
+                "asset_id": "figure.png",
+                "anchor": {"end": True},
+            },
+            {
+                "op": "insert_bibliography",
+                "anchor": {"end": True},
+            },
+            {
+                "op": "insert_list",
+                "ordered": False,
+                "items": ["عنصر"],
+                "anchor": {"end": True},
+            },
+            {
+                "op": "insert_table",
+                "rows": [["خلية"]],
+                "columns": "c",
+                "anchor": {"end": True},
+            },
+        ]
+
+        for auth_method in ("human", "agent"):
+            actor = Actor(
+                user_id=uuid.uuid4(),
+                clerk_id="user_test",
+                auth_method=auth_method,
+            )
+            spoofed_source = "agent" if auth_method == "human" else "user"
+            expected_source = "agent" if auth_method == "agent" else "user"
+            for command in commands:
+                submitted = {**command, "metadata": {"source": spoofed_source}}
+                payload = DocumentCommandPayload(
+                    command_id=uuid.uuid4(),
+                    base_revision=0,
+                    command=submitted,
+                )
+
+                with self.subTest(auth_method=auth_method, op=command["op"]):
+                    worker_command = article_session_service._worker_command(
+                        payload,
+                        actor,
+                    )
+                    self.assertEqual(
+                        worker_command["metadata"],
+                        {"source": expected_source},
+                    )
+
+    def test_update_figure_validates_new_asset_before_worker_dispatch(self) -> None:
+        article_id = uuid.uuid4()
+        actor = _actor()
+        version = _version(article_id)
+        session = _session(article_id, version.id)
+        before = {"blocks": [{"id": "figure_1"}]}
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=0,
+            command={
+                "op": "update_figure",
+                "block_id": "figure_1",
+                "asset_id": "figures/new.png",
+            },
+        )
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(_article(article_id), version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+            return_value=(session, before),
+        ), patch.object(
+            article_session_service,
+            "_command_record",
+            side_effect=[None, None],
+        ), patch.object(
+            article_session_service,
+            "_lock_current_session",
+            return_value=session,
+        ), patch.object(
+            article_session_service,
+            "_assert_asset_exists",
+        ) as assert_asset, patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+            return_value=before,
+        ) as worker, patch.object(
+            article_session_service.s3,
+            "put_json_at",
+        ):
+            article_session_service.apply_session_command(
+                MagicMock(), article_id, actor, payload
+            )
+
+        assert_asset.assert_called_once_with(article_id, version, "figures/new.png")
+        worker.assert_called_once_with(
+            before,
+            {
+                "op": "update_figure",
+                "block_id": "figure_1",
+                "asset_id": "figures/new.png",
+            },
+        )
+
+    def test_update_figure_preserves_null_asset_without_validation(self) -> None:
+        article_id = uuid.uuid4()
+        actor = _actor()
+        version = _version(article_id)
+        session = _session(article_id, version.id)
+        before = {"blocks": [{"id": "figure_1"}]}
+        payload = DocumentCommandPayload(
+            command_id=uuid.uuid4(),
+            base_revision=0,
+            command={
+                "op": "update_figure",
+                "block_id": "figure_1",
+                "asset_id": None,
+            },
+        )
+
+        with patch.object(
+            article_session_service,
+            "_current_draft_article_and_version",
+            return_value=(_article(article_id), version),
+        ), patch.object(
+            article_session_service,
+            "get_or_create_session",
+            return_value=(session, before),
+        ), patch.object(
+            article_session_service,
+            "_command_record",
+            side_effect=[None, None],
+        ), patch.object(
+            article_session_service,
+            "_lock_current_session",
+            return_value=session,
+        ), patch.object(
+            article_session_service,
+            "_assert_asset_exists",
+        ) as assert_asset, patch.object(
+            article_session_service.butex_worker_client,
+            "apply_document_command",
+            return_value=before,
+        ) as worker, patch.object(
+            article_session_service.s3,
+            "put_json_at",
+        ):
+            article_session_service.apply_session_command(
+                MagicMock(), article_id, actor, payload
+            )
+
+        assert_asset.assert_not_called()
+        self.assertIsNone(worker.call_args.args[1]["asset_id"])
+
+    def test_affected_block_ids_cover_direct_and_inline_targets(self) -> None:
+        document = {
+            "blocks": [
+                {"id": "text_1", "inline_ids": {"field_id": "field_text"}},
+                {
+                    "id": "list_1",
+                    "items": [
+                        {
+                            "id": "item_1",
+                            "inline_ids": {"field_id": "field_item"},
+                            "blocks": [
+                                {
+                                    "id": "nested_table",
+                                    "cell_inline_ids": [
+                                        [{"field_id": "field_nested_cell"}]
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "id": "table_1",
+                    "cell_inline_ids": [[{"field_id": "field_cell"}]],
+                },
+            ]
+        }
+
+        cases = [
+            ({"block_id": "text_1"}, ["text_1"]),
+            ({"list_id": "list_1"}, ["list_1"]),
+            ({"table_id": "table_1"}, ["table_1"]),
+            ({"field_id": "field_text"}, ["text_1"]),
+            ({"field_id": "field_item"}, ["list_1"]),
+            ({"field_id": "field_cell"}, ["table_1"]),
+            ({"field_id": "field_nested_cell"}, ["nested_table"]),
+            ({"op": "update_document_meta"}, []),
+            ({"op": "update_reference", "reference_key": "ref:a"}, []),
+        ]
+        for command, expected in cases:
+            with self.subTest(command=command):
+                self.assertEqual(
+                    article_session_service._affected_block_ids(
+                        document, document, command
+                    ),
+                    expected,
+                )
 
     def test_apply_session_command_replays_duplicate_command_id(self) -> None:
         article_id = uuid.uuid4()

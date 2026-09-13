@@ -1,10 +1,11 @@
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import CompileStatus, SourceType, VersionStatus
+from app.schemas.document2 import DocumentCommand
 
 
 class ArticleCreate(BaseModel):
@@ -91,61 +92,11 @@ class CompilePayload(BaseModel):
         return lowered
 
 
-class DocumentAnchor(BaseModel):
-    after_block_id: str | None = None
-    end: bool | None = None
-
-    @model_validator(mode="after")
-    def _exactly_one_anchor(self) -> "DocumentAnchor":
-        has_after = bool(self.after_block_id)
-        has_end = self.end is True
-        if has_after == has_end:
-            raise ValueError("حدد after_block_id أو end فقط.")
-        return self
-
-
-DocumentTextKind = Literal["section", "subsection", "subsubsection", "paragraph"]
-
-
-class InsertTextBlockCommand(BaseModel):
-    op: Literal["insert_text_block"]
-    kind: DocumentTextKind
-    text: str
-    anchor: DocumentAnchor
-
-
-class ReplaceTextBlockCommand(BaseModel):
-    op: Literal["replace_text_block"]
-    block_id: str
-    text: str
-
-
-class RemoveBlockCommand(BaseModel):
-    op: Literal["remove_block"]
-    block_id: str
-
-
-class InsertFigureCommand(BaseModel):
-    op: Literal["insert_figure"]
-    asset_id: str
-    value: str | None = None
-    caption: str | None = None
-    label: str | None = None
-    anchor: DocumentAnchor
-
-
-DocumentCommand = Annotated[
-    InsertTextBlockCommand
-    | ReplaceTextBlockCommand
-    | RemoveBlockCommand
-    | InsertFigureCommand,
-    Field(discriminator="op"),
-]
-
-
 class DocumentCommandPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     command_id: UUID
-    base_revision: int = Field(ge=0)
+    base_revision: int = Field(ge=0, strict=True)
     command: DocumentCommand
 
 
