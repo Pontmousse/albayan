@@ -1,4 +1,8 @@
-# Al-Bayan FastAPI to BuTeX 7.0.2 Worker Contract
+# Al-Bayan FastAPI to BuTeX Document2 Worker Contract
+
+The 29-command baseline is BuTeX 7.0.2. Session compilation additionally
+requires the next BuTeX patch release that adds the pure `export` operation
+described below.
 
 ## Purpose and ownership
 
@@ -12,7 +16,8 @@ Agent -> mcp_server -> FastAPI -> private BuTeX worker
 `mcp_server` is a thin FastAPI client and never calls the worker directly.
 FastAPI owns users, articles, permissions, sessions, revisions, idempotency,
 assets, storage, save/commit, and submission. The worker is stateless and owns
-only Document2 normalization, outlines, and one-command transformations.
+only Document2 normalization, outlines, validated export, and one-command
+transformations.
 
 ## Railway configuration
 
@@ -47,12 +52,20 @@ Neither variable belongs in Next.js public variables or `mcp_server`.
 - `GET /health` returns `{ "ok": true, "service": "butex-document2" }`.
 - `POST /v1/document2/normalize` accepts `{ "document": Document2Json }`.
 - `POST /v1/document2/outline` accepts `{ "document": Document2Json }`.
+- `POST /v1/document2/export` accepts `{ "document": Document2Json }` and
+  returns `{ "ok": true, "latex": string, "asset_ids": string[] }`.
 - `POST /v1/document2/commands` accepts
   `{ "document": Document2Json, "command": Document2Command }`.
 
 Transform routes require the bearer token; health does not. Bodies are limited
 to 5 MiB and requests time out after 15 seconds. The route selects the action;
 HTTP bodies do not contain an `action` field.
+
+Export uses the same dispatcher as stdin action `export`. It normalizes and
+validates the document, generates the complete two-column XeLaTeX source, and
+returns unique stable figure asset IDs in deterministic order. It performs no
+asset lookup, hashing, compilation, authorization, or persistence. Validation
+failures use `invalid_document` with bounded structural issues.
 
 Normalize legacy or external JSON once when opening a session and persist the
 returned canonical document. Outlines require unique canonical block IDs and
@@ -304,8 +317,34 @@ curl --fail --silent \
   -H 'Content-Type: application/json' \
   -d '{"document":{"node_type":"DocumentObject","blocks":[]}}' \
   "$BUTEX_WORKER_URL/v1/document2/normalize"
+curl --fail --silent \
+  -H "Authorization: Bearer $BUTEX_WORKER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"document":{"node_type":"DocumentObject","blocks":[]}}' \
+  "$BUTEX_WORKER_URL/v1/document2/export"
 ```
 
 Finally, apply a command through the public session endpoint and verify that the
 revision increments once, a command record is persisted, and retrying the same
 `command_id` returns the original result.
+
+## Session compilation
+
+The MCP-safe host workflow uses only FastAPI:
+
+```text
+POST /api/v1/articles/{article_id}/session/compile
+GET  /api/v1/articles/{article_id}/session/compile/status
+GET  /api/v1/articles/{article_id}/session/pdf
+```
+
+The POST has no body. FastAPI saves the exact current session first, calculates
+the canonical document hash, asks the private worker to export trusted LaTeX and
+asset IDs, verifies those assets under the article version, and schedules the
+existing compiler. The save remains committed if export or asset preflight
+fails. Status binds the attempt and successful PDF to a session identity and
+revision. The PDF route rejects pending, failed, legacy-unbound, or stale
+previews; clients never submit LaTeX, asset keys, or hashes.
+
+The existing browser `POST /compile` contract remains available for backwards
+compatibility. It is separate from the session-bound MCP workflow.

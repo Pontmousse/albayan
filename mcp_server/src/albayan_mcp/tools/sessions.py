@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import base64
 import uuid
 from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
+from mcp.types import BlobResourceContents, EmbeddedResource
 from pydantic import BaseModel, ConfigDict, Field
 
-from albayan_mcp.api_client import api_get_object, api_post_object
+from albayan_mcp.api_client import api_get_bytes, api_get_object, api_post_object
 from albayan_mcp.schemas.document2 import DocumentCommand
 
 
@@ -177,6 +179,27 @@ class SessionSaveResult(SessionResultModel):
     last_saved_revision: int
 
 
+class SessionCompileErrorResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    message: str
+
+
+class SessionCompileStatusResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["pending", "processing", "success", "failed"]
+    compile_id: uuid.UUID | None = None
+    requested_revision: int | None = Field(default=None, ge=0)
+    compiled_revision: int | None = Field(default=None, ge=0)
+    current_revision: int = Field(ge=0)
+    last_saved_revision: int = Field(ge=0)
+    pdf_ready: bool
+    stale: bool
+    error: SessionCompileErrorResult | None = None
+
+
 def register_session_tools(server: MCPServer) -> None:
     @server.tool(
         name="get_session_outline",
@@ -251,3 +274,65 @@ def register_session_tools(server: MCPServer) -> None:
             f"/api/v1/articles/{article_id}/session/save"
         )
         return SessionSaveResult(**data)
+
+    @server.tool(
+        name="compile_session",
+        title="Compile the current article session",
+        description=(
+            "Save the exact current editing session to the draft and start trusted PDF "
+            "compilation through FastAPI. Invoke only when the user explicitly asks to "
+            "compile or preview. Do not supply or generate LaTeX, asset keys, or hashes. "
+            "This operation persists the session even if export validation later fails."
+        ),
+    )
+    async def compile_session(article_id: ArticleId) -> SessionCompileStatusResult:
+        data = await api_post_object(
+            f"/api/v1/articles/{article_id}/session/compile"
+        )
+        return SessionCompileStatusResult(**data)
+
+    @server.tool(
+        name="get_compile_status",
+        title="Get article session compile status",
+        description=(
+            "Inspect the latest session compilation. Poll while status is processing. "
+            "If it fails, use the safe error to correct the article and compile again. "
+            "A PDF can be requested only when pdf_ready is true and stale is false."
+        ),
+    )
+    async def get_compile_status(article_id: ArticleId) -> SessionCompileStatusResult:
+        data = await api_get_object(
+            f"/api/v1/articles/{article_id}/session/compile/status"
+        )
+        return SessionCompileStatusResult(**data)
+
+    @server.tool(
+        name="get_article_pdf",
+        title="Retrieve the current compiled article PDF",
+        description=(
+            "Retrieve and surface the PDF for the exact current session revision. Call "
+            "get_compile_status first and use this only when pdf_ready is true. FastAPI "
+            "blocks stale, failed, pending, processing, and legacy unbound previews."
+        ),
+    )
+    async def get_article_pdf(article_id: ArticleId) -> EmbeddedResource:
+        response = await api_get_bytes(
+            f"/api/v1/articles/{article_id}/session/pdf"
+        )
+        if response.content_type != "application/pdf":
+            raise RuntimeError("استجابة ملفّ المعاينة ليست PDF صالحة.")
+        compile_id = response.headers.get("x-albayan-compile-id")
+        revision = response.headers.get("x-albayan-session-revision")
+        if not compile_id or not revision:
+            raise RuntimeError("استجابة ملفّ المعاينة لا تتضمن هوية التجميع.")
+        return EmbeddedResource(
+            resource=BlobResourceContents(
+                uri=f"albayan://articles/{article_id}/session/compiled.pdf",
+                mime_type="application/pdf",
+                blob=base64.b64encode(response.content).decode("ascii"),
+            ),
+            meta={
+                "compile_id": compile_id,
+                "session_revision": revision,
+            },
+        )

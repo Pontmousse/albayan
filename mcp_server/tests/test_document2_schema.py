@@ -98,6 +98,9 @@ class Document2McpSchemaTests(unittest.TestCase):
                 "get_session_blocks",
                 "apply_session_command",
                 "save_session",
+                "compile_session",
+                "get_compile_status",
+                "get_article_pdf",
             },
         )
         edit_schema = published["apply_session_command"].input_schema
@@ -106,7 +109,10 @@ class Document2McpSchemaTests(unittest.TestCase):
         self.assertEqual(len(command_schema["oneOf"]), 29)
         blocks_schema = published["get_session_blocks"].output_schema
         self.assertIn("DocumentInlineTokenIdentityResult", blocks_schema["$defs"])
-        for tool in published.values():
+        for name, tool in published.items():
+            if name == "get_article_pdf":
+                self.assertIsNone(tool.output_schema)
+                continue
             self.assertIsNotNone(tool.output_schema)
 
     def test_mcp_schema_matches_backend_authoritative_schema(self) -> None:

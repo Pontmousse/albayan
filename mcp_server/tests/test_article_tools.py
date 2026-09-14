@@ -55,6 +55,9 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "get_session_blocks",
                 "apply_session_command",
                 "save_session",
+                "compile_session",
+                "get_compile_status",
+                "get_article_pdf",
             },
         )
 

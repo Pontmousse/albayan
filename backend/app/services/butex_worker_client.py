@@ -50,6 +50,25 @@ def _worker_error(response: httpx.Response) -> HTTPException:
         code = error.get("code")
         message = error.get("message")
         if isinstance(code, str) and isinstance(message, str):
+            detail: dict[str, Any] = {
+                "code": code[:100],
+                "message": message[:2000],
+            }
+            raw_issues = error.get("issues")
+            if isinstance(raw_issues, list):
+                issues: list[dict[str, str]] = []
+                for raw_issue in raw_issues[:100]:
+                    if not isinstance(raw_issue, dict):
+                        continue
+                    issue = {
+                        key: value[:500]
+                        for key in ("code", "path", "blockId", "tokenId")
+                        if isinstance((value := raw_issue.get(key)), str)
+                    }
+                    if "code" in issue:
+                        issues.append(issue)
+                if issues:
+                    detail["issues"] = issues
             status = (
                 response.status_code
                 if response.status_code in _EXPECTED_WORKER_STATUSES
@@ -57,7 +76,7 @@ def _worker_error(response: httpx.Response) -> HTTPException:
             )
             return HTTPException(
                 status_code=status,
-                detail={"code": code, "message": message},
+                detail=detail,
             )
 
     return _invalid_response()
@@ -81,6 +100,23 @@ def _require_success_outline(payload: Any) -> list[dict[str, Any]]:
     ):
         raise _invalid_response()
     return outline
+
+
+def _require_success_export(payload: Any) -> tuple[str, list[str]]:
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise _invalid_response()
+    latex = payload.get("latex")
+    asset_ids = payload.get("asset_ids")
+    if not isinstance(latex, str) or not latex:
+        raise _invalid_response()
+    if not isinstance(asset_ids, list) or not all(
+        isinstance(asset_id, str) and bool(asset_id.strip())
+        for asset_id in asset_ids
+    ):
+        raise _invalid_response()
+    if len(set(asset_ids)) != len(asset_ids):
+        raise _invalid_response()
+    return latex, asset_ids
 
 
 def _post(path: str, payload: dict[str, Any]) -> Any:
@@ -131,6 +167,12 @@ def normalize_document(document: dict[str, Any]) -> dict[str, Any]:
 def outline_document(document: dict[str, Any]) -> list[dict[str, Any]]:
     return _require_success_outline(
         _post("/v1/document2/outline", {"document": document})
+    )
+
+
+def export_document(document: dict[str, Any]) -> tuple[str, list[str]]:
+    return _require_success_export(
+        _post("/v1/document2/export", {"document": document})
     )
 
 

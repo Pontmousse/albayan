@@ -134,6 +134,26 @@ def get_bytes(
         raise _FAILED from exc
 
 
+def assert_exists(storage_prefix: str, relative_key: str) -> None:
+    """يتحقق من وجود كائن دون تحميل محتواه."""
+    client = _client()
+    try:
+        client.head_object(
+            Bucket=settings.s3_bucket,
+            Key=_object_key(storage_prefix, relative_key),
+        )
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in (
+            "NoSuchKey",
+            "NotFound",
+            "404",
+        ):
+            raise _NOT_FOUND from exc
+        raise _FAILED from exc
+    except BotoCoreError as exc:
+        raise _FAILED from exc
+
+
 def get_bytes_key(key: str) -> tuple[bytes, str | None]:
     """يقرأ بايتات من مفتاح S3 كامل — يعيد (body, content_type)."""
     client = _client()

@@ -109,6 +109,27 @@ class CompilePayload(BaseModel):
         return lowered
 
 
+class SessionCompileError(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str
+    message: str
+
+
+class SessionCompileStatusRead(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: CompileStatus
+    compile_id: UUID | None = None
+    requested_revision: int | None = None
+    compiled_revision: int | None = None
+    current_revision: int
+    last_saved_revision: int
+    pdf_ready: bool
+    stale: bool
+    error: SessionCompileError | None = None
+
+
 class DocumentCommandPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

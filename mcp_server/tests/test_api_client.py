@@ -230,6 +230,73 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(request.await_args.kwargs["json"], payload)
 
+    async def test_binary_get_forwards_bearer_and_preserves_identity_headers(self) -> None:
+        response = self._response(None)
+        response.content = b"%PDF"
+        response.headers = {
+            "content-type": "application/pdf",
+            "x-albayan-compile-id": "compile-1",
+        }
+        async_client, request = self._async_client(response)
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-token"),
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            result = await api_client.api_get_bytes("/article/pdf")
+
+        self.assertEqual(result.content, b"%PDF")
+        self.assertEqual(result.content_type, "application/pdf")
+        self.assertEqual(result.headers["x-albayan-compile-id"], "compile-1")
+        self.assertEqual(
+            request.await_args.kwargs["headers"]["Authorization"],
+            "Bearer caller-token",
+        )
+
+    async def test_document_issues_are_allow_listed_in_tool_error(self) -> None:
+        response = self._response(
+            {
+                "detail": {
+                    "code": "invalid_document",
+                    "message": "تعذر تصدير المستند.",
+                    "issues": [
+                        {
+                            "code": "empty_image",
+                            "path": "blocks[0]",
+                            "blockId": "block-1",
+                            "secret": "not-forwarded",
+                        }
+                    ],
+                }
+            },
+            status_code=422,
+        )
+        async_client, _ = self._async_client(response)
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-token"),
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            with self.assertRaises(api_client.BackendApiError) as ctx:
+                await api_client.api_request("POST", "/compile")
+
+        payload = json.loads(str(ctx.exception))
+        self.assertEqual(
+            payload["issues"],
+            [
+                {
+                    "code": "empty_image",
+                    "path": "blocks[0]",
+                    "blockId": "block-1",
+                }
+            ],
+        )
+        self.assertNotIn("not-forwarded", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

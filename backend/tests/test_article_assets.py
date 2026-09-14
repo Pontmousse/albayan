@@ -42,6 +42,19 @@ def test_delete_bytes_scopes_object_to_version_prefix() -> None:
     )
 
 
+def test_assert_exists_uses_head_without_loading_asset() -> None:
+    client = MagicMock()
+    with patch.object(s3, "_client", return_value=client), patch.object(
+        s3.settings, "s3_bucket", "bucket"
+    ):
+        s3.assert_exists("articles/x/versions/v1/", "assets/photo.jpg")
+
+    client.head_object.assert_called_once_with(
+        Bucket="bucket",
+        Key="articles/x/versions/v1/assets/photo.jpg",
+    )
+
+
 def test_delete_bytes_rejects_asset_referenced_in_nested_document() -> None:
     document = {
         "blocks": [

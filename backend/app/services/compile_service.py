@@ -1,4 +1,4 @@
-"""تجميع PDF عبر المترجم المشترك — الـ LaTeX يأتي من الواجهة كـ string."""
+"""تجميع PDF عبر المترجم المشترك من الواجهة القديمة أو تصدير جلسة موثوق."""
 
 from __future__ import annotations
 
@@ -48,6 +48,10 @@ _STALE_PREVIEW = HTTPException(
     status_code=409,
     detail="يجب إنشاء ملفّ معاينة حديث بعد آخر تعديل قبل إرسال المقال.",
 )
+
+
+def compiler_is_configured() -> bool:
+    return bool((settings.compiler_url or "").strip())
 
 
 def hash_document(document: object) -> str:
@@ -159,6 +163,42 @@ def _is_active(db: Session, version: ArticleVersion, compile_id: uuid.UUID) -> b
     return version.active_compile_id == compile_id
 
 
+def _set_safe_compile_error(
+    version: ArticleVersion,
+    *,
+    code: str,
+    message: str,
+) -> None:
+    version.compile_error_code = code[:100]
+    version.compile_error_message = message[:2000]
+
+
+def record_compile_failure(
+    db: Session,
+    version: ArticleVersion,
+    compile_id: uuid.UUID,
+    *,
+    code: str,
+    message: str,
+) -> None:
+    if _is_active(db, version, compile_id):
+        version.compile_status = CompileStatus.FAILED
+        _set_safe_compile_error(version, code=code, message=message)
+        db.commit()
+
+
+def invalidate_compile(version: ArticleVersion) -> None:
+    version.compile_status = CompileStatus.PENDING
+    version.active_compile_id = None
+    version.active_compile_session_id = None
+    version.active_compile_session_revision = None
+    version.compiled_document_hash = None
+    version.compiled_session_id = None
+    version.compiled_session_revision = None
+    version.compile_error_code = None
+    version.compile_error_message = None
+
+
 def compile_version(
     db: Session,
     version_id: uuid.UUID,
@@ -166,6 +206,8 @@ def compile_version(
     latex: str,
     asset_keys: list[str],
     document_hash: str,
+    session_id: uuid.UUID | None = None,
+    session_revision: int | None = None,
 ) -> None:
     version = db.get(ArticleVersion, version_id)
     if version is None:
@@ -176,9 +218,14 @@ def compile_version(
         logger.info("skip stale compile %s for version %s", compile_id, version_id)
         return
 
-    if not (settings.compiler_url or "").strip():
+    if not compiler_is_configured():
         if _is_active(db, version, compile_id):
             version.compile_status = CompileStatus.FAILED
+            _set_safe_compile_error(
+                version,
+                code="compiler_unavailable",
+                message="خدمة إنشاء ملفّ المعاينة غير متاحة حالياً.",
+            )
             db.commit()
             _store_log(version.storage_prefix, "COMPILER_URL غير مُعدّ.")
         return
@@ -217,18 +264,32 @@ def compile_version(
         )
         version.compile_status = CompileStatus.SUCCESS
         version.compiled_document_hash = document_hash
+        version.compiled_session_id = session_id
+        version.compiled_session_revision = session_revision
+        version.compile_error_code = None
+        version.compile_error_message = None
         db.commit()
     except HTTPException as exc:
         detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
         logger.warning("compile failed for %s: %s", version_id, detail)
         if _is_active(db, version, compile_id):
             version.compile_status = CompileStatus.FAILED
+            _set_safe_compile_error(
+                version,
+                code="compile_failed",
+                message="تعذّر إنشاء ملفّ المعاينة. راجع المقال ثم حاول مجدداً.",
+            )
             db.commit()
             _store_log(version.storage_prefix, detail)
     except Exception:
         logger.exception("unexpected compile failure for %s", version_id)
         if _is_active(db, version, compile_id):
             version.compile_status = CompileStatus.FAILED
+            _set_safe_compile_error(
+                version,
+                code="compile_failed",
+                message="تعذّر إنشاء ملفّ المعاينة. حاول مجدداً.",
+            )
             db.commit()
             _store_log(version.storage_prefix, "خطأ غير متوقع أثناء التجميع.")
 
@@ -239,12 +300,21 @@ def schedule_compile(
     latex: str,
     asset_keys: list[str],
     document_hash: str,
+    session_id: uuid.UUID | None = None,
+    session_revision: int | None = None,
 ) -> None:
     """يُستدعى من BackgroundTasks — جلسة DB مستقلة؛ latex في الذاكرة فقط."""
     db = SessionLocal()
     try:
         compile_version(
-            db, version_id, compile_id, latex, asset_keys, document_hash
+            db,
+            version_id,
+            compile_id,
+            latex,
+            asset_keys,
+            document_hash,
+            session_id,
+            session_revision,
         )
     finally:
         db.close()
@@ -256,7 +326,7 @@ def begin_compile(
     document_hash: str,
 ) -> tuple[ArticleVersion, uuid.UUID]:
     """يضع processing + active_compile_id بعد التحقق من hash المستند."""
-    if not (settings.compiler_url or "").strip():
+    if not compiler_is_configured():
         raise _COMPILER_UNAVAILABLE
 
     db.refresh(version)
@@ -271,7 +341,48 @@ def begin_compile(
 
     compile_id = uuid.uuid4()
     version.active_compile_id = compile_id
+    version.active_compile_session_id = None
+    version.active_compile_session_revision = None
     version.compile_status = CompileStatus.PROCESSING
+    version.compile_error_code = None
+    version.compile_error_message = None
+    db.commit()
+    db.refresh(version)
+    return version, compile_id
+
+
+def begin_session_compile(
+    db: Session,
+    version: ArticleVersion,
+    document_hash: str,
+    session_id: uuid.UUID,
+    session_revision: int,
+) -> tuple[ArticleVersion, uuid.UUID]:
+    locked_version = db.get(
+        ArticleVersion,
+        version.id,
+        with_for_update=True,
+        populate_existing=True,
+    )
+    if locked_version is None:
+        raise HTTPException(status_code=404, detail="إصدار المقال غير موجود.")
+    version = locked_version
+    if version.compile_status == CompileStatus.PROCESSING:
+        raise _ALREADY_PROCESSING
+
+    current = current_document_hash(version.storage_prefix)
+    if current is None:
+        raise _NO_DOCUMENT
+    if current != document_hash:
+        raise _HASH_MISMATCH
+
+    compile_id = uuid.uuid4()
+    version.active_compile_id = compile_id
+    version.active_compile_session_id = session_id
+    version.active_compile_session_revision = session_revision
+    version.compile_status = CompileStatus.PROCESSING
+    version.compile_error_code = None
+    version.compile_error_message = None
     db.commit()
     db.refresh(version)
     return version, compile_id

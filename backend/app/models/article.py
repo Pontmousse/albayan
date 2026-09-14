@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -73,6 +74,14 @@ class ArticleVersion(Base):
     __tablename__ = "article_versions"
     __table_args__ = (
         UniqueConstraint("article_id", "version_number", name="uq_article_versions_article_version"),
+        CheckConstraint(
+            "active_compile_session_revision IS NULL OR active_compile_session_revision >= 0",
+            name="ck_article_versions_active_compile_session_revision_nonnegative",
+        ),
+        CheckConstraint(
+            "compiled_session_revision IS NULL OR compiled_session_revision >= 0",
+            name="ck_article_versions_compiled_session_revision_nonnegative",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -97,7 +106,13 @@ class ArticleVersion(Base):
         default=CompileStatus.PENDING,
     )
     active_compile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    active_compile_session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    active_compile_session_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
     compiled_document_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    compiled_session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    compiled_session_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    compile_error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    compile_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     change_summary: Mapped[str | None] = mapped_column(Text)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

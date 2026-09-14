@@ -148,6 +148,8 @@ def _safe_error(error: BaseException | None, result: Any = None) -> str:
         }
         if error.current_revision is not None:
             payload["current_revision"] = error.current_revision
+        if error.issues:
+            payload["issues"] = error.issues
         message = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     elif error is not None:
         message = f"MCP tool call failed ({type(error).__name__})."

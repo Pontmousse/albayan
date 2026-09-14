@@ -11,6 +11,8 @@ import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
+from fastapi import HTTPException
+
 from app.services import butex_worker_client
 
 
@@ -87,6 +89,34 @@ class BuTeXRealWorkerIntegrationTests(unittest.TestCase):
 
     def _apply(self, document: dict, command: dict) -> dict:
         return butex_worker_client.apply_document_command(document, command)
+
+    def test_fastapi_client_exports_with_capable_installed_worker(self) -> None:
+        document = {
+            "node_type": "DocumentObject",
+            "blocks": [
+                {
+                    "command": "\\includegraphics",
+                    "value": "assets/example.png",
+                    "asset_id": "assets/example.png",
+                }
+            ],
+        }
+        with patch.object(
+            butex_worker_client.settings, "butex_worker_url", self.worker_url
+        ), patch.object(
+            butex_worker_client.settings, "butex_worker_token", self.token
+        ):
+            try:
+                latex, asset_ids = butex_worker_client.export_document(document)
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    self.skipTest(
+                        "Installed BuTeX worker predates the Document2 export operation"
+                    )
+                raise
+
+        self.assertIn("\\includegraphics", latex)
+        self.assertEqual(asset_ids, ["assets/example.png"])
 
     def test_fastapi_client_executes_each_command_family(self) -> None:
         with patch.object(

@@ -7,10 +7,12 @@ from unittest.mock import AsyncMock, patch
 from pydantic import TypeAdapter
 
 from albayan_mcp.api_client import BackendApiError
+from albayan_mcp.api_client import BinaryApiResponse
 from albayan_mcp.schemas.document2 import DocumentCommand
 from albayan_mcp.tools.sessions import (
     SessionBlocksResult,
     SessionCommandResult,
+    SessionCompileStatusResult,
     SessionOutlineResult,
     SessionSaveResult,
     register_session_tools,
@@ -24,7 +26,7 @@ class SessionToolTests(unittest.IsolatedAsyncioTestCase):
         register_session_tools(self.server)
         self.article_id = uuid.uuid4()
 
-    def test_registers_four_discoverable_tools_with_descriptions(self) -> None:
+    def test_registers_session_tools_with_descriptions(self) -> None:
         self.assertEqual(
             set(self.server.tools),
             {
@@ -32,6 +34,9 @@ class SessionToolTests(unittest.IsolatedAsyncioTestCase):
                 "get_session_blocks",
                 "apply_session_command",
                 "save_session",
+                "compile_session",
+                "get_compile_status",
+                "get_article_pdf",
             },
         )
         for name in self.server.tools:
@@ -214,6 +219,78 @@ class SessionToolTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIsInstance(result, SessionSaveResult)
         self.assertEqual(result.model_dump(), response)
+
+    async def test_compile_posts_without_client_compilation_inputs(self) -> None:
+        response = {
+            "status": "processing",
+            "compile_id": str(uuid.uuid4()),
+            "requested_revision": 7,
+            "compiled_revision": None,
+            "current_revision": 7,
+            "last_saved_revision": 7,
+            "pdf_ready": False,
+            "stale": False,
+            "error": None,
+        }
+        with patch(
+            "albayan_mcp.tools.sessions.api_post_object",
+            new=AsyncMock(return_value=response),
+        ) as post:
+            result = await self.server.tools["compile_session"](self.article_id)
+
+        post.assert_awaited_once_with(
+            f"/api/v1/articles/{self.article_id}/session/compile"
+        )
+        self.assertIsInstance(result, SessionCompileStatusResult)
+        self.assertNotIn("latex", post.await_args.kwargs)
+
+    async def test_compile_status_is_typed(self) -> None:
+        response = {
+            "status": "success",
+            "compile_id": str(uuid.uuid4()),
+            "requested_revision": 7,
+            "compiled_revision": 7,
+            "current_revision": 7,
+            "last_saved_revision": 7,
+            "pdf_ready": True,
+            "stale": False,
+            "error": None,
+        }
+        with patch(
+            "albayan_mcp.tools.sessions.api_get_object",
+            new=AsyncMock(return_value=response),
+        ) as get:
+            result = await self.server.tools["get_compile_status"](self.article_id)
+
+        get.assert_awaited_once_with(
+            f"/api/v1/articles/{self.article_id}/session/compile/status"
+        )
+        self.assertTrue(result.pdf_ready)
+        self.assertEqual(result.compiled_revision, 7)
+
+    async def test_pdf_is_returned_as_embedded_binary_resource(self) -> None:
+        compile_id = str(uuid.uuid4())
+        response = BinaryApiResponse(
+            content=b"%PDF-test",
+            content_type="application/pdf",
+            headers={
+                "x-albayan-compile-id": compile_id,
+                "x-albayan-session-revision": "7",
+            },
+        )
+        with patch(
+            "albayan_mcp.tools.sessions.api_get_bytes",
+            new=AsyncMock(return_value=response),
+        ) as get:
+            result = await self.server.tools["get_article_pdf"](self.article_id)
+
+        get.assert_awaited_once_with(
+            f"/api/v1/articles/{self.article_id}/session/pdf"
+        )
+        self.assertEqual(result.resource.mime_type, "application/pdf")
+        self.assertEqual(result.resource.blob, "JVBERi10ZXN0")
+        self.assertEqual(result.meta["compile_id"], compile_id)
+        self.assertEqual(result.meta["session_revision"], "7")
 
 
 if __name__ == "__main__":

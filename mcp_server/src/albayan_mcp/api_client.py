@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -26,11 +27,13 @@ class BackendApiError(ToolError):
         code: str,
         message: str,
         current_revision: int | None = None,
+        issues: list[dict[str, str]] | None = None,
     ) -> None:
         self.status = status
         self.code = code
         self.message = message
         self.current_revision = current_revision
+        self.issues = issues or []
         payload: dict[str, Any] = {
             "status": status,
             "code": code,
@@ -38,6 +41,8 @@ class BackendApiError(ToolError):
         }
         if current_revision is not None:
             payload["current_revision"] = current_revision
+        if self.issues:
+            payload["issues"] = self.issues
         super().__init__(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
 
 
@@ -55,6 +60,7 @@ def _backend_error(response: httpx.Response) -> BackendApiError:
         "تعذر إكمال الطلب لدى الخادم الخلفي.",
     )
     current_revision: int | None = None
+    issues: list[dict[str, str]] = []
 
     try:
         body = response.json()
@@ -69,8 +75,20 @@ def _backend_error(response: httpx.Response) -> BackendApiError:
         value = detail.get("current_revision")
         if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
             current_revision = value
+        raw_issues = detail.get("issues")
+        if isinstance(raw_issues, list):
+            for raw_issue in raw_issues[:100]:
+                if not isinstance(raw_issue, dict):
+                    continue
+                issue = {
+                    key: value[:500]
+                    for key in ("code", "path", "blockId", "tokenId")
+                    if isinstance((value := raw_issue.get(key)), str)
+                }
+                if "code" in issue:
+                    issues.append(issue)
     elif isinstance(detail, list):
-        issues: list[str] = []
+        validation_summaries: list[str] = []
         for item in detail[:5]:
             if not isinstance(item, dict):
                 continue
@@ -87,10 +105,14 @@ def _backend_error(response: httpx.Response) -> BackendApiError:
             if not isinstance(issue_message, str) or not issue_message.strip():
                 continue
             summary = issue_message.strip()[:160]
-            issues.append(f"{location}: {summary}" if location else summary)
+            validation_summaries.append(
+                f"{location}: {summary}" if location else summary
+            )
         code = "validation_error"
-        if issues:
-            message = "بيانات الطلب غير صالحة: " + "; ".join(issues)
+        if validation_summaries:
+            message = "بيانات الطلب غير صالحة: " + "; ".join(
+                validation_summaries
+            )
     elif isinstance(detail, str) and detail.strip():
         message = detail.strip()
 
@@ -99,7 +121,15 @@ def _backend_error(response: httpx.Response) -> BackendApiError:
         code=code,
         message=message,
         current_revision=current_revision,
+        issues=issues,
     )
+
+
+@dataclass(frozen=True)
+class BinaryApiResponse:
+    content: bytes
+    content_type: str
+    headers: dict[str, str]
 
 
 def _safe_jwt_claims(token: str) -> dict[str, Any] | None:
@@ -201,6 +231,27 @@ async def api_request(
             return response.json()
         except ValueError as exc:
             raise RuntimeError("استجابة API ليست JSON صالحة.") from exc
+
+
+async def api_get_bytes(path: str, *, timeout: float = 30.0) -> BinaryApiResponse:
+    bearer = get_backend_bearer_token()
+    base = settings.albayan_api_url.rstrip("/")
+    async with httpx.AsyncClient(base_url=base, timeout=timeout) as client:
+        response = await client.request(
+            "GET",
+            path,
+            headers={"Authorization": f"Bearer {bearer}"},
+        )
+        if response.status_code >= 400:
+            raise _backend_error(response)
+        content_type = response.headers.get("content-type", "").split(";", 1)[0]
+        if not content_type:
+            raise RuntimeError("استجابة الملف لا تتضمن نوع محتوى صالحاً.")
+        return BinaryApiResponse(
+            content=response.content,
+            content_type=content_type,
+            headers={key.lower(): value for key, value in response.headers.items()},
+        )
 
 
 def _expect_object(data: Any) -> dict[str, Any]:

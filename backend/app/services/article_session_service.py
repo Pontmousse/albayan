@@ -35,6 +35,13 @@ _COMMAND_ID_CONFLICT = HTTPException(
     status_code=409,
     detail="استُخدم command_id نفسه مع طلب مختلف.",
 )
+_COMPILE_REVISION_CONFLICT = HTTPException(
+    status_code=409,
+    detail={
+        "code": "revision_conflict",
+        "message": "تغيّرت جلسة التحرير أثناء إعداد المعاينة؛ أعد المحاولة.",
+    },
+)
 
 
 def session_storage_prefix(article_id: uuid.UUID | str) -> str:
@@ -624,9 +631,7 @@ def save_session_to_draft(
     s3.put_json(version.storage_prefix, document)
     document_hash = compile_service.hash_document(document)
     if version.compiled_document_hash != document_hash:
-        version.compile_status = CompileStatus.PENDING
-        version.active_compile_id = None
-        version.compiled_document_hash = None
+        compile_service.invalidate_compile(version)
 
     locked.last_saved_revision = locked.revision
     locked.updated_by = actor.user_id
@@ -641,6 +646,205 @@ def save_session_to_draft(
         "revision": locked.revision,
         "last_saved_revision": locked.last_saved_revision,
     }
+
+
+def _compile_failure_detail(exc: HTTPException) -> tuple[str, str]:
+    detail = exc.detail
+    if isinstance(detail, dict):
+        code = detail.get("code")
+        message = detail.get("message")
+        if isinstance(code, str) and isinstance(message, str):
+            return code, message
+    return "compile_preflight_failed", "تعذّر إعداد المقال لإنشاء ملفّ المعاينة."
+
+
+def _session_compile_status(
+    version: ArticleVersion,
+    session: ArticleSession,
+) -> dict[str, Any]:
+    attempt_bound = (
+        version.active_compile_session_id is not None
+        and version.active_compile_session_revision is not None
+    )
+    result_bound = (
+        version.compiled_session_id is not None
+        and version.compiled_session_revision is not None
+    )
+    stale = (
+        attempt_bound
+        and (
+            version.active_compile_session_id != session.id
+            or version.active_compile_session_revision != session.revision
+        )
+    ) or (
+        result_bound
+        and (
+            version.compiled_session_id != session.id
+            or version.compiled_session_revision != session.revision
+        )
+    )
+    pdf_ready = (
+        version.compile_status == CompileStatus.SUCCESS
+        and result_bound
+        and not stale
+    )
+    error = None
+    if version.compile_error_code and version.compile_error_message:
+        error = {
+            "code": version.compile_error_code,
+            "message": version.compile_error_message,
+        }
+    return {
+        "status": version.compile_status,
+        "compile_id": version.active_compile_id,
+        "requested_revision": version.active_compile_session_revision,
+        "compiled_revision": version.compiled_session_revision,
+        "current_revision": session.revision,
+        "last_saved_revision": session.last_saved_revision,
+        "pdf_ready": pdf_ready,
+        "stale": stale,
+        "error": error,
+    }
+
+
+def session_compile_status(
+    db: Session,
+    article_id: uuid.UUID,
+    actor: Actor,
+) -> dict[str, Any]:
+    _, version = _current_draft_article_and_version(db, article_id, actor)
+    session, _ = get_or_create_session(db, article_id, actor)
+    return _session_compile_status(version, session)
+
+
+def lock_session_pdf_context(
+    db: Session,
+    article_id: uuid.UUID,
+    actor: Actor,
+) -> tuple[Article, ArticleVersion, dict[str, Any]]:
+    _current_draft_article_and_version(db, article_id, actor)
+    session, _ = get_or_create_session(db, article_id, actor)
+    article, version = _lock_metadata_rows(db, article_id)
+    locked = _lock_current_session(db, article_id)
+    if (
+        not locked
+        or locked.id != session.id
+        or locked.article_version_id != version.id
+    ):
+        raise _COMPILE_REVISION_CONFLICT
+    return article, version, _session_compile_status(version, locked)
+
+
+def prepare_session_compile(
+    db: Session,
+    article_id: uuid.UUID,
+    actor: Actor,
+) -> tuple[dict[str, Any], tuple[Any, ...]]:
+    """Save the current session, preflight it, and return background-task args."""
+    _, version = _current_draft_article_and_version(db, article_id, actor)
+    if version.compile_status == CompileStatus.PROCESSING:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "compile_in_progress",
+                "message": "إنشاء ملفّ المعاينة قيد التنفيذ بالفعل.",
+            },
+        )
+
+    session, document = get_or_create_session(db, article_id, actor)
+    locked = _lock_current_session(db, article_id)
+    if not locked or locked.id != session.id or locked.revision != session.revision:
+        raise _COMPILE_REVISION_CONFLICT
+
+    # Compilation is explicitly a save-and-compile operation. The save remains
+    # committed even when the later export or asset preflight fails.
+    s3.put_json(version.storage_prefix, document)
+    document_hash = compile_service.hash_document(document)
+    if version.compiled_document_hash != document_hash:
+        compile_service.invalidate_compile(version)
+    locked.last_saved_revision = locked.revision
+    locked.updated_by = actor.user_id
+    locked.updated_at = datetime.now(UTC)
+    db.commit()
+    db.refresh(locked)
+    _write_meta(article_id, locked)
+
+    version, compile_id = compile_service.begin_session_compile(
+        db,
+        version,
+        document_hash,
+        locked.id,
+        locked.revision,
+    )
+    if not compile_service.compiler_is_configured():
+        message = "خدمة إنشاء ملفّ المعاينة غير متاحة حالياً."
+        compile_service.record_compile_failure(
+            db,
+            version,
+            compile_id,
+            code="compiler_unavailable",
+            message=message,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "compiler_unavailable", "message": message},
+        )
+    try:
+        latex, asset_ids = butex_worker_client.export_document(document)
+        try:
+            asset_ids = compile_service.validate_asset_keys(asset_ids)
+        except HTTPException as exc:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "code": "invalid_asset",
+                    "message": "يتضمن المقال مرجع صورة غير صالح.",
+                },
+            ) from exc
+        for asset_id in asset_ids:
+            try:
+                s3.assert_exists(version.storage_prefix, asset_id)
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    raise HTTPException(
+                        status_code=422,
+                        detail={
+                            "code": "asset_not_found",
+                            "message": "إحدى صور المقال المطلوبة غير موجودة.",
+                        },
+                    ) from exc
+                raise
+
+        current = _lock_current_session(db, article_id)
+        if (
+            not current
+            or current.id != locked.id
+            or current.revision != locked.revision
+        ):
+            raise _COMPILE_REVISION_CONFLICT
+        db.commit()
+    except HTTPException as exc:
+        code, message = _compile_failure_detail(exc)
+        compile_service.record_compile_failure(
+            db,
+            version,
+            compile_id,
+            code=code,
+            message=message,
+        )
+        raise
+
+    status = session_compile_status(db, article_id, actor)
+    task_args = (
+        version.id,
+        compile_id,
+        latex,
+        asset_ids,
+        document_hash,
+        locked.id,
+        locked.revision,
+    )
+    return status, task_args
 
 
 def discard_session(db: Session, article_id: uuid.UUID, actor: Actor) -> None:

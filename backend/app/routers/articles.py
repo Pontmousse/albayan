@@ -12,7 +12,7 @@ from app.models.article import Article
 from app.models.enums import CompileStatus
 
 from app.core import s3
-from app.core.actor import ActorDep
+from app.core.actor import ActorDep, current_actor_user
 from app.core.clerk import AuthDep, DbDep
 from app.core.config import settings
 from app.core.deps import current_user
@@ -32,6 +32,7 @@ from app.schemas.article import (
     DocumentSessionSaveResult,
     DocumentSessionUpdatePayload,
     DocumentPayload,
+    SessionCompileStatusRead,
     VersionRead,
 )
 from app.services import article_service, article_session_service, compile_service
@@ -169,9 +170,7 @@ def save_document(
     s3.put_json(version.storage_prefix, payload.document)
     document_hash = compile_service.hash_document(payload.document)
     if version.compiled_document_hash != document_hash:
-        version.compile_status = CompileStatus.PENDING
-        version.active_compile_id = None
-        version.compiled_document_hash = None
+        compile_service.invalidate_compile(version)
     # نلمس updated_at ليعكس «آخر تحديث» في القائمة
     db.execute(
         update(Article).where(Article.id == article.id).values(updated_at=func.now())
@@ -245,6 +244,95 @@ def save_article_session(
     db: DbDep,
 ) -> dict:
     return article_session_service.save_session_to_draft(db, article_id, actor)
+
+
+@router.post(
+    "/{article_id}/session/compile",
+    response_model=SessionCompileStatusRead,
+    status_code=202,
+)
+def compile_article_session(
+    article_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    """يحفظ جلسة التحرير الحالية ثم يبدأ إنشاء ملفّ معاينة موثوق."""
+    status, task_args = article_session_service.prepare_session_compile(
+        db,
+        article_id,
+        actor,
+    )
+    background_tasks.add_task(compile_service.schedule_compile, *task_args)
+    return status
+
+
+@router.get(
+    "/{article_id}/session/compile/status",
+    response_model=SessionCompileStatusRead,
+)
+def get_article_session_compile_status(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> dict:
+    return article_session_service.session_compile_status(db, article_id, actor)
+
+
+@router.get("/{article_id}/session/pdf")
+def get_article_session_pdf(
+    article_id: uuid.UUID,
+    actor: ActorDep,
+    db: DbDep,
+) -> Response:
+    article, version, status = article_session_service.lock_session_pdf_context(
+        db,
+        article_id,
+        actor,
+    )
+    if status["stale"]:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "stale_compile",
+                "message": "تغيّرت جلسة التحرير بعد إنشاء ملفّ المعاينة. أعد التجميع.",
+                "current_revision": status["current_revision"],
+                "compiled_revision": status["compiled_revision"],
+            },
+        )
+    if not status["pdf_ready"]:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "compile_not_ready",
+                "message": "لا يوجد ملفّ معاينة حديث جاهز لهذه الجلسة.",
+                "current_revision": status["current_revision"],
+            },
+        )
+
+    user = current_actor_user(actor, db)
+    body = compile_service.get_compiled_pdf(version.storage_prefix)
+    db.commit()
+    filename = _pdf_download_filename(
+        user.full_name,
+        article.title,
+        version.version_number,
+    )
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "Content-Disposition": _pdf_content_disposition(
+                filename,
+                version.version_number,
+            ),
+            "X-Albayan-Compile-Id": str(status["compile_id"]),
+            "X-Albayan-Session-Revision": str(status["compiled_revision"]),
+        },
+    )
 
 
 @router.delete("/{article_id}/session", status_code=204)
@@ -359,9 +447,7 @@ def delete_asset(
     s3.delete_bytes(version.storage_prefix, f"assets/{name}")
 
     # حذف أصل قد يجعل ملف المعاينة الناجح قديماً حتى لو لم يتغير document.json.
-    version.compile_status = CompileStatus.PENDING
-    version.active_compile_id = None
-    version.compiled_document_hash = None
+    compile_service.invalidate_compile(version)
     db.execute(
         update(Article).where(Article.id == article.id).values(updated_at=func.now())
     )
