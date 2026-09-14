@@ -58,6 +58,9 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "compile_session",
                 "get_compile_status",
                 "get_article_pdf",
+                "list_article_assets",
+                "get_article_asset",
+                "upload_article_asset",
             },
         )
 

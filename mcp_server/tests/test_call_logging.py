@@ -70,6 +70,28 @@ class SnapshotSanitizationTests(unittest.TestCase):
             INPUT_LIMIT_BYTES,
         )
 
+    def test_redacts_temporary_file_urls_and_embedded_binary_content(self) -> None:
+        result = sanitize_snapshot(
+            {
+                "file": {
+                    "download_url": "https://signed.example/file?secret=value",
+                    "file_id": "file-1",
+                },
+                "image": {
+                    "type": "image",
+                    "data": "base64-image-data",
+                    "mimeType": "image/png",
+                },
+                "resource": {"blob": "base64-pdf-data"},
+            },
+            max_bytes=INPUT_LIMIT_BYTES,
+        )
+
+        self.assertEqual(result["file"]["download_url"], "[REDACTED]")
+        self.assertEqual(result["file"]["file_id"], "file-1")
+        self.assertEqual(result["image"]["data"], "[REDACTED]")
+        self.assertEqual(result["resource"]["blob"], "[REDACTED]")
+
 
 class CallLoggingMiddlewareTests(unittest.IsolatedAsyncioTestCase):
     async def test_logs_success_once_with_command_and_trace(self) -> None:

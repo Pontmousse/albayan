@@ -348,3 +348,22 @@ previews; clients never submit LaTeX, asset keys, or hashes.
 
 The existing browser `POST /compile` contract remains available for backwards
 compatibility. It is separate from the session-bound MCP workflow.
+
+## Article image assets
+
+The current-version asset routes accept the shared human-or-agent actor boundary:
+
+```text
+GET  /api/v1/articles/{article_id}/assets
+GET  /api/v1/articles/{article_id}/assets/{filename}
+POST /api/v1/articles/{article_id}/assets
+```
+
+FastAPI verifies article authorship and scopes every object to the current
+version's storage prefix. Upload is draft-only and accepts JPEG, PNG, GIF, or
+WebP up to 5 MiB. MCP uses ChatGPT's native file parameter, downloads its
+temporary public HTTPS URL without forwarding Albayan credentials, and sends
+the bytes to FastAPI as multipart data. The returned `assets/<generated-name>`
+identifier can then be used by the typed `insert_figure` or `update_figure`
+command. MCP never receives S3 credentials and BuTeX never lists, fetches, or
+stores asset bytes.

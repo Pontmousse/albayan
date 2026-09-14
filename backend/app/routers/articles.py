@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.deps import current_user
 from app.schemas.article import (
     ArticleAssetRead,
+    ArticleAssetUploadRead,
     ArticleAssetsList,
     ArticleCreate,
     ArticleDetail,
@@ -355,25 +356,46 @@ def _guess_image_content_type(asset_id: str) -> str | None:
     }.get(ext)
 
 
+def _validate_asset_filename(filename: str) -> tuple[str, str]:
+    name = PurePosixPath(filename).name
+    if (
+        name != filename
+        or not name
+        or len(name) > 255
+        or name in (".", "..")
+        or name.startswith(".")
+        or not re.fullmatch(r"[A-Za-z0-9._-]+", name)
+    ):
+        raise HTTPException(status_code=400, detail="معرّف الصورة غير صالح.")
+    content_type = _guess_image_content_type(name)
+    if content_type is None:
+        raise HTTPException(status_code=400, detail="نوع ملف الصورة غير صالح.")
+    return name, content_type
+
+
 @router.get("/{article_id}/assets", response_model=ArticleAssetsList)
 def list_assets(
-    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+    article_id: uuid.UUID, actor: ActorDep, db: DbDep
 ) -> ArticleAssetsList:
     """يسرد صور المقال من S3 تحت storage_prefix/assets/ — بدون جدول أصول."""
-    user = _current_user(auth, db)
-    article_service.assert_is_author(db, article_id, user.id)
+    article_service.assert_is_author(db, article_id, actor.user_id)
     version = article_service.current_version(db, article_id)
 
     rows = s3.list_prefix(version.storage_prefix, "assets")
     assets: list[ArticleAssetRead] = []
     for row in rows:
         relative_key = row["relative_key"]
-        if "/" in relative_key or relative_key.startswith("."):
+        try:
+            filename, guessed_content_type = _validate_asset_filename(relative_key)
+        except HTTPException:
             continue
-        asset_id = f"assets/{relative_key}"
-        content_type = row["content_type"] or _guess_image_content_type(asset_id)
-        if content_type is None:
-            continue
+        asset_id = f"assets/{filename}"
+        stored_content_type = (row["content_type"] or "").split(";", 1)[0].lower()
+        content_type = (
+            stored_content_type
+            if stored_content_type in _ALLOWED_IMAGE_TYPES
+            else guessed_content_type
+        )
         assets.append(
             ArticleAssetRead(
                 asset_id=asset_id,
@@ -390,16 +412,18 @@ def list_assets(
     return ArticleAssetsList(assets=assets)
 
 
-@router.post("/{article_id}/assets")
+@router.post(
+    "/{article_id}/assets",
+    response_model=ArticleAssetUploadRead,
+)
 async def upload_asset(
     article_id: uuid.UUID,
-    auth: AuthDep,
+    actor: ActorDep,
     db: DbDep,
     file: UploadFile = File(...),
-) -> dict:
+) -> ArticleAssetUploadRead:
     """يرفع صورة تحت storage_prefix/assets/ — مسودة فقط."""
-    user = _current_user(auth, db)
-    article_service.assert_is_author(db, article_id, user.id)
+    article_service.assert_is_author(db, article_id, actor.user_id)
     version = article_service.current_version(db, article_id)
     article_service.assert_draft(version)
 
@@ -422,7 +446,11 @@ async def upload_asset(
 
     asset_id = f"assets/{uuid.uuid4().hex}{ext}"
     s3.put_bytes(version.storage_prefix, asset_id, body, content_type)
-    return {"asset_id": asset_id, "content_type": content_type}
+    return ArticleAssetUploadRead(
+        asset_id=asset_id,
+        content_type=content_type,
+        size=len(body),
+    )
 
 
 @router.delete("/{article_id}/assets/{filename}", status_code=204)
@@ -458,24 +486,27 @@ def delete_asset(
 def get_asset(
     article_id: uuid.UUID,
     filename: str,
-    auth: AuthDep,
+    actor: ActorDep,
     db: DbDep,
 ) -> Response:
     """يبث صورة أصل من storage_prefix/assets/{filename}."""
-    name = PurePosixPath(filename).name
-    if name != filename or not name or name in (".", ".."):
-        raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
+    name, guessed_content_type = _validate_asset_filename(filename)
 
-    user = _current_user(auth, db)
-    article_service.assert_is_author(db, article_id, user.id)
+    article_service.assert_is_author(db, article_id, actor.user_id)
     version = article_service.current_version(db, article_id)
 
     relative_key = f"assets/{name}"
     body, content_type = s3.get_bytes(version.storage_prefix, relative_key)
+    normalized_content_type = (content_type or "").split(";", 1)[0].lower()
+    if normalized_content_type not in _ALLOWED_IMAGE_TYPES:
+        normalized_content_type = guessed_content_type
     return Response(
         content=body,
-        media_type=content_type or "application/octet-stream",
-        headers={"Cache-Control": "private, max-age=3600"},
+        media_type=normalized_content_type,
+        headers={
+            "Cache-Control": "private, max-age=3600",
+            "X-Content-Type-Options": "nosniff",
+        },
     )
 
 

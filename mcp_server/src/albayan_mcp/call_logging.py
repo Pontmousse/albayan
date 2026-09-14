@@ -36,6 +36,8 @@ _CREDENTIAL_KEYS = {
     "api_key",
     "password",
     "secret",
+    "download_url",
+    "blob",
 }
 _BEARER_PATTERN = re.compile(r"(?i)\bbearer\s+[a-z0-9._~+/=-]+")
 
@@ -64,11 +66,14 @@ def sanitize_snapshot(value: Any, *, max_bytes: int) -> dict[str, Any]:
             return item[: MAX_STRING_LENGTH - len(marker)] + marker
         if isinstance(item, Mapping):
             result: dict[str, Any] = {}
+            is_image_content = item.get("type") == "image"
             entries = list(islice(item.items(), MAX_CHILDREN + 1))
             kept = entries[: MAX_CHILDREN - 1] if len(entries) > MAX_CHILDREN else entries
             for raw_key, child in kept:
                 key = str(raw_key)[:MAX_STRING_LENGTH]
-                if key.casefold() in _CREDENTIAL_KEYS:
+                if key.casefold() in _CREDENTIAL_KEYS or (
+                    is_image_content and key.casefold() == "data"
+                ):
                     result[key] = _REDACTED
                 else:
                     result[key] = walk(child, depth + 1)

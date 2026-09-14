@@ -254,6 +254,32 @@ async def api_get_bytes(path: str, *, timeout: float = 30.0) -> BinaryApiRespons
         )
 
 
+async def api_post_file_object(
+    path: str,
+    *,
+    filename: str,
+    content: bytes,
+    content_type: str,
+    timeout: float = 30.0,
+) -> dict[str, Any]:
+    """Forward one multipart file to FastAPI with the caller's bearer."""
+    bearer = get_backend_bearer_token()
+    base = settings.albayan_api_url.rstrip("/")
+    async with httpx.AsyncClient(base_url=base, timeout=timeout) as client:
+        response = await client.request(
+            "POST",
+            path,
+            headers={"Authorization": f"Bearer {bearer}"},
+            files={"file": (filename, content, content_type)},
+        )
+        if response.status_code >= 400:
+            raise _backend_error(response)
+        try:
+            return _expect_object(response.json())
+        except ValueError as exc:
+            raise RuntimeError("استجابة API ليست JSON صالحة.") from exc
+
+
 def _expect_object(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise RuntimeError("استجابة API غير متوقعة: كان المتوقع كائناً.")

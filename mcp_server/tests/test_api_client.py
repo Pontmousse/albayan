@@ -255,6 +255,44 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
             "Bearer caller-token",
         )
 
+    async def test_multipart_post_forwards_bearer_file_and_no_json_body(self) -> None:
+        response = self._response(
+            {
+                "asset_id": "assets/generated.png",
+                "content_type": "image/png",
+                "size": 8,
+            }
+        )
+        async_client, request = self._async_client(response)
+        with patch(
+            "albayan_mcp.api_client.get_access_token",
+            return_value=SimpleNamespace(token="caller-token"),
+        ), patch.object(
+            api_client.settings,
+            "albayan_api_url",
+            "http://api.test",
+        ), patch(
+            "albayan_mcp.api_client.httpx.AsyncClient",
+            async_client,
+        ):
+            result = await api_client.api_post_file_object(
+                "/api/v1/articles/article-1/assets",
+                filename="upload.png",
+                content=b"png-data",
+                content_type="image/png",
+            )
+
+        self.assertEqual(result["asset_id"], "assets/generated.png")
+        self.assertEqual(
+            request.await_args.kwargs["headers"],
+            {"Authorization": "Bearer caller-token"},
+        )
+        self.assertEqual(
+            request.await_args.kwargs["files"],
+            {"file": ("upload.png", b"png-data", "image/png")},
+        )
+        self.assertNotIn("json", request.await_args.kwargs)
+
     async def test_document_issues_are_allow_listed_in_tool_error(self) -> None:
         response = self._response(
             {

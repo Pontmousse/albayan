@@ -6,6 +6,7 @@ from pydantic import AnyHttpUrl
 from albayan_mcp.call_logging import McpCallLoggingMiddleware
 from albayan_mcp.settings import settings
 from albayan_mcp.token_verifier import PassThroughTokenVerifier
+from albayan_mcp.tools.assets import register_asset_tools
 from albayan_mcp.tools.articles import register_article_tools
 from albayan_mcp.tools.profile import register_profile_tools
 from albayan_mcp.tools.sessions import register_session_tools
@@ -43,6 +44,9 @@ def create_server() -> MCPServer:
             "إلا بطلب صريح من المستخدم. لا تستدع compile_session إلا بطلب صريح أيضاً؛ "
             "فهو يحفظ الجلسة ثم ينشئ المعاينة من المستند الموثوق على الخادم، دون إنشاء "
             "LaTeX أو مفاتيح أصول أو hash. افحص get_compile_status قبل طلب PDF. "
+            "للصور، استخدم list_article_assets قبل الاسترجاع، وارفع فقط ملفاً "
+            "اختاره المستخدم. بعد الرفع مرّر asset_id العائد إلى "
+            "insert_figure أو update_figure، ولا تخترع مسار أصل. "
             "يمكن إنشاء المسودات وتحديث عنوانها وملخصها عبر "
             "أدوات المقال المخصصة؛ لا تعدّل authors داخل Document2، ولا توجد أداة تقديم "
             "أو حذف أو إدارة مؤلفين."
@@ -56,5 +60,6 @@ def create_server() -> MCPServer:
     register_profile_tools(server)
     register_article_tools(server)
     register_session_tools(server)
+    register_asset_tools(server)
 
     return server

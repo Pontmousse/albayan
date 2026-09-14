@@ -91,6 +91,12 @@ class ArticleAssetsList(BaseModel):
     assets: list[ArticleAssetRead]
 
 
+class ArticleAssetUploadRead(BaseModel):
+    asset_id: str
+    content_type: str
+    size: int = Field(ge=1)
+
+
 class DocumentPayload(BaseModel):
     document: Any
 

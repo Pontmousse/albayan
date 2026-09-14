@@ -197,6 +197,21 @@ class ActorEndpointTests(unittest.TestCase):
                 annotation = inspect.signature(endpoint).parameters["actor"].annotation
                 self.assertEqual(annotation, ActorDep)
 
+    def test_article_asset_endpoints_use_intended_auth_boundaries(self) -> None:
+        for endpoint in (
+            articles.list_assets,
+            articles.upload_asset,
+            articles.get_asset,
+        ):
+            with self.subTest(endpoint=endpoint.__name__):
+                annotation = inspect.signature(endpoint).parameters["actor"].annotation
+                self.assertEqual(annotation, ActorDep)
+
+        delete_annotation = inspect.signature(articles.delete_asset).parameters[
+            "auth"
+        ].annotation
+        self.assertEqual(delete_annotation, AuthDep)
+
     def test_submit_review_remains_human_only(self) -> None:
         annotation = inspect.signature(reviews.submit_review).parameters[
             "auth"
