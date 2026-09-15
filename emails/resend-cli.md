@@ -272,8 +272,9 @@ The complete ownership matrix and Dashboard instructions live in
 2. Run the tests and `npm run templates:sync`; confirm all six Resend aliases
    above are published.
 3. Verify Clerk's production webhook points to
-   `https://api.albayan-journal.org/api/v1/webhooks/clerk` and that the backend
-   has the matching `CLERK_WEBHOOK_SIGNING_SECRET`.
+   `https://api.albayan-journal.org/api/v1/webhooks/clerk`, is subscribed to the
+   email-created event, and that the backend has the matching
+   `CLERK_WEBHOOK_SIGNING_SECRET`.
 4. Disable **Delivered by Clerk** for the six security templates one at a time.
 5. Trigger each flow with a test account and confirm exactly one corresponding
    Resend message arrives before moving to the next template.
