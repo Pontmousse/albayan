@@ -22,7 +22,7 @@
     "@types/react-dom": "19.2.5",
     "esbuild": "0.28.1",
     "react": "19.2.8",
-    "react-dom": "19.2.5",
+    "react-dom": "19.2.8",
     "react-email": "6.9.3",
     "typescript": "7.0.2"
   }
