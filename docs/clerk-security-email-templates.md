@@ -1,187 +1,207 @@
-# Clerk account-security email templates
+# Clerk account-security email delivery
 
-This document is the repository source of truth for Al-Bayan's Clerk-owned account-security emails.
+This document is the repository source of truth for the six Clerk account-security emails used by Al-Bayan.
 
-The guiding rule is simple:
+## Architecture
 
-- Clerk owns authentication/security-event detection and the ordinary account-security notifications.
-- Al-Bayan/Resend owns only the explicitly intercepted OTP families: email verification and password reset.
-- Never enable a second delivery path for the same event.
+Clerk remains the authentication and security authority, but Clerk does **not** deliver these six emails directly.
 
-## Current production ownership audit
+```text
+security event
+  -> Clerk detects/validates it
+  -> Clerk creates the corresponding email event
+  -> Delivered by Clerk = OFF
+  -> signed email.created / emails.created webhook
+  -> Al-Bayan FastAPI verifies the webhook
+  -> Al-Bayan selects its Arabic React Email template
+  -> Resend delivers the message
+```
 
-The production Clerk dashboard was reviewed manually on 2026-09-14 together with the repository implementation.
+The rule is one delivery owner per email. For the six templates below, the delivery owner is Al-Bayan/Resend. Clerk owns only event detection, authentication state, OTP generation, account lockout, session/security state, and the signed webhook event.
 
-| Clerk template | Production delivery | Owner | Repository implementation |
-| --- | --- | --- | --- |
-| Account Locked | enabled | Clerk | no matching Resend template |
-| Password changed | enabled | Clerk | no matching Resend template |
-| Password removed | enabled | Clerk | no matching Resend template |
-| Primary email address changed | enabled | Clerk | no matching Resend template |
-| Reset password code | disabled in Clerk | Al-Bayan / Resend | `emails/src/auth/PasswordReset.tsx`, alias `password-reset-ar` |
-| Sign in from new device | enabled | Clerk | no matching Resend template |
+Clerk documents this as the supported custom-delivery model: disabling **Delivered by Clerk** on a template prevents Clerk from sending it while still allowing the email-created webhook to provide the information needed for custom delivery.
 
-Email verification is intentionally outside this six-template list. It follows the same Al-Bayan/Resend OTP bridge as password reset.
+## Six templates
 
-The backend ownership boundary is enforced in `backend/app/services/clerk_email_webhook_service.py`:
+| Clerk template | Clerk webhook slug | Al-Bayan React Email | Resend alias | Delivered by Clerk |
+| --- | --- | --- | --- | --- |
+| Account Locked | `account_locked` | `emails/src/auth/AccountLocked.tsx` | `account-locked-ar` | OFF |
+| Password changed | `password_changed` | `emails/src/auth/PasswordChanged.tsx` | `password-changed-ar` | OFF |
+| Password removed | `password_removed` | `emails/src/auth/PasswordRemoved.tsx` | `password-removed-ar` | OFF |
+| Primary email address changed | `primary_email_address_changed` | `emails/src/auth/PrimaryEmailChanged.tsx` | `primary-email-changed-ar` | OFF |
+| Reset password code | `reset_password_code` | `emails/src/auth/PasswordReset.tsx` | `password-reset-ar` | OFF |
+| Sign in from new device | `new_device_sign_in` | `emails/src/auth/NewDeviceSignIn.tsx` | `new-device-sign-in-ar` | OFF |
 
-- if Clerk says `delivered_by_clerk == true`, Al-Bayan does not send anything;
-- if Clerk is not delivering the message, Al-Bayan only handles known verification-code and password-reset slugs;
-- every other Clerk email slug is ignored without attempting to parse an OTP.
+Email verification is not part of the six-item Clerk screen above, but its existing `verification_code` flow uses the same webhook -> Al-Bayan -> Resend architecture.
 
-This prevents an account-security notification from accidentally being re-sent through Resend if a Clerk dashboard setting changes.
+The backend also accepts the legacy/current reset-password slug aliases already present in `clerk_email_webhook_service.py`, so an existing production reset flow does not depend on one spelling.
 
-## Required production settings
+## Backend ownership
 
-In the production Clerk instance, keep the delivery switches as follows unless a future reviewed change explicitly moves ownership:
+`backend/app/services/clerk_email_webhook_service.py` is the signed Clerk-event router.
 
-- **Account Locked:** on
-- **Password changed:** on
-- **Password removed:** on
-- **Primary email address changed:** on
-- **Reset password code:** off
-- **Sign in from new device:** on
+It must:
 
-Do not enable Clerk delivery for **Reset password code** while `password-reset-ar` is active through the Clerk webhook bridge; doing so can bypass the Al-Bayan Arabic template or create inconsistent ownership.
+- ignore any message where `delivered_by_clerk == true` so a Dashboard mistake cannot cause a second send;
+- accept only explicitly supported Clerk email slugs;
+- require `otp_code` only for OTP templates;
+- never require or parse OTP metadata for notification-only security templates;
+- derive the Resend idempotency key from the Clerk email event ID;
+- never log OTPs, sensitive action URLs, or bearer credentials.
 
-The same no-duplicate rule applies to email-verification OTPs.
+`backend/app/services/clerk_security_email_service.py` owns the five notification-only mappings to their stable Resend aliases. Password reset keeps using the existing `send_password_reset_email()` path.
 
-## Branding
+The five security aliases are intentionally stable source-controlled aliases from `emails/templates.yaml`; they do not require five additional backend environment variables.
 
-For Clerk-delivered security messages:
+## Template content
 
-- use the Al-Bayan application name and configured application logo;
-- keep the message Arabic-first;
-- keep Clerk-provided security/action URLs and buttons intact;
-- use RTL-friendly layout where the Clerk editor permits it;
-- do not replace Clerk's authentication/security logic with custom backend logic merely for visual consistency;
-- do not invent device, location, IP, or session data that Clerk does not actually expose to the template.
-
-If the Clerk template exposes device/session details or a security action button, preserve those variables/components and translate only the surrounding user-facing copy and button label where supported.
-
-## Approved Arabic copy
-
-The copy below is the approved baseline. Clerk-managed dynamic fields/buttons may be retained around it where available.
+All five new notification templates use the same Al-Bayan email shell, Arabic/RTL copy, Hijri send date, public Al-Bayan email assets, and the configured support address.
 
 ### Account Locked
 
-**Subject**
+Subject: `تم قفل حسابكم مؤقتًا في مجلة البيان`
 
-> تم قفل حسابكم مؤقتًا في مجلة البيان
-
-**Heading**
-
-> تم قفل الحساب مؤقتًا
-
-**Body**
-
-> بعد عدة محاولات غير ناجحة لتسجيل الدخول، تم قفل حسابكم مؤقتًا لحمايته. يمكنكم المحاولة مجددًا بعد انتهاء مدة القفل. إذا لم تكونوا أنتم من قام بهذه المحاولات، فنوصي بمراجعة أمان حسابكم وتغيير كلمة المرور بعد استعادة الدخول.
-
-Where Clerk provides an unlock/recovery action, keep that action and use a concise Arabic label.
+The message explains that repeated unsuccessful sign-in attempts caused a temporary lock and advises the user to secure the account if the attempts were not theirs. It does not guess the lock duration.
 
 ### Password changed
 
-**Subject**
+Subject: `تم تغيير كلمة مرور حسابكم في مجلة البيان`
 
-> تم تغيير كلمة مرور حسابكم في مجلة البيان
-
-**Heading**
-
-> تم تغيير كلمة المرور
-
-**Body**
-
-> تم تغيير كلمة مرور حسابكم بنجاح. إذا كنتم أنتم من أجرى هذا التغيير فلا يلزم اتخاذ أي إجراء. إذا لم يكن هذا التغيير من قبلكم، فابدؤوا فورًا باستعادة الحساب ومراجعة إعدادات الأمان.
+The message confirms the change and tells the user to secure the account immediately if they did not initiate it.
 
 ### Password removed
 
-**Subject**
+Subject: `تمت إزالة كلمة المرور من حسابكم في مجلة البيان`
 
-> تمت إزالة كلمة المرور من حسابكم في مجلة البيان
-
-**Heading**
-
-> تمت إزالة تسجيل الدخول بكلمة المرور
-
-**Body**
-
-> لم يعد تسجيل الدخول بكلمة المرور متاحًا لهذا الحساب، ويمكن استخدام طرق الدخول الأخرى المرتبطة به. إذا لم تقوموا بهذا التغيير، فسجّلوا الدخول بإحدى الطرق المتاحة وراجعوا إعدادات الأمان وطرق الدخول إلى الحساب.
+The message explains that password sign-in is no longer available and another configured sign-in method is required.
 
 ### Primary email address changed
 
-**Subject**
+Subject: `تم تغيير البريد الإلكتروني الأساسي في مجلة البيان`
 
-> تم تغيير البريد الإلكتروني الرئيسي لحسابكم في مجلة البيان
-
-**Heading**
-
-> تم تحديث البريد الإلكتروني الرئيسي
-
-**Body**
-
-> تم تحديث البريد الإلكتروني الرئيسي المرتبط بحسابكم. إذا كان هذا التغيير من قبلكم فلا يلزم اتخاذ أي إجراء. إذا لم يكن من قبلكم، فراجعوا حسابكم وطرق الدخول إليه فورًا واستخدموا مسار الاستعادة المتاح عند الحاجة.
+The message confirms the account-level change and gives concise recovery/security guidance.
 
 ### Reset password code
 
-This is **not** a Clerk-delivered production template. Keep Clerk delivery disabled and preserve the existing Al-Bayan/Resend implementation:
+Subject: `رمز استعادة كلمة المرور في مجلة البيان`
 
-- source: `emails/src/auth/PasswordReset.tsx`
-- Resend alias: `password-reset-ar`
-- subject: `رمز استعادة كلمة المرور في مجلة البيان`
-
-Do not copy the OTP into application logs, issue text, screenshots, analytics, or support notes.
+This is the existing `password-reset-ar` OTP template. Clerk generates the code; Al-Bayan receives it in the signed webhook metadata and sends it through Resend. Never log or persist the OTP.
 
 ### Sign in from new device
 
-**Subject**
+Subject: `تسجيل دخول إلى حسابكم في مجلة البيان من جهاز جديد`
 
-> تسجيل دخول جديد إلى حسابكم في مجلة البيان
+The first implementation deliberately does not invent device, IP, browser, location, or session-revocation values. It states that Clerk detected a successful sign-in from an unrecognized device and gives recovery guidance. If production webhook testing later confirms stable Clerk metadata fields that we want to surface, add them in a separate reviewed change with tests.
 
-**Heading**
+## One-time Resend setup
 
-> تسجيل دخول من جهاز جديد
+The new React Email templates are declared in `emails/templates.yaml` and marked `publish: true`.
 
-**Body**
+Before disabling Clerk delivery in production, publish/sync the templates to Resend from this branch (or after merge):
 
-> تم تسجيل دخول إلى حسابكم من جهاز جديد أو غير معروف. إذا كنتم أنتم من سجل الدخول فلا يلزم اتخاذ أي إجراء. إذا لم تتعرفوا على هذا النشاط، فراجعوا جلسات الحساب وطرق الدخول إليه فورًا وأمّنوا الحساب باستخدام خيارات الأمان المتاحة.
+```bash
+cd emails
+npm ci
+npm test
 
-Where Clerk exposes device, browser, approximate location, time, session-revocation, or security-action fields, preserve them. Do not add guessed values.
+# Use a Full Access Resend key that can administer templates.
+export RESEND_API_KEY=re_...
+npm run templates:sync
+```
 
-## Clerk dashboard procedure
+The sync script exports the React Email HTML, creates or updates every alias from `templates.yaml`, declares the template variables, and publishes the drafts.
 
-For each of the five Clerk-owned notifications:
+After the command succeeds, verify at least these aliases exist and are published in Resend:
 
-1. Open the production Clerk application.
-2. Go to **Configure → Email & SMS templates → Security**.
-3. Open the relevant template.
-4. Keep **Delivered by Clerk** enabled.
-5. Apply the approved Arabic subject/body above while preserving Clerk's dynamic variables and security actions.
-6. Confirm the Al-Bayan application logo/branding is selected where Clerk exposes it.
-7. Save the template.
+```text
+account-locked-ar
+password-changed-ar
+password-removed-ar
+primary-email-changed-ar
+password-reset-ar
+new-device-sign-in-ar
+```
 
-For **Reset password code**, keep **Delivered by Clerk** disabled while the Al-Bayan webhook/Resend path is active.
+Useful read-only checks:
+
+```bash
+resend doctor
+resend templates list --json
+```
+
+Do not put the Full Access template-administration key in the repository. The deployed backend continues using its normal server-side `RESEND_API_KEY` for sending.
+
+## Clerk Dashboard production setup
+
+Do this only **after** the Resend templates are published and the backend containing the webhook handlers is deployed.
+
+### 1. Verify the webhook endpoint
+
+In Clerk Dashboard -> **Webhooks**, verify the production endpoint points to:
+
+```text
+https://api.albayan-journal.org/api/v1/webhooks/clerk
+```
+
+and is subscribed to the email-created event. Clerk documentation has used both `email.created` and `emails.created`; the Al-Bayan endpoint accepts both spellings.
+
+Confirm the endpoint's signing secret is configured in the backend as:
+
+```text
+CLERK_WEBHOOK_SIGNING_SECRET=whsec_...
+```
+
+The existing password-reset flow already depends on this endpoint, so do not create a second competing Clerk webhook endpoint unless there is a deliberate reason.
+
+### 2. Disable Clerk delivery for all six
+
+Go to Clerk Dashboard -> **Emails / Email & SMS templates -> Security** and open each template individually.
+
+Set **Delivered by Clerk = OFF** for:
+
+- Account Locked
+- Password changed
+- Password removed
+- Primary email address changed
+- Reset password code
+- Sign in from new device
+
+There is no need to paste the Arabic email body into Clerk. The Arabic source of truth is the React Email code in this repository and the published Resend templates.
+
+### 3. Do not change Clerk security behavior
+
+Turning email delivery off does not move account locking, new-device detection, password state, primary-email state, OTP generation, or authentication validation into Al-Bayan. Clerk continues to own those security behaviors; only delivery is delegated.
+
+## Safe rollout order
+
+To avoid silently dropping security mail during rollout:
+
+1. Deploy the PR backend first while current Clerk delivery is still enabled.
+2. Sync/publish the six Resend templates and verify the aliases exist.
+3. Verify the production Clerk webhook endpoint succeeds for an email-created test event.
+4. Turn **Delivered by Clerk** off for one template at a time.
+5. Trigger the corresponding action on a test account and verify exactly one Al-Bayan/Resend message arrives.
+6. Continue with the next template only after the previous one is confirmed.
+
+Password reset is already on the Al-Bayan/Resend path; keep it off in Clerk throughout.
 
 ## Verification checklist
 
-Use test accounts where possible; do not intentionally disrupt a real production account merely to exercise a notification.
+Use test accounts where practical.
 
 Verify:
 
-- Account Locked arrives once, in Arabic, from the intended Clerk delivery path.
-- Password changed arrives once and contains the expected security guidance.
-- Password removed arrives once and explains that another sign-in method is required.
-- Primary email address changed arrives once and gives clear recovery guidance.
-- Password reset code arrives exactly once through `password-reset-ar` / Resend.
-- Sign in from new device arrives once and retains any legitimate Clerk-provided device/session context.
-- No OTP, authorization token, Clerk ticket, or sensitive action URL is written to Albayan application logs.
-- Authentication validation, account lockout, session handling, and event detection remain owned by Clerk.
+- Account Locked -> one `account-locked-ar` email through Resend.
+- Password changed -> one `password-changed-ar` email through Resend.
+- Password removed -> one `password-removed-ar` email through Resend.
+- Primary email address changed -> one `primary-email-changed-ar` email through Resend.
+- Reset password code -> one `password-reset-ar` email with the Clerk-generated OTP.
+- Sign in from new device -> one `new-device-sign-in-ar` email through Resend.
+- Clerk's own delivery is off for all six, so no duplicate message arrives.
+- Clerk webhook attempts show success (`2xx`).
+- Resend shows the matching send attempt/template alias.
+- No OTP, secret, Clerk ticket, or sensitive URL appears in application logs.
 
 ## Change policy
 
-If a future change moves one of these notifications from Clerk to Al-Bayan/Resend, it must update all three places in one reviewed change:
-
-1. Clerk delivery toggle/ownership,
-2. the webhook allowlist/handling in `clerk_email_webhook_service.py`, and
-3. this document.
-
-Never add a new Resend security-email handler while leaving the corresponding Clerk delivery path enabled unless duplicate delivery is explicitly intended and documented.
+Do not add a new Clerk email slug or change one of these ownership rules without updating the webhook tests and this document in the same reviewed change.
