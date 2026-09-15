@@ -53,7 +53,7 @@ for (const file of templates) {
   assert.match(html, /max-width:\s*620px/i, `${file} is missing mobile CSS`);
   assert.match(
     html,
-    /<strong[^>]*>\{\{\{RECIPIENT_EMAIL\}\}\}<\/strong>/i,
+    /<strong[^>]*>\s*\{\{\{RECIPIENT_EMAIL\}\}\}\s*<\/strong\s*>/is,
     `${file} must render RECIPIENT_EMAIL in bold`,
   );
 
