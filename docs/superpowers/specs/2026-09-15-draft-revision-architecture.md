@@ -53,7 +53,38 @@ Humans and authenticated agents edit the same current draft and create the same 
 
 ---
 
-## 2. Why change the current model
+## 2. Development reset: no backward compatibility or article-data migration
+
+Albayan is still in development and there are no production articles that need preservation.
+
+Current article/session/version data is disposable test data.
+
+Therefore this architecture intentionally has **no backward-compatibility requirement for existing article data or old session APIs**.
+
+Implementation should prefer deleting obsolete development state over building migration machinery for it.
+
+Explicit rules:
+
+- do not backfill existing `ArticleSession` rows into `ArticleDraftRevision`;
+- do not convert existing draft `ArticleVersion` rows into draft revisions;
+- do not preserve test reviews, assignments, article versions, compile state, or article assets merely to support development fixtures;
+- do not build compatibility adapters that make old `/session` routes behave on top of the new draft model;
+- do not keep old MCP session tool names as aliases after the cutover;
+- do not maintain both old and new draft persistence models in production code;
+- do not add migration-only fields, enums, provenance reasons, or branches to the new domain model;
+- do not spend implementation effort preserving S3 objects created by test articles.
+
+The cutover may use a destructive development migration/reset that clears article-domain test data and obsolete article S3 prefixes before or while introducing the new schema.
+
+The cleanup must be scoped to article-domain development data. User/account data should not be deleted merely because article fixtures are disposable.
+
+After the reset, all newly created articles use the new architecture from revision 1 onward.
+
+This is a deliberate project decision, not a temporary omission. Future implementers should not reintroduce compatibility work unless real production data exists at that later time and a new requirement explicitly asks for it.
+
+---
+
+## 3. Why change the current model
 
 Today Albayan has three related representations of an unpublished manuscript:
 
@@ -79,15 +110,15 @@ This creates concepts that are increasingly difficult to justify at the product 
 - metadata synchronization across `Article`, `ArticleSession`, and the draft version document;
 - S3 overwrite ordering problems because `session/document.json` is mutable while its revision counter is stored in PostgreSQL.
 
-The session layer originally provided a meaningful human-review boundary for agent work. That boundary is no longer the right abstraction now that humans and agents share the same editing surface and edits are already reversible through revision checks.
+The session layer originally provided a meaningful human-review boundary for agent work. That boundary is no longer the right abstraction now that humans and agents share the same editing surface and edits are reversible.
 
 The irreversible boundary that matters is **submission/resubmission**, not “save session into draft”.
 
 ---
 
-## 3. Domain invariants
+## 4. Domain invariants
 
-### 3.1 Article
+### 4.1 Article
 
 `Article` owns current authoring/workflow state.
 
@@ -123,7 +154,7 @@ The important rule is that **article workflow state and formal version identity 
 
 Example: after reviewers comment on v1 and revisions are requested, `ArticleVersion v1` remains permanently the reviewed submission while `Article.status = revision_requested` and a new editable draft exists for the future v2.
 
-### 3.2 ArticleDraftRevision
+### 4.2 ArticleDraftRevision
 
 Add a new table/model approximately like:
 
@@ -137,7 +168,7 @@ ArticleDraftRevision
   created_at          timestamp
   created_by          nullable user id
   actor_type          human | agent | system
-  reason              initial | autosave | ai_edit | metadata_edit | restore | migration
+  reason              initial | autosave | ai_edit | metadata_edit | restore
   mutation_id         nullable UUID / idempotency key
   restored_from_id    nullable FK ArticleDraftRevision
 ```
@@ -155,7 +186,7 @@ Required constraints:
 
 `Article.draft_revision_number` (or the current revision row’s `revision_number`) supplies the optimistic-concurrency token currently supplied by `ArticleSession.revision`.
 
-### 3.3 ArticleVersion
+### 4.3 ArticleVersion
 
 `ArticleVersion` becomes exclusively a formal submitted manuscript round:
 
@@ -173,7 +204,7 @@ Operational/editorial records may evolve around a version, but the submitted doc
 
 ---
 
-## 4. Storage layout
+## 5. Storage layout
 
 Use immutable object keys for draft snapshots.
 
@@ -205,7 +236,7 @@ The revision UUID is the storage identity. PostgreSQL owns the friendly sequenti
 
 Do not require S3 filenames to be allocated transactionally from the next sequential revision number.
 
-### 4.1 Why immutable draft objects
+### 5.1 Why immutable draft objects
 
 A draft mutation should follow this failure-safe shape:
 
@@ -227,13 +258,31 @@ If the database transaction fails, the worst expected result is an unreferenced/
 
 This is preferable to overwriting a shared `session/document.json` before the database revision commit.
 
+### 5.2 Development cleanup
+
+Existing test article storage can be deleted rather than transformed.
+
+The reset may remove obsolete article prefixes containing:
+
+```text
+session/document.json
+session/meta.json
+session/commands/*
+versions/v*/document.json
+versions/v*/assets/*
+compiled.pdf
+compile.log
+```
+
+Do not write copy/rename code whose only purpose is to preserve those development fixtures.
+
 ---
 
-## 5. Draft creation and first submission
+## 6. Draft creation and first submission
 
-### 5.1 New article
+### 6.1 New article
 
-`create_article()` should stop creating `ArticleVersion v1` immediately.
+`create_article()` must stop creating `ArticleVersion v1` immediately.
 
 New state:
 
@@ -246,7 +295,7 @@ Revision 1 contains the canonical initial Document2 with the Article title/abstr
 
 There is no formal version yet.
 
-### 5.2 First submission
+### 6.2 First submission
 
 Assume the current draft is revision 64.
 
@@ -268,7 +317,7 @@ Do not make a permanent `ArticleVersion` depend on an object that may later be p
 
 ---
 
-## 6. Resubmission after review
+## 7. Resubmission after review
 
 Reviews remain attached to the formal version they concern.
 
@@ -303,7 +352,7 @@ Submitting v2 does not detach or rewrite reviews against v1.
 
 ---
 
-## 7. Autosave and browser behavior
+## 8. Autosave and browser behavior
 
 The browser should become autosave-first.
 
@@ -324,7 +373,7 @@ Use a short debounce and optionally a periodic save while continuous editing is 
 
 The exact interval is a product/UX choice and should not be hard-coded into the domain architecture.
 
-### 7.1 Conflict behavior
+### 8.1 Conflict behavior
 
 Keep optimistic concurrency.
 
@@ -341,7 +390,7 @@ Do not use last-write-wins.
 
 The client should reload/reconcile with the latest draft and make the conflict visible rather than silently overwriting agent or human changes.
 
-### 7.2 No separate “Save session” boundary
+### 8.2 No separate “Save session” boundary
 
 A successful draft mutation is already persisted and reversible.
 
@@ -356,7 +405,7 @@ The UI may still expose a user-friendly “Saved” indicator, retry state, and 
 
 ---
 
-## 8. Restore and history
+## 9. Restore and history
 
 Restoring history must create a new revision, not rewind or delete later history.
 
@@ -381,7 +430,7 @@ Relational authorship (`ArticleAuthor`) must not be casually rewritten by docume
 
 ---
 
-## 9. Metadata ownership
+## 10. Metadata ownership
 
 Keep current host metadata rules, but simplify the synchronization topology.
 
@@ -406,7 +455,7 @@ This removes the current three-way synchronization problem among Article rows, s
 
 `ArticleAuthor` remains relational authority for authorship. `Document2.meta.authors` must not become an alternate way to change author relationships.
 
-### 9.1 Formal-version metadata
+### 10.1 Formal-version metadata
 
 Historical screens must not read today’s mutable `Article.title` when rendering an old formal version.
 
@@ -417,17 +466,27 @@ At submission, preserve version-specific title/abstract either:
 
 The implementation phase should choose one authoritative historical-read contract and test it.
 
-### 9.2 Relationship to issue #86
+### 10.2 Relationship to issue #86
 
 Open issue #86 (“Make article title/abstract one synchronized metadata workflow across BuTeX and Article rows”) describes a real problem in the current session architecture.
 
-This design does not close that issue automatically.
+Its long-term invariant remains useful, but the implementation target changes to:
 
-During implementation, reconcile #86 with this architecture: the target invariant remains valid, but synchronization becomes `Article ↔ current DraftRevision` rather than `Article ↔ ArticleSession ↔ draft ArticleVersion`.
+```text
+Article ↔ current DraftRevision
+```
+
+not:
+
+```text
+Article ↔ ArticleSession ↔ draft ArticleVersion
+```
+
+Because development article data is disposable, #86 should not drive any session-data migration or compatibility work.
 
 ---
 
-## 10. Assets
+## 11. Assets
 
 Draft assets can no longer live under the current `ArticleVersion.storage_prefix`, because no formal version exists before submission.
 
@@ -451,9 +510,11 @@ Do not duplicate every asset for every autosave revision. Draft revisions may sh
 
 Deletion guards must continue preventing removal of an asset referenced by the current draft.
 
+Existing development assets under old version prefixes may simply be deleted during the reset.
+
 ---
 
-## 11. Preview compilation
+## 12. Preview compilation
 
 Preview compilation belongs to a **draft revision**, not to a session and not conceptually to an unpublished ArticleVersion.
 
@@ -483,11 +544,13 @@ Do not create a new DraftRevision merely because the user clicked Preview.
 
 Do not silently save an otherwise unsaved session before compile; in the new model the current draft revision is already persisted.
 
-Formal submission may copy the fresh preview into the immutable version package or compile the formal package again, depending on the existing export contract. The final implementation must ensure the formal PDF and formal Document2 correspond to the same submitted content hash.
+Formal submission may copy the fresh preview into the immutable version package or compile the formal package again, depending on the export contract. The final implementation must ensure the formal PDF and formal Document2 correspond to the same submitted content hash.
+
+Old session-bound compile metadata does not need to be transformed; it is development data and can be discarded.
 
 ---
 
-## 12. MCP contract
+## 13. MCP contract
 
 Rename the conceptual MCP surface from “session” to “draft”.
 
@@ -521,11 +584,13 @@ On `409 revision_conflict`, an agent must re-read the current draft before retry
 
 The MCP server remains a thin protocol adapter and must not access PostgreSQL or S3 directly.
 
+Do not publish duplicate `session_*` aliases after the draft tools are introduced. Since this is a development cutover, clients should move directly to the new tool names.
+
 ---
 
-## 13. Retention
+## 14. Retention and cleanup
 
-`ArticleVersion` is permanent according to journal retention policy.
+`ArticleVersion` is permanent according to journal retention policy once real submissions exist.
 
 `ArticleDraftRevision` is retention-limited.
 
@@ -533,141 +598,134 @@ Initial implementation should stay simple:
 
 > Keep the latest 100 draft revisions per article.
 
-Any revision needed for an in-flight migration/submission operation must not be pruned.
-
 Because formal versions copy their own immutable document/assets, normal pruning never threatens submitted manuscript history.
 
 Do not implement patch chains, CRDT/event-sourced history, or complex tiered retention in the first version.
 
-A later policy may keep dense recent history and sparsify old autosaves, but it is outside the initial architecture migration.
+A later policy may keep dense recent history and sparsify old autosaves, but it is outside the initial architecture.
 
----
+### 14.1 Orphan-object cleanup
 
-## 14. Migration of existing data
+Immutable-object sequencing can leave an unreferenced candidate snapshot if S3 succeeds and a later DB transaction fails.
 
-Existing articles may currently contain:
+A simple cleanup job may remove draft revision objects that are not referenced by any `ArticleDraftRevision` after a conservative age threshold.
 
-- one `ArticleVersion(status=draft)`;
-- an `ArticleSession` with a newer document than the saved draft version;
-- submitted/reviewed ArticleVersions;
-- session compile metadata on the current version;
-- assets under version prefixes.
+This is normal operational cleanup, not backward compatibility.
 
-The migration must be explicit and deterministic.
+### 14.2 One-time development cleanup
 
-### 14.1 Existing unpublished article
+At cutover, remove obsolete article-domain test state instead of migrating it.
 
-If an Article has only the current draft ArticleVersion:
+Conceptually:
 
-1. choose the newest canonical editable content:
-   - active session document if a valid current session exists;
-   - otherwise current draft version document;
-2. create DraftRevision 1 (or migrated revision N if preserving the old counter is useful);
-3. move/copy current draft assets into the new draft asset namespace;
-4. set Article workflow state to `draft`;
-5. point `current_draft_revision_id` to the migrated revision;
-6. do not retain the old unpublished ArticleVersion as formal v1.
+```text
+clear disposable article/review/session/version fixture rows
+remove obsolete article S3 prefixes
+apply the new schema
+start fresh with new test articles
+```
 
-### 14.2 Existing submitted/reviewed article
-
-Preserve every already-formal ArticleVersion and all Review foreign keys.
-
-If the article currently has an editable session/draft for future revision work, migrate that editable state into ArticleDraftRevision while keeping existing formal versions untouched.
-
-If no editable draft exists because the article is frozen, do not invent one until workflow rules require revisions.
-
-### 14.3 Compatibility window
-
-During migration it is acceptable to temporarily support adapters that expose old `/session` API shapes internally backed by DraftRevision.
-
-Do not keep the compatibility layer indefinitely.
-
-The final state must remove `ArticleSession` and session-specific persistence semantics.
+Use normal FK/cascade-aware database operations or a deliberate development reset migration. Do not add production runtime code whose job is to recognize and translate old article shapes forever.
 
 ---
 
 ## 15. Three implementation phases
 
-The migration must be delivered in exactly three implementation phases so each PR can remain reviewable and rollback-friendly.
+The work must be delivered in exactly three implementation phases.
 
-### Phase 1 — Draft revision foundation and data migration
+The phases are a development implementation sequence, **not** a compatibility rollout. There is no requirement to preserve existing article fixtures between phases.
 
-**Goal:** introduce the new durable model without immediately breaking browser/MCP consumers.
+### Phase 1 — Core draft architecture cutover
+
+**Goal:** replace the session/draft-version persistence model with DraftRevision as the only editable manuscript state.
 
 Implement:
 
-- `ArticleDraftRevision` model/table and indexes/constraints;
+- destructive cleanup/reset of disposable article-domain development data and obsolete article S3 objects;
+- `ArticleDraftRevision` model/table with immutable revision constraints;
 - explicit Article workflow state and `current_draft_revision_id`;
 - immutable draft snapshot storage helpers;
 - article-level draft asset namespace;
-- revision creation primitive with row locking, `base_revision`, hashes, provenance, no-op handling, and orphan-safe S3 ordering;
-- migration/backfill for current unpublished drafts/sessions;
-- migration rules preserving existing formal ArticleVersions and Review FKs;
-- compatibility service adapters so existing `/session` endpoints can be backed by DraftRevision during rollout;
-- tests for data migration, concurrency, S3/DB failure behavior, metadata invariants, existing submitted versions, and asset migration.
+- revision creation primitive with row locking, `base_revision`, document hashes, provenance, no-op handling, command idempotency, and orphan-safe S3 ordering;
+- change `create_article()` to create `Article + DraftRevision 1`, with zero ArticleVersion rows;
+- first submission creates immutable ArticleVersion v1 from the exact current DraftRevision;
+- move draft preview compilation off unpublished ArticleVersion/session identity and bind it to DraftRevision;
+- replace backend `/session` and legacy draft `/document` semantics with first-class `/draft` routes;
+- remove `ArticleSession`, `last_saved_revision`, mutable `session/document.json`, `session/meta.json`, session command storage, and session-specific compile fields from the target runtime architecture;
+- update the frontend API layer and MCP implementation enough to use the new draft routes directly rather than requiring compatibility aliases;
+- update backend/MCP/frontend tests for the new baseline.
 
-Phase 1 must **not** delete `ArticleSession` yet if live consumers still need compatibility.
+Do **not** implement:
+
+- backfill of old article rows;
+- preservation of old test reviews/versions;
+- `/session` compatibility wrappers;
+- old MCP tool aliases;
+- data-copy logic for obsolete development assets.
 
 Exit criteria:
 
-- all new/updated editable state is representable as immutable DraftRevisions;
-- existing articles are migrated without losing the newest editable content;
-- existing formal versions/reviews remain unchanged;
-- compatibility tests prove old consumers still function while backed by the new persistence primitive.
+- a new article has one DraftRevision and zero ArticleVersions;
+- browser and MCP can read/mutate the same current draft through the new draft API;
+- every successful draft mutation is persisted as an immutable DraftRevision;
+- preview identity is revision-bound;
+- first submission creates v1 and freezes its document/assets independently from draft state;
+- no runtime persistence path depends on ArticleSession or mutable session JSON.
 
-### Phase 2 — Unified browser/MCP editing and revision-bound preview
+### Phase 2 — Autosave, history, restore, and conflict UX
 
-**Goal:** switch product behavior from explicit session saving to persisted/autosaved drafts.
+**Goal:** make the new draft model pleasant and safe for continuous human + AI editing.
 
 Implement:
 
-- first-class draft API routes/read models;
-- browser debounce autosave with clear saved/error/conflict UI;
-- remove the browser’s two-step “update session then save session to draft” behavior;
-- draft history/restore backend primitive (UI can remain minimal if necessary);
-- MCP rename/migration to draft tools;
-- remove `save_session` from the target MCP contract;
-- preserve command idempotency and actor provenance on DraftRevision;
-- move preview compilation provenance from session/version revision fields to exact DraftRevision identity;
-- return clean `409 revision_conflict` behavior to browser and MCP;
-- update documentation and tests for simultaneous human/agent editing;
-- compatibility aliases only where needed for a short rolling deployment window.
+- browser debounce autosave;
+- periodic save while continuous typing if needed by UX testing;
+- clear `Saving…`, `Saved`, error, and conflict states;
+- clean `409 revision_conflict` handling in browser and MCP;
+- draft revision history read API;
+- restore operation that creates a new latest revision and records `restored_from_id`;
+- minimal history UI sufficient to inspect and restore prior revisions;
+- maintain `command_id` idempotency and human/agent provenance in history;
+- ensure metadata changes create one canonical revision and keep Article title/abstract synchronized;
+- remove any remaining manual two-step save assumptions from editor UI;
+- ensure a newer AI edit cannot be silently overwritten by a stale browser autosave, and vice versa;
+- add latest-100 revision pruning and orphan snapshot cleanup if operationally convenient here rather than Phase 3.
 
 Exit criteria:
 
-- browser and MCP both edit exactly one current draft state;
-- every successful edit is already persisted as a DraftRevision;
-- no user-visible `last_saved_revision` concept remains;
-- preview freshness is determined by exact DraftRevision identity;
-- an agent edit cannot be silently overwritten by a stale browser autosave, and vice versa.
+- ordinary browser editing autosaves without an explicit session-save boundary;
+- current revision is always the persisted source of truth;
+- stale writes fail visibly instead of overwriting newer work;
+- restore never rewinds or deletes later history;
+- user/agent provenance is visible enough for future history UX.
 
-### Phase 3 — Formal submission boundary and session removal
+### Phase 3 — Formal version rounds, resubmission, and hardening
 
-**Goal:** make `ArticleVersion` exclusively formal/immutable and delete the old architecture.
+**Goal:** complete the journal workflow around the clean DraftRevision/Formal-Version split.
 
 Implement:
 
-- change `create_article()` so it creates Article + initial DraftRevision, not ArticleVersion v1;
-- submission creates immutable ArticleVersion v1 from the exact current DraftRevision;
-- resubmission creates v2/v3... while preserving reviews on earlier versions;
-- copy formal document, referenced assets, metadata snapshot, and correct preview/PDF artifacts into the version package;
-- update editor/reviewer/admin queries to use Article workflow state plus formal version history correctly;
-- remove `ArticleSession` model/table after migration safety checks;
-- remove `session/document.json`, `session/meta.json`, `last_saved_revision`, and session-specific compile fields;
-- remove legacy `/document` draft-write bypass and obsolete `/session/save` semantics;
-- remove compatibility aliases/routes/tools after all callers migrate;
-- add simple latest-100 draft retention cleanup and orphan-object cleanup;
-- update issue/docs references that still describe sessions as the target architecture.
+- explicit `revision_requested` workflow transition;
+- creation of a new editable draft from the last formal version when revision work begins;
+- resubmission creates ArticleVersion v2/v3... without mutating prior versions;
+- preserve Review foreign keys to the exact formal version reviewed;
+- ensure formal document, referenced assets, metadata snapshot, and preview/PDF artifact are self-contained and immutable;
+- update author/editor/reviewer/admin queries and screens to distinguish current Article workflow state from formal version history;
+- historical metadata reads use the formal version snapshot rather than today’s editable Article metadata;
+- finalize retention/orphan cleanup if not completed in Phase 2;
+- remove stale documentation/comments/tests that still describe sessions as the target architecture;
+- reconcile issue #86 acceptance criteria with the final `Article ↔ current DraftRevision` metadata invariant;
+- run full browser/backend/MCP/workflow regression coverage.
 
 Exit criteria:
 
-- a never-submitted article has zero ArticleVersion rows;
-- v1 is created only by first submission;
-- v2+ are created only by formal resubmission;
+- v1 exists only after first submission;
+- v2+ exist only after formal resubmission;
 - ArticleVersions are immutable, self-contained formal manuscript packages;
 - Reviews always reference the exact formal version reviewed;
-- no production code depends on `ArticleSession`, `last_saved_revision`, or mutable session JSON;
-- browser, MCP, submission, compile, review, and migration test suites pass.
+- a revision request creates/editable draft state without changing the reviewed version;
+- current Article metadata and current DraftRevision metadata stay synchronized;
+- no code/docs/tests treat ArticleSession or a draft ArticleVersion as part of the intended model.
 
 ---
 
@@ -693,6 +751,8 @@ The architecture does not require keeping both whole-document and command mutati
 
 Human-only workflow routes must remain human-only even though agents may create reversible DraftRevisions.
 
+Old `/session` routes are removed rather than supported as compatibility aliases.
+
 ---
 
 ## 17. Testing requirements
@@ -716,19 +776,23 @@ At minimum cover:
 - first submission creates v1;
 - requested revisions followed by resubmission creates v2 without mutating v1;
 - reviews remain attached to the correct ArticleVersion;
-- migration prefers a newer valid session document over an older saved draft document;
-- migration never converts an already submitted formal version into draft history;
 - simulated S3 failure changes no DB pointer;
 - simulated DB failure may leave an orphan object but never a live pointer to uncommitted state;
-- legacy compatibility endpoints behave correctly during the temporary migration window;
-- final Phase 3 tests prove session models/routes/storage semantics are absent.
+- test-data reset/cleanup leaves the new article schema in a clean usable state;
+- old session routes/tools are absent rather than compatibility-shimmed;
+- no tests require preservation or translation of pre-cutover article fixtures.
+
+Do **not** add migration/backfill tests for old ArticleSession/article-version data. That behavior is explicitly out of scope.
 
 ---
 
 ## 18. Non-goals
 
-Do not add these as part of this migration unless separately justified:
+Do not add these as part of this work unless separately justified:
 
+- backward compatibility for pre-cutover article/session test data;
+- migration/backfill of existing development articles;
+- compatibility aliases for old session APIs or MCP tools;
 - CRDT collaborative editing;
 - per-keystroke event sourcing;
 - JSON diff/patch storage chains;
@@ -757,5 +821,7 @@ There is no separate editing “session”.
 Humans and AI edit the same draft through the same revision/concurrency rules.
 
 Saving is persistence; submission is the formal workflow boundary.
+
+There is no legacy-data compatibility layer for the development-era session model.
 
 That is the architectural invariant future article-authoring work should preserve.
