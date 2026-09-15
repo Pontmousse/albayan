@@ -51,8 +51,9 @@ for (const file of templates) {
   assert.ok(!/\b(?:Clerk|Resend|Next\.js|FastAPI)\b/i.test(html), `${file} exposes an implementation vendor`);
   assert.match(html, /name="viewport"/i, `${file} is missing viewport metadata`);
   assert.match(html, /max-width:\s*620px/i, `${file} is missing mobile CSS`);
-  assert.ok(
-    html.includes("<strong>{{{RECIPIENT_EMAIL}}}</strong>"),
+  assert.match(
+    html,
+    /<strong[^>]*>\{\{\{RECIPIENT_EMAIL\}\}\}<\/strong>/i,
     `${file} must render RECIPIENT_EMAIL in bold`,
   );
 
