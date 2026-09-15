@@ -2,7 +2,6 @@
 
 import {
   MCP_CLIENT_PROVIDERS,
-  type McpClientId,
   type McpClientProvider,
 } from "./mcp-client-providers";
 
