@@ -9,6 +9,7 @@ from app.models.article import (
     ArticleVersion,
     Review,
 )
+from app.models.donation import Donation, StripeWebhookEvent
 from app.models.enums import (
     ArticleStatus,
     AccountDeletionRequestStatus,
@@ -45,6 +46,8 @@ __all__ = [
     "ArticleStatus",
     "VersionStatus",
     "CompileStatus",
+    "Donation",
+    "StripeWebhookEvent",
     "Invitation",
     "InvitationRole",
     "InvitationStatus",
