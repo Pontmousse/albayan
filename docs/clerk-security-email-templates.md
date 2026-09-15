@@ -143,7 +143,7 @@ In Clerk Dashboard -> **Webhooks**, verify the production endpoint points to:
 https://api.albayan-journal.org/api/v1/webhooks/clerk
 ```
 
-and is subscribed to the email-created event. Clerk documentation has used both `email.created` and `emails.created`; the Al-Bayan endpoint accepts both spellings.
+and is subscribed to Clerk's email-created event. Current Clerk documentation names this event `email.created`; the Al-Bayan handler also accepts the plural `emails.created` spelling for compatibility with earlier documentation/examples.
 
 Confirm the endpoint's signing secret is configured in the backend as:
 
