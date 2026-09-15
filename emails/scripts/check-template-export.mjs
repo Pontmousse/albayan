@@ -127,7 +127,7 @@ const templates = [
     assets: ["logo.png", "header-arch.png", "divider.png", "footer-corner.png", "icons/website.png", "icons/email.png"],
   },
   {
-    file: "ReviewInvitation.html",
+    file: "reviewers/ReviewInvitation.html",
     variables: [
       "ARTICLE_TITLE",
       "ROLE_LABEL",
@@ -142,7 +142,7 @@ const templates = [
     assets: ["logo.png", "header-arch.png", "divider.png", "footer-corner.png", "icons/website.png", "icons/email.png"],
   },
   {
-    file: "ReviewerAssigned.html",
+    file: "reviewers/ReviewerAssigned.html",
     variables: [
       "ARTICLE_TITLE",
       "REVIEW_URL",
@@ -155,7 +155,7 @@ const templates = [
     assets: ["logo.png", "header-arch.png", "divider.png", "footer-corner.png", "icons/website.png", "icons/email.png"],
   },
   {
-    file: "ReviewReminder.html",
+    file: "reviewers/ReviewReminder.html",
     variables: [
       "ARTICLE_TITLE",
       "REVIEW_URL",
@@ -169,7 +169,7 @@ const templates = [
     assets: ["logo.png", "header-arch.png", "divider.png", "footer-corner.png", "icons/website.png", "icons/email.png"],
   },
   {
-    file: "ReviewSubmitted.html",
+    file: "reviewers/ReviewSubmitted.html",
     variables: [
       "ARTICLE_TITLE",
       "REVIEWER_NAME",
