@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { WukalaCtaButton } from "@/components/wukala/wukala-cta-button";
@@ -12,9 +13,10 @@ import {
   type McpClientId,
 } from "@/lib/mcp-client-guides";
 
-export const MCP_CONNECTION_NAME = "البيان";
+export const MCP_CONNECTION_NAME = "مجلة البيان";
 export const MCP_CONNECTION_DESCRIPTION =
-  "مساعدة في العمل العلمي بمجلة البيان: قراءة المخطوطات، صياغة المسودات، ومساندة المراجعة والتحرير — دون تقديم المقال أو اتخاذ قرارات نهائية.";
+  "مساعد مجلة البيان للبحث والكتابة والمراجعة والتحرير، يسهّل العمل على المقالات والاستفادة من أدوات المجلة مباشرة من مساعدك الذكي.";
+export const MCP_CONNECTION_ICON_PATH = "/connector_icon.png";
 
 const ACCORDION_EXIT_MS = 280;
 
@@ -40,7 +42,8 @@ const DETAILED_GUIDE_OVERRIDES: Partial<
       title: "ثانياً — إنشاء الموصل",
       steps: [
         "ارجع إلى «الموصلات» واضغط زر «إنشاء» (Create).",
-        "استخدم اسم الاتصال والوصف وعنوان خادم MCP من صندوق «بيانات الربط» أعلاه؛ لكل قيمة زر نسخ مستقل.",
+        "املأ الحقول من صندوق «بيانات الربط» أعلاه بالترتيب: الاسم «مجلة البيان»، ثم الوصف، ثم عنوان خادم MCP.",
+        "إذا ظهر حقل للأيقونة، حمّل أيقونة الموصل من صندوق «بيانات الربط» وأضفها؛ هي مُهيّأة لحدود الرفع الصغيرة مثل 10 كيلوبايت.",
         "في خيار المصادقة اترك OAuth كما هو (الافتراضي).",
       ],
     },
@@ -81,6 +84,45 @@ function ConnectionValue({
           </code>
         </div>
         <CopyButton value={value} ariaLabel={`نسخ ${label}`} />
+      </div>
+    </div>
+  );
+}
+
+function ConnectorIconDownload() {
+  return (
+    <div className="rounded-xl border border-emerald-200/80 bg-white/90 p-3.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-emerald-100 bg-white p-1.5 shadow-sm">
+            <Image
+              src={MCP_CONNECTION_ICON_PATH}
+              alt="أيقونة مجلة البيان للموصل"
+              width={48}
+              height={48}
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-bold text-emerald-950">أيقونة الموصل</p>
+              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 ring-1 ring-emerald-200">
+                اختياري
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              حمّل شعار مجلة البيان المضغوط إذا كان برنامجك يدعم أيقونة مخصصة
+              للموصل. الملف أقل من 10 كيلوبايت.
+            </p>
+          </div>
+        </div>
+        <a
+          href={MCP_CONNECTION_ICON_PATH}
+          download="albayan-connector-icon.png"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
+        >
+          تحميل الأيقونة
+        </a>
       </div>
     </div>
   );
@@ -189,7 +231,8 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
             <p className="text-xs font-bold text-emerald-700">ابدأ من هنا</p>
             <h3 className="mt-1 text-lg font-bold text-slate-900">بيانات الربط</h3>
             <p className="mt-1 text-xs leading-5 text-slate-600">
-              هذه القيم المشتركة هي ما تحتاجه أغلب البرامج. انسخ ما يطلبه برنامجك فقط.
+              ابدأ بالاسم ثم الوصف وعنوان الخادم، وحمّل الأيقونة إذا كان برنامجك
+              يدعمها.
             </p>
           </div>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200">
@@ -198,19 +241,18 @@ export function McpConnectionGuide({ guide }: { guide: McpClientGuide }) {
         </div>
 
         <div className="mt-4 grid gap-3">
+          <ConnectionValue
+            label="اسم الاتصال"
+            value={MCP_CONNECTION_NAME}
+            hint="ابدأ بهذا الاسم إذا طلب برنامجك اسماً للاتصال."
+          />
+          <ConnectionValue
+            label="وصف الاتصال"
+            value={MCP_CONNECTION_DESCRIPTION}
+            hint="وصف مختصر لما يتيحه مساعد مجلة البيان."
+          />
           <ConnectionValue label="عنوان خادم MCP" value={MCP_SERVER_URL} />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ConnectionValue
-              label="اسم الاتصال"
-              value={MCP_CONNECTION_NAME}
-              hint="استخدمه إذا طلب برنامجك اسماً للاتصال."
-            />
-            <ConnectionValue
-              label="وصف الاتصال"
-              value={MCP_CONNECTION_DESCRIPTION}
-              hint="استخدمه إذا طلب برنامجك وصفاً للاتصال."
-            />
-          </div>
+          <ConnectorIconDownload />
         </div>
 
         {guide.configSnippet ? (
