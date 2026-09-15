@@ -26,6 +26,34 @@ class ClerkEmailWebhookTests(unittest.TestCase):
 
         self.assertEqual(result, {"ok": True, "ignored": True})
 
+    def test_ignores_non_otp_clerk_security_email_without_parsing_otp(self) -> None:
+        with (
+            patch.object(
+                clerk_email_webhook_service.email_service,
+                "send_auth_verification_email",
+            ) as verification_send,
+            patch.object(
+                clerk_email_webhook_service.email_service,
+                "send_password_reset_email",
+            ) as reset_send,
+        ):
+            result = clerk_email_webhook_service.handle_clerk_webhook(
+                {
+                    "type": "email.created",
+                    "data": {
+                        "id": "email_security_1",
+                        "slug": "password_changed",
+                        "to_email_address": "user@example.com",
+                        "delivered_by_clerk": False,
+                        "data": {},
+                    },
+                }
+            )
+
+        self.assertEqual(result, {"ok": True, "ignored": True})
+        verification_send.assert_not_called()
+        reset_send.assert_not_called()
+
     def test_verification_code_uses_resend_template(self) -> None:
         with patch.object(
             clerk_email_webhook_service.email_service,
