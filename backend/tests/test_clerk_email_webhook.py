@@ -95,6 +95,8 @@ class ClerkEmailWebhookTests(unittest.TestCase):
         self.assertEqual(result, {"ok": True, "message_id": "email_resend"})
 
     def test_security_notifications_use_albayan_resend_templates(self) -> None:
+        # These are Clerk's current security-template slugs. Keeping them in one
+        # table makes contract drift obvious if Clerk changes a template slug.
         cases = (
             ("account_locked", "send_account_locked_email"),
             ("password_changed", "send_password_changed_email"),
