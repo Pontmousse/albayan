@@ -24,6 +24,8 @@ PASSWORD_RESET_SLUGS = {
     "password_reset_code",
 }
 
+ALBAYAN_RESEND_SLUGS = VERIFICATION_CODE_SLUGS | PASSWORD_RESET_SLUGS
+
 
 def verify_clerk_webhook(
     *,
@@ -93,6 +95,9 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
     if data is None:
         return {"ok": True, "ignored": True}
 
+    # Clerk owns the ordinary account-security notifications. Albayan intercepts
+    # only the two OTP families below (verification + password reset) when Clerk
+    # explicitly marks the email as not delivered by Clerk.
     if data.get("delivered_by_clerk") is True:
         return {"ok": True, "ignored": True}
 
@@ -101,6 +106,10 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
         return {"ok": True, "ignored": True}
 
     normalized_slug = slug.strip()
+    if normalized_slug not in ALBAYAN_RESEND_SLUGS:
+        logger.info("Ignoring unsupported Clerk email slug %s", normalized_slug)
+        return {"ok": True, "ignored": True}
+
     recipient = _recipient(data)
     otp_code = _otp_code(data)
     idempotency_key = _idempotency_key(data)
@@ -113,13 +122,9 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
         )
         return {"ok": True, "message_id": message_id}
 
-    if normalized_slug in PASSWORD_RESET_SLUGS:
-        message_id = email_service.send_password_reset_email(
-            to=recipient,
-            otp_code=otp_code,
-            idempotency_key=idempotency_key,
-        )
-        return {"ok": True, "message_id": message_id}
-
-    logger.info("Ignoring unsupported Clerk email slug %s", normalized_slug)
-    return {"ok": True, "ignored": True}
+    message_id = email_service.send_password_reset_email(
+        to=recipient,
+        otp_code=otp_code,
+        idempotency_key=idempotency_key,
+    )
+    return {"ok": True, "message_id": message_id}
