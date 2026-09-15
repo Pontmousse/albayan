@@ -48,6 +48,12 @@ CLERK_SECRET_KEY=sk_live_xxxxxxxxxx
 - `RESEND_*_TEMPLATE` values accept published template aliases or UUIDs. Stable
   aliases such as `welcome-ar`, `auth-verification-code-ar`, and
   `review-reminder-ar` are preferred; no `tmpl_` prefix is assumed.
+- The five notification-only Clerk security templates use stable aliases owned
+  directly by `emails/templates.yaml` and `clerk_security_email_service.py`:
+  `account-locked-ar`, `password-changed-ar`, `password-removed-ar`,
+  `primary-email-changed-ar`, and `new-device-sign-in-ar`. They intentionally
+  do not add five more backend environment variables. Password reset keeps its
+  existing `RESEND_PASSWORD_RESET_TEMPLATE=password-reset-ar` setting.
 - An empty email configuration disables delivery for local development. Once
   any email-specific value is supplied, startup validation requires the whole
   group. Production URLs must use HTTPS; local HTTP is accepted only with
@@ -103,6 +109,22 @@ SITE_URL
 CONTACT_EMAIL
 ASSET_BASE_URL
 ```
+
+Clerk security notifications (`account-locked-ar`, `password-changed-ar`,
+`password-removed-ar`, `primary-email-changed-ar`, `new-device-sign-in-ar`):
+
+```text
+RECIPIENT_EMAIL
+DATE_TEXT
+SITE_URL
+CONTACT_EMAIL
+ASSET_BASE_URL
+```
+
+These five notifications deliberately start with the stable information needed
+for safe delivery. Do not invent device, IP, location, browser, or security-
+action values. Add Clerk metadata only after its production webhook payload has
+been verified and the additional fields are covered by tests.
 
 Editorial and notification templates:
 
@@ -191,16 +213,21 @@ Email clients cannot load React Email's local `/static/` preview paths. The
 exported production template must contain only `{{{ASSET_BASE_URL}}}/...` image
 URLs, which the test suite verifies.
 
-## Publishing the template
+## Publishing the templates
 
 Install the current official Resend CLI and Mike Farah `yq` v4 (the unrelated
 Python `yq` package is not compatible), then use a Full Access key dedicated to
 template administration. The official Node.js CLI installation is
 `npm install -g resend-cli`.
 
+Run the package tests before publishing, then sync every declared alias:
+
 ```bash
-export RESEND_API_KEY=re_xxxxxxxxxx
 cd emails
+npm ci
+npm test
+
+export RESEND_API_KEY=re_xxxxxxxxxx
 npm run templates:sync
 ```
 
@@ -213,15 +240,46 @@ alias in `templates.yaml` with the declared variables, and publishes the
 resulting drafts. A missing alias is the only lookup failure that may create a
 template; authentication, network, and rate-limit failures stop the workflow.
 
+After the Clerk security-email change, verify these aliases are present and
+published before turning Clerk delivery off:
+
+```text
+account-locked-ar
+password-changed-ar
+password-removed-ar
+primary-email-changed-ar
+password-reset-ar
+new-device-sign-in-ar
+```
+
 Useful read-only checks:
 
 ```bash
 resend doctor
 resend templates list --json
-resend templates get welcome-ar --json
+resend templates get password-reset-ar --json
+resend templates get account-locked-ar --json
 ```
 
 Never commit `RESEND_API_KEY`.
+
+## Clerk security-email rollout
+
+The complete ownership matrix and Dashboard instructions live in
+`docs/clerk-security-email-templates.md`. The safe order is:
+
+1. Deploy the backend webhook handlers while current Clerk delivery is still on.
+2. Run the tests and `npm run templates:sync`; confirm all six Resend aliases
+   above are published.
+3. Verify Clerk's production webhook points to
+   `https://api.albayan-journal.org/api/v1/webhooks/clerk` and that the backend
+   has the matching `CLERK_WEBHOOK_SIGNING_SECRET`.
+4. Disable **Delivered by Clerk** for the six security templates one at a time.
+5. Trigger each flow with a test account and confirm exactly one corresponding
+   Resend message arrives before moving to the next template.
+
+There is no need to paste Arabic template copy into Clerk for these six emails;
+the source of truth is the React Email source plus the published Resend aliases.
 
 ## Safe rollout and mobile acceptance
 
