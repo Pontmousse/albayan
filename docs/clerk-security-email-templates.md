@@ -32,6 +32,8 @@ Clerk documents this as the supported custom-delivery model: disabling **Deliver
 | Reset password code | `reset_password_code` | `emails/src/auth/PasswordReset.tsx` | `password-reset-ar` | OFF |
 | Sign in from new device | `new_device_sign_in` | `emails/src/auth/NewDeviceSignIn.tsx` | `new-device-sign-in-ar` | OFF |
 
+These slugs are treated as an external contract and covered explicitly by backend tests. If a production webhook shows a changed Clerk slug, update the allowlist and tests before relying on the new spelling.
+
 Email verification is not part of the six-item Clerk screen above, but its existing `verification_code` flow uses the same webhook -> Al-Bayan -> Resend architecture.
 
 The backend also accepts the legacy/current reset-password slug aliases already present in `clerk_email_webhook_service.py`, so an existing production reset flow does not depend on one spelling.
