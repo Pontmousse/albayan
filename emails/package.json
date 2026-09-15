@@ -7,7 +7,7 @@
     "dev": "email dev --dir src --port 3001",
     "test": "npm run assets:check && npm run test:unit && npm run test:template && npm run test:sync",
     "test:unit": "esbuild test/theme.test.ts --bundle --platform=node --format=esm --outfile=.test-dist/theme.test.mjs && node --test .test-dist/theme.test.mjs",
-    "test:template": "npm run export && node scripts/check-template-export.mjs",
+    "test:template": "npm run export && node scripts/check-template-export.mjs && node scripts/check-security-template-export.mjs",
     "test:sync": "bash tests/sync-resend-templates-test.sh",
     "build": "email build --dir src --packageManager npm",
     "export": "email export --dir src --pretty",
@@ -22,7 +22,7 @@
     "@types/react-dom": "19.2.5",
     "esbuild": "0.28.1",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react-dom": "19.2.5",
     "react-email": "6.9.3",
     "typescript": "7.0.2"
   }
