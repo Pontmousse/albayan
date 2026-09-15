@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.config import settings
-from app.services import email_service
+from app.services import clerk_security_email_service, email_service
 
 logger = logging.getLogger(__name__)
 
@@ -140,27 +140,27 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
             idempotency_key=idempotency_key,
         )
     elif normalized_slug in ACCOUNT_LOCKED_SLUGS:
-        message_id = email_service.send_account_locked_email(
+        message_id = clerk_security_email_service.send_account_locked_email(
             to=recipient,
             idempotency_key=idempotency_key,
         )
     elif normalized_slug in PASSWORD_CHANGED_SLUGS:
-        message_id = email_service.send_password_changed_email(
+        message_id = clerk_security_email_service.send_password_changed_email(
             to=recipient,
             idempotency_key=idempotency_key,
         )
     elif normalized_slug in PASSWORD_REMOVED_SLUGS:
-        message_id = email_service.send_password_removed_email(
+        message_id = clerk_security_email_service.send_password_removed_email(
             to=recipient,
             idempotency_key=idempotency_key,
         )
     elif normalized_slug in PRIMARY_EMAIL_CHANGED_SLUGS:
-        message_id = email_service.send_primary_email_changed_email(
+        message_id = clerk_security_email_service.send_primary_email_changed_email(
             to=recipient,
             idempotency_key=idempotency_key,
         )
     else:
-        message_id = email_service.send_new_device_sign_in_email(
+        message_id = clerk_security_email_service.send_new_device_sign_in_email(
             to=recipient,
             idempotency_key=idempotency_key,
         )
