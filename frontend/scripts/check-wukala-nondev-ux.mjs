@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -199,6 +199,7 @@ test("shared MCP connection guide owns copyable connection data and detailed ins
   assert.match(source, /MCP_CONNECTION_NAME/);
   assert.match(source, /MCP_CONNECTION_DESCRIPTION/);
   assert.match(source, /MCP_SERVER_URL/);
+  assert.match(source, /MCP_CONNECTION_ICON_PATH/);
   assert.match(source, /CopyButton/);
   assert.match(source, /WukalaCtaButton/);
   assert.match(source, /isDevMode\(\).*guide\.id === "cursor" \|\| guide\.id === "other"/s);
@@ -206,13 +207,37 @@ test("shared MCP connection guide owns copyable connection data and detailed ins
   assert.match(source, /useOpenTransition/);
   assert.match(source, /DETAILED_GUIDE_OVERRIDES/);
   assert.match(source, /التعليمات التفصيلية لـ/);
-  assert.match(source, /صياغة المسودات/);
-  assert.match(source, /دون تقديم المقال/);
+  assert.match(source, /export const MCP_CONNECTION_NAME = "مجلة البيان"/);
+  assert.match(source, /مساعد مجلة البيان للبحث والكتابة والمراجعة والتحرير/);
+  assert.equal(source.includes("دون تقديم المقال أو اتخاذ قرارات نهائية"), false);
+  assert.match(source, /download="albayan-connector-icon\.png"/);
+  assert.match(source, /الملف أقل من 10 كيلوبايت/);
+  assert.match(source, /إذا ظهر حقل للأيقونة/);
   assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
+
+  const nameIndex = source.indexOf('label="اسم الاتصال"');
+  const descriptionIndex = source.indexOf('label="وصف الاتصال"');
+  const urlIndex = source.indexOf('label="عنوان خادم MCP"');
+  const iconIndex = source.indexOf("<ConnectorIconDownload");
+  assert.ok(
+    nameIndex < descriptionIndex &&
+      descriptionIndex < urlIndex &&
+      urlIndex < iconIndex,
+    "connection data must stay ordered name -> description -> URL -> icon",
+  );
+
   assert.ok(
     source.indexOf("<DetailedInstructions") <
       source.indexOf("showAdvancedManualSetup ?"),
     "advanced manual setup must follow the normal remote instructions",
+  );
+});
+
+test("connector icon stays below the 10 KB upload limit", () => {
+  const iconPath = join(root, "public", "connector_icon.png");
+  assert.ok(
+    statSync(iconPath).size < 10 * 1024,
+    "connector_icon.png must stay below 10 KB",
   );
 });
 
