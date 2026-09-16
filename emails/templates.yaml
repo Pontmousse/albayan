@@ -210,3 +210,68 @@ templates:
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
     publish: true
+
+  - alias: account-locked-ar
+    name: "Al-Bayan Account Locked"
+    subject: "تم قفل حسابكم مؤقتًا في مجلة البيان"
+    file: "emails/src/auth/AccountLocked.tsx"
+    html_file: "emails/out/auth/AccountLocked.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: password-changed-ar
+    name: "Al-Bayan Password Changed"
+    subject: "تم تغيير كلمة مرور حسابكم في مجلة البيان"
+    file: "emails/src/auth/PasswordChanged.tsx"
+    html_file: "emails/out/auth/PasswordChanged.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: password-removed-ar
+    name: "Al-Bayan Password Removed"
+    subject: "تمت إزالة كلمة المرور من حسابكم في مجلة البيان"
+    file: "emails/src/auth/PasswordRemoved.tsx"
+    html_file: "emails/out/auth/PasswordRemoved.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: primary-email-changed-ar
+    name: "Al-Bayan Primary Email Changed"
+    subject: "تم تغيير البريد الإلكتروني الأساسي في مجلة البيان"
+    file: "emails/src/auth/PrimaryEmailChanged.tsx"
+    html_file: "emails/out/auth/PrimaryEmailChanged.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: new-device-sign-in-ar
+    name: "Al-Bayan New Device Sign In"
+    subject: "تسجيل دخول إلى حسابكم في مجلة البيان من جهاز جديد"
+    file: "emails/src/auth/NewDeviceSignIn.tsx"
+    html_file: "emails/out/auth/NewDeviceSignIn.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
