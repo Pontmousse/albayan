@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
+    "test:donations": "node --test scripts/check-donations-ux.mjs",
     "test:wukala-ux": "node --test scripts/check-wukala-nondev-ux.mjs",
     "test:mcp-flags": "vitest run src/lib/dev-mode.test.ts",
     "test:oauth-consent": "vitest run src/lib/oauth-consent.test.ts",

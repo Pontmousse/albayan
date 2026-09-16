@@ -10,6 +10,7 @@ from app.models.article import (
     DraftCommandReceipt,
     Review,
 )
+from app.models.donation import Donation, StripeWebhookEvent
 from app.models.enums import (
     ArticleStatus,
     AccountDeletionRequestStatus,
@@ -47,6 +48,7 @@ __all__ = [
     "DraftCommandReceipt",
     "ArticleStatus",
     "CompileStatus",
+    "Donation",
     "DraftActorType",
     "DraftRevisionReason",
     "Invitation",
@@ -67,5 +69,6 @@ __all__ = [
     "ReviewStatus",
     "ReviewerAssignmentStatus",
     "SourceType",
+    "StripeWebhookEvent",
     "User",
 ]
