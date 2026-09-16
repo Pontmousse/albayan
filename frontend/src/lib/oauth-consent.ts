@@ -1,3 +1,10 @@
+import {
+  identifyMcpClient,
+  MCP_CLIENT_PROVIDERS,
+  type McpClientId,
+  type McpOAuthClientMetadata,
+} from "./mcp-client-providers";
+
 /** Application-domain OAuth consent route (Clerk Dashboard Paths → this path). */
 export const OAUTH_CONSENT_PATH = "/oauth-consent";
 
@@ -28,6 +35,45 @@ export function safeHttpUrl(raw: string | null | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+export type OAuthClientLogo = {
+  src: string;
+  providerId: McpClientId | null;
+  isRemote: boolean;
+};
+
+/**
+ * Prefer reviewed local artwork for known clients, then a safe Clerk-provided
+ * logo, and finally Al-Bayan's generic agent artwork.
+ */
+export function resolveOAuthClientLogo(
+  metadata: McpOAuthClientMetadata,
+  remoteLogoUrl: string | null | undefined,
+): OAuthClientLogo {
+  const providerId = identifyMcpClient(metadata);
+  if (providerId) {
+    return {
+      src: MCP_CLIENT_PROVIDERS[providerId].iconSrc,
+      providerId,
+      isRemote: false,
+    };
+  }
+
+  const safeRemoteLogoUrl = safeHttpUrl(remoteLogoUrl);
+  if (safeRemoteLogoUrl) {
+    return {
+      src: safeRemoteLogoUrl,
+      providerId: null,
+      isRemote: true,
+    };
+  }
+
+  return {
+    src: MCP_CLIENT_PROVIDERS.other.iconSrc,
+    providerId: "other",
+    isRemote: false,
+  };
 }
 
 export function redirectHostname(redirectUri: string): string {
