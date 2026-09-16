@@ -4,7 +4,7 @@ import { DraftAutosaveController } from "./draft-autosave";
 import type { DraftRevision } from "./api/articles";
 
 const document = (title: string) =>
-  ({ node_type: "DocumentObject", meta: { title, abstract: "" }, blocks: [] }) as DraftRevision["document"];
+  ({ node_type: "DocumentObject", meta: { title, abstract: "" }, blocks: [] }) as unknown as DraftRevision["document"];
 
 const revision = (number: number, title: string): DraftRevision => ({
   revision_id: String(number),
