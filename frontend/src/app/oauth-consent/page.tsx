@@ -20,7 +20,7 @@ export default function OAuthConsentPage() {
 
       <header className="oauth-consent-brand relative z-10 px-4 pb-1 pt-6 text-center sm:pt-10">
         <Image
-          src="/albayan.svg"
+          src="/official-logo.png"
           alt="شعار مجلة البيان"
           width={80}
           height={80}
