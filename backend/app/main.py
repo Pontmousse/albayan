@@ -7,6 +7,7 @@ from app.routers import (
     admin_mcp,
     agent_tokens,
     articles,
+    donations,
     editor,
     invitations,
     issues,
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(public.router)
+app.include_router(donations.router)
 app.include_router(users.router)
 app.include_router(webhooks.router)
 app.include_router(agent_tokens.router)

@@ -210,3 +210,17 @@ templates:
       CONTACT_EMAIL: string
       ASSET_BASE_URL: string
     publish: true
+
+  - alias: donation-received-ar
+    name: "Al-Bayan Donation Received"
+    subject: "جزاكم الله خيرًا على دعم مجلة البيان"
+    file: "emails/src/donations/DonationReceived.tsx"
+    html_file: "emails/out/donations/DonationReceived.html"
+    variables:
+      AMOUNT_TEXT: string
+      DONATION_REFERENCE: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true

@@ -13,6 +13,7 @@ from app.models.article import (  # noqa: F401
     ArticleVersion,
     Review,
 )
+from app.models.donation import Donation, StripeWebhookEvent  # noqa: F401
 from app.models.issue import Issue, IssueImage, IssueUpvote  # noqa: F401
 from app.models.invitation import Invitation  # noqa: F401
 from app.models.mcp_call_log import McpCallLog  # noqa: F401

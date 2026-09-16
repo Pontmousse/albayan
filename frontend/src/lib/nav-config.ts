@@ -61,6 +61,7 @@ export const footerLinks = {
   about: [
     { href: "/hayat-at-tahrir", label: "هيئة التحرير" },
     { href: "/al-siyasat-wal-shurut", label: "السياسات والشروط" },
+    { href: "/daam-al-bayan", label: "دعم البيان" },
     { href: "/al-tawasul", label: "التواصل" },
   ],
 };

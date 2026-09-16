@@ -50,10 +50,21 @@ class Settings(BaseSettings):
     resend_decision_template: str = ""
     resend_article_published_template: str = ""
     resend_unread_notifications_digest_template: str = ""
+    # Optional: if omitted, donation confirmations fall back to safe inline Arabic HTML.
+    resend_donation_received_template: str = ""
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
     butex_worker_url: str = ""
     butex_worker_token: str = ""
+
+    # Stripe donations. Supplying either secret opts into the full Stripe group.
+    stripe_secret_key: SecretStr = SecretStr("")
+    stripe_webhook_signing_secret: SecretStr = SecretStr("")
+    donation_currency: str = "cad"
+    donation_min_amount_minor: int = 500
+    donation_max_amount_minor: int = 500000
+    donation_minor_unit_divisor: int = 100
+
     # من DEV_MODE — يفعّل أدوات التشخيص (مثل compile.log)؛ لا تفعّله في الإنتاج.
     dev_mode: bool = False
 
@@ -100,6 +111,9 @@ class Settings(BaseSettings):
         # An entirely empty group disables email locally. Supplying any member
         # opts into email delivery and requires a complete, coherent group.
         if not any(value.strip() for value in email_settings.values()):
+            self.resend_donation_received_template = (
+                self.resend_donation_received_template.strip()
+            )
             return self
 
         required = {
@@ -151,8 +165,50 @@ class Settings(BaseSettings):
         self.resend_unread_notifications_digest_template = (
             self.resend_unread_notifications_digest_template.strip()
         )
+        self.resend_donation_received_template = (
+            self.resend_donation_received_template.strip()
+        )
         self.frontend_base_url = _validate_email_url(
             self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
+        )
+        return self
+
+    @model_validator(mode="after")
+    def validate_stripe_configuration(self) -> "Settings":
+        secret_key = self.stripe_secret_key.get_secret_value().strip()
+        webhook_secret = self.stripe_webhook_signing_secret.get_secret_value().strip()
+        self.stripe_secret_key = SecretStr(secret_key)
+        self.stripe_webhook_signing_secret = SecretStr(webhook_secret)
+        self.donation_currency = self.donation_currency.strip().lower()
+
+        if not re.fullmatch(r"[a-z]{3}", self.donation_currency):
+            raise ValueError("DONATION_CURRENCY must be a three-letter currency code")
+        if self.donation_min_amount_minor <= 0:
+            raise ValueError("DONATION_MIN_AMOUNT_MINOR must be positive")
+        if self.donation_max_amount_minor < self.donation_min_amount_minor:
+            raise ValueError(
+                "DONATION_MAX_AMOUNT_MINOR must be at least DONATION_MIN_AMOUNT_MINOR"
+            )
+        if self.donation_minor_unit_divisor <= 0:
+            raise ValueError("DONATION_MINOR_UNIT_DIVISOR must be positive")
+
+        if not secret_key and not webhook_secret:
+            return self
+        if not secret_key or not webhook_secret:
+            raise ValueError(
+                "STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SIGNING_SECRET must be configured together"
+            )
+        if not (secret_key.startswith("sk_") or secret_key.startswith("rk_")):
+            raise ValueError("STRIPE_SECRET_KEY must be a Stripe secret or restricted key")
+        if not webhook_secret.startswith("whsec_"):
+            raise ValueError(
+                "STRIPE_WEBHOOK_SIGNING_SECRET must be a Stripe webhook secret"
+            )
+
+        self.frontend_base_url = _validate_email_url(
+            self.frontend_base_url,
+            "FRONTEND_BASE_URL",
+            self.dev_mode,
         )
         return self
 
@@ -164,6 +220,13 @@ class Settings(BaseSettings):
             else self.resend_api_key
         )
         return bool(api_key)
+
+    @property
+    def stripe_enabled(self) -> bool:
+        return bool(
+            self.stripe_secret_key.get_secret_value()
+            and self.stripe_webhook_signing_secret.get_secret_value()
+        )
 
     @property
     def email_reply_to_address(self) -> str:
