@@ -30,6 +30,7 @@ const DECISIONS: {
   needsConfirm: boolean;
 }[] = [
   { status: "under_review", label: "قيد المراجعة", needsConfirm: false },
+  { status: "revision_requested", label: "طلب تعديلات", needsConfirm: false },
   { status: "accepted", label: "قبول", needsConfirm: true },
   { status: "rejected", label: "رفض", needsConfirm: true },
 ];
@@ -69,13 +70,24 @@ export default function TahririDetailPage() {
   const [deciding, setDeciding] = useState(false);
   const [decisionError, setDecisionError] = useState<string | null>(null);
   const [decisionOk, setDecisionOk] = useState<string | null>(null);
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [disclosures, setDisclosures] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
       const data = await getEditorArticle(getToken, articleId);
       setArticle(data);
+      setSelectedVersionId(data.latest_version.id);
+      setDisclosures(Object.fromEntries(data.reviews.map((review) => [
+        review.id,
+        review.reveal_reviewer_identity_to_author,
+      ])));
       try {
-        const doc = await getEditorDocument(getToken, articleId);
+        const doc = await getEditorDocument(
+          getToken,
+          articleId,
+          data.latest_version.id,
+        );
         setDocumentJson(doc.document);
       } catch {
         setDocumentJson(null);
@@ -90,6 +102,10 @@ export default function TahririDetailPage() {
   }, [load]);
 
   async function applyDecision(status: EditorDecisionStatus) {
+    if (status === "revision_requested" && !reason.trim()) {
+      setDecisionError("اكتب توجيهات التعديل قبل إرسال الطلب للمؤلف.");
+      return;
+    }
     setDeciding(true);
     setDecisionError(null);
     setDecisionOk(null);
@@ -99,6 +115,12 @@ export default function TahririDetailPage() {
         articleId,
         status,
         reason.trim() || null,
+        status === "revision_requested"
+          ? article?.reviews.map((review) => ({
+              review_id: review.id,
+              reveal_identity: disclosures[review.id] ?? false,
+            })) ?? []
+          : [],
       );
       setPendingDecision(null);
       setDecisionOk("تم تحديث القرار التحريري.");
@@ -109,6 +131,33 @@ export default function TahririDetailPage() {
       setDeciding(false);
     }
   }
+
+  async function selectVersion(versionId: string) {
+    setSelectedVersionId(versionId);
+    setDocumentJson(undefined);
+    try {
+      const doc = await getEditorDocument(getToken, articleId, versionId);
+      setDocumentJson(doc.document);
+    } catch {
+      setDocumentJson(null);
+    }
+  }
+
+  const fetchSelectedAsset = useCallback(
+    (tokenGetter: typeof getToken, _scopeId: string, assetKey: string) => {
+      if (!selectedVersionId) return Promise.reject(new Error("لا يوجد إصدار محدد."));
+      return fetchEditorAssetBlob(tokenGetter, articleId, selectedVersionId, assetKey);
+    },
+    [articleId, selectedVersionId],
+  );
+
+  const fetchSelectedPdf = useCallback(
+    (tokenGetter: typeof getToken) => {
+      if (!selectedVersionId) return Promise.reject(new Error("لا يوجد إصدار محدد."));
+      return fetchEditorPdfBlob(tokenGetter, articleId, selectedVersionId);
+    },
+    [articleId, selectedVersionId],
+  );
 
   function handleDecisionClick(
     status: EditorDecisionStatus,
@@ -150,7 +199,8 @@ export default function TahririDetailPage() {
     );
   }
 
-  const current = article.current_version;
+  const latest = article.latest_version;
+  const selectedVersion = article.versions.find((version) => version.id === selectedVersionId) ?? latest;
   const confirmMeta = pendingDecision
     ? DECISION_CONFIRM[pendingDecision]
     : null;
@@ -172,8 +222,8 @@ export default function TahririDetailPage() {
             {article.title}
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
-            <StatusBadge status={current.status} />
-            <span>الإصدار {formatDigits(current.version_number)}</span>
+            <StatusBadge status={article.status} />
+            <span>الإصدار {formatDigits(latest.version_number)}</span>
             <span aria-hidden>·</span>
             <span>أُنشئ في {formatDate(article.created_at)}</span>
           </p>
@@ -190,7 +240,7 @@ export default function TahririDetailPage() {
       <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
-          <WorkflowProgress status={current.status} />
+          <WorkflowProgress status={article.status} />
         </div>
         <p className="mt-3 text-xs leading-6 text-slate-500">
           المخطوطة للقراءة فقط — القرار التحريري يحدّث الحالة دون تعديل المحتوى.
@@ -209,18 +259,19 @@ export default function TahririDetailPage() {
                 <span className="font-semibold text-slate-800">
                   الإصدار {formatDigits(version.version_number)}
                 </span>
-                <StatusBadge status={version.status} />
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="flex items-center gap-3 text-xs text-slate-500">
                 {version.submitted_at
                   ? `قُدِّم في ${formatDate(version.submitted_at)}`
                   : `أُنشئ في ${formatDate(version.created_at)}`}
+                <button
+                  type="button"
+                  onClick={() => void selectVersion(version.id)}
+                  className="font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+                >
+                  {selectedVersion.id === version.id ? "معروض الآن" : "عرض المخطوطة"}
+                </button>
               </span>
-              {version.change_summary ? (
-                <p className="w-full text-xs leading-6 text-slate-500">
-                  {version.change_summary}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
@@ -238,7 +289,7 @@ export default function TahririDetailPage() {
             documentJson={documentJson ?? null}
             articleId={articleId}
             getToken={getToken}
-            fetchAssetBlob={fetchEditorAssetBlob}
+            fetchAssetBlob={fetchSelectedAsset}
           />
         </div>
       </section>
@@ -252,10 +303,10 @@ export default function TahririDetailPage() {
         </h2>
         <div className="mt-3">
           <CompiledPdfViewer
-            compileStatus={current.compile_status}
+            compileStatus="success"
             getToken={getToken}
             scopeId={articleId}
-            fetchPdfBlob={fetchEditorPdfBlob}
+            fetchPdfBlob={fetchSelectedPdf}
           />
         </div>
       </section>
@@ -306,6 +357,17 @@ export default function TahririDetailPage() {
                     </p>
                   </div>
                 ) : null}
+                <label className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={disclosures[review.id] ?? false}
+                    onChange={(event) => setDisclosures((current) => ({
+                      ...current,
+                      [review.id]: event.target.checked,
+                    }))}
+                  />
+                  إظهار اسم هذا المراجع للمؤلف عند طلب التعديلات
+                </label>
               </li>
             ))}
           </ul>
@@ -322,7 +384,7 @@ export default function TahririDetailPage() {
 
         <label className="mt-4 block space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">
-            سبب القرار (اختياري)
+            توجيهات القرار (مطلوبة عند طلب التعديلات)
           </span>
           <textarea
             value={reason}
@@ -330,7 +392,7 @@ export default function TahririDetailPage() {
             rows={3}
             maxLength={2000}
             className="w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-[var(--journal-accent)]"
-            placeholder="يُحفظ مع الإصدار ويظهر في ملخص التغيير."
+            placeholder="اشرح للمؤلف ما المطلوب تعديله."
           />
         </label>
 
@@ -339,12 +401,19 @@ export default function TahririDetailPage() {
             <button
               key={item.status}
               type="button"
-              disabled={deciding || current.status === item.status}
+              disabled={
+                deciding ||
+                article.status === item.status ||
+                !(
+                  (article.status === "submitted" && ["under_review", "revision_requested", "accepted", "rejected"].includes(item.status)) ||
+                  (article.status === "under_review" && ["revision_requested", "accepted", "rejected"].includes(item.status))
+                )
+              }
               onClick={() =>
                 handleDecisionClick(item.status, item.needsConfirm)
               }
               className={
-                current.status === item.status
+                article.status === item.status
                   ? "rounded-md border border-[var(--journal-accent)] bg-[var(--journal-accent)] px-5 py-2.5 text-sm font-semibold text-white opacity-80"
                   : buttonClassName
               }

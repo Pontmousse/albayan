@@ -11,9 +11,10 @@ from app.models.enums import (
     IssueStatus,
     ReviewerAssignmentStatus,
     UserGender,
-    VersionStatus,
+    ArticleStatus,
 )
 from app.schemas.article import VersionRead
+from app.schemas.editor import EditorReviewReport, ReviewerIdentityDisclosure
 from app.schemas.issue import IssueImageRead
 
 
@@ -33,7 +34,10 @@ class AdminAuthorRead(BaseModel):
 
 
 class AdminReviewerRead(BaseModel):
+    id: UUID
     user: AdminUserBrief
+    article_version_id: UUID
+    version_number: int
     status: ReviewerAssignmentStatus
     invited_at: datetime
     review_due_at: datetime | None = None
@@ -50,8 +54,8 @@ class AdminEditorRead(BaseModel):
 class AdminArticleSummary(BaseModel):
     id: UUID
     title: str
-    status: VersionStatus
-    version_number: int
+    status: ArticleStatus
+    latest_version_number: int | None
     updated_at: datetime
     submitted_at: datetime | None
     authors: list[AdminAuthorRead]
@@ -63,13 +67,16 @@ class AdminArticleDetail(BaseModel):
     id: UUID
     title: str
     abstract: str | None
+    status: ArticleStatus
     created_at: datetime
     updated_at: datetime
-    current_version: VersionRead
+    latest_version: VersionRead | None
     versions: list[VersionRead]
     authors: list[AdminAuthorRead]
     reviewers: list[AdminReviewerRead]
     editors: list[AdminEditorRead]
+    reviews: list[EditorReviewReport]
+    revision_request_note: str | None = None
 
 
 class AssignByUserOrEmail(BaseModel):
@@ -85,8 +92,19 @@ class AssignByUserOrEmail(BaseModel):
 
 
 class OverrideDecisionPayload(BaseModel):
-    status: VersionStatus
+    status: ArticleStatus
     reason: str | None = Field(default=None, max_length=2000)
+    reviewer_identity_disclosures: list[ReviewerIdentityDisclosure] = Field(
+        default_factory=list
+    )
+
+    @model_validator(mode="after")
+    def require_revision_note(self):
+        if self.status == ArticleStatus.REVISION_REQUESTED and not (
+            self.reason and self.reason.strip()
+        ):
+            raise ValueError("يلزم كتابة توجيهات التعديل.")
+        return self
 
 
 class AdminUserListItem(BaseModel):
@@ -160,6 +178,7 @@ class InvitationRead(BaseModel):
 
     id: UUID
     article_id: UUID
+    article_version_id: UUID | None = None
     role: InvitationRole
     email: str
     status: InvitationStatus

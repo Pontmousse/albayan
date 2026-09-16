@@ -3,16 +3,19 @@ from app.models.agent_token import AgentToken
 from app.models.article import (
     Article,
     ArticleAuthor,
+    ArticleDraftRevision,
     ArticleEditor,
     ArticleReviewer,
-    ArticleSession,
     ArticleVersion,
+    DraftCommandReceipt,
     Review,
 )
 from app.models.enums import (
     ArticleStatus,
     AccountDeletionRequestStatus,
     CompileStatus,
+    DraftActorType,
+    DraftRevisionReason,
     InvitationRole,
     InvitationStatus,
     UserGender,
@@ -23,7 +26,6 @@ from app.models.enums import (
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
-    VersionStatus,
 )
 from app.models.issue import Issue, IssueImage, IssueUpvote
 from app.models.invitation import Invitation
@@ -38,13 +40,15 @@ __all__ = [
     "AccountDeletionRequestStatus",
     "Article",
     "ArticleAuthor",
+    "ArticleDraftRevision",
     "ArticleEditor",
     "ArticleReviewer",
-    "ArticleSession",
     "ArticleVersion",
+    "DraftCommandReceipt",
     "ArticleStatus",
-    "VersionStatus",
     "CompileStatus",
+    "DraftActorType",
+    "DraftRevisionReason",
     "Invitation",
     "InvitationRole",
     "InvitationStatus",

@@ -10,11 +10,11 @@ import {
   listAdminArticles,
   type AdminArticleSummary,
 } from "@/lib/api/admin";
-import type { VersionStatus } from "@/lib/api/articles";
+import type { ArticleStatus } from "@/lib/api/articles";
 import { useNumerals } from "@/components/numeral-provider";
 import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
-type Filter = "all" | VersionStatus;
+type Filter = "all" | ArticleStatus;
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "الكل" },
@@ -138,7 +138,11 @@ export default function AdminArticlesPage() {
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       <span>{primaryAuthor}</span>
                       <span aria-hidden>·</span>
-                      <span>الإصدار {formatDigits(row.version_number)}</span>
+                      <span>
+                        {row.latest_version_number
+                          ? `الإصدار ${formatDigits(row.latest_version_number)}`
+                          : "لا إصدار رسمي بعد"}
+                      </span>
                       <span aria-hidden>·</span>
                       <span>{formatNumber(row.reviewers.length)} مراجع</span>
                       <span aria-hidden>·</span>

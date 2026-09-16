@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.dates import format_date
 from app.models.article import Article, ArticleReviewer
 from app.models.email_digest_state import EmailDigestState
-from app.models.enums import NotificationType, ReviewerAssignmentStatus
+from app.models.enums import ArticleStatus, NotificationType, ReviewerAssignmentStatus
 from app.models.notification import Notification
 from app.models.user import User
 from app.services import email_service, workflow_notification_service
@@ -43,7 +43,7 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
             .where(ArticleReviewer.status == ReviewerAssignmentStatus.ACCEPTED)
             .where(ArticleReviewer.review_due_at.is_not(None))
             .options(
-                selectinload(ArticleReviewer.article),
+                selectinload(ArticleReviewer.article).selectinload(Article.versions),
                 selectinload(ArticleReviewer.user),
             )
         ).all()
@@ -51,6 +51,15 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
 
     sent = 0
     for assignment in rows:
+        versions = assignment.article.versions
+        latest = max(versions, key=lambda version: version.version_number) if versions else None
+        if (
+            latest is None
+            or assignment.article_version_id != latest.id
+            or assignment.article.status
+            not in {ArticleStatus.SUBMITTED, ArticleStatus.UNDER_REVIEW}
+        ):
+            continue
         if not assignment.review_due_at:
             continue
         if assignment.review_due_at <= current:
@@ -83,7 +92,7 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
             user_ids={assignment.user_id},
             type=NotificationType.REVIEW_REMINDER,
             title="تذكير بموعد المراجعة",
-            body=f"{reminder_text} البحث: «{assignment.article.title}».",
+            body=f"{reminder_text} البحث: «{latest.title_snapshot}».",
             link=f"/maktabi/murajaati/{assignment.id}",
             event_scope=f"review-assignment:{assignment.id}:reminder:{reminder_kind}",
             metadata={
@@ -97,7 +106,7 @@ def send_due_review_reminders(db: Session, *, now: datetime | None = None) -> in
         try:
             email_service.send_review_reminder_email(
                 to=assignment.user.email,
-                article_title=assignment.article.title,
+                article_title=latest.title_snapshot,
                 review_url=_review_url(assignment.id),
                 due_text=format_date(assignment.review_due_at),
                 reminder_text=reminder_text,

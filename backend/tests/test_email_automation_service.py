@@ -3,7 +3,7 @@ import uuid
 import unittest
 from unittest.mock import Mock, patch
 
-from app.models.enums import ReviewerAssignmentStatus
+from app.models.enums import ArticleStatus, ReviewerAssignmentStatus
 from app.services import email_automation_service
 
 
@@ -20,6 +20,10 @@ class EmailAutomationServiceTests(unittest.TestCase):
         )
         assignment.user.email = "reviewer@example.com"
         assignment.article.title = "عنوان البحث"
+        version = Mock(id=uuid.uuid4(), version_number=1, title_snapshot="عنوان البحث")
+        assignment.article.versions = [version]
+        assignment.article.status = ArticleStatus.SUBMITTED
+        assignment.article_version_id = version.id
         db = Mock()
         db.scalars.return_value.all.return_value = [assignment]
 
@@ -47,6 +51,10 @@ class EmailAutomationServiceTests(unittest.TestCase):
         )
         assignment.user.email = "reviewer@example.com"
         assignment.article.title = "عنوان البحث"
+        version = Mock(id=uuid.uuid4(), version_number=1, title_snapshot="عنوان البحث")
+        assignment.article.versions = [version]
+        assignment.article.status = ArticleStatus.SUBMITTED
+        assignment.article_version_id = version.id
         db = Mock()
         db.scalars.return_value.all.return_value = [assignment]
 
@@ -59,6 +67,33 @@ class EmailAutomationServiceTests(unittest.TestCase):
         self.assertEqual(sent, 1)
         self.assertEqual(assignment.reminder_due_soon_sent_at, now)
         self.assertEqual(db.commit.call_count, 2)
+
+    def test_closed_old_round_does_not_send_reminder(self) -> None:
+        now = datetime(2026, 8, 31, tzinfo=UTC)
+        old = Mock(id=uuid.uuid4(), version_number=1, title_snapshot="الإصدار الأول")
+        latest = Mock(id=uuid.uuid4(), version_number=2, title_snapshot="الإصدار الثاني")
+        assignment = Mock(
+            id=uuid.uuid4(),
+            article_version_id=old.id,
+            invited_at=now - timedelta(days=5),
+            review_due_at=now + timedelta(days=4),
+            reminder_midpoint_sent_at=None,
+            reminder_due_soon_sent_at=None,
+        )
+        assignment.article.versions = [old, latest]
+        assignment.article.status = ArticleStatus.SUBMITTED
+        db = Mock()
+        db.scalars.return_value.all.return_value = [assignment]
+
+        with patch.object(
+            email_automation_service.email_service,
+            "send_review_reminder_email",
+        ) as send:
+            sent = email_automation_service.send_due_review_reminders(db, now=now)
+
+        self.assertEqual(sent, 0)
+        send.assert_not_called()
+        db.commit.assert_not_called()
 
     def test_unread_digest_updates_state_after_send(self) -> None:
         now = datetime(2026, 8, 31, tzinfo=UTC)

@@ -1,6 +1,6 @@
 import inspect
 import unittest
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -210,7 +210,9 @@ class AppInvitationServiceTests(unittest.TestCase):
         self.assertNotEqual(send.call_args.kwargs["invitation_url"], returned.url)
 
     def test_user_continuation_resolves_clerk_url_server_side(self) -> None:
-        returned = _clerk_invitation()
+        returned = _clerk_invitation(
+            expires_at=int((datetime.now(UTC) + timedelta(days=30)).timestamp())
+        )
         claims = SimpleNamespace(subject="inv_test")
         with patch.object(
             app_invitation_service,

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
-  fetchArticleCompileLog,
-  type VersionRead,
+  fetchDraftCompileLog,
+  type DraftCompileStatus,
 } from "@/lib/api/articles";
 import { exportDocumentLatex } from "@/lib/butex-latex";
 import { isDevMode } from "@/lib/dev-mode";
@@ -16,7 +16,7 @@ type Props = {
   documentJson: unknown;
   /** لقطة TeX كما أُرسلت في آخر طلب compile — إن وُجدت تُفضَّل على إعادة التصدير. */
   texSnapshot?: string | null;
-  compileStatus: VersionRead["compile_status"];
+  compileStatus: DraftCompileStatus["status"];
   articleId: string;
   getToken: GetToken;
 };
@@ -61,7 +61,7 @@ export function ExportedTexDevPanel({
     let cancelled = false;
     void (async () => {
       try {
-        const { log } = await fetchArticleCompileLog(getToken, articleId);
+        const { log } = await fetchDraftCompileLog(getToken, articleId);
         if (!cancelled) {
           setCompileLog(log);
           setLogError(null);

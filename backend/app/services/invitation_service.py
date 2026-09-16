@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import Article, ArticleEditor, ArticleReviewer
 from app.models.enums import (
+    ArticleStatus,
     InvitationRole,
     InvitationStatus,
     NotificationType,
@@ -16,7 +17,7 @@ from app.models.enums import (
 from app.models.invitation import Invitation
 from app.models.user import User
 from app.core.dates import format_date
-from app.services import workflow_notification_service
+from app.services import article_service, workflow_notification_service
 from app.services.email_service import send_invitation_email
 
 _NOT_FOUND = HTTPException(status_code=404, detail="الدعوة غير موجودة.")
@@ -52,6 +53,20 @@ def create_invitation(
     article = db.get(Article, article_id)
     if not article:
         raise _ARTICLE_NOT_FOUND
+    if article.status == ArticleStatus.DRAFT or not article.versions:
+        raise HTTPException(
+            status_code=409,
+            detail="لا يمكن إرسال دعوة قبل تقديم المقال.",
+        )
+    version = article_service.latest_version(db, article_id)
+    if role == InvitationRole.REVIEWER and (
+        version is None
+        or article.status not in {ArticleStatus.SUBMITTED, ArticleStatus.UNDER_REVIEW}
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail="يمكن دعوة المراجعين لأحدث جولة مفتوحة فقط.",
+        )
     if role == InvitationRole.REVIEWER and (
         review_due_at is None
         or review_due_at.tzinfo is None
@@ -63,20 +78,37 @@ def create_invitation(
         )
 
     email_norm = _normalize_email(email)
-    existing = db.scalar(
-        select(Invitation).where(
+    duplicate_filters = [
             Invitation.article_id == article_id,
             Invitation.email == email_norm,
             Invitation.role == role,
             Invitation.status == InvitationStatus.PENDING,
-        )
-    )
+    ]
+    if role == InvitationRole.REVIEWER:
+        duplicate_filters.append(Invitation.article_version_id == version.id)
+    existing = db.scalar(select(Invitation).where(*duplicate_filters))
     if existing:
         raise _DUPLICATE
+    existing_user = db.scalar(
+        select(User).where(func.lower(User.email) == email_norm)
+    )
+    if role == InvitationRole.REVIEWER and existing_user:
+        existing_assignment = db.scalar(
+            select(ArticleReviewer.id).where(
+                ArticleReviewer.article_version_id == version.id,
+                ArticleReviewer.user_id == existing_user.id,
+            )
+        )
+        if existing_assignment is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="هذا المستخدم معيّن بالفعل على جولة المراجعة الحالية.",
+            )
 
     now = datetime.now(timezone.utc)
     invitation = Invitation(
         article_id=article_id,
+        article_version_id=version.id if role == InvitationRole.REVIEWER else None,
         role=role,
         email=email_norm,
         token=secrets.token_urlsafe(32),
@@ -87,9 +119,6 @@ def create_invitation(
     )
     db.add(invitation)
     db.flush()
-    existing_user = db.scalar(
-        select(User).where(func.lower(User.email) == email_norm)
-    )
     if existing_user:
         role_label = "مراجع" if role == InvitationRole.REVIEWER else "محرر"
         workflow_notification_service.notify_many(
@@ -97,7 +126,7 @@ def create_invitation(
             user_ids={existing_user.id},
             type=NotificationType.ARTICLE_INVITATION,
             title="دعوة للمشاركة في بحث",
-            body=f"دُعيت للمشاركة بصفة {role_label} في البحث «{article.title}».",
+            body=f"دُعيت للمشاركة بصفة {role_label} في البحث «{version.title_snapshot if version else article.title}».",
             link=f"/daawa/{invitation.token}",
             actor_id=invited_by,
             event_scope=f"article-invitation:{invitation.id}:created",
@@ -115,7 +144,7 @@ def create_invitation(
         try:
             send_invitation_email(
                 to=email_norm,
-                article_title=article.title,
+                article_title=version.title_snapshot if version else article.title,
                 role=role,
                 token=invitation.token,
                 expires_at=invitation.expires_at,
@@ -161,10 +190,25 @@ def resend_invitation(db: Session, invitation_id: uuid.UUID) -> Invitation:
     article = db.get(Article, invitation.article_id)
     if not article:
         raise _ARTICLE_NOT_FOUND
+    if invitation.role == InvitationRole.REVIEWER:
+        version = article_service.latest_version(db, invitation.article_id)
+        if (
+            version is None
+            or invitation.article_version_id != version.id
+            or article.status not in {ArticleStatus.SUBMITTED, ArticleStatus.UNDER_REVIEW}
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="انتهت جولة المراجعة المرتبطة بهذه الدعوة.",
+            )
+        article_title = version.title_snapshot
+    else:
+        latest = article_service.latest_version(db, invitation.article_id)
+        article_title = latest.title_snapshot if latest else article.title
 
     send_invitation_email(
         to=invitation.email,
-        article_title=article.title,
+        article_title=article_title,
         role=invitation.role,
         token=invitation.token,
         expires_at=invitation.expires_at,
@@ -209,15 +253,28 @@ def accept_invitation(
 
     assignment_id: uuid.UUID | None = None
     if invitation.role == InvitationRole.REVIEWER:
+        version = article_service.latest_version(db, invitation.article_id)
+        if (
+            invitation.article_version_id is None
+            or version is None
+            or version.id != invitation.article_version_id
+            or invitation.article.status
+            not in {ArticleStatus.SUBMITTED, ArticleStatus.UNDER_REVIEW}
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="انتهت جولة المراجعة المرتبطة بهذه الدعوة.",
+            )
         existing = db.scalar(
             select(ArticleReviewer).where(
-                ArticleReviewer.article_id == invitation.article_id,
+                ArticleReviewer.article_version_id == invitation.article_version_id,
                 ArticleReviewer.user_id == user.id,
             )
         )
         if not existing:
             assignment = ArticleReviewer(
                 article_id=invitation.article_id,
+                article_version_id=invitation.article_version_id,
                 user_id=user.id,
                 status=ReviewerAssignmentStatus.ACCEPTED,
                 invited_at=invitation.created_at,

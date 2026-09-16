@@ -204,7 +204,7 @@ export default function MurajaatiDetailPage() {
         </h2>
         <div className="mt-3">
           <CompiledPdfViewer
-            compileStatus={assignment.compile_status}
+            compileStatus="success"
             getToken={getToken}
             scopeId={assignmentId}
             fetchPdfBlob={fetchAssignmentPdfBlob}

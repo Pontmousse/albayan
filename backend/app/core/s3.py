@@ -31,6 +31,10 @@ _ASSET_IN_USE = HTTPException(
     status_code=409,
     detail="لا يمكن حذف صورة مستخدمة داخل المقال. أزلها أو استبدلها في المحرر ثم احفظ المسودة قبل حذفها.",
 )
+_IMMUTABLE_EXISTS = HTTPException(
+    status_code=409,
+    detail="تعذّر إنشاء لقطة المسودة لأنها موجودة بالفعل.",
+)
 
 
 @lru_cache(maxsize=1)
@@ -80,7 +84,39 @@ def get_json_at(storage_prefix: str, relative_key: str) -> Any:
         if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
             return None
         raise _FAILED from exc
+
+
+def put_json_key_immutable(key: str, data: Any) -> None:
+    """ينشئ JSON عند مفتاح كامل مرة واحدة ويرفض أي كتابة فوقه."""
+    client = _client()
+    try:
+        client.put_object(
+            Bucket=settings.s3_bucket,
+            Key=key,
+            Body=json.dumps(data, ensure_ascii=False).encode("utf-8"),
+            ContentType="application/json",
+            IfNoneMatch="*",
+        )
+    except ClientError as exc:
+        error = exc.response.get("Error", {})
+        if error.get("Code") in ("PreconditionFailed", "ConditionalRequestConflict", "412"):
+            raise _IMMUTABLE_EXISTS from exc
+        raise _FAILED from exc
     except BotoCoreError as exc:
+        raise _FAILED from exc
+
+
+def get_json_key(key: str) -> Any:
+    """يقرأ JSON من مفتاح كامل — يعيد None إن لم يوجد."""
+    client = _client()
+    try:
+        response = client.get_object(Bucket=settings.s3_bucket, Key=key)
+        return json.loads(response["Body"].read())
+    except ClientError as exc:
+        if exc.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
+            return None
+        raise _FAILED from exc
+    except (BotoCoreError, json.JSONDecodeError) as exc:
         raise _FAILED from exc
 
 
@@ -110,6 +146,26 @@ def put_bytes(
             ContentType=content_type,
         )
     except (BotoCoreError, ClientError) as exc:
+        raise _FAILED from exc
+
+
+def put_bytes_key_immutable(key: str, body: bytes, content_type: str) -> None:
+    """ينشئ كائناً عند مفتاح كامل مرة واحدة ويرفض الاستبدال."""
+    client = _client()
+    try:
+        client.put_object(
+            Bucket=settings.s3_bucket,
+            Key=key,
+            Body=body,
+            ContentType=content_type,
+            IfNoneMatch="*",
+        )
+    except ClientError as exc:
+        error = exc.response.get("Error", {})
+        if error.get("Code") in ("PreconditionFailed", "ConditionalRequestConflict", "412"):
+            raise _IMMUTABLE_EXISTS from exc
+        raise _FAILED from exc
+    except BotoCoreError as exc:
         raise _FAILED from exc
 
 
@@ -182,9 +238,9 @@ def delete_key(key: str) -> None:
         raise _FAILED from exc
 
 
-def _document_uses_asset(value: Any, asset_key: str) -> bool:
+def document_uses_asset(value: Any, asset_key: str) -> bool:
     if isinstance(value, list):
-        return any(_document_uses_asset(item, asset_key) for item in value)
+        return any(document_uses_asset(item, asset_key) for item in value)
     if not isinstance(value, dict):
         return False
 
@@ -196,7 +252,7 @@ def _document_uses_asset(value: Any, asset_key: str) -> bool:
                 return True
 
     return any(
-        _document_uses_asset(child, asset_key)
+        document_uses_asset(child, asset_key)
         for child in value.values()
         if isinstance(child, (dict, list))
     )
@@ -207,7 +263,7 @@ def delete_bytes(storage_prefix: str, relative_key: str) -> None:
     normalized = relative_key.lstrip("/")
     if normalized.startswith("assets/"):
         document = get_json(storage_prefix)
-        if document is not None and _document_uses_asset(document, normalized):
+        if document is not None and document_uses_asset(document, normalized):
             raise _ASSET_IN_USE
     delete_key(_object_key(storage_prefix, normalized))
 

@@ -155,7 +155,7 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
         ):
             with self.assertRaises(api_client.BackendApiError) as ctx:
                 await api_client.api_request(
-                    "POST", "/api/v1/articles/a/session/commands"
+                    "POST", "/api/v1/articles/a/draft/commands"
                 )
 
         self.assertEqual(
@@ -203,7 +203,7 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Field required", payload["message"])
         self.assertNotIn("must-not-leak", str(ctx.exception))
 
-    async def test_session_post_forwards_caller_bearer_and_payload(self) -> None:
+    async def test_draft_post_forwards_caller_bearer_and_payload(self) -> None:
         response = self._response({"ok": True})
         async_client, request = self._async_client(response)
         payload = {
@@ -220,7 +220,7 @@ class ApiClientTests(unittest.IsolatedAsyncioTestCase):
             async_client,
         ):
             await api_client.api_post_object(
-                "/api/v1/articles/article-1/session/commands",
+                "/api/v1/articles/article-1/draft/commands",
                 json=payload,
             )
 

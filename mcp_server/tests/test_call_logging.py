@@ -20,7 +20,7 @@ def _context(method: str = "tools/call", params=None):
         method=method,
         params=params
         or {
-            "name": "apply_session_command",
+            "name": "apply_draft_command",
             "arguments": {
                 "article_id": "article_1",
                 "command": {"op": "insert_text_block", "token": "ordinary"},
@@ -110,7 +110,7 @@ class CallLoggingMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         call_next.assert_awaited_once()
         post.assert_awaited_once()
         event = post.await_args.args[0]
-        self.assertEqual(event["tool_name"], "apply_session_command")
+        self.assertEqual(event["tool_name"], "apply_draft_command")
         self.assertEqual(event["command_name"], "insert_text_block")
         self.assertEqual(event["trace_id"], "f" * 32)
         self.assertEqual(event["status"], "success")

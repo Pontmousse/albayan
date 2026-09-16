@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import Article, ArticleAuthor, ArticleVersion
-from app.models.enums import VersionStatus
+from app.models.enums import ArticleStatus
 from app.schemas.public import PublicArticleAuthor, PublicArticleSummary
 
 
@@ -29,7 +29,7 @@ def list_published_articles(db: Session) -> list[tuple[Article, ArticleVersion]]
     published: list[tuple[Article, ArticleVersion]] = []
     for article in articles:
         version = _latest_version(article)
-        if version is None or version.status != VersionStatus.PUBLISHED:
+        if version is None or article.status != ArticleStatus.PUBLISHED:
             continue
         published.append((article, version))
     published.sort(
@@ -47,8 +47,8 @@ def public_journal_summary(db: Session) -> tuple[int, list[PublicArticleSummary]
         summaries.append(
             PublicArticleSummary(
                 id=article.id,
-                title=article.title,
-                abstract=article.abstract,
+                title=version.title_snapshot,
+                abstract=version.abstract_snapshot,
                 published_at=version.submitted_at or article.updated_at,
                 authors=[
                     PublicArticleAuthor(

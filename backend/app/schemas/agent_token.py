@@ -70,7 +70,7 @@ def scope_options() -> list[AgentScopeOption]:
     labels = {
         "profile:read": "قراءة الملف الشخصي",
         "articles:read": "قراءة المقالات",
-        "articles:session:write": "كتابة مسودة الجلسة",
+        "articles:draft:write": "كتابة مراجعات المسودة",
         "reviews:read": "قراءة تعيينات المراجعة",
         "reviews:draft:write": "مسودة ملاحظات المراجعة",
         "editor:read": "قراءة مقالات التحرير",

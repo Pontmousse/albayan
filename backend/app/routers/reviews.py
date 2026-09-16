@@ -13,16 +13,15 @@ from app.schemas.review import (
     ReviewRead,
     ReviewWrite,
 )
-from app.services import article_service, compile_service, review_service
+from app.services import compile_service, review_service
 
 router = APIRouter(prefix="/api/v1/reviews", tags=["reviews"])
 
 
-def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
+def _asset_response(version, filename: str) -> Response:
     name = PurePosixPath(filename).name
     if name != filename or not name or name in (".", ".."):
         raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
-    version = article_service.current_version(db, article_id)
     body, content_type = s3.get_bytes(version.storage_prefix, f"assets/{name}")
     return Response(
         content=body,
@@ -31,8 +30,7 @@ def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
     )
 
 
-def _pdf_response(article_id: uuid.UUID, db) -> Response:
-    version = article_service.current_version(db, article_id)
+def _pdf_response(version) -> Response:
     body = compile_service.get_compiled_pdf(version.storage_prefix)
     return Response(
         content=body,
@@ -47,9 +45,14 @@ def _pdf_response(article_id: uuid.UUID, db) -> Response:
 
 
 
-def _latest_version(assignment):
-    versions = assignment.article.versions
-    return max(versions, key=lambda v: v.version_number)
+def _assigned_version(assignment):
+    version = next(
+        (v for v in assignment.article.versions if v.id == assignment.article_version_id),
+        None,
+    )
+    if version is None:
+        raise HTTPException(status_code=409, detail="لم يعد إصدار المراجعة متاحًا.")
+    return version
 
 
 def _review_for_version(assignment, version):
@@ -60,14 +63,15 @@ def _review_for_version(assignment, version):
 
 
 def _summary(assignment) -> AssignmentSummary:
-    version = _latest_version(assignment)
+    version = _assigned_version(assignment)
     review = _review_for_version(assignment, version)
     return AssignmentSummary(
         id=assignment.id,
         article_id=assignment.article_id,
-        article_title=assignment.article.title,
+        version_id=version.id,
+        article_title=version.title_snapshot,
         assignment_status=assignment.status,
-        version_status=version.status,
+        version_status=assignment.article.status,
         version_number=version.version_number,
         review=ReviewRead.model_validate(review) if review else None,
         invited_at=assignment.invited_at,
@@ -76,18 +80,17 @@ def _summary(assignment) -> AssignmentSummary:
 
 
 def _detail(assignment) -> AssignmentDetail:
-    version = _latest_version(assignment)
+    version = _assigned_version(assignment)
     review = _review_for_version(assignment, version)
     return AssignmentDetail(
         id=assignment.id,
         article_id=assignment.article_id,
-        article_title=assignment.article.title,
-        article_abstract=assignment.article.abstract,
+        article_title=version.title_snapshot,
+        article_abstract=version.abstract_snapshot,
         assignment_status=assignment.status,
-        version_status=version.status,
+        version_status=assignment.article.status,
         version_number=version.version_number,
         version_id=version.id,
-        compile_status=version.compile_status,
         review=ReviewRead.model_validate(review) if review else None,
         invited_at=assignment.invited_at,
         review_due_at=assignment.review_due_at,
@@ -117,7 +120,7 @@ def get_assignment_document(
 ) -> dict:
     user = current_user(auth, db)
     assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
-    version = article_service.current_version(db, assignment.article_id)
+    version = _assigned_version(assignment)
     document = s3.get_json(version.storage_prefix)
     return {"document": document}
 
@@ -131,7 +134,7 @@ def get_assignment_asset(
 ) -> Response:
     user = current_user(auth, db)
     assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
-    return _asset_response(assignment.article_id, filename, db)
+    return _asset_response(_assigned_version(assignment), filename)
 
 
 @router.get("/assignments/{assignment_id}/pdf")
@@ -140,7 +143,7 @@ def get_assignment_pdf(
 ) -> Response:
     user = current_user(auth, db)
     assignment = review_service.get_assignment_for_user(db, assignment_id, user.id)
-    return _pdf_response(assignment.article_id, db)
+    return _pdf_response(_assigned_version(assignment))
 
 
 @router.put("/assignments/{assignment_id}/review", response_model=ReviewRead)

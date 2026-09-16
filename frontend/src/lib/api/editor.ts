@@ -1,11 +1,11 @@
 import { apiFetch, ApiError } from "@/lib/api";
-import type { VersionRead, VersionStatus } from "@/lib/api/articles";
+import type { ArticleStatus, VersionRead } from "@/lib/api/articles";
 import type { ReviewRecommendation } from "@/lib/api/reviews";
 
 export type EditorArticleSummary = {
   id: string;
   title: string;
-  status: VersionStatus;
+  status: ArticleStatus;
   version_number: number;
   updated_at: string;
   submitted_at: string | null;
@@ -20,20 +20,31 @@ export type EditorReviewReport = {
   comments_to_editor: string | null;
   recommendation: ReviewRecommendation | null;
   submitted_at: string | null;
+  reveal_reviewer_identity_to_author: boolean;
 };
 
 export type EditorArticleDetail = {
   id: string;
   title: string;
   abstract: string | null;
+  status: ArticleStatus;
   created_at: string;
   updated_at: string;
-  current_version: VersionRead;
+  latest_version: VersionRead;
   versions: VersionRead[];
   reviews: EditorReviewReport[];
 };
 
-export type EditorDecisionStatus = "under_review" | "accepted" | "rejected";
+export type EditorDecisionStatus =
+  | "under_review"
+  | "revision_requested"
+  | "accepted"
+  | "rejected";
+
+export type ReviewerIdentityDisclosure = {
+  review_id: string;
+  reveal_identity: boolean;
+};
 
 type GetToken = () => Promise<string | null>;
 
@@ -50,9 +61,13 @@ export function getEditorArticle(getToken: GetToken, articleId: string) {
   );
 }
 
-export function getEditorDocument(getToken: GetToken, articleId: string) {
+export function getEditorDocument(
+  getToken: GetToken,
+  articleId: string,
+  versionId: string,
+) {
   return apiFetch<{ document: unknown | null }>(
-    `/api/v1/editor/articles/${articleId}/document`,
+    `/api/v1/editor/articles/${articleId}/versions/${versionId}/document`,
     getToken,
   );
 }
@@ -62,13 +77,18 @@ export function postEditorDecision(
   articleId: string,
   status: EditorDecisionStatus,
   reason?: string | null,
+  reviewerIdentityDisclosures: ReviewerIdentityDisclosure[] = [],
 ) {
   return apiFetch<VersionRead>(
     `/api/v1/editor/articles/${articleId}/decision`,
     getToken,
     {
       method: "POST",
-      body: JSON.stringify({ status, reason: reason ?? null }),
+      body: JSON.stringify({
+        status,
+        reason: reason ?? null,
+        reviewer_identity_disclosures: reviewerIdentityDisclosures,
+      }),
     },
   );
 }
@@ -76,6 +96,7 @@ export function postEditorDecision(
 export async function fetchEditorAssetBlob(
   getToken: GetToken,
   articleId: string,
+  versionId: string,
   assetKey: string,
 ): Promise<Blob> {
   const filename = assetKey.replace(/^assets\//, "");
@@ -84,7 +105,7 @@ export async function fetchEditorAssetBlob(
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(
-    `${API_BASE}/api/v1/editor/articles/${articleId}/assets/${encodeURIComponent(filename)}`,
+    `${API_BASE}/api/v1/editor/articles/${articleId}/versions/${versionId}/assets/${encodeURIComponent(filename)}`,
     { headers },
   );
   if (!response.ok) {
@@ -96,6 +117,7 @@ export async function fetchEditorAssetBlob(
 export async function fetchEditorPdfBlob(
   getToken: GetToken,
   articleId: string,
+  versionId: string,
 ): Promise<Blob> {
   const token = await getToken();
   const headers = new Headers();
@@ -104,7 +126,7 @@ export async function fetchEditorPdfBlob(
 
   const cacheBust = encodeURIComponent(`${Date.now()}`);
   const response = await fetch(
-    `${API_BASE}/api/v1/editor/articles/${articleId}/pdf?ts=${cacheBust}`,
+    `${API_BASE}/api/v1/editor/articles/${articleId}/versions/${versionId}/pdf?ts=${cacheBust}`,
     {
       cache: "no-store",
       headers,

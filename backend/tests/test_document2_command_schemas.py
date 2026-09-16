@@ -202,7 +202,7 @@ class Document2CommandSchemaTests(unittest.TestCase):
     def _payload(self, command: dict) -> DocumentCommandPayload:
         return DocumentCommandPayload(
             command_id=uuid.uuid4(),
-            base_revision=0,
+            base_revision=1,
             command=command,
         )
 

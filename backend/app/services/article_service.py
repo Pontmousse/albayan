@@ -3,15 +3,33 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core import s3
-from app.models.article import Article, ArticleAuthor, ArticleEditor, ArticleVersion, Review
-from app.models.enums import NotificationType, SourceType, VersionStatus
+from app.models.article import (
+    Article,
+    ArticleAuthor,
+    ArticleDraftRevision,
+    ArticleEditor,
+    ArticleVersion,
+)
+from app.models.enums import (
+    ArticleStatus,
+    DraftActorType,
+    DraftRevisionReason,
+    NotificationType,
+    SourceType,
+)
 from app.models.user import User
 from app.core.dates import format_date_time
-from app.services import email_service, workflow_notification_service
+from app.services import (
+    article_draft_service,
+    butex_worker_client,
+    compile_service,
+    email_service,
+    workflow_notification_service,
+)
 
 _FROZEN = HTTPException(status_code=409, detail="المخطوطة مجمّدة — لا يمكن تعديلها بعد التقديم.")
 _ALREADY_SUBMITTED = HTTPException(status_code=409, detail="المقال مُقدَّم بالفعل.")
@@ -19,21 +37,6 @@ _NOT_FOUND = HTTPException(status_code=404, detail="المقال غير موجو
 _NOT_DRAFT = HTTPException(
     status_code=409, detail="لا يمكن حذف مقال مُقدَّم."
 )
-
-_METADATA_MISMATCH_MESSAGES = {
-    ("title",): (
-        "عنوان المقال في بيانات المسودة لا يطابق العنوان داخل المحرر. "
-        "عدّلهما يدويًا ثم أعد المحاولة."
-    ),
-    ("abstract",): (
-        "ملخص المقال في بيانات المسودة لا يطابق الملخص داخل المحرر. "
-        "عدّلهما يدويًا ثم أعد المحاولة."
-    ),
-    ("title", "abstract"): (
-        "عنوان المقال وملخصه في بيانات المسودة لا يطابقان العنوان والملخص "
-        "داخل المحرر. عدّلهما يدويًا ثم أعد المحاولة."
-    ),
-}
 
 logger = logging.getLogger(__name__)
 
@@ -52,19 +55,19 @@ def assert_is_author(db: Session, article_id: uuid.UUID, user_id: uuid.UUID) -> 
     return article
 
 
-def current_version(db: Session, article_id: uuid.UUID) -> ArticleVersion:
+def latest_version(db: Session, article_id: uuid.UUID) -> ArticleVersion | None:
     version = db.scalar(
         select(ArticleVersion)
         .where(ArticleVersion.article_id == article_id)
         .order_by(ArticleVersion.version_number.desc())
         .limit(1)
     )
-    if not version:
-        raise _NOT_FOUND
     return version
 
 
-def list_articles_for_author(db: Session, user_id: uuid.UUID) -> list[tuple[Article, ArticleVersion]]:
+def list_articles_for_author(
+    db: Session, user_id: uuid.UUID
+) -> list[tuple[Article, ArticleVersion | None]]:
     """مقالات المستخدم كمؤلف، كل مقال مع إصداره الحالي."""
     articles = (
         db.scalars(
@@ -79,9 +82,11 @@ def list_articles_for_author(db: Session, user_id: uuid.UUID) -> list[tuple[Arti
     )
     result = []
     for article in articles:
-        if not article.versions:
-            continue
-        latest = max(article.versions, key=lambda v: v.version_number)
+        latest = (
+            max(article.versions, key=lambda v: v.version_number)
+            if article.versions
+            else None
+        )
         result.append((article, latest))
     return result
 
@@ -89,19 +94,43 @@ def list_articles_for_author(db: Session, user_id: uuid.UUID) -> list[tuple[Arti
 def create_article(
     db: Session, user_id: uuid.UUID, title: str, abstract: str | None
 ) -> Article:
-    """ينشئ article + إصدار v1 (draft) + ربط المؤلف في transaction واحدة."""
-    article = Article(submitted_by=user_id, title=title, abstract=abstract)
-    db.add(article)
-    db.flush()  # نحتاج article.id لبناء storage_prefix
-
-    version = ArticleVersion(
-        article_id=article.id,
-        version_number=1,
-        storage_prefix=f"articles/{article.id}/versions/v1/",
-        source_type=SourceType.WEB_EDITOR,
-        status=VersionStatus.DRAFT,
+    """ينشئ المقال ولقطة المسودة الأولى، من دون أي إصدار رسمي."""
+    article_id = uuid.uuid4()
+    revision_id = uuid.uuid4()
+    document = butex_worker_client.normalize_document(
+        article_draft_service.empty_document(title, abstract)
     )
-    db.add(version)
+    canonical_title, canonical_abstract = article_draft_service.document_metadata(document)
+    # Empty Document2 must still pass the same export validation as later saves.
+    _, asset_ids = butex_worker_client.export_document(document)
+    if asset_ids:
+        raise HTTPException(status_code=422, detail="المسودة الأولية غير صالحة.")
+    document_hash = compile_service.hash_document(document)
+    storage_key = article_draft_service.revision_storage_key(article_id, revision_id)
+    s3.put_json_key_immutable(storage_key, document)
+
+    article = Article(
+        id=article_id,
+        submitted_by=user_id,
+        title=canonical_title,
+        abstract=canonical_abstract,
+        status=ArticleStatus.DRAFT,
+        draft_revision_number=0,
+    )
+    db.add(article)
+    db.flush()
+    revision = ArticleDraftRevision(
+        id=revision_id,
+        article_id=article.id,
+        revision_number=1,
+        storage_key=storage_key,
+        document_hash=document_hash,
+        created_by=user_id,
+        actor_type=DraftActorType.HUMAN,
+        reason=DraftRevisionReason.INITIAL,
+        referenced_asset_ids=[],
+    )
+    db.add(revision)
     db.add(
         ArticleAuthor(
             article_id=article.id,
@@ -110,56 +139,97 @@ def create_article(
             is_corresponding=True,
         )
     )
+    db.flush()
+    article.current_draft_revision_id = revision.id
+    article.draft_revision_number = 1
     db.commit()
     db.refresh(article)
     return article
 
 
-def assert_draft(version: ArticleVersion) -> None:
-    if version.status != VersionStatus.DRAFT:
+def assert_draft(article: Article) -> None:
+    if article.status not in {ArticleStatus.DRAFT, ArticleStatus.REVISION_REQUESTED}:
         raise _FROZEN
 
 
-def _normalized_metadata(value: object) -> str:
-    """يوحّد الفراغات الطرفية فقط، ويعامل القيم غير النصية كقيمة مفقودة."""
-    return value.strip() if isinstance(value, str) else ""
-
-
-def document_metadata_mismatches(article: Article, document: object) -> list[str]:
-    """يعيد حقول بيانات المقال غير المطابقة لـ document.meta."""
-    meta = document.get("meta") if isinstance(document, dict) else None
-    if not isinstance(meta, dict):
-        meta = {}
-
-    mismatches: list[str] = []
-    if _normalized_metadata(article.title) != _normalized_metadata(meta.get("title")):
-        mismatches.append("title")
-    if _normalized_metadata(article.abstract) != _normalized_metadata(
-        meta.get("abstract")
-    ):
-        mismatches.append("abstract")
-    return mismatches
-
-
-def assert_document_metadata_matches(
-    article: Article, version: ArticleVersion
-) -> None:
-    """يفرض التطابق وقت التقديم بلا أي مزامنة بين المصدرين."""
-    document = s3.get_json(version.storage_prefix)
-    mismatches = tuple(document_metadata_mismatches(article, document))
-    if mismatches:
-        raise HTTPException(
-            status_code=409,
-            detail=_METADATA_MISMATCH_MESSAGES[mismatches],
-        )
-
-
 def submit_article(db: Session, article: Article) -> ArticleVersion:
-    version = current_version(db, article.id)
-    if version.status != VersionStatus.DRAFT:
+    locked_article = db.scalar(
+        select(Article)
+        .where(Article.id == article.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if locked_article is None or locked_article.status not in {
+        ArticleStatus.DRAFT,
+        ArticleStatus.REVISION_REQUESTED,
+    }:
         raise _ALREADY_SUBMITTED
-    version.status = VersionStatus.SUBMITTED
-    version.submitted_at = datetime.now(timezone.utc)
+    existing_versions = list(
+        db.scalars(
+            select(ArticleVersion)
+            .where(ArticleVersion.article_id == article.id)
+            .order_by(ArticleVersion.version_number)
+        ).all()
+    )
+    if locked_article.status == ArticleStatus.DRAFT and existing_versions:
+        raise _ALREADY_SUBMITTED
+    if locked_article.status == ArticleStatus.REVISION_REQUESTED and not existing_versions:
+        raise _ALREADY_SUBMITTED
+    revision = article_draft_service.get_current_revision(db, locked_article)
+    compile_service.assert_fresh_preview_for_submit(revision)
+    document = article_draft_service.read_document(revision)
+    title_snapshot, abstract_snapshot = article_draft_service.document_metadata(document)
+    _, asset_ids = butex_worker_client.export_document(document)
+    asset_ids = compile_service.validate_asset_keys(asset_ids)
+    if revision.active_compile_id is None:
+        raise HTTPException(status_code=409, detail="أنشئ معاينة حديثة قبل تقديم المقال.")
+
+    version_id = uuid.uuid4()
+    version_number = (existing_versions[-1].version_number + 1) if existing_versions else 1
+    storage_prefix = f"articles/{article.id}/versions/v{version_number}"
+    created_keys: list[str] = []
+    try:
+        document_key = f"{storage_prefix}/document.json"
+        s3.put_json_key_immutable(document_key, document)
+        created_keys.append(document_key)
+        for asset_id in asset_ids:
+            body, content_type = s3.get_bytes(
+                article_draft_service.draft_asset_prefix(article.id), asset_id
+            )
+            destination = f"{storage_prefix}/{asset_id}"
+            s3.put_bytes_key_immutable(
+                destination, body, content_type or "application/octet-stream"
+            )
+            created_keys.append(destination)
+        preview = article_draft_service.preview_prefix(
+            article.id, revision.id, revision.active_compile_id
+        )
+        pdf, _ = s3.get_bytes(preview, s3.COMPILED_PDF)
+        pdf_key = f"{storage_prefix}/{s3.COMPILED_PDF}"
+        s3.put_bytes_key_immutable(pdf_key, pdf, "application/pdf")
+        created_keys.append(pdf_key)
+    except Exception:
+        for key in created_keys:
+            try:
+                s3.delete_key(key)
+            except Exception:
+                logger.warning("Failed to clean incomplete formal object %s", key)
+        raise
+
+    version = ArticleVersion(
+        id=version_id,
+        article_id=article.id,
+        version_number=version_number,
+        storage_prefix=storage_prefix,
+        source_type=SourceType.WEB_EDITOR,
+        source_draft_revision_id=revision.id,
+        document_hash=revision.document_hash,
+        title_snapshot=title_snapshot,
+        abstract_snapshot=abstract_snapshot,
+        submitted_at=datetime.now(timezone.utc),
+    )
+    db.add(version)
+    locked_article.status = ArticleStatus.SUBMITTED
     author_ids = set(
         db.scalars(
             select(ArticleAuthor.user_id).where(ArticleAuthor.article_id == article.id)
@@ -180,8 +250,12 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         db,
         user_ids=author_ids - staff_ids,
         type=NotificationType.ARTICLE_SUBMITTED,
-        title="تم استلام بحثك",
-        body=f"استلمت المجلة البحث «{article.title}» وبدأت متابعته تحريرياً.",
+        title="تم استلام إعادة تقديم بحثك" if version_number > 1 else "تم استلام بحثك",
+        body=(
+            f"استلمت المجلة الإصدار {version_number} من «{title_snapshot}»."
+            if version_number > 1
+            else f"استلمت المجلة البحث «{title_snapshot}» وبدأت متابعته تحريرياً."
+        ),
         link=f"/maktabi/maqalati/{article.id}",
         event_scope=f"article:{article.id}:version:{version.version_number}:submitted:author",
         metadata=metadata,
@@ -190,8 +264,8 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         db,
         user_ids=editor_ids,
         type=NotificationType.ARTICLE_SUBMITTED,
-        title="بحث جديد بانتظار المتابعة",
-        body=f"قُدّم البحث «{article.title}» للمراجعة التحريرية.",
+        title="إعادة تقديم بانتظار المتابعة" if version_number > 1 else "بحث جديد بانتظار المتابعة",
+        body=f"قُدّم الإصدار {version_number} من «{title_snapshot}» للمتابعة التحريرية.",
         link=f"/maktabi/tahriri/{article.id}",
         event_scope=f"article:{article.id}:version:{version.version_number}:submitted:editor",
         metadata=metadata,
@@ -200,15 +274,15 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         db,
         user_ids=admin_ids - editor_ids,
         type=NotificationType.ARTICLE_SUBMITTED,
-        title="بحث جديد بانتظار المتابعة",
-        body=f"قُدّم البحث «{article.title}» للمراجعة التحريرية.",
+        title="إعادة تقديم بانتظار المتابعة" if version_number > 1 else "بحث جديد بانتظار المتابعة",
+        body=f"قُدّم الإصدار {version_number} من «{title_snapshot}» للمراجعة التحريرية.",
         link=f"/admin/maqalat/{article.id}",
         event_scope=f"article:{article.id}:version:{version.version_number}:submitted:admin",
         metadata=metadata,
     )
     db.commit()
     db.refresh(version)
-    db.refresh(article)
+    db.refresh(locked_article)
     article_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/maqalati/{article.id}"
     admin_url = f"{email_service.settings.frontend_base_url.rstrip('/')}/admin/maqalat/{article.id}"
     submitted_text = format_date_time(version.submitted_at) if version.submitted_at else ""
@@ -217,7 +291,7 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         try:
             email_service.send_submission_received_email(
                 to=submitter.email,
-                article_title=article.title,
+                article_title=title_snapshot,
                 article_url=article_url,
                 submitted_text=submitted_text,
                 version_number=version.version_number,
@@ -238,13 +312,14 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         try:
             email_service.send_new_submission_alert_email(
                 to=recipient.email,
-                article_title=article.title,
+                article_title=title_snapshot,
                 author_name=author_name,
                 article_url=(
                     f"{email_service.settings.frontend_base_url.rstrip('/')}/maktabi/tahriri/{article.id}"
                     if recipient.id in editor_ids
                     else admin_url
                 ),
+                version_number=version.version_number,
                 idempotency_key=(
                     f"new-submission/{article.id}/{version.version_number}/{recipient.id}"
                 ),
@@ -264,19 +339,8 @@ def delete_draft_article(
 ) -> None:
     """يحذف مسودة المؤلف مع ملفات التخزين — يرفض غير المسودات."""
     article = assert_is_author(db, article_id, user_id)
-    version = current_version(db, article_id)
-    if version.status != VersionStatus.DRAFT:
+    if article.status != ArticleStatus.DRAFT:
         raise _NOT_DRAFT
-
-    version_ids = [
-        row.id
-        for row in db.scalars(
-            select(ArticleVersion).where(ArticleVersion.article_id == article_id)
-        ).all()
-    ]
-    if version_ids:
-        db.execute(delete(Review).where(Review.article_version_id.in_(version_ids)))
-        db.flush()
 
     # أولاً التخزين — إن فشل لا نحذف صف DB
     s3.delete_prefix(f"articles/{article_id}/")

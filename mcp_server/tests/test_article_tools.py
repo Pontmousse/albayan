@@ -51,11 +51,10 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "create_article",
                 "get_article",
                 "update_article_metadata",
-                "get_session_outline",
-                "get_session_blocks",
-                "apply_session_command",
-                "save_session",
-                "compile_session",
+                "get_draft_outline",
+                "get_draft_blocks",
+                "apply_draft_command",
+                "compile_draft",
                 "get_compile_status",
                 "get_article_pdf",
                 "list_article_assets",
@@ -71,7 +70,7 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
             "id": "article-1",
             "title": "عنوان المقال",
             "status": "draft",
-            "version_number": 2,
+            "latest_version_number": None,
             "updated_at": "2026-01-01T12:00:00Z",
             "submitted_at": None,
         }
@@ -103,12 +102,11 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
         version = {
             "id": "22222222-2222-2222-2222-222222222222",
             "version_number": 1,
-            "status": "draft",
             "source_type": "web_editor",
-            "compile_status": "pending",
-            "active_compile_id": None,
-            "compiled_document_hash": None,
-            "change_summary": None,
+            "source_draft_revision_id": "33333333-3333-3333-3333-333333333333",
+            "document_hash": "a" * 64,
+            "title_snapshot": "عنوان",
+            "abstract_snapshot": "ملخص",
             "submitted_at": None,
             "created_at": "2026-09-13T12:00:00Z",
         }
@@ -116,9 +114,12 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
             "id": article_id,
             "title": "عنوان",
             "abstract": "ملخص",
+            "status": "submitted",
+            "current_draft_revision_id": "33333333-3333-3333-3333-333333333333",
+            "draft_revision_number": 2,
             "created_at": "2026-09-13T12:00:00Z",
             "updated_at": "2026-09-13T12:00:00Z",
-            "current_version": version,
+            "latest_version": version,
             "versions": [version],
         }
 
@@ -168,12 +169,13 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
         ) as patch_article:
             result = await fake_server.tools["update_article_metadata"](
                 article_id,
+                2,
                 abstract="",
             )
 
         patch_article.assert_awaited_once_with(
             f"/api/v1/articles/{article_id}",
-            json={"abstract": ""},
+            json={"base_revision": 2, "abstract": ""},
         )
         self.assertEqual(result.abstract, "")
 
@@ -184,6 +186,7 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ToolError):
             await fake_server.tools["update_article_metadata"](
                 "11111111-1111-1111-1111-111111111111",
+                2,
             )
 
     def test_article_tool_schemas_do_not_expose_authors_or_submission(self) -> None:
@@ -207,7 +210,7 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
             ("get_article", {"article_id"}),
             (
                 "update_article_metadata",
-                {"article_id", "title", "abstract"},
+                {"article_id", "base_revision", "title", "abstract"},
             ),
         ):
             with self.subTest(name=name):
@@ -242,14 +245,14 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
         ) as patch_article:
             result = await server.call_tool(
                 "update_article_metadata",
-                {"article_id": article_id, "abstract": "ملخص جديد"},
+                {"article_id": article_id, "base_revision": 2, "abstract": "ملخص جديد"},
             )
 
         self.assertFalse(result.is_error)
         self.assertEqual(result.structured_content["abstract"], "ملخص جديد")
         patch_article.assert_awaited_once_with(
             f"/api/v1/articles/{article_id}",
-            json={"abstract": "ملخص جديد"},
+            json={"base_revision": 2, "abstract": "ملخص جديد"},
         )
 
 

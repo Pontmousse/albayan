@@ -24,6 +24,7 @@ class Actor:
     clerk_id: str
     auth_method: Literal["human", "agent"]
     token_id: uuid.UUID | None = None
+    scopes: frozenset[str] = frozenset()
 
 
 def _bearer_token(request: Request) -> str | None:
@@ -60,6 +61,7 @@ def get_current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
             clerk_id=user.clerk_id,
             auth_method="agent",
             token_id=row.id,
+            scopes=frozenset(row.scopes),
         )
 
     # JWT من وكيل MCP (قد يكون بلا aud) — لا يمرّ بفحص azp الخاص بالمتصفح.
@@ -67,7 +69,12 @@ def get_current_actor(request: Request, db: Session = Depends(get_db)) -> Actor:
     if token and settings.mcp_enabled and _is_mcp_oauth_token(token):
         auth = get_oauth_auth_context(request)
         user = current_user(auth, db)
-        return Actor(user_id=user.id, clerk_id=user.clerk_id, auth_method="agent")
+        return Actor(
+            user_id=user.id,
+            clerk_id=user.clerk_id,
+            auth_method="agent",
+            scopes=frozenset({"profile:read", "articles:read", "articles:draft:write"}),
+        )
 
     auth = get_auth_context(request)
     user = current_user(auth, db)
@@ -84,6 +91,12 @@ def current_actor_user(actor: Actor, db: Session) -> User:
         raise HTTPException(status_code=401, detail="هوية المصادقة غير صالحة.")
 
     return user
+
+
+def require_actor_scope(actor: Actor, scope: str) -> None:
+    """Browser users use normal author permissions; agent credentials need scope."""
+    if actor.auth_method == "agent" and scope not in actor.scopes:
+        raise HTTPException(status_code=403, detail="صلاحية الوكيل غير كافية.")
 
 
 ActorDep = Annotated[Actor, Depends(get_current_actor)]

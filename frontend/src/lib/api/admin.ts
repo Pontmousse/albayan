@@ -1,11 +1,12 @@
 import { apiFetch, type UserGender } from "@/lib/api";
-import type { VersionRead, VersionStatus } from "@/lib/api/articles";
+import type { ArticleStatus, VersionRead } from "@/lib/api/articles";
 import type {
   IssueCategory,
   IssueImage,
   IssueStatus,
 } from "@/lib/api/issues";
 import { buildMcpCallsPath } from "@/lib/api/admin-mcp-query";
+import type { EditorReviewReport } from "@/lib/api/editor";
 
 export type ReviewerAssignmentStatus =
   | "invited"
@@ -35,7 +36,10 @@ export type AdminAuthorRead = {
 };
 
 export type AdminReviewerRead = {
+  id: string;
   user: AdminUserBrief;
+  article_version_id: string;
+  version_number: number;
   status: ReviewerAssignmentStatus;
   invited_at: string;
   review_due_at: string | null;
@@ -52,8 +56,8 @@ export type AdminEditorRead = {
 export type AdminArticleSummary = {
   id: string;
   title: string;
-  status: VersionStatus;
-  version_number: number;
+  status: ArticleStatus;
+  latest_version_number: number | null;
   updated_at: string;
   submitted_at: string | null;
   authors: AdminAuthorRead[];
@@ -65,13 +69,16 @@ export type AdminArticleDetail = {
   id: string;
   title: string;
   abstract: string | null;
+  status: ArticleStatus;
   created_at: string;
   updated_at: string;
-  current_version: VersionRead;
+  latest_version: VersionRead | null;
   versions: VersionRead[];
   authors: AdminAuthorRead[];
   reviewers: AdminReviewerRead[];
   editors: AdminEditorRead[];
+  reviews: EditorReviewReport[];
+  revision_request_note: string | null;
 };
 
 export type AdminUserListItem = {
@@ -127,6 +134,7 @@ export type AccountDeletionRequestAdminRead = {
 export type InvitationRead = {
   id: string;
   article_id: string;
+  article_version_id: string | null;
   role: InvitationRole;
   email: string;
   status: InvitationStatus;
@@ -264,7 +272,7 @@ type GetToken = () => Promise<string | null>;
 
 export function listAdminArticles(
   getToken: GetToken,
-  status?: VersionStatus | null,
+  status?: ArticleStatus | null,
 ) {
   const qs = status ? `?status=${encodeURIComponent(status)}` : "";
   return apiFetch<AdminArticleSummary[]>(
@@ -278,6 +286,33 @@ export function getAdminArticle(getToken: GetToken, articleId: string) {
     `/api/v1/admin/articles/${articleId}`,
     getToken,
   );
+}
+
+export function getAdminVersionDocument(
+  getToken: GetToken,
+  articleId: string,
+  versionId: string,
+) {
+  return apiFetch<{ document: unknown }>(
+    `/api/v1/admin/articles/${articleId}/versions/${versionId}/document`,
+    getToken,
+  );
+}
+
+export async function fetchAdminVersionPdf(
+  getToken: GetToken,
+  articleId: string,
+  versionId: string,
+) {
+  const token = await getToken();
+  const headers = new Headers();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/admin/articles/${articleId}/versions/${versionId}/pdf`,
+    { headers, cache: "no-store" },
+  );
+  if (!response.ok) throw new Error("تعذّر تحميل ملف النسخة.");
+  return response.blob();
 }
 
 export function assignReviewer(
@@ -311,10 +346,10 @@ export function assignEditor(
 export function unassignReviewer(
   getToken: GetToken,
   articleId: string,
-  userId: string,
+  assignmentId: string,
 ) {
   return apiFetch<void>(
-    `/api/v1/admin/articles/${articleId}/reviewers/${userId}`,
+    `/api/v1/admin/articles/${articleId}/reviewer-assignments/${assignmentId}`,
     getToken,
     { method: "DELETE" },
   );
@@ -373,15 +408,20 @@ export function cancelInvitation(getToken: GetToken, invitationId: string) {
 export function overrideDecision(
   getToken: GetToken,
   articleId: string,
-  status: VersionStatus,
+  status: ArticleStatus,
   reason?: string | null,
+  reviewerIdentityDisclosures: { review_id: string; reveal_identity: boolean }[] = [],
 ) {
   return apiFetch<VersionRead>(
     `/api/v1/admin/articles/${articleId}/override-decision`,
     getToken,
     {
       method: "POST",
-      body: JSON.stringify({ status, reason: reason ?? null }),
+      body: JSON.stringify({
+        status,
+        reason: reason ?? null,
+        reviewer_identity_disclosures: reviewerIdentityDisclosures,
+      }),
     },
   );
 }

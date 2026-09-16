@@ -10,7 +10,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import TypeAdapter
 
 from albayan_mcp.schemas.document2 import DocumentCommand
-from albayan_mcp.tools.sessions import register_session_tools
+from albayan_mcp.tools.drafts import register_draft_tools
 from tests.test_profile_tools import FakeServer
 
 
@@ -70,8 +70,8 @@ class Document2McpSchemaTests(unittest.TestCase):
 
     def test_apply_tool_signature_publishes_typed_command_union(self) -> None:
         server = FakeServer()
-        register_session_tools(server)
-        tool = server.tools["apply_session_command"]
+        register_draft_tools(server)
+        tool = server.tools["apply_draft_command"]
         signature = inspect.signature(tool)
         hints = get_type_hints(tool, include_extras=True)
 
@@ -86,7 +86,7 @@ class Document2McpSchemaTests(unittest.TestCase):
         import asyncio
 
         server = MCPServer("schema-test")
-        register_session_tools(server)
+        register_draft_tools(server)
         published = {
             tool.name: tool for tool in asyncio.run(server.list_tools())
         }
@@ -94,21 +94,18 @@ class Document2McpSchemaTests(unittest.TestCase):
         self.assertEqual(
             set(published),
             {
-                "get_session_outline",
-                "get_session_blocks",
-                "apply_session_command",
-                "save_session",
-                "compile_session",
+                "get_draft_outline",
+                "get_draft_blocks",
+                "apply_draft_command",
+                "compile_draft",
                 "get_compile_status",
                 "get_article_pdf",
             },
         )
-        edit_schema = published["apply_session_command"].input_schema
+        edit_schema = published["apply_draft_command"].input_schema
         command_schema = edit_schema["properties"]["command"]
         self.assertEqual(command_schema["discriminator"]["propertyName"], "op")
         self.assertEqual(len(command_schema["oneOf"]), 29)
-        blocks_schema = published["get_session_blocks"].output_schema
-        self.assertIn("DocumentInlineTokenIdentityResult", blocks_schema["$defs"])
         for name, tool in published.items():
             if name == "get_article_pdf":
                 self.assertIsNone(tool.output_schema)

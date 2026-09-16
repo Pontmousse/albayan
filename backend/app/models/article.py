@@ -7,7 +7,9 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    ForeignKeyConstraint,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -18,17 +20,29 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 from app.models.enums import (
+    ArticleStatus,
     CompileStatus,
+    DraftActorType,
+    DraftRevisionReason,
     ReviewRecommendation,
     ReviewStatus,
     ReviewerAssignmentStatus,
     SourceType,
-    VersionStatus,
 )
+
+
+def _enum_values(enum_class):
+    return [member.value for member in enum_class]
 
 
 class Article(Base):
     __tablename__ = "articles"
+    __table_args__ = (
+        CheckConstraint(
+            "draft_revision_number >= 0",
+            name="ck_articles_draft_revision_number_nonnegative",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
@@ -38,6 +52,29 @@ class Article(Base):
     )
     title: Mapped[str] = mapped_column(String(500))
     abstract: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[ArticleStatus] = mapped_column(
+        Enum(ArticleStatus, native_enum=False, values_callable=_enum_values),
+        default=ArticleStatus.DRAFT,
+        index=True,
+    )
+    current_draft_revision_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("article_draft_revisions.id", ondelete="SET NULL", use_alter=True),
+        nullable=True,
+        index=True,
+    )
+    draft_revision_number: Mapped[int] = mapped_column(Integer, default=0)
+    revision_request_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    revision_requested_for_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("article_versions.id", ondelete="SET NULL", use_alter=True),
+        nullable=True,
+    )
+    revision_requested_by: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    revision_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -47,9 +84,13 @@ class Article(Base):
         onupdate=func.now(),
     )
 
-    submitter: Mapped["User"] = relationship(back_populates="submitted_articles")
+    submitter: Mapped["User"] = relationship(
+        back_populates="submitted_articles", foreign_keys=[submitted_by]
+    )
     versions: Mapped[list["ArticleVersion"]] = relationship(
-        back_populates="article", cascade="all, delete-orphan"
+        back_populates="article",
+        cascade="all, delete-orphan",
+        foreign_keys="ArticleVersion.article_id",
     )
     author_links: Mapped[list["ArticleAuthor"]] = relationship(
         back_populates="article", cascade="all, delete-orphan"
@@ -58,15 +99,22 @@ class Article(Base):
         back_populates="article", cascade="all, delete-orphan"
     )
     reviewer_assignments: Mapped[list["ArticleReviewer"]] = relationship(
-        back_populates="article", cascade="all, delete-orphan"
-    )
-    session: Mapped["ArticleSession | None"] = relationship(
         back_populates="article",
         cascade="all, delete-orphan",
-        single_parent=True,
+        foreign_keys="ArticleReviewer.article_id",
+    )
+    draft_revisions: Mapped[list["ArticleDraftRevision"]] = relationship(
+        back_populates="article",
+        cascade="all, delete-orphan",
+        foreign_keys="ArticleDraftRevision.article_id",
+    )
+    current_draft_revision: Mapped["ArticleDraftRevision | None"] = relationship(
+        foreign_keys=[current_draft_revision_id], post_update=True
     )
     invitations: Mapped[list["Invitation"]] = relationship(
-        back_populates="article", cascade="all, delete-orphan"
+        back_populates="article",
+        cascade="all, delete-orphan",
+        foreign_keys="Invitation.article_id",
     )
 
 
@@ -74,14 +122,7 @@ class ArticleVersion(Base):
     __tablename__ = "article_versions"
     __table_args__ = (
         UniqueConstraint("article_id", "version_number", name="uq_article_versions_article_version"),
-        CheckConstraint(
-            "active_compile_session_revision IS NULL OR active_compile_session_revision >= 0",
-            name="ck_article_versions_active_compile_session_revision_nonnegative",
-        ),
-        CheckConstraint(
-            "compiled_session_revision IS NULL OR compiled_session_revision >= 0",
-            name="ck_article_versions_compiled_session_revision_nonnegative",
-        ),
+        UniqueConstraint("id", "article_id", name="uq_article_versions_id_article"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -93,43 +134,40 @@ class ArticleVersion(Base):
     version_number: Mapped[int] = mapped_column(Integer)
     storage_prefix: Mapped[str] = mapped_column(String(500))
     source_type: Mapped[SourceType] = mapped_column(
-        Enum(SourceType, native_enum=False),
+        Enum(SourceType, native_enum=False, values_callable=_enum_values),
         default=SourceType.WEB_EDITOR,
     )
-    status: Mapped[VersionStatus] = mapped_column(
-        Enum(VersionStatus, native_enum=False),
-        default=VersionStatus.DRAFT,
-        index=True,
+    source_draft_revision_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True
     )
-    compile_status: Mapped[CompileStatus] = mapped_column(
-        Enum(CompileStatus, native_enum=False),
-        default=CompileStatus.PENDING,
-    )
-    active_compile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
-    active_compile_session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
-    active_compile_session_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    compiled_document_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    compiled_session_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
-    compiled_session_revision: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    compile_error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    compile_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    change_summary: Mapped[str | None] = mapped_column(Text)
+    document_hash: Mapped[str] = mapped_column(String(64))
+    title_snapshot: Mapped[str] = mapped_column(String(500))
+    abstract_snapshot: Mapped[str | None] = mapped_column(Text)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
 
-    article: Mapped["Article"] = relationship(back_populates="versions")
-    reviews: Mapped[list["Review"]] = relationship(back_populates="article_version")
-    session: Mapped["ArticleSession | None"] = relationship(
-        back_populates="article_version"
+    article: Mapped["Article"] = relationship(
+        back_populates="versions", foreign_keys=[article_id]
+    )
+    reviews: Mapped[list["Review"]] = relationship(
+        back_populates="article_version", passive_deletes=True
     )
 
 
-class ArticleSession(Base):
-    __tablename__ = "article_sessions"
+class ArticleDraftRevision(Base):
+    __tablename__ = "article_draft_revisions"
     __table_args__ = (
-        UniqueConstraint("article_id", name="uq_article_sessions_article"),
+        UniqueConstraint(
+            "article_id", "revision_number", name="uq_draft_revision_article_number"
+        ),
+        UniqueConstraint("storage_key", name="uq_draft_revision_storage_key"),
+        CheckConstraint("revision_number >= 1", name="ck_draft_revision_number_positive"),
+        CheckConstraint(
+            "restored_from_revision_number IS NULL OR restored_from_revision_number >= 1",
+            name="ck_draft_revision_restored_number_positive",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -138,28 +176,67 @@ class ArticleSession(Base):
     article_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("articles.id", ondelete="CASCADE"), index=True
     )
-    article_version_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("article_versions.id", ondelete="CASCADE"), index=True
+    revision_number: Mapped[int] = mapped_column(Integer)
+    storage_key: Mapped[str] = mapped_column(String(700))
+    document_hash: Mapped[str] = mapped_column(String(64))
+    # Keep the creator UUID as immutable provenance even if the account is removed.
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    actor_type: Mapped[DraftActorType] = mapped_column(
+        Enum(DraftActorType, native_enum=False, values_callable=_enum_values)
     )
-    revision: Mapped[int] = mapped_column(Integer, default=0)
-    last_saved_revision: Mapped[int] = mapped_column(Integer, default=0)
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    reason: Mapped[DraftRevisionReason] = mapped_column(
+        Enum(
+            DraftRevisionReason,
+            native_enum=False,
+            values_callable=_enum_values,
+            length=32,
+        )
     )
-    updated_by: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    restored_from_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True
     )
+    restored_from_revision_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    referenced_asset_ids: Mapped[list[str] | None] = mapped_column(
+        JSON, nullable=True
+    )
+    compile_status: Mapped[CompileStatus] = mapped_column(
+        Enum(CompileStatus, native_enum=False, values_callable=_enum_values),
+        default=CompileStatus.PENDING,
+    )
+    active_compile_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    compile_error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    compile_error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    compiled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
+
+    article: Mapped["Article"] = relationship(
+        back_populates="draft_revisions", foreign_keys=[article_id]
     )
 
-    article: Mapped["Article"] = relationship(back_populates="session")
-    article_version: Mapped["ArticleVersion"] = relationship(back_populates="session")
+
+class DraftCommandReceipt(Base):
+    __tablename__ = "draft_command_receipts"
+
+    command_id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    article_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("articles.id", ondelete="CASCADE"), index=True
+    )
+    request_hash: Mapped[str] = mapped_column(String(64))
+    base_revision: Mapped[int] = mapped_column(Integer)
+    result_revision_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("article_draft_revisions.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    result_revision_number: Mapped[int] = mapped_column(Integer)
+    affected_block_ids: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class ArticleAuthor(Base):
@@ -214,7 +291,18 @@ class ArticleEditor(Base):
 class ArticleReviewer(Base):
     __tablename__ = "article_reviewers"
     __table_args__ = (
-        UniqueConstraint("article_id", "user_id", name="uq_article_reviewers_article_user"),
+        UniqueConstraint(
+            "article_version_id", "user_id", name="uq_article_reviewers_version_user"
+        ),
+        UniqueConstraint(
+            "id", "article_version_id", name="uq_article_reviewers_id_version"
+        ),
+        ForeignKeyConstraint(
+            ["article_version_id", "article_id"],
+            ["article_versions.id", "article_versions.article_id"],
+            name="fk_article_reviewers_version_article",
+            ondelete="CASCADE",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -223,6 +311,7 @@ class ArticleReviewer(Base):
     article_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("articles.id", ondelete="CASCADE"), index=True
     )
+    article_version_id: Mapped[uuid.UUID] = mapped_column(Uuid, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("users.id", ondelete="RESTRICT"), index=True
     )
@@ -251,20 +340,40 @@ class ArticleReviewer(Base):
         onupdate=func.now(),
     )
 
-    article: Mapped["Article"] = relationship(back_populates="reviewer_assignments")
+    article: Mapped["Article"] = relationship(
+        back_populates="reviewer_assignments", foreign_keys=[article_id]
+    )
+    article_version: Mapped["ArticleVersion"] = relationship(
+        foreign_keys=[article_version_id, article_id], overlaps="article"
+    )
     user: Mapped["User"] = relationship(back_populates="reviewer_assignments")
-    reviews: Mapped[list["Review"]] = relationship(back_populates="article_reviewer")
+    reviews: Mapped[list["Review"]] = relationship(
+        back_populates="article_reviewer",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class Review(Base):
     __tablename__ = "reviews"
+    __table_args__ = (
+        UniqueConstraint(
+            "article_reviewer_id", "article_version_id",
+            name="uq_reviews_assignment_version",
+        ),
+        ForeignKeyConstraint(
+            ["article_reviewer_id", "article_version_id"],
+            ["article_reviewers.id", "article_reviewers.article_version_id"],
+            name="fk_reviews_assignment_version",
+            ondelete="CASCADE",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid, primary_key=True, default=uuid.uuid4
     )
     article_reviewer_id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
-        ForeignKey("article_reviewers.id", ondelete="CASCADE"),
         index=True,
     )
     article_version_id: Mapped[uuid.UUID] = mapped_column(
@@ -280,6 +389,9 @@ class Review(Base):
     status: Mapped[ReviewStatus] = mapped_column(
         Enum(ReviewStatus, native_enum=False),
         default=ReviewStatus.DRAFT,
+    )
+    reveal_reviewer_identity_to_author: Mapped[bool] = mapped_column(
+        Boolean, default=False
     )
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

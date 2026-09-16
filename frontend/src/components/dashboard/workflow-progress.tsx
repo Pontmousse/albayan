@@ -1,19 +1,19 @@
-import { type VersionStatus } from "@/lib/api/articles";
+import { type ArticleStatus } from "@/lib/api/articles";
 
-const STEPS: { id: string; label: string; statuses: VersionStatus[] }[] = [
+const STEPS: { id: string; label: string; statuses: ArticleStatus[] }[] = [
   { id: "draft", label: "مسودة", statuses: ["draft"] },
   { id: "submitted", label: "مُقدَّم", statuses: ["submitted"] },
-  { id: "review", label: "قيد المراجعة", statuses: ["under_review"] },
+  { id: "review", label: "قيد المراجعة", statuses: ["under_review", "revision_requested"] },
   { id: "decision", label: "القرار", statuses: ["accepted", "rejected"] },
   { id: "published", label: "منشور", statuses: ["published"] },
 ];
 
-function stepIndex(status: VersionStatus): number {
+function stepIndex(status: ArticleStatus): number {
   const index = STEPS.findIndex((step) => step.statuses.includes(status));
   return index === -1 ? 0 : index;
 }
 
-export function WorkflowProgress({ status }: { status: VersionStatus }) {
+export function WorkflowProgress({ status }: { status: ArticleStatus }) {
   const current = stepIndex(status);
   const rejected = status === "rejected";
 

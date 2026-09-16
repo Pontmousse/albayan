@@ -55,7 +55,7 @@ class User(Base):
     )
 
     submitted_articles: Mapped[list["Article"]] = relationship(
-        back_populates="submitter"
+        back_populates="submitter", foreign_keys="Article.submitted_by"
     )
     authored_article_links: Mapped[list["ArticleAuthor"]] = relationship(
         back_populates="user"
