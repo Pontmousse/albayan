@@ -108,7 +108,7 @@ templates:
     name: "Al-Bayan Review Invitation"
     subject: "دعوة للمشاركة في تحكيم بحث"
     file: "emails/src/reviewers/ReviewInvitation.tsx"
-    html_file: "emails/out/ReviewInvitation.html"
+    html_file: "emails/out/reviewers/ReviewInvitation.html"
     variables:
       ARTICLE_TITLE: string
       ROLE_LABEL: string
@@ -125,7 +125,7 @@ templates:
     name: "Al-Bayan Reviewer Assigned"
     subject: "مهمة مراجعة جديدة في مجلة البيان"
     file: "emails/src/reviewers/ReviewerAssigned.tsx"
-    html_file: "emails/out/ReviewerAssigned.html"
+    html_file: "emails/out/reviewers/ReviewerAssigned.html"
     variables:
       ARTICLE_TITLE: string
       REVIEW_URL: string
@@ -140,7 +140,7 @@ templates:
     name: "Al-Bayan Review Reminder"
     subject: "تذكير بمراجعة بحث في مجلة البيان"
     file: "emails/src/reviewers/ReviewReminder.tsx"
-    html_file: "emails/out/ReviewReminder.html"
+    html_file: "emails/out/reviewers/ReviewReminder.html"
     variables:
       ARTICLE_TITLE: string
       REVIEW_URL: string
@@ -156,7 +156,7 @@ templates:
     name: "Al-Bayan Review Submitted"
     subject: "تم تسليم مراجعة جديدة"
     file: "emails/src/reviewers/ReviewSubmitted.tsx"
-    html_file: "emails/out/ReviewSubmitted.html"
+    html_file: "emails/out/reviewers/ReviewSubmitted.html"
     variables:
       ARTICLE_TITLE: string
       REVIEWER_NAME: string
