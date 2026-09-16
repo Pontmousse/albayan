@@ -8,11 +8,13 @@ export function SubmitDialog({
   submitting,
   onConfirm,
   onCancel,
+  resubmission = false,
 }: {
   open: boolean;
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  resubmission?: boolean;
 }) {
   return (
     <AnimatedOverlay
@@ -25,10 +27,12 @@ export function SubmitDialog({
         className="text-xl font-bold text-slate-900"
         style={{ fontFamily: "var(--font-display-ar), serif" }}
       >
-        تقديم المقال للمجلة
+        {resubmission ? "إعادة تقديم المقال" : "تقديم المقال للمجلة"}
       </h2>
       <p className="mt-3 text-sm leading-7 text-slate-600">
-        بعد التقديم تنتقل المخطوطة إلى هيئة التحرير{" "}
+        {resubmission
+          ? "ستُنشأ نسخة رسمية جديدة مستقلة، وستبقى جميع النسخ السابقة وتقاريرها محفوظة. "
+          : "بعد التقديم تنتقل المخطوطة إلى هيئة التحرير "}
         <strong className="text-slate-800">
           ولن تتمكن من تعديل المحتوى بعد التقديم
         </strong>
@@ -49,7 +53,11 @@ export function SubmitDialog({
           disabled={submitting}
           className={buttonClassName}
         >
-          {submitting ? "جارٍ التقديم…" : "تأكيد التقديم"}
+          {submitting
+            ? "جارٍ التقديم…"
+            : resubmission
+              ? "تأكيد إعادة التقديم"
+              : "تأكيد التقديم"}
         </button>
       </div>
     </AnimatedOverlay>

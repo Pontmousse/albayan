@@ -4,7 +4,14 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models.enums import CompileStatus, SourceType, VersionStatus
+from app.models.enums import (
+    ArticleStatus,
+    CompileStatus,
+    DraftActorType,
+    DraftRevisionReason,
+    SourceType,
+    ReviewRecommendation,
+)
 from app.schemas.document2 import DocumentCommand
 
 
@@ -23,6 +30,7 @@ class ArticleCreate(BaseModel):
 class ArticleUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    base_revision: int = Field(ge=1, strict=True)
     title: str | None = Field(default=None, min_length=1, max_length=500)
     abstract: str | None = Field(default=None, max_length=5000)
 
@@ -45,12 +53,11 @@ class VersionRead(BaseModel):
 
     id: UUID
     version_number: int
-    status: VersionStatus
     source_type: SourceType
-    compile_status: CompileStatus
-    active_compile_id: UUID | None = None
-    compiled_document_hash: str | None = None
-    change_summary: str | None
+    source_draft_revision_id: UUID | None = None
+    document_hash: str
+    title_snapshot: str
+    abstract_snapshot: str | None
     submitted_at: datetime | None
     created_at: datetime
 
@@ -60,10 +67,17 @@ class ArticleSummary(BaseModel):
 
     id: UUID
     title: str
-    status: VersionStatus
-    version_number: int
+    status: ArticleStatus
+    latest_version_number: int | None
     updated_at: datetime
     submitted_at: datetime | None
+
+
+class AuthorRevisionFeedback(BaseModel):
+    review_id: UUID
+    reviewer_label: str
+    comments_to_author: str
+    recommendation: ReviewRecommendation | None = None
 
 
 class ArticleDetail(BaseModel):
@@ -72,9 +86,16 @@ class ArticleDetail(BaseModel):
     id: UUID
     title: str
     abstract: str | None
+    status: ArticleStatus
+    current_draft_revision_id: UUID | None
+    draft_revision_number: int
     created_at: datetime
     updated_at: datetime
-    current_version: VersionRead
+    revision_request_note: str | None = None
+    revision_requested_for_version_id: UUID | None = None
+    revision_requested_at: datetime | None = None
+    revision_feedback: list[AuthorRevisionFeedback] = Field(default_factory=list)
+    latest_version: VersionRead | None
     versions: list[VersionRead]
 
 
@@ -97,62 +118,73 @@ class ArticleAssetUploadRead(BaseModel):
     size: int = Field(ge=1)
 
 
-class DocumentPayload(BaseModel):
-    document: Any
-
-
-class CompilePayload(BaseModel):
-    latex: str = Field(min_length=1, max_length=300_000)
-    asset_keys: list[str] = Field(default_factory=list, max_length=50)
-    document_hash: str = Field(min_length=64, max_length=64)
-
-    @field_validator("document_hash")
-    @classmethod
-    def _hash_hex(cls, value: str) -> str:
-        lowered = value.strip().lower()
-        if len(lowered) != 64 or any(c not in "0123456789abcdef" for c in lowered):
-            raise ValueError("document_hash يجب أن يكون SHA-256 hex بطول 64.")
-        return lowered
-
-
-class SessionCompileError(BaseModel):
+class DraftCompileError(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     code: str
     message: str
 
 
-class SessionCompileStatusRead(BaseModel):
+class DraftCompileStatusRead(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: CompileStatus
     compile_id: UUID | None = None
-    requested_revision: int | None = None
-    compiled_revision: int | None = None
-    current_revision: int
-    last_saved_revision: int
+    revision_id: UUID
+    revision_number: int
     pdf_ready: bool
-    stale: bool
-    error: SessionCompileError | None = None
+    error: DraftCompileError | None = None
 
 
 class DocumentCommandPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     command_id: UUID
-    base_revision: int = Field(ge=0, strict=True)
+    base_revision: int = Field(ge=1, strict=True)
     command: DocumentCommand
 
 
-class DocumentSessionUpdatePayload(BaseModel):
-    base_revision: int = Field(ge=0)
+class DraftUpdatePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    base_revision: int = Field(ge=1, strict=True)
     document: Any
 
 
-class DocumentSessionRead(BaseModel):
-    revision: int
-    last_saved_revision: int
+class DraftRevisionRead(BaseModel):
+    revision_id: UUID
+    revision_number: int
+    document_hash: str
+    actor_type: DraftActorType
+    reason: DraftRevisionReason
+    created_at: datetime
+    restored_from_id: UUID | None = None
+    restored_from_revision_number: int | None = None
     document: Any
+
+
+class DraftRevisionHistoryItem(BaseModel):
+    revision_id: UUID
+    revision_number: int
+    document_hash: str
+    actor_type: DraftActorType
+    reason: DraftRevisionReason
+    created_at: datetime
+    created_by: UUID | None = None
+    created_by_name: str | None = None
+    restored_from_id: UUID | None = None
+    restored_from_revision_number: int | None = None
+    is_current: bool
+
+
+class DraftRevisionHistoryDetail(DraftRevisionHistoryItem):
+    document: Any
+
+
+class DraftRestorePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    base_revision: int = Field(ge=1, strict=True)
 
 
 class DocumentOutlineEntry(BaseModel):
@@ -173,26 +205,23 @@ class DocumentOutlineEntry(BaseModel):
 
 
 class DocumentOutlineRead(BaseModel):
-    revision: int
-    last_saved_revision: int
+    revision_id: UUID
+    revision_number: int
     outline: list[DocumentOutlineEntry]
 
 
 class DocumentBlocksRead(BaseModel):
-    revision: int
-    last_saved_revision: int
+    revision_id: UUID
+    revision_number: int
     blocks: list[Any]
 
 
 class DocumentCommandResult(BaseModel):
     ok: bool = True
-    revision: int
-    last_saved_revision: int
+    revision_id: UUID
+    revision_number: int
+    document_hash: str
+    actor_type: DraftActorType
+    reason: DraftRevisionReason
     document: Any
     affected_block_ids: list[str] = Field(default_factory=list)
-
-
-class DocumentSessionSaveResult(BaseModel):
-    ok: bool = True
-    revision: int
-    last_saved_revision: int

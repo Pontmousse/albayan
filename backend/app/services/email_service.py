@@ -324,6 +324,7 @@ def send_new_submission_alert_email(
     article_title: str,
     author_name: str,
     article_url: str,
+    version_number: int = 1,
     idempotency_key: str | None = None,
 ) -> None:
     template = _require_template(
@@ -338,6 +339,8 @@ def send_new_submission_alert_email(
             "ARTICLE_TITLE": article_title,
             "AUTHOR_NAME": author_name,
             "ARTICLE_URL": article_url,
+            "VERSION_NUMBER": version_number,
+            "IS_RESUBMISSION": version_number > 1,
             **_common_variables(),
         },
         idempotency_key=idempotency_key,

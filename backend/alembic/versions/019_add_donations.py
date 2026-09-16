@@ -1,8 +1,8 @@
 """add donations and Stripe webhook receipts
 
-Revision ID: 016_donations
-Revises: 015_session_compile
-Create Date: 2026-09-15
+Revision ID: 019_donations
+Revises: 018_formal_rounds
+Create Date: 2026-09-16
 """
 
 from typing import Sequence, Union
@@ -10,8 +10,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "016_donations"
-down_revision: Union[str, None] = "015_session_compile"
+revision: str = "019_donations"
+down_revision: Union[str, None] = "018_formal_rounds"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -367,3 +367,9 @@ the bytes to FastAPI as multipart data. The returned `assets/<generated-name>`
 identifier can then be used by the typed `insert_figure` or `update_figure`
 command. MCP never receives S3 credentials and BuTeX never lists, fetches, or
 stores asset bytes.
+> **Historical contract (superseded 2026-09-15).** Session persistence and the
+> session routes described below were removed by the immutable draft-revision
+> cutover. The BuTeX normalization/command details remain useful background,
+> but the active host contract uses `/draft` routes and
+> `ArticleDraftRevision`; see
+> [`2026-09-15-draft-revision-architecture.md`](superpowers/specs/2026-09-15-draft-revision-architecture.md).

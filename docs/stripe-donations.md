@@ -115,7 +115,7 @@ cd backend
 alembic upgrade head
 ```
 
-Migration `016_donations` creates:
+Migration `019_donations` creates:
 
 - `donations`: minimal operational payment state and optional donor email;
 - `stripe_webhook_events`: processed Stripe event IDs for idempotency.

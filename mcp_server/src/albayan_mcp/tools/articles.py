@@ -44,12 +44,11 @@ class ArticleResultModel(BaseModel):
 class ArticleVersionResult(ArticleResultModel):
     id: uuid.UUID
     version_number: int
-    status: str
     source_type: str
-    compile_status: str
-    active_compile_id: uuid.UUID | None = None
-    compiled_document_hash: str | None = None
-    change_summary: str | None = None
+    source_draft_revision_id: uuid.UUID | None = None
+    document_hash: str
+    title_snapshot: str
+    abstract_snapshot: str | None = None
     submitted_at: datetime | None = None
     created_at: datetime
 
@@ -58,9 +57,12 @@ class ArticleDetailResult(ArticleResultModel):
     id: uuid.UUID
     title: str
     abstract: str | None
+    status: str
+    current_draft_revision_id: uuid.UUID | None
+    draft_revision_number: int
     created_at: datetime
     updated_at: datetime
-    current_version: ArticleVersionResult
+    latest_version: ArticleVersionResult | None
     versions: list[ArticleVersionResult]
 
 
@@ -68,7 +70,7 @@ class ArticleSummaryResult(BaseModel):
     id: str
     title: str
     status: str
-    version_number: int
+    latest_version_number: int | None
     updated_at: str
     submitted_at: str | None
 
@@ -107,7 +109,7 @@ def register_article_tools(server: MCPServer) -> None:
         title="Get draft article details",
         description=(
             "Read typed article and version metadata for an article owned by the authenticated "
-            "user. Use the Document2 session inspection tools for block contents and stable IDs."
+            "user. Use the Document2 draft inspection tools for block contents and stable IDs."
         ),
     )
     async def get_article(article_id: ArticleId) -> ArticleDetailResult:
@@ -120,21 +122,25 @@ def register_article_tools(server: MCPServer) -> None:
         description=(
             "Update the title and/or abstract of an owned draft. Provide at least one field; an "
             "empty abstract clears it. FastAPI synchronizes the authoritative Article row and "
-            "any active Document2 session, including its revision. Re-inspect the session before "
-            "the next structured edit. This tool cannot edit authors or submit an article."
+            "the canonical Document2 draft as a new immutable revision. Re-inspect the draft "
+            "before the next structured edit. This tool cannot edit authors or submit an article."
         ),
     )
     async def update_article_metadata(
         article_id: ArticleId,
+        base_revision: Annotated[
+            int,
+            Field(ge=1, strict=True, description="Current draft revision_number."),
+        ],
         title: ArticleTitle = None,
         abstract: ArticleAbstract = None,
     ) -> ArticleDetailResult:
-        payload: dict[str, str] = {}
+        payload: dict[str, str | int] = {"base_revision": base_revision}
         if title is not None:
             payload["title"] = title
         if abstract is not None:
             payload["abstract"] = abstract
-        if not payload:
+        if len(payload) == 1:
             raise ToolError(
                 "يجب إرسال title أو abstract على الأقل؛ استخدم نصاً فارغاً لمسح الملخص."
             )

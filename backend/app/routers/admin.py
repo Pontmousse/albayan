@@ -1,11 +1,15 @@
 import uuid
+from pathlib import PurePosixPath
 from typing import Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 
+from app.core import s3
 from app.core.clerk import AdminDep, DbDep
 from app.core.deps import current_user
-from app.models.enums import InvitationRole, IssueCategory, IssueStatus, VersionStatus
+from app.models.article import ArticleVersion
+from app.models.enums import ArticleStatus, InvitationRole, IssueCategory, IssueStatus
 from app.models.issue import Issue
 from app.schemas.admin import (
     AccountDeletionRequestAdminRead,
@@ -31,6 +35,7 @@ from app.schemas.admin import (
     OverrideDecisionPayload,
 )
 from app.schemas.article import VersionRead
+from app.schemas.editor import EditorReviewReport
 from app.schemas.issue import IssueImageRead
 from app.services import (
     account_deletion_service,
@@ -39,9 +44,18 @@ from app.services import (
     admin_user_service,
     app_invitation_service,
     invitation_service,
+    editor_service,
+    compile_service,
 )
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
+
+
+def _formal_version(db, article_id: uuid.UUID, version_id: uuid.UUID) -> ArticleVersion:
+    version = db.get(ArticleVersion, version_id)
+    if version is None or version.article_id != article_id:
+        raise HTTPException(status_code=404, detail="الإصدار الرسمي غير موجود.")
+    return version
 
 
 def _admin_user(auth: AdminDep, db: DbDep):
@@ -65,9 +79,13 @@ def _author_reads(article) -> list[AdminAuthorRead]:
 
 
 def _reviewer_reads(article) -> list[AdminReviewerRead]:
+    version_numbers = {version.id: version.version_number for version in article.versions}
     return [
         AdminReviewerRead(
+            id=a.id,
             user=AdminUserBrief.model_validate(a.user),
+            article_version_id=a.article_version_id,
+            version_number=version_numbers[a.article_version_id],
             status=a.status,
             invited_at=a.invited_at,
             review_due_at=a.review_due_at,
@@ -92,11 +110,11 @@ def _editor_reads(article) -> list[AdminEditorRead]:
 def _summary(article, version) -> AdminArticleSummary:
     return AdminArticleSummary(
         id=article.id,
-        title=article.title,
-        status=version.status,
-        version_number=version.version_number,
+        title=version.title_snapshot if version else article.title,
+        status=article.status,
+        latest_version_number=version.version_number if version else None,
         updated_at=article.updated_at,
-        submitted_at=version.submitted_at,
+        submitted_at=version.submitted_at if version else None,
         authors=_author_reads(article),
         reviewers=_reviewer_reads(article),
         editors=_editor_reads(article),
@@ -105,18 +123,38 @@ def _summary(article, version) -> AdminArticleSummary:
 
 def _detail(article) -> AdminArticleDetail:
     versions = sorted(article.versions, key=lambda v: v.version_number, reverse=True)
-    current = versions[0]
+    latest = versions[0] if versions else None
+    reviews = []
+    if latest:
+        for assignment, review in editor_service.submitted_reviews_for_version(
+            article, latest.id
+        ):
+            reviews.append(
+                EditorReviewReport(
+                    id=review.id,
+                    reviewer_name=assignment.user.full_name if assignment.user else None,
+                    reviewer_email=assignment.user.email if assignment.user else "",
+                    comments_to_author=review.comments_to_author,
+                    comments_to_editor=review.comments_to_editor,
+                    recommendation=review.recommendation,
+                    submitted_at=review.submitted_at,
+                    reveal_reviewer_identity_to_author=review.reveal_reviewer_identity_to_author,
+                )
+            )
     return AdminArticleDetail(
         id=article.id,
-        title=article.title,
-        abstract=article.abstract,
+        title=latest.title_snapshot if latest else article.title,
+        abstract=latest.abstract_snapshot if latest else article.abstract,
+        status=article.status,
         created_at=article.created_at,
         updated_at=article.updated_at,
-        current_version=VersionRead.model_validate(current),
+        latest_version=VersionRead.model_validate(latest) if latest else None,
         versions=[VersionRead.model_validate(v) for v in versions],
         authors=_author_reads(article),
         reviewers=_reviewer_reads(article),
         editors=_editor_reads(article),
+        reviews=reviews,
+        revision_request_note=article.revision_request_note,
     )
 
 
@@ -145,7 +183,7 @@ def _admin_issue_read(issue: Issue) -> AdminIssueRead:
 def list_admin_articles(
     auth: AdminDep,
     db: DbDep,
-    status: VersionStatus | None = Query(default=None),
+    status: ArticleStatus | None = Query(default=None),
 ) -> list[AdminArticleSummary]:
     _admin_user(auth, db)
     rows = admin_article_service.list_articles(db, status=status)
@@ -196,6 +234,45 @@ def get_admin_article(
     _admin_user(auth, db)
     article = admin_article_service.get_article_or_404(db, article_id)
     return _detail(article)
+
+
+@router.get("/articles/{article_id}/versions/{version_id}/document")
+def get_admin_version_document(
+    article_id: uuid.UUID, version_id: uuid.UUID, auth: AdminDep, db: DbDep
+) -> dict:
+    _admin_user(auth, db)
+    version = _formal_version(db, article_id, version_id)
+    return {"document": s3.get_json(version.storage_prefix)}
+
+
+@router.get("/articles/{article_id}/versions/{version_id}/pdf")
+def get_admin_version_pdf(
+    article_id: uuid.UUID, version_id: uuid.UUID, auth: AdminDep, db: DbDep
+) -> Response:
+    _admin_user(auth, db)
+    version = _formal_version(db, article_id, version_id)
+    return Response(
+        content=compile_service.get_compiled_pdf(version.storage_prefix),
+        media_type="application/pdf",
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
+@router.get("/articles/{article_id}/versions/{version_id}/assets/{filename}")
+def get_admin_version_asset(
+    article_id: uuid.UUID,
+    version_id: uuid.UUID,
+    filename: str,
+    auth: AdminDep,
+    db: DbDep,
+) -> Response:
+    _admin_user(auth, db)
+    name = PurePosixPath(filename).name
+    if name != filename or not name or name in {".", ".."}:
+        raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
+    version = _formal_version(db, article_id, version_id)
+    body, content_type = s3.get_bytes(version.storage_prefix, f"assets/{name}")
+    return Response(content=body, media_type=content_type or "application/octet-stream")
 
 
 @router.post("/articles/{article_id}/assign-reviewer", status_code=201)
@@ -261,14 +338,14 @@ def assign_editor(
 
 
 @router.delete(
-    "/articles/{article_id}/reviewers/{user_id}", status_code=204
+    "/articles/{article_id}/reviewer-assignments/{assignment_id}", status_code=204
 )
 def unassign_reviewer(
-    article_id: uuid.UUID, user_id: uuid.UUID, auth: AdminDep, db: DbDep
+    article_id: uuid.UUID, assignment_id: uuid.UUID, auth: AdminDep, db: DbDep
 ) -> None:
     admin = _admin_user(auth, db)
     admin_article_service.unassign_reviewer(
-        db, article_id, user_id, actor_id=admin.id
+        db, article_id, assignment_id, actor_id=admin.id
     )
 
 
@@ -292,10 +369,13 @@ def override_decision(
     db: DbDep,
 ) -> VersionRead:
     admin = _admin_user(auth, db)
-    # reason accepted but not persisted (no audit log in this phase)
-    _ = payload.reason
     version = admin_article_service.override_decision(
-        db, article_id, payload.status, actor_id=admin.id
+        db,
+        article_id,
+        payload.status,
+        actor_id=admin.id,
+        reason=payload.reason,
+        disclosures=payload.reviewer_identity_disclosures,
     )
     return VersionRead.model_validate(version)
 

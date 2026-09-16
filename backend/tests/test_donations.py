@@ -30,8 +30,8 @@ class DonationModelTests(unittest.TestCase):
         self.assertIs(Base.metadata.tables["stripe_webhook_events"], StripeWebhookEvent.__table__)
 
     def test_migration_creates_and_drops_both_tables(self) -> None:
-        path = Path(__file__).parents[1] / "alembic/versions/016_add_donations.py"
-        spec = importlib.util.spec_from_file_location("migration_016", path)
+        path = Path(__file__).parents[1] / "alembic/versions/019_add_donations.py"
+        spec = importlib.util.spec_from_file_location("migration_019", path)
         assert spec and spec.loader
         migration = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(migration)

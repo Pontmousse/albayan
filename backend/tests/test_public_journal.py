@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from unittest.mock import Mock
 
 from app.models.article import Article, ArticleAuthor, ArticleVersion
-from app.models.enums import VersionStatus
+from app.models.enums import ArticleStatus, SourceType
 from app.models.user import User
 from app.services import public_journal_service
 
@@ -16,7 +16,7 @@ class PublicJournalServiceTests(unittest.TestCase):
         self,
         *,
         title: str,
-        status: VersionStatus,
+        status: ArticleStatus,
         submitted_at: datetime | None = None,
     ) -> Article:
         article_id = uuid.uuid4()
@@ -25,6 +25,7 @@ class PublicJournalServiceTests(unittest.TestCase):
             submitted_by=uuid.uuid4(),
             title=title,
             abstract=f"ملخص {title}",
+            status=status,
             updated_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
         )
         article.versions = [
@@ -32,7 +33,10 @@ class PublicJournalServiceTests(unittest.TestCase):
                 article_id=article_id,
                 version_number=1,
                 storage_prefix=f"articles/{article_id}/versions/v1/",
-                status=status,
+                source_type=SourceType.WEB_EDITOR,
+                document_hash="a" * 64,
+                title_snapshot=title,
+                abstract_snapshot=f"ملخص {title}",
                 submitted_at=submitted_at,
             )
         ]
@@ -56,10 +60,10 @@ class PublicJournalServiceTests(unittest.TestCase):
     def test_public_journal_summary_counts_only_published(self) -> None:
         published = self._article(
             title="منشور",
-            status=VersionStatus.PUBLISHED,
+            status=ArticleStatus.PUBLISHED,
             submitted_at=datetime(2026, 2, 1, tzinfo=timezone.utc),
         )
-        draft = self._article(title="مسودة", status=VersionStatus.DRAFT)
+        draft = self._article(title="مسودة", status=ArticleStatus.DRAFT)
         db = Mock()
         db.scalars.return_value.unique.return_value.all.return_value = [
             draft,

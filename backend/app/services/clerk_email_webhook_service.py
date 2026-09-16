@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from svix.webhooks import Webhook, WebhookVerificationError
 
 from app.core.config import settings
-from app.services import email_service
+from app.services import clerk_security_email_service, email_service
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,22 @@ PASSWORD_RESET_SLUGS = {
     "password_reset",
     "password_reset_code",
 }
+
+ACCOUNT_LOCKED_SLUGS = {"account_locked"}
+PASSWORD_CHANGED_SLUGS = {"password_changed"}
+PASSWORD_REMOVED_SLUGS = {"password_removed"}
+PRIMARY_EMAIL_CHANGED_SLUGS = {"primary_email_address_changed"}
+NEW_DEVICE_SIGN_IN_SLUGS = {"new_device_sign_in"}
+
+ALBAYAN_RESEND_SLUGS = (
+    VERIFICATION_CODE_SLUGS
+    | PASSWORD_RESET_SLUGS
+    | ACCOUNT_LOCKED_SLUGS
+    | PASSWORD_CHANGED_SLUGS
+    | PASSWORD_REMOVED_SLUGS
+    | PRIMARY_EMAIL_CHANGED_SLUGS
+    | NEW_DEVICE_SIGN_IN_SLUGS
+)
 
 
 def verify_clerk_webhook(
@@ -93,6 +109,9 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
     if data is None:
         return {"ok": True, "ignored": True}
 
+    # When a Clerk template has "Delivered by Clerk" disabled, Clerk still
+    # creates the email and sends this signed webhook. Albayan then owns the
+    # actual delivery through its Arabic React Email templates + Resend.
     if data.get("delivered_by_clerk") is True:
         return {"ok": True, "ignored": True}
 
@@ -101,25 +120,49 @@ def handle_clerk_webhook(event: dict[str, Any]) -> dict[str, object]:
         return {"ok": True, "ignored": True}
 
     normalized_slug = slug.strip()
+    if normalized_slug not in ALBAYAN_RESEND_SLUGS:
+        logger.info("Ignoring unsupported Clerk email slug %s", normalized_slug)
+        return {"ok": True, "ignored": True}
+
     recipient = _recipient(data)
-    otp_code = _otp_code(data)
     idempotency_key = _idempotency_key(data)
 
     if normalized_slug in VERIFICATION_CODE_SLUGS:
         message_id = email_service.send_auth_verification_email(
             to=recipient,
-            otp_code=otp_code,
+            otp_code=_otp_code(data),
             idempotency_key=idempotency_key,
         )
-        return {"ok": True, "message_id": message_id}
-
-    if normalized_slug in PASSWORD_RESET_SLUGS:
+    elif normalized_slug in PASSWORD_RESET_SLUGS:
         message_id = email_service.send_password_reset_email(
             to=recipient,
-            otp_code=otp_code,
+            otp_code=_otp_code(data),
             idempotency_key=idempotency_key,
         )
-        return {"ok": True, "message_id": message_id}
+    elif normalized_slug in ACCOUNT_LOCKED_SLUGS:
+        message_id = clerk_security_email_service.send_account_locked_email(
+            to=recipient,
+            idempotency_key=idempotency_key,
+        )
+    elif normalized_slug in PASSWORD_CHANGED_SLUGS:
+        message_id = clerk_security_email_service.send_password_changed_email(
+            to=recipient,
+            idempotency_key=idempotency_key,
+        )
+    elif normalized_slug in PASSWORD_REMOVED_SLUGS:
+        message_id = clerk_security_email_service.send_password_removed_email(
+            to=recipient,
+            idempotency_key=idempotency_key,
+        )
+    elif normalized_slug in PRIMARY_EMAIL_CHANGED_SLUGS:
+        message_id = clerk_security_email_service.send_primary_email_changed_email(
+            to=recipient,
+            idempotency_key=idempotency_key,
+        )
+    else:
+        message_id = clerk_security_email_service.send_new_device_sign_in_email(
+            to=recipient,
+            idempotency_key=idempotency_key,
+        )
 
-    logger.info("Ignoring unsupported Clerk email slug %s", normalized_slug)
-    return {"ok": True, "ignored": True}
+    return {"ok": True, "message_id": message_id}

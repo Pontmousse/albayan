@@ -1,5 +1,5 @@
 import { apiFetch, ApiError } from "@/lib/api";
-import type { VersionStatus } from "@/lib/api/articles";
+import type { ArticleStatus } from "@/lib/api/articles";
 
 export type ReviewRecommendation =
   | "accept"
@@ -30,7 +30,7 @@ export type AssignmentSummary = {
   article_id: string;
   article_title: string;
   assignment_status: ReviewerAssignmentStatus;
-  version_status: VersionStatus;
+  version_status: ArticleStatus;
   version_number: number;
   review: ReviewRead | null;
   invited_at: string;
@@ -43,10 +43,9 @@ export type AssignmentDetail = {
   article_title: string;
   article_abstract: string | null;
   assignment_status: ReviewerAssignmentStatus;
-  version_status: VersionStatus;
+  version_status: ArticleStatus;
   version_number: number;
   version_id: string;
-  compile_status: "pending" | "processing" | "success" | "failed";
   review: ReviewRead | null;
   invited_at: string;
   review_due_at: string | null;

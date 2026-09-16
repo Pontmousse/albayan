@@ -1,19 +1,18 @@
 /** بيانات أدلة ربط MCP لكل عميل */
 
-export type McpClientId =
-  | "cursor"
-  | "chatgpt"
-  | "claude"
-  | "antigravity"
-  | "opencode"
-  | "other";
+import {
+  MCP_CLIENT_PROVIDERS,
+  type McpClientId,
+} from "./mcp-client-providers";
+
+export type { McpClientId } from "./mcp-client-providers";
 
 export type McpClientGuide = {
   id: McpClientId;
   name: string;
-  tagline: string;
   /** مسار أيقونة العميل داخل مجلد public */
-  iconSrc?: string;
+  iconSrc: string;
+  tagline: string;
   /** لون مؤقت حتى تُضاف الأيقونة */
   accentClass: string;
   authLabel: string;
@@ -30,8 +29,8 @@ export const MCP_SERVER_URL =
 export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
     id: "cursor",
-    name: "Cursor",
-    iconSrc: "/wukala/cursor.png",
+    name: MCP_CLIENT_PROVIDERS.cursor.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.cursor.iconSrc,
     tagline: "برنامج على الحاسوب — تربطه بالخادم البعيد وتسجيل دخول التطبيق",
     accentClass: "from-slate-700 to-slate-900",
     authLabel: "تسجيل دخول التطبيق",
@@ -60,8 +59,8 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "chatgpt",
-    name: "ChatGPT",
-    iconSrc: "/wukala/chatgpt.png",
+    name: MCP_CLIENT_PROVIDERS.chatgpt.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.chatgpt.iconSrc,
     tagline: "من متصفح الحاسوب — تربطه بتسجيل دخول التطبيق",
     accentClass: "from-emerald-600 to-teal-800",
     authLabel: "تسجيل دخول التطبيق",
@@ -83,8 +82,8 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "claude",
-    name: "Claude",
-    iconSrc: "/wukala/claude.png",
+    name: MCP_CLIENT_PROVIDERS.claude.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.claude.iconSrc,
     tagline: "من claude.ai أو تطبيق الحاسوب — تربطه بتسجيل دخول التطبيق",
     accentClass: "from-amber-700 to-orange-900",
     authLabel: "تسجيل دخول التطبيق",
@@ -107,8 +106,8 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "antigravity",
-    name: "Antigravity",
-    iconSrc: "/wukala/antigravity.png",
+    name: MCP_CLIENT_PROVIDERS.antigravity.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.antigravity.iconSrc,
     tagline: "بيئة تطوير من Google — تضيف إليها خادم البيان البعيد",
     accentClass: "from-sky-500 to-indigo-700",
     authLabel: "تسجيل دخول التطبيق",
@@ -137,8 +136,8 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "opencode",
-    name: "OpenCode",
-    iconSrc: "/wukala/opencode.png",
+    name: MCP_CLIENT_PROVIDERS.opencode.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.opencode.iconSrc,
     tagline: "وكيل مفتوح المصدر — يعمل من الطرفية أو تطبيق الحاسوب",
     accentClass: "from-cyan-600 to-blue-900",
     authLabel: "تسجيل دخول التطبيق تلقائياً",
@@ -171,8 +170,8 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "other",
-    name: "برامج أخرى",
-    iconSrc: "/wukala/others.png",
+    name: MCP_CLIENT_PROVIDERS.other.name,
+    iconSrc: MCP_CLIENT_PROVIDERS.other.iconSrc,
     tagline: "أي برنامج يدعم خوادم MCP البعيدة والتفويض الآمن",
     accentClass: "from-violet-600 to-fuchsia-800",
     authLabel: "تسجيل دخول التطبيق",

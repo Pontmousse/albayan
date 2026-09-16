@@ -15,28 +15,25 @@ import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import { WorkflowProgress } from "@/components/dashboard/workflow-progress";
 import {
   deleteArticle,
-  fetchArticlePdfBlob,
+  fetchArticleAssetBlob,
+  fetchDraftPdfBlob,
+  fetchVersionAssetBlob,
+  fetchVersionPdfBlob,
   getArticle,
-  getArticleDocument,
-  requestArticleCompile,
-  saveArticleDocument,
+  getArticleDraft,
+  getDraftCompileStatus,
+  getVersionDocument,
+  requestDraftCompile,
   submitArticle,
   type ArticleDetail,
   updateArticle,
 } from "@/lib/api/articles";
 import { buttonClassName, inputClassName } from "@/lib/auth-ui";
-import {
-  collectAssetKeys,
-  exportDocumentLatex,
-  hashDocument,
-} from "@/lib/butex-latex";
-import { isButexDocumentValid } from "@/lib/butex-validation";
+import { ApiError } from "@/lib/api";
 import { isDevMode } from "@/lib/dev-mode";
-import {
-  UserFacingError,
-  userFacingErrorMessage,
-} from "@/lib/user-facing-errors";
+import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 import { useNumerals } from "@/components/numeral-provider";
+import { RECOMMENDATION_LABELS } from "@/lib/api/reviews";
 
 export default function ArticleDetailPage() {
   const { formatDate, formatDigits } = useNumerals();
@@ -60,16 +57,35 @@ export default function ArticleDetailPage() {
   const [draftAbstract, setDraftAbstract] = useState("");
   const [metadataSaving, setMetadataSaving] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  /** لقطة TeX كما أُرسلت لـ /compile — للوحة DEV_MODE فقط. */
-  const [texSnapshot, setTexSnapshot] = useState<string | null>(null);
+  const [revisionNotice, setRevisionNotice] = useState<string | null>(null);
+  const [compileStatus, setCompileStatus] = useState<
+    "pending" | "processing" | "success" | "failed"
+  >("pending");
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await getArticle(getToken, articleId);
       setArticle(data);
       try {
-        const doc = await getArticleDocument(getToken, articleId);
-        setDocumentJson(doc.document);
+        if (data.status === "draft" || data.status === "revision_requested") {
+          setSelectedVersionId(null);
+          const draft = await getArticleDraft(getToken, articleId);
+          setDocumentJson(draft.document);
+          const status = await getDraftCompileStatus(getToken, articleId);
+          setCompileStatus(status.status);
+        } else if (data.latest_version) {
+          setSelectedVersionId(data.latest_version.id);
+          const doc = await getVersionDocument(
+            getToken,
+            articleId,
+            data.latest_version.id,
+          );
+          setDocumentJson(doc.document);
+          setCompileStatus("success");
+        } else {
+          setDocumentJson(null);
+        }
       } catch {
         // المعاينة اختيارية — قد يكون S3 غير مُهيّأ بعد
         setDocumentJson(null);
@@ -81,12 +97,14 @@ export default function ArticleDetailPage() {
 
   const refreshStatus = useCallback(async () => {
     try {
-      const data = await getArticle(getToken, articleId);
-      setArticle(data);
+      if (article?.status === "draft" || article?.status === "revision_requested") {
+        const status = await getDraftCompileStatus(getToken, articleId);
+        setCompileStatus(status.status);
+      }
     } catch {
       // تجاهل أخطاء الاستطلاع المؤقتة
     }
-  }, [getToken, articleId]);
+  }, [getToken, articleId, article?.status]);
 
   useEffect(() => {
     void load();
@@ -147,12 +165,21 @@ export default function ArticleDetailPage() {
     setMetadataError(null);
     try {
       const updated = await updateArticle(getToken, articleId, {
+        base_revision: article?.draft_revision_number ?? 0,
         title,
         abstract: draftAbstract.trim() || null,
       });
       setArticle(updated);
       setEditingMetadata(false);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        await load();
+        setEditingMetadata(false);
+        setRevisionNotice(
+          "وصلت تعديلات أحدث من مصدر آخر؛ حُمّلت أحدث مسودة من الخادم.",
+        );
+        return;
+      }
       setMetadataError(
         userFacingErrorMessage(err, "تعذّر حفظ بيانات المسودة."),
       );
@@ -162,49 +189,52 @@ export default function ArticleDetailPage() {
   }
 
   async function handleCompile() {
-    if (documentJson == null) {
-      throw new UserFacingError("لا توجد مخطوطة محفوظة لإنشاء ملفّ المعاينة.");
-    }
-    if (!isButexDocumentValid(documentJson)) {
-      throw new UserFacingError(
-        "لا يمكن إنشاء ملفّ المعاينة لوجود مشكلة في المحرر. ارجع إلى المحرر وراجع الحقول المعلّمة.",
-      );
-    }
-    if (article?.current_version.status === "draft") {
-      await saveArticleDocument(getToken, articleId, documentJson);
-    }
-    let latex: string;
-    try {
-      latex = exportDocumentLatex(documentJson);
-    } catch (err) {
-      if (isDevMode()) {
-        console.error("Article preview export failed.", err);
+    const status = await requestDraftCompile(getToken, articleId);
+    setCompileStatus(status.status);
+  }
+
+  const fetchPdfBlob = useCallback(
+    (tokenGetter: typeof getToken) => {
+      if (!selectedVersionId && (article?.status === "draft" || article?.status === "revision_requested")) {
+        return fetchDraftPdfBlob(tokenGetter, articleId);
       }
-      throw new UserFacingError(
-        "تعذّر إنشاء ملفّ المعاينة. راجع المخطوطة ثم حاول مجدداً.",
-      );
+      const versionId = selectedVersionId ?? article?.latest_version?.id;
+      if (!versionId) {
+        return Promise.reject(new Error("لا يوجد إصدار رسمي للمقال."));
+      }
+      return fetchVersionPdfBlob(tokenGetter, articleId, versionId);
+    },
+    [article, articleId, selectedVersionId],
+  );
+
+  const fetchPreviewAsset = useCallback(
+    (tokenGetter: typeof getToken, _scopeId: string, assetKey: string) => {
+      if (!selectedVersionId) {
+        return fetchArticleAssetBlob(tokenGetter, articleId, assetKey);
+      }
+      return fetchVersionAssetBlob(tokenGetter, articleId, selectedVersionId, assetKey);
+    },
+    [articleId, selectedVersionId],
+  );
+
+  async function selectVersion(versionId: string) {
+    setSelectedVersionId(versionId);
+    setDocumentJson(undefined);
+    try {
+      const payload = await getVersionDocument(getToken, articleId, versionId);
+      setDocumentJson(payload.document);
+      setCompileStatus("success");
+    } catch {
+      setDocumentJson(null);
     }
-    if (isDevMode()) {
-      setTexSnapshot(latex);
-    }
-    const document_hash = await hashDocument(documentJson);
-    const asset_keys = collectAssetKeys(documentJson);
-    const version = await requestArticleCompile(getToken, articleId, {
-      latex,
-      asset_keys,
-      document_hash,
-    });
-    setArticle((prev) =>
-      prev
-        ? {
-            ...prev,
-            current_version: version,
-            versions: prev.versions.map((v) =>
-              v.id === version.id ? version : v,
-            ),
-          }
-        : prev,
-    );
+  }
+
+  async function showCurrentDraft() {
+    setSelectedVersionId(null);
+    const payload = await getArticleDraft(getToken, articleId);
+    setDocumentJson(payload.document);
+    const status = await getDraftCompileStatus(getToken, articleId);
+    setCompileStatus(status.status);
   }
 
   if (error) {
@@ -236,11 +266,20 @@ export default function ArticleDetailPage() {
     );
   }
 
-  const current = article.current_version;
-  const isDraft = current.status === "draft";
+  const isDraft = article.status === "draft";
+  const isRevisionRound = article.status === "revision_requested";
+  const isEditable = isDraft || isRevisionRound;
 
   return (
     <div className="space-y-8">
+      {revisionNotice ? (
+        <p
+          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+          role="alert"
+        >
+          {revisionNotice}
+        </p>
+      ) : null}
       <div>
         <Link
           href="/maktabi/maqalati"
@@ -257,7 +296,7 @@ export default function ArticleDetailPage() {
               >
                 {article.title}
               </h1>
-              {isDraft && !editingMetadata ? (
+              {isEditable && !editingMetadata ? (
                 <button
                   type="button"
                   onClick={beginMetadataEdit}
@@ -268,35 +307,39 @@ export default function ArticleDetailPage() {
               ) : null}
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
-              <StatusBadge status={current.status} />
-              <span>الإصدار {formatDigits(current.version_number)}</span>
+              <StatusBadge status={article.status} />
+              <span>
+                {article.latest_version
+                  ? `الإصدار ${formatDigits(article.latest_version.version_number)}`
+                  : `مراجعة المسودة ${formatDigits(article.draft_revision_number)}`}
+              </span>
               <span aria-hidden>·</span>
               <span>أُنشئ في {formatDate(article.created_at)}</span>
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2.5">
-            {isDraft ? (
+            {isEditable ? (
               <>
                 <Link
                   href={`/maktabi/maqalati/${article.id}/tahrir`}
                   className={buttonClassName}
                 >
-                  متابعة التحرير
+                  {isRevisionRound ? "متابعة التعديل" : "متابعة التحرير"}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setDialogOpen(true)}
                   className="rounded-md border border-[var(--journal-gold)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)]"
                 >
-                  تقديم المقال
+                  {isRevisionRound ? "إعادة تقديم المقال" : "تقديم المقال"}
                 </button>
-                <button
+                {isDraft ? <button
                   type="button"
                   onClick={() => setDeleteDialogOpen(true)}
                   className="rounded-md border border-red-300 bg-white px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                 >
                   حذف المسودة
-                </button>
+                </button> : null}
               </>
             ) : null}
           </div>
@@ -382,21 +425,50 @@ export default function ArticleDetailPage() {
       <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
-          <WorkflowProgress status={current.status} />
+          <WorkflowProgress status={article.status} />
         </div>
-        {!isDraft ? (
+        {!isEditable ? (
           <p className="mt-3 text-xs leading-6 text-slate-500">
             المخطوطة مجمّدة — لا يمكن تعديل المحتوى في هذه المرحلة.
           </p>
         ) : null}
       </section>
 
-      {isDraft || article.abstract ? (
+      {isEditable || article.abstract ? (
         <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
           <h2 className="text-sm font-bold text-[var(--journal-accent)]">الملخص</h2>
           <p className="mt-2 text-sm leading-7 text-slate-700">
             {article.abstract || "لا يوجد ملخص لبيانات المسودة بعد."}
           </p>
+        </section>
+      ) : null}
+
+      {isRevisionRound ? (
+        <section className="rounded-xl border border-amber-300 bg-amber-50 p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-amber-950">مطلوب تعديل</h2>
+          {article.revision_requested_at ? (
+            <p className="mt-1 text-xs text-amber-800">
+              طُلب في {formatDate(article.revision_requested_at)}
+            </p>
+          ) : null}
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-950">
+            {article.revision_request_note}
+          </p>
+          {article.revision_feedback.length ? (
+            <ul className="mt-4 space-y-3">
+              {article.revision_feedback.map((feedback) => (
+                <li key={feedback.review_id} className="rounded-lg border border-amber-200 bg-white p-3 text-sm">
+                  <p className="font-semibold text-slate-800">{feedback.reviewer_label}</p>
+                  {feedback.recommendation ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      التوصية: {RECOMMENDATION_LABELS[feedback.recommendation]}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 whitespace-pre-wrap leading-6 text-slate-700">{feedback.comments_to_author}</p>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
       ) : null}
 
@@ -412,21 +484,32 @@ export default function ArticleDetailPage() {
                 <span className="font-semibold text-slate-800">
                   الإصدار {formatDigits(version.version_number)}
                 </span>
-                <StatusBadge status={version.status} />
+                <span className="text-xs text-slate-500">{version.title_snapshot}</span>
               </span>
-              <span className="text-xs text-slate-500">
+              <span className="flex items-center gap-3 text-xs text-slate-500">
                 {version.submitted_at
                   ? `قُدِّم في ${formatDate(version.submitted_at)}`
                   : `أُنشئ في ${formatDate(version.created_at)}`}
+                <button
+                  type="button"
+                  onClick={() => void selectVersion(version.id)}
+                  className="font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+                >
+                  {selectedVersionId === version.id ? "معروض الآن" : "عرض النسخة"}
+                </button>
               </span>
-              {version.change_summary ? (
-                <p className="w-full text-xs leading-6 text-slate-500">
-                  {version.change_summary}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
+        {isEditable && selectedVersionId ? (
+          <button
+            type="button"
+            onClick={() => void showCurrentDraft()}
+            className="mt-3 text-xs font-semibold text-[var(--journal-accent)] underline-offset-4 hover:underline"
+          >
+            العودة إلى مسودة التعديل الحالية
+          </button>
+        ) : null}
       </section>
 
       <section>
@@ -441,6 +524,7 @@ export default function ArticleDetailPage() {
             documentJson={documentJson ?? null}
             articleId={articleId}
             getToken={getToken}
+            fetchAssetBlob={fetchPreviewAsset}
           />
         </div>
       </section>
@@ -454,18 +538,17 @@ export default function ArticleDetailPage() {
         </h2>
         <div className="mt-3">
           <CompiledPdfViewer
-            compileStatus={current.compile_status}
+            compileStatus={compileStatus}
             getToken={getToken}
             scopeId={articleId}
-            fetchPdfBlob={fetchArticlePdfBlob}
-            onRequestCompile={handleCompile}
-            onRefreshStatus={refreshStatus}
+            fetchPdfBlob={fetchPdfBlob}
+            onRequestCompile={isEditable && !selectedVersionId ? handleCompile : undefined}
+            onRefreshStatus={isEditable && !selectedVersionId ? refreshStatus : undefined}
           />
           {isDevMode() ? (
             <ExportedTexDevPanel
               documentJson={documentJson}
-              texSnapshot={texSnapshot}
-              compileStatus={current.compile_status}
+              compileStatus={compileStatus}
               articleId={articleId}
               getToken={getToken}
             />
@@ -478,6 +561,7 @@ export default function ArticleDetailPage() {
         submitting={submitting}
         onConfirm={handleSubmit}
         onCancel={() => setDialogOpen(false)}
+        resubmission={isRevisionRound}
       />
 
       <ConfirmDialog

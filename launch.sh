@@ -95,6 +95,14 @@ echo "  [2/4] RUNNING: Alembic migrations (conda: $CondaEnv)"
 echo "$sepShort"
 
 if command -v conda >/dev/null 2>&1; then
+    if ! bash -lc "$conda_activate_prefix && python -c 'import hijridate'"; then
+        echo "  Backend dependencies are out of date; syncing requirements..."
+        if ! bash -lc "$conda_activate_prefix && python -m pip install -r \"$backendPath/requirements.txt\""; then
+            echo "  Dependency installation failed. Run manually:"
+            echo "    conda activate $CondaEnv && python -m pip install -r backend/requirements.txt"
+            exit 1
+        fi
+    fi
     if bash -lc "$conda_activate_prefix && cd \"$backendPath\" && alembic upgrade head"; then
         echo "  Migrations applied (alembic upgrade head)."
     else

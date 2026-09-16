@@ -167,3 +167,7 @@ all host and session concerns outside Node.
 - Metadata/references/labels: `src/document2/types.ts`, `articleMeta.ts`,
   `citations.ts`, `labels.ts`, and `exportJson.ts`.
 - Worker boundary: `src/document2-cli/execute.ts`.
+> **Terminology update (2026-09-15).** References to sessions in this audit
+> describe the retired implementation. Command parity is now hosted by the
+> immutable `/draft` revision workflow documented in
+> [`2026-09-15-draft-revision-architecture.md`](superpowers/specs/2026-09-15-draft-revision-architecture.md).

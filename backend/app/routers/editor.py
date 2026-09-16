@@ -14,16 +14,23 @@ from app.schemas.editor import (
     EditorDecisionPayload,
     EditorReviewReport,
 )
-from app.services import article_service, compile_service, editor_service
+from app.models.article import ArticleVersion
+from app.services import compile_service, editor_service
 
 router = APIRouter(prefix="/api/v1/editor", tags=["editor"])
 
 
-def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
+def _formal_version(db, article_id: uuid.UUID, version_id: uuid.UUID) -> ArticleVersion:
+    version = db.get(ArticleVersion, version_id)
+    if version is None or version.article_id != article_id:
+        raise HTTPException(status_code=404, detail="الإصدار الرسمي غير موجود.")
+    return version
+
+
+def _asset_response(version: ArticleVersion, filename: str) -> Response:
     name = PurePosixPath(filename).name
     if name != filename or not name or name in (".", ".."):
         raise HTTPException(status_code=400, detail="اسم ملف غير صالح.")
-    version = article_service.current_version(db, article_id)
     body, content_type = s3.get_bytes(version.storage_prefix, f"assets/{name}")
     return Response(
         content=body,
@@ -32,8 +39,7 @@ def _asset_response(article_id: uuid.UUID, filename: str, db) -> Response:
     )
 
 
-def _pdf_response(article_id: uuid.UUID, db) -> Response:
-    version = article_service.current_version(db, article_id)
+def _pdf_response(version: ArticleVersion) -> Response:
     body = compile_service.get_compiled_pdf(version.storage_prefix)
     return Response(
         content=body,
@@ -56,8 +62,8 @@ def list_editor_articles(
     return [
         EditorArticleSummary(
             id=article.id,
-            title=article.title,
-            status=version.status,
+            title=version.title_snapshot,
+            status=article.status,
             version_number=version.version_number,
             updated_at=article.updated_at,
             submitted_at=version.submitted_at,
@@ -88,50 +94,53 @@ def get_editor_article(
                 comments_to_editor=review.comments_to_editor,
                 recommendation=review.recommendation,
                 submitted_at=review.submitted_at,
+                reveal_reviewer_identity_to_author=review.reveal_reviewer_identity_to_author,
             )
         )
     return EditorArticleDetail(
         id=article.id,
-        title=article.title,
-        abstract=article.abstract,
+        title=current.title_snapshot,
+        abstract=current.abstract_snapshot,
+        status=article.status,
         created_at=article.created_at,
         updated_at=article.updated_at,
-        current_version=VersionRead.model_validate(current),
+        latest_version=VersionRead.model_validate(current),
         versions=[VersionRead.model_validate(v) for v in versions],
         reviews=reviews,
     )
 
 
-@router.get("/articles/{article_id}/document")
+@router.get("/articles/{article_id}/versions/{version_id}/document")
 def get_editor_document(
-    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+    article_id: uuid.UUID, version_id: uuid.UUID, auth: AuthDep, db: DbDep
 ) -> dict:
     user = current_user(auth, db)
     editor_service.assert_is_editor(db, article_id, user.id)
-    version = article_service.current_version(db, article_id)
+    version = _formal_version(db, article_id, version_id)
     document = s3.get_json(version.storage_prefix)
     return {"document": document}
 
 
-@router.get("/articles/{article_id}/assets/{filename}")
+@router.get("/articles/{article_id}/versions/{version_id}/assets/{filename}")
 def get_editor_asset(
     article_id: uuid.UUID,
+    version_id: uuid.UUID,
     filename: str,
     auth: AuthDep,
     db: DbDep,
 ) -> Response:
     user = current_user(auth, db)
     editor_service.assert_is_editor(db, article_id, user.id)
-    return _asset_response(article_id, filename, db)
+    return _asset_response(_formal_version(db, article_id, version_id), filename)
 
 
-@router.get("/articles/{article_id}/pdf")
+@router.get("/articles/{article_id}/versions/{version_id}/pdf")
 def get_editor_pdf(
-    article_id: uuid.UUID, auth: AuthDep, db: DbDep
+    article_id: uuid.UUID, version_id: uuid.UUID, auth: AuthDep, db: DbDep
 ) -> Response:
     user = current_user(auth, db)
     editor_service.assert_is_editor(db, article_id, user.id)
-    return _pdf_response(article_id, db)
+    return _pdf_response(_formal_version(db, article_id, version_id))
 
 
 @router.post("/articles/{article_id}/decision", response_model=VersionRead)
@@ -149,5 +158,6 @@ def editor_decision(
         user.id,
         payload.status,
         reason=payload.reason,
+        disclosures=payload.reviewer_identity_disclosures,
     )
     return VersionRead.model_validate(version)

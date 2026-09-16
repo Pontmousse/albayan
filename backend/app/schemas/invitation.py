@@ -11,6 +11,7 @@ class InvitationAcceptResponse(BaseModel):
 
     id: UUID
     article_id: UUID
+    article_version_id: UUID | None = None
     role: InvitationRole
     email: str
     status: InvitationStatus

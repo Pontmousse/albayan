@@ -11,6 +11,20 @@ This document defines the repository rules for transactional email deliverabilit
 - Use the Resend dashboard and provider SMTP diagnostics as the source of truth for delivery investigation; Albayan does not duplicate Resend's event history in its own database.
 - A Resend API `200` means Resend accepted the send request. A later `delivered` event means the recipient mail server accepted the message. Neither guarantees visible Inbox placement.
 
+## Clerk account-security notifications
+
+Clerk remains the authority that detects and validates account-security events, but Al-Bayan/Resend owns delivery of the six security emails listed in [`clerk-security-email-templates.md`](./clerk-security-email-templates.md).
+
+The key invariant is **one delivery owner per event**:
+
+- Clerk **Delivered by Clerk** must be disabled for Account Locked, Password changed, Password removed, Primary email address changed, Reset password code, and Sign in from new device after the custom-delivery rollout is complete;
+- Clerk still creates the email event and sends the signed email-created webhook;
+- Al-Bayan verifies that webhook, renders the appropriate Arabic React Email template, and sends it through Resend;
+- the existing email-verification OTP flow uses the same Al-Bayan/Resend delivery architecture even though it is outside the six security templates documented above;
+- if `delivered_by_clerk == true`, the backend deliberately ignores the event so a dashboard configuration mistake cannot generate a duplicate send.
+
+Do not enable Clerk delivery for an event that Al-Bayan is actively delivering through Resend without an explicit reviewed ownership change. Do not add a new Clerk-email webhook handler without updating the corresponding delivery ownership documentation and regression tests.
+
 ## Scanner-safe sensitive actions
 
 Any email action that can be consumed or materially advanced by an unauthenticated GET/redirect chain must use a scanner-safe handoff.

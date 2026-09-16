@@ -8,6 +8,7 @@ import { buttonClassName, translateClerkError } from "@/lib/auth-ui";
 import {
   OAUTH_CONSENT_PATH,
   redirectHostname,
+  resolveOAuthClientLogo,
   safeHttpUrl,
   scopeLabelAr,
 } from "@/lib/oauth-consent";
@@ -59,11 +60,6 @@ function ConsentDecisionForm() {
     redirectUri: redirectUri || undefined,
     enabled: Boolean(clientId),
   });
-
-  const logoUrl = useMemo(
-    () => safeHttpUrl(data?.oauthApplicationLogoUrl),
-    [data?.oauthApplicationLogoUrl],
-  );
 
   const appUrl = useMemo(
     () => safeHttpUrl(data?.oauthApplicationUrl),
@@ -145,6 +141,15 @@ function ConsentDecisionForm() {
   }
 
   const appName = data.oauthApplicationName || "تطبيق خارجي";
+  const clientLogo = resolveOAuthClientLogo(
+    {
+      applicationName: data.oauthApplicationName,
+      applicationUrl: data.oauthApplicationUrl,
+      redirectDomain: data.redirectDomain,
+      redirectUri,
+    },
+    data.oauthApplicationLogoUrl,
+  );
 
   return (
     <form
@@ -153,23 +158,15 @@ function ConsentDecisionForm() {
       className="oauth-consent-panel mx-auto w-full max-w-lg rounded-2xl border border-[var(--journal-border)] bg-[var(--journal-paper)]/95 p-6 shadow-[0_20px_60px_-28px_rgba(23,35,28,0.45)] sm:p-8"
     >
       <div className="flex items-start gap-4">
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- remote OAuth client logo URL
-          <img
-            src={logoUrl}
-            alt=""
-            width={56}
-            height={56}
-            className="oauth-consent-logo h-14 w-14 shrink-0 rounded-xl border border-[var(--journal-border)] bg-white object-contain p-1.5"
-          />
-        ) : (
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-[var(--journal-border)] bg-[var(--journal-accent-soft)] text-lg font-bold text-[var(--journal-accent)]"
-            aria-hidden
-          >
-            {appName.slice(0, 1)}
-          </div>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element -- OAuth client artwork may come from reviewed local assets or safe remote metadata. */}
+        <img
+          src={clientLogo.src}
+          alt=""
+          width={56}
+          height={56}
+          className="oauth-consent-logo h-14 w-14 shrink-0 rounded-xl border border-[var(--journal-border)] bg-white object-contain p-1.5"
+          data-provider={clientLogo.providerId ?? undefined}
+        />
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium tracking-wide text-[var(--journal-gold)]">
             طلب وصول إلى حسابك
@@ -241,8 +238,8 @@ function ConsentDecisionForm() {
                 aria-hidden
               />
               <span className="font-medium text-[var(--journal-ink)]">
-                  {scopeLabelAr(item.scope, item.description)}
-                </span>
+                {scopeLabelAr(item.scope, item.description)}
+              </span>
             </li>
           ))}
         </ul>

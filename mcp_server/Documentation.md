@@ -80,10 +80,9 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 | `POST /api/v1/articles` | إنشاء مسودة وربط المستخدم المصادق مؤلفاً مراسلاً |
 | `GET /api/v1/articles/{id}` | تفاصيل مقال يملكه المستخدم مع بيانات الإصدار |
 | `PATCH /api/v1/articles/{id}` | تحديث title/abstract في الصف والجلسة النشطة معاً |
-| `GET /api/v1/articles/{id}/session/outline` | ملخص دلالي للجلسة مع المعرّفات الثابتة والمراجعة الحالية |
-| `GET /api/v1/articles/{id}/session/blocks` | كتل Document2 القانونية للتحرير الدقيق |
-| `POST /api/v1/articles/{id}/session/commands` | تطبيق أمر Document2 واحد مع revision وcommand_id |
-| `POST /api/v1/articles/{id}/session/save` | حفظ الجلسة في المسودة الحالية بطلب صريح |
+| `GET /api/v1/articles/{id}/draft/outline` | ملخص دلالي للمسودة مع المعرّفات الثابتة ورقم المراجعة |
+| `GET /api/v1/articles/{id}/draft/blocks` | كتل Document2 القانونية للتحرير الدقيق |
+| `POST /api/v1/articles/{id}/draft/commands` | تطبيق أمر Document2 واحد مع base_revision وcommand_id |
 | `AuthDep` | يبقى مسار المصادقة البشري فقط لمسارات submit/review/editor/admin |
 
 ### خادم MCP
@@ -95,7 +94,7 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 | `api_client.py` | تمرير Bearer إلى FastAPI، معالجة HTTP مركزية، helpers للـ object/list |
 | `tools/profile.py` | أداة `get_my_profile` |
 | `tools/articles.py` | القراءة وإنشاء المسودة وتفاصيلها وتحديث title/abstract |
-| `tools/sessions.py` | أدوات فحص وتحرير وحفظ وتجميع جلسة Document2 واسترجاع PDF |
+| `tools/drafts.py` | أدوات فحص وتحرير وتجميع مراجعات المسودة غير القابلة للتعديل واسترجاع PDF |
 | `schemas/document2.py` | مرآة مستقلة صارمة لاتحاد أوامر Document2 ذي ٢٩ عملية |
 | `server.py` | تركيب الخادم وتسجيل الأدوات فقط |
 | `call_logging.py` | وسيط واحد يراقب `tools/call` ويرسل حدثاً منقّحاً إلى FastAPI بأفضل جهد |
@@ -113,7 +112,7 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 
 - `profile:read` — قراءة الملف الشخصي
 - `articles:read` — قراءة المقالات
-- `articles:session:write` — قراءة جلسة المقال وتعديلها وحفظها في المسودة الحالية
+- `articles:draft:write` — إنشاء مراجعات المسودة ورفع أصولها وتجميعها
 - `reviews:read` — قراءة تعيينات المراجعة
 - `reviews:draft:write` — مسودة ملاحظات المراجعة
 - `editor:read` — قراءة مقالات التحرير
@@ -128,10 +127,9 @@ FastAPI. التشغيل المحلي عبر stdio باقٍ فقط للمساهم
 - `read_articles` → `GET /api/v1/articles/me`
 - `create_article` و`get_article` → إنشاء مسودة مملوكة وقراءة تفاصيلها
 - `update_article_metadata` → تحديث title/abstract ومزامنتهما مع الجلسة النشطة
-- `get_session_outline` و`get_session_blocks` → فحص الجلسة ومعرّفاتها الثابتة
-- `apply_session_command` → تعديل موجّه واحد عبر عقد Document2 المقيّد
-- `save_session` → حفظ الجلسة في المسودة الحالية، بطلب صريح من المستخدم فقط
-- `compile_session` → حفظ الجلسة ثم بدء التجميع الموثوق، بطلب صريح فقط
+- `get_draft_outline` و`get_draft_blocks` → فحص المسودة ومعرّفاتها الثابتة
+- `apply_draft_command` → تعديل موجّه واحد ينشئ مراجعة مسودة غير قابلة للتعديل
+- `compile_draft` → بدء تجميع المراجعة الحالية الموثوق، بطلب صريح فقط
 - `get_compile_status` و`get_article_pdf` → متابعة التجميع وعرض PDF الحالي
 
 القاعدة الثابتة:
@@ -308,14 +306,14 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 ## القدرات المخططة المتبقية (Remaining Planned Capabilities)
 
-أدوات جلسة Document2 وطبقة الجلسة المشتركة منفّذة كما يوضح القسم ٢.
-تبقى مسودات المراجعة وحذف الأصول عبر MCP قدرات مستقبلية. ملف PDF الحالي
-متاح عبر مورد مضمّن مرتبط بمراجعة الجلسة. يظل تقديم المقال وإرسال المراجعة
-والقرار التحريري خارج أدوات MCP.
+أدوات مسودة Document2 والمراجعات غير القابلة للتعديل منفّذة كما يوضح القسم ٢.
+يستطيع المؤلف البشري تصفح سجل المسودة واستعادة مراجعة من الواجهة، ولا توجد
+أداة استعادة للوكيل. ملف PDF الحالي متاح عبر مورد مضمّن مرتبط بالمراجعة
+الحالية. يظل تقديم المقال وإرسال المراجعة والقرار التحريري خارج أدوات MCP.
 
 ---
 
-## 2. أدوات جلسة Document2 عبر MCP
+## 2. أدوات مسودة Document2 عبر MCP
 
 أصبح عقد BuTeX 7.0.2 متاحاً للعملاء عبر أداة تحرير MCP واحدة ذات مخطط
 مميّز بـ `op`. يبقى MCP محوّلاً رفيعاً؛ كل أداة أدناه تستدعي FastAPI ولا
@@ -325,17 +323,14 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 | أداة MCP | مسار FastAPI | الغرض |
 |----------|---------------|-------|
-| `create_article(title, abstract?)` | `POST /api/v1/articles` | إنشاء إصدار draft وربط المستخدم المصادق في `ArticleAuthor` بالترتيب الأول وبصفة المؤلف المراسل |
+| `create_article(title, abstract?)` | `POST /api/v1/articles` | إنشاء مقال ومسودة أولى بلا إصدار رسمي، وربط المستخدم المصادق في `ArticleAuthor` بالترتيب الأول وبصفة المؤلف المراسل |
 | `get_article(article_id)` | `GET /api/v1/articles/{id}` | قراءة title/abstract وتفاصيل الإصدار الحالي والإصدارات |
 | `update_article_metadata(article_id, title?, abstract?)` | `PATCH /api/v1/articles/{id}` | تحديث title و/أو abstract لمسودة مملوكة؛ النص الفارغ يمسح الملخص |
 
-`Article.title` و`Article.abstract` هما المصدر المضيف الموثوق. عند إنشاء جلسة
-تُفرض قيمهما على `Document2.meta.title` و`meta.abstract` حتى لو كان ملف المسودة
-القديم مختلفاً. وإذا كانت جلسة الإصدار الحالي نشطة، يحدّث PATCH الصف والمستند
-معاً ويرفع `revision` عند تغير مستند الجلسة؛ لذلك يعيد العميل فحص الجلسة قبل
-أمره الهيكلي التالي. عند عدم وجود جلسة يكفي تحديث الصف، وتضمن تهيئة الجلسة
-اللاحقة أخذ القيم الجديدة. ثم يحفظ `save_session` المستند المتزامن في
-`document.json` للمسودة.
+`Article.title` و`Article.abstract` متزامنان مع بيانات `Document2.meta` في
+المراجعة الحالية. يمر PATCH من بدائية إنشاء المراجعات نفسها، فيحدّث البيانات
+الوصفية والمستند معاً وينشئ مراجعة غير قابلة للتعديل عند تغير المحتوى. لذلك
+يجب أن يعيد العميل قراءة أحدث مراجعة قبل أمره الهيكلي التالي عند حدوث تعارض.
 
 لا تقبل حمولات الإنشاء أو التحديث حقول authors. المؤلفون علاقات
 `ArticleAuthor` ولا يديرهم الوكيل. كذلك يرفض FastAPI محاولة وكيل تمرير
@@ -343,24 +338,28 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 الواردين عبر ذلك الأمر مع صف Article. لا توجد أدوات MCP للتقديم أو الحذف أو
 إضافة المؤلفين أو حذفهم أو إعادة ترتيبهم.
 
-### 2.2 أدوات جلسة التحرير
+تبقى أدوات المسودة نفسها قابلة للاستخدام عندما تكون حالة المقال
+`revision_requested`، بحيث يستطيع الوكيل مساعدة المؤلف داخل جولة التعديل.
+لا توجد أدوات لطلب التعديلات أو اختيار كشف هوية مراجع أو إعادة التقديم أو اتخاذ
+قرار تحريري؛ هذه الحدود بشرية دائماً.
+
+### 2.2 أدوات تحرير المسودة
 
 | أداة MCP | مسار FastAPI | الغرض |
 |----------|---------------|-------|
-| `get_session_outline(article_id)` | `GET /api/v1/articles/{id}/session/outline` | فحص خفيف للمراجعة الحالية، أنواع الكتل، مقتطفاتها ومعرّفاتها الثابتة |
-| `get_session_blocks(article_id)` | `GET /api/v1/articles/{id}/session/blocks` | قراءة كتل Document2 القانونية ومعرّفات الحقول والرموز والقوائم والجداول قبل تحرير دقيق |
-| `apply_session_command(article_id, command_id, base_revision, command)` | `POST /api/v1/articles/{id}/session/commands` | تطبيق أمر Document2 واحد من الاتحاد المقيّد ذي ٢٩ عملية |
-| `save_session(article_id)` | `POST /api/v1/articles/{id}/session/save` | حفظ حالة الجلسة الحالية في مسودة المقال، ولا يُستدعى إلا بطلب صريح |
-| `compile_session(article_id)` | `POST /api/v1/articles/{id}/session/compile` | يحفظ الجلسة دائماً ثم يطلب من FastAPI تصديرها وتجميعها دون مدخلات LaTeX أو أصول أو hash من العميل |
-| `get_compile_status(article_id)` | `GET /api/v1/articles/{id}/session/compile/status` | يعرض هوية المحاولة والمراجعة وحالة النجاح أو الفشل وجاهزية PDF |
-| `get_article_pdf(article_id)` | `GET /api/v1/articles/{id}/session/pdf` | يعيد PDF الحالي كمورد MCP ثنائي مضمّن، ويرفض المعاينات القديمة أو غير المرتبطة بالجلسة |
+| `get_draft_outline(article_id)` | `GET /api/v1/articles/{id}/draft/outline` | فحص خفيف للمراجعة الحالية، أنواع الكتل، مقتطفاتها ومعرّفاتها الثابتة |
+| `get_draft_blocks(article_id)` | `GET /api/v1/articles/{id}/draft/blocks` | قراءة كتل Document2 القانونية ومعرّفات الحقول والرموز والقوائم والجداول قبل تحرير دقيق |
+| `apply_draft_command(article_id, command_id, base_revision, command)` | `POST /api/v1/articles/{id}/draft/commands` | تطبيق أمر Document2 واحد وإنشاء مراجعة غير قابلة للتعديل |
+| `compile_draft(article_id)` | `POST /api/v1/articles/{id}/draft/compile` | يطلب من FastAPI تصدير المراجعة الحالية وتجميعها دون مدخلات LaTeX أو أصول أو hash من العميل |
+| `get_compile_status(article_id)` | `GET /api/v1/articles/{id}/draft/compile/status` | يعرض هوية المحاولة والمراجعة وحالة النجاح أو الفشل وجاهزية PDF |
+| `get_article_pdf(article_id)` | `GET /api/v1/articles/{id}/draft/pdf` | يعيد PDF الحالي كمورد MCP ثنائي مضمّن ويرفض أي معاينة لا تخص المراجعة الحالية |
 | `list_article_assets(article_id)` | `GET /api/v1/articles/{id}/assets` | يسرد صور الإصدار الحالي ومعرّفاتها الثابتة |
 | `get_article_asset(article_id, asset_id)` | `GET /api/v1/articles/{id}/assets/{filename}` | يعيد الصورة كمحتوى MCP قابل للعرض بعد تفويض FastAPI |
 | `upload_article_asset(article_id, file)` | `POST /api/v1/articles/{id}/assets` | ينزّل ملفاً اختاره المستخدم عبر file params ثم يرسله multipart إلى FastAPI |
 
-النتائج مقيّدة أيضاً: أدوات القراءة تعيد `revision` و
-`last_saved_revision` مع outline أو blocks؛ نتيجة الأمر تعيد المستند القانوني
-و`affected_block_ids`؛ ونتيجة الحفظ تعيد المراجعة المحفوظة. نماذج كتل
+النتائج مقيّدة أيضاً: أدوات القراءة تعيد `revision_id` و`revision_number`
+مع outline أو blocks؛ ونتيجة الأمر تعيد المستند القانوني والمراجعة الجديدة
+و`affected_block_ids`. نماذج كتل
 الاستجابة تثبّت حقول الهوية والبنية المعروفة وتسمح بحقول BuTeX الإضافية كي لا
 تُحذف عند تطور الحزمة.
 
@@ -410,17 +409,17 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 ### 2.4 سير عمل العميل
 
-1. استخدم `get_session_outline` للتنقل الخفيف إن لم تحتج المحتوى الكامل.
-2. استخدم `get_session_blocks` عندما تحتاج هوية field أو token أو list أو
+1. استخدم `get_draft_outline` للتنقل الخفيف إن لم تحتج المحتوى الكامل.
+2. استخدم `get_draft_blocks` عندما تحتاج هوية field أو token أو list أو
    item أو table أو بنية المحتوى الدقيقة.
-3. لا تخترع أي معرّف؛ خذه من آخر استجابة للجلسة.
+3. لا تخترع أي معرّف؛ خذه من آخر استجابة للمسودة.
 4. مرّر أحدث `revision` في `base_revision`.
 5. أنشئ `command_id` جديداً لكل تعديل منطقي، ولا تعِد استخدامه لحمولة أخرى.
 6. استخدم أمراً موجهاً بدلاً من تصنيع مستند خام كامل.
 7. عند نجاح الأمر استخدم `revision` الجديد للعملية التالية.
-8. عند `revision_conflict` أعد قراءة الجلسة قبل إعادة بناء المحاولة.
-9. لا تستدع `save_session` إلا عندما يطلب المستخدم صراحةً حفظ التغييرات.
-10. لا تستدع `compile_session` إلا بطلب صريح؛ فهو يحفظ الجلسة حتى إن فشل
+8. عند `revision_conflict` أعد قراءة المسودة قبل إعادة بناء المحاولة.
+9. كل أمر تعديل ناجح محفوظ تلقائياً كمراجعة مسودة غير قابلة للتعديل.
+10. لا تستدع `compile_draft` إلا بطلب صريح؛ فهو يجمع المراجعة الحالية
     التصدير لاحقاً. راقب `get_compile_status`، ولا تطلب PDF إلا عند
     `pdf_ready=true` و`stale=false`.
 11. لا تنشئ LaTeX أو قائمة أصول أو hash للتجميع؛ FastAPI وBuTeX يملكانها.
@@ -430,7 +429,7 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 لا ترسل أدوات MCP `article_id` أو credential المستخدم أو بيانات actor إلى
 عامل BuTeX. هي ترسل الطلب إلى FastAPI فقط، وFastAPI يحتفظ بملكية المصادقة
-والصلاحيات وprovenance والأصول والجلسة والمراجعات وidempotency والحفظ.
+والصلاحيات وprovenance والأصول والمراجعات وidempotency والحفظ.
 
 ### 2.5 الأخطاء والتعافي
 
@@ -441,7 +440,7 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 {
   "status": 409,
   "code": "revision_conflict",
-  "message": "تغيرت الجلسة؛ أعد قراءتها.",
+  "message": "وصل تعديل أحدث للمسودة؛ أعد قراءتها.",
   "current_revision": 14
 }
 ```
@@ -453,7 +452,9 @@ Dashboard → Paths). ليست أولوية الآن؛ الافتراضي موص
 
 ### 2.6 الحدود المؤجلة
 
-لا توجد أداة MCP لحذف الأصول، ولا يجلب FastAPI أصولاً من URL خارجي.
+لا توجد أداة MCP لحذف الأصول أو استعادة مراجعة تاريخية؛ الاستعادة عملية بشرية
+من واجهة سجل المسودة. تبقى تعديلات الوكيل مرئية في السجل مع provenance، ولا
+يجلب FastAPI أصولاً من URL خارجي.
 ينزّل MCP رابط الملف المؤقت الذي يسلّمه العميل بحدود صارمة، ولا يرسل إليه
 توكن Albayan. ويبقى استبدال المستند كاملاً، تقديم المقال، حذف المقال، والطفرات
 العالية الأثر خارج هذه الأدوات.

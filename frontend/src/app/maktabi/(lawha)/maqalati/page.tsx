@@ -11,7 +11,7 @@ import {
   deleteArticle,
   listMyArticles,
   type ArticleSummary,
-  type VersionStatus,
+  type ArticleStatus,
 } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
@@ -27,7 +27,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "finished", label: "منتهية" },
 ];
 
-const FINISHED: VersionStatus[] = ["accepted", "rejected", "published"];
+const FINISHED: ArticleStatus[] = ["accepted", "rejected", "published"];
 
 const DELETE_CONFIRM =
   "حذف هذه المسودة نهائياً مع المخطوطة والصور وملف المعاينة؟ لا يمكن التراجع.";
@@ -178,7 +178,11 @@ export default function MaqalatiPage() {
                     {article.title}
                   </Link>
                   <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>الإصدار {formatDigits(article.version_number)}</span>
+                    <span>
+                      {article.latest_version_number
+                        ? `الإصدار ${formatDigits(article.latest_version_number)}`
+                        : "مسودة أولية"}
+                    </span>
                     <span aria-hidden>·</span>
                     <span>آخر تحديث: {formatDate(article.updated_at)}</span>
                   </p>

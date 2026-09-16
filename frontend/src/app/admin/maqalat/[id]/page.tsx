@@ -12,7 +12,9 @@ import {
   assignEditor,
   assignReviewer,
   cancelInvitation,
+  fetchAdminVersionPdf,
   getAdminArticle,
+  getAdminVersionDocument,
   inviteToArticle,
   INVITATION_ROLE_LABELS,
   INVITATION_STATUS_LABELS,
@@ -28,7 +30,7 @@ import {
   type InvitationRead,
   type InvitationRole,
 } from "@/lib/api/admin";
-import type { VersionStatus } from "@/lib/api/articles";
+import type { ArticleStatus } from "@/lib/api/articles";
 import { buttonClassName } from "@/lib/auth-ui";
 import { useNumerals } from "@/components/numeral-provider";
 import { normalizeNumericInput, parseBoundedInteger } from "@/lib/numerals";
@@ -37,10 +39,11 @@ import {
   userFacingErrorMessage,
 } from "@/lib/user-facing-errors";
 
-const OVERRIDE_STATUSES: { status: VersionStatus; label: string; confirm: boolean }[] =
+const OVERRIDE_STATUSES: { status: ArticleStatus; label: string; confirm: boolean }[] =
   [
     { status: "submitted", label: "مُقدَّم", confirm: false },
     { status: "under_review", label: "قيد المراجعة", confirm: false },
+    { status: "revision_requested", label: "طلب تعديلات", confirm: true },
     { status: "accepted", label: "قبول", confirm: true },
     { status: "rejected", label: "رفض", confirm: true },
     { status: "published", label: "منشور", confirm: true },
@@ -70,7 +73,8 @@ export default function AdminArticleDetailPage() {
   const reviewDurationIsValid = reviewDurationValue !== null;
 
   const [overrideReason, setOverrideReason] = useState("");
-  const [pendingOverride, setPendingOverride] = useState<VersionStatus | null>(
+  const [reviewDisclosures, setReviewDisclosures] = useState<Record<string, boolean>>({});
+  const [pendingOverride, setPendingOverride] = useState<ArticleStatus | null>(
     null,
   );
 
@@ -81,6 +85,10 @@ export default function AdminArticleDetailPage() {
       listAdminUsers(getToken),
     ]);
     setArticle(detail);
+    setReviewDisclosures(Object.fromEntries(detail.reviews.map((review) => [
+      review.id,
+      review.reveal_reviewer_identity_to_author,
+    ])));
     setInvitations(inviteRows);
     setUsers(userRows);
   }, [getToken, articleId]);
@@ -186,7 +194,12 @@ export default function AdminArticleDetailPage() {
     );
   }
 
-  async function applyOverride(status: VersionStatus) {
+  async function applyOverride(status: ArticleStatus) {
+    if (status === "revision_requested" && !overrideReason.trim()) {
+      setActionError("اكتب توجيهات التعديل قبل إرسال الطلب للمؤلف.");
+      setPendingOverride(null);
+      return;
+    }
     await runAction(
       "تم تحديث حالة الإصدار.",
       "تعذّر تحديث حالة الإصدار.",
@@ -196,9 +209,45 @@ export default function AdminArticleDetailPage() {
           articleId,
           status,
           overrideReason.trim() || null,
+          status === "revision_requested"
+            ? article?.reviews.map((review) => ({
+                review_id: review.id,
+                reveal_identity: reviewDisclosures[review.id] ?? false,
+              })) ?? []
+            : [],
         ),
     );
     setPendingOverride(null);
+  }
+
+  async function openVersionPdf(versionId: string) {
+    setActionError(null);
+    try {
+      const blob = await fetchAdminVersionPdf(getToken, articleId, versionId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      setActionError("تعذّر فتح ملف النسخة الرسمية.");
+    }
+  }
+
+  async function downloadVersionDocument(versionId: string, versionNumber: number) {
+    setActionError(null);
+    try {
+      const payload = await getAdminVersionDocument(getToken, articleId, versionId);
+      const url = URL.createObjectURL(new Blob(
+        [JSON.stringify(payload.document, null, 2)],
+        { type: "application/json" },
+      ));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `article-v${versionNumber}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setActionError("تعذّر تنزيل مستند النسخة الرسمية.");
+    }
   }
 
   if (error) {
@@ -230,7 +279,8 @@ export default function AdminArticleDetailPage() {
     );
   }
 
-  const current = article.current_version;
+  const latest = article.latest_version;
+  const reviewRoundOpen = article.status === "submitted" || article.status === "under_review";
   const pendingInvites = invitations.filter((i) => i.status === "pending");
 
   return (
@@ -250,8 +300,12 @@ export default function AdminArticleDetailPage() {
             {article.title}
           </h1>
           <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
-            <StatusBadge status={current.status} />
-            <span>الإصدار {formatDigits(current.version_number)}</span>
+            <StatusBadge status={article.status} />
+            <span>
+              {latest
+                ? `الإصدار ${formatDigits(latest.version_number)}`
+                : "لا إصدار رسمي بعد"}
+            </span>
             <span aria-hidden>·</span>
             <span>أُنشئ في {formatDate(article.created_at)}</span>
           </p>
@@ -284,9 +338,54 @@ export default function AdminArticleDetailPage() {
       <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">مسار المخطوطة</h2>
         <div className="mt-3">
-          <WorkflowProgress status={current.status} />
+          <WorkflowProgress status={article.status} />
         </div>
       </section>
+
+      <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
+        <h2 className="text-sm font-bold text-[var(--journal-accent)]">النسخ الرسمية</h2>
+        <ul className="mt-3 space-y-2">
+          {article.versions.map((version) => (
+            <li key={version.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--journal-border)] bg-white px-3 py-2 text-sm">
+              <span>
+                <strong>الإصدار {formatDigits(version.version_number)}</strong>
+                <span className="ms-2 text-xs text-slate-500">{version.title_snapshot}</span>
+              </span>
+              <span className="flex gap-3 text-xs font-semibold text-[var(--journal-accent)]">
+                <button type="button" onClick={() => void openVersionPdf(version.id)} className="hover:underline">فتح PDF</button>
+                <button type="button" onClick={() => void downloadVersionDocument(version.id, version.version_number)} className="hover:underline">تنزيل المستند</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {article.reviews.length ? (
+        <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
+          <h2 className="text-sm font-bold text-[var(--journal-accent)]">تقارير الإصدار الأحدث</h2>
+          <ul className="mt-3 space-y-3">
+            {article.reviews.map((review) => (
+              <li key={review.id} className="rounded-lg border border-[var(--journal-border)] bg-white p-3 text-sm">
+                <p className="font-semibold text-slate-800">{review.reviewer_name || review.reviewer_email}</p>
+                {review.comments_to_author ? (
+                  <p className="mt-2 whitespace-pre-wrap leading-6 text-slate-700">{review.comments_to_author}</p>
+                ) : null}
+                <label className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={reviewDisclosures[review.id] ?? false}
+                    onChange={(event) => setReviewDisclosures((current) => ({
+                      ...current,
+                      [review.id]: event.target.checked,
+                    }))}
+                  />
+                  إظهار اسم هذا المراجع للمؤلف عند طلب التعديلات
+                </label>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
         <h2 className="text-sm font-bold text-[var(--journal-accent)]">المؤلفون</h2>
@@ -317,37 +416,50 @@ export default function AdminArticleDetailPage() {
         {article.reviewers.length === 0 ? (
           <p className="mt-3 text-sm text-slate-500">لا مراجعين معيّنين.</p>
         ) : (
-          <ul className="mt-3 space-y-2">
-            {article.reviewers.map((row) => (
-              <li
-                key={row.user.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold text-slate-800 [overflow-wrap:anywhere]">
-                    {row.user.full_name || row.user.email}
-                  </p>
-                  <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">
-                    {row.user.email} · {REVIEWER_STATUS_LABELS[row.status]}
-                  </p>
+          <div className="mt-3 space-y-4">
+            {article.versions.map((version) => {
+              const rows = article.reviewers.filter(
+                (row) => row.article_version_id === version.id,
+              );
+              if (!rows.length) return null;
+              return (
+                <div key={version.id}>
+                  <h3 className="mb-2 text-xs font-bold text-slate-600">
+                    الإصدار {formatDigits(version.version_number)}
+                  </h3>
+                  <ul className="space-y-2">
+                    {rows.map((row) => (
+                      <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--journal-border)] bg-white px-3.5 py-2.5 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-800 [overflow-wrap:anywhere]">{row.user.full_name || row.user.email}</p>
+                          <p className="text-xs text-slate-500 [overflow-wrap:anywhere]">{row.user.email} · {REVIEWER_STATUS_LABELS[row.status]}</p>
+                        </div>
+                        <button
+                          type="button"
+                          disabled={
+                            busy ||
+                            !reviewRoundOpen ||
+                            row.article_version_id !== latest?.id ||
+                            row.status === "completed"
+                          }
+                          onClick={() => void runAction(
+                            "أُلغي تعيين المراجع.",
+                            "تعذّر إلغاء تعيين المراجع.",
+                            () => unassignReviewer(getToken, articleId, row.id),
+                          )}
+                          className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+                        >
+                          {row.article_version_id !== latest?.id || row.status === "completed"
+                            ? "سجل محفوظ"
+                            : "إلغاء التعيين"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void runAction(
-                      "أُلغي تعيين المراجع.",
-                      "تعذّر إلغاء تعيين المراجع.",
-                      () => unassignReviewer(getToken, articleId, row.user.id),
-                    )
-                  }
-                  className="rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
-                >
-                  إلغاء التعيين
-                </button>
-              </li>
-            ))}
-          </ul>
+              );
+            })}
+          </div>
         )}
       </section>
 
@@ -410,6 +522,11 @@ export default function AdminArticleDetailPage() {
             </button>
           ))}
         </div>
+        {!reviewRoundOpen ? (
+          <p className="mt-2 text-xs text-amber-800">
+            تعيين المراجعين متاح فقط لأحدث نسخة وهي في حالة مُقدَّم أو قيد المراجعة.
+          </p>
+        ) : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
@@ -500,7 +617,7 @@ export default function AdminArticleDetailPage() {
           ) : null}
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || (assignRole === "reviewer" && !reviewRoundOpen)}
             onClick={() => void handleAssignOrInvite()}
             className={buttonClassName}
           >
@@ -524,6 +641,9 @@ export default function AdminArticleDetailPage() {
                   <p className="font-semibold text-slate-800">{inv.email}</p>
                   <p className="text-xs text-slate-500">
                     {INVITATION_ROLE_LABELS[inv.role]} ·{" "}
+                    {inv.article_version_id
+                      ? `الإصدار ${formatDigits(article.versions.find((version) => version.id === inv.article_version_id)?.version_number ?? "—")} · `
+                      : ""}
                     {INVITATION_STATUS_LABELS[inv.status]} · تنتهي{" "}
                     {formatDate(inv.expires_at)}
                   </p>
@@ -580,7 +700,7 @@ export default function AdminArticleDetailPage() {
         </p>
         <label className="mt-4 block space-y-1.5">
           <span className="text-xs font-semibold text-slate-600">
-            سبب (اختياري — غير محفوظ حالياً في الخادم)
+            توجيهات القرار (مطلوبة عند طلب التعديلات)
           </span>
           <textarea
             value={overrideReason}
@@ -595,7 +715,7 @@ export default function AdminArticleDetailPage() {
             <button
               key={item.status}
               type="button"
-              disabled={busy || current.status === item.status}
+              disabled={busy || article.status === item.status}
               onClick={() => {
                 if (item.confirm) {
                   setPendingOverride(item.status);
@@ -604,7 +724,7 @@ export default function AdminArticleDetailPage() {
                 }
               }}
               className={
-                current.status === item.status
+                article.status === item.status
                   ? "rounded-md border border-[var(--journal-accent)] bg-[var(--journal-accent)] px-5 py-2.5 text-sm font-semibold text-white opacity-80"
                   : buttonClassName
               }

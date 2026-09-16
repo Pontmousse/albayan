@@ -14,7 +14,9 @@ from app.core.config import settings
 from app.core.deps import current_user
 from app.services import agent_token_service
 
-MCP_OAUTH_SCOPES: frozenset[str] = frozenset({"profile:read", "articles:read"})
+MCP_OAUTH_SCOPES: frozenset[str] = frozenset(
+    {"profile:read", "articles:read", "articles:draft:write"}
+)
 
 
 @dataclass(frozen=True)

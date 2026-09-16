@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.article import Article, ArticleEditor, ArticleReviewer, ArticleVersion, Review
 from app.models.enums import (
+    ArticleStatus,
     NotificationType,
     ReviewRecommendation,
     ReviewerAssignmentStatus,
@@ -20,28 +21,12 @@ from app.services import email_service, workflow_notification_service
 logger = logging.getLogger(__name__)
 
 _NOT_FOUND = HTTPException(status_code=404, detail="التعيين غير موجود.")
-_FORBIDDEN = HTTPException(status_code=404, detail="التعيين غير موجود.")
 _ALREADY_SUBMITTED = HTTPException(status_code=409, detail="تم تسليم هذه المراجعة بالفعل.")
 _NEED_RECOMMENDATION = HTTPException(
     status_code=400, detail="يلزم اختيار توصية قبل التسليم."
 )
 
 _ACTIVE = {ReviewerAssignmentStatus.ACCEPTED, ReviewerAssignmentStatus.COMPLETED}
-
-
-def assert_is_reviewer(
-    db: Session, article_id: uuid.UUID, user_id: uuid.UUID
-) -> ArticleReviewer:
-    assignment = db.scalar(
-        select(ArticleReviewer).where(
-            ArticleReviewer.article_id == article_id,
-            ArticleReviewer.user_id == user_id,
-            ArticleReviewer.status.in_(_ACTIVE),
-        )
-    )
-    if not assignment:
-        raise _FORBIDDEN
-    return assignment
 
 
 def get_assignment_for_user(
@@ -83,7 +68,7 @@ def list_assignments_for_reviewer(
     )
 
 
-def _review_for_current_version(
+def _review_for_formal_version(
     assignment: ArticleReviewer, version: ArticleVersion
 ) -> Review | None:
     matches = [
@@ -92,6 +77,27 @@ def _review_for_current_version(
     if not matches:
         return None
     return max(matches, key=lambda r: r.created_at)
+
+
+def assignment_version(db: Session, assignment: ArticleReviewer) -> ArticleVersion:
+    version = db.get(ArticleVersion, assignment.article_version_id)
+    if version is None or version.article_id != assignment.article_id:
+        raise HTTPException(status_code=409, detail="لم يعد إصدار المراجعة متاحًا.")
+    return version
+
+
+def _assert_round_is_open(
+    db: Session, assignment: ArticleReviewer, version: ArticleVersion
+) -> None:
+    article = db.get(Article, assignment.article_id)
+    latest = article_service.latest_version(db, assignment.article_id)
+    if (
+        article is None
+        or article.status not in {ArticleStatus.SUBMITTED, ArticleStatus.UNDER_REVIEW}
+        or latest is None
+        or latest.id != version.id
+    ):
+        raise HTTPException(status_code=409, detail="أُغلقت جولة المراجعة لهذا الإصدار.")
 
 
 def upsert_draft_review(
@@ -105,8 +111,9 @@ def upsert_draft_review(
     if assignment.status == ReviewerAssignmentStatus.COMPLETED:
         raise _ALREADY_SUBMITTED
 
-    version = article_service.current_version(db, assignment.article_id)
-    review = _review_for_current_version(assignment, version)
+    version = assignment_version(db, assignment)
+    _assert_round_is_open(db, assignment, version)
+    review = _review_for_formal_version(assignment, version)
     if review and review.status == ReviewStatus.SUBMITTED:
         raise _ALREADY_SUBMITTED
 
@@ -131,8 +138,9 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
     if assignment.status == ReviewerAssignmentStatus.COMPLETED:
         raise _ALREADY_SUBMITTED
 
-    version = article_service.current_version(db, assignment.article_id)
-    review = _review_for_current_version(assignment, version)
+    version = assignment_version(db, assignment)
+    _assert_round_is_open(db, assignment, version)
+    review = _review_for_formal_version(assignment, version)
     if not review:
         raise _NEED_RECOMMENDATION
     if review.status == ReviewStatus.SUBMITTED:
@@ -164,7 +172,7 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
             user_ids=editor_ids,
             type=NotificationType.REVIEW_SUBMITTED,
             title="تم تسليم مراجعة جديدة",
-            body=f"سُلّمت مراجعة جديدة للبحث «{article.title}».",
+            body=f"سُلّمت مراجعة جديدة للبحث «{version.title_snapshot}».",
             link=f"/maktabi/tahriri/{article.id}",
             actor_id=assignment.user_id,
             event_scope=f"review:{review.id}:submitted:editor",
@@ -175,7 +183,7 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
             user_ids=admin_ids - editor_ids,
             type=NotificationType.REVIEW_SUBMITTED,
             title="تم تسليم مراجعة جديدة",
-            body=f"سُلّمت مراجعة جديدة للبحث «{article.title}».",
+            body=f"سُلّمت مراجعة جديدة للبحث «{version.title_snapshot}».",
             link=f"/admin/maqalat/{article.id}",
             actor_id=assignment.user_id,
             event_scope=f"review:{review.id}:submitted:admin",
@@ -207,7 +215,7 @@ def submit_review(db: Session, assignment: ArticleReviewer) -> Review:
             try:
                 email_service.send_review_submitted_email(
                     to=recipient,
-                    article_title=article.title,
+                    article_title=version.title_snapshot,
                     reviewer_name=reviewer_name,
                     report_url=report_url,
                     idempotency_key=f"review-submitted/{review.id}/{recipient}",

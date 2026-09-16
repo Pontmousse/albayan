@@ -108,7 +108,7 @@ templates:
     name: "Al-Bayan Review Invitation"
     subject: "دعوة للمشاركة في تحكيم بحث"
     file: "emails/src/reviewers/ReviewInvitation.tsx"
-    html_file: "emails/out/ReviewInvitation.html"
+    html_file: "emails/out/reviewers/ReviewInvitation.html"
     variables:
       ARTICLE_TITLE: string
       ROLE_LABEL: string
@@ -125,7 +125,7 @@ templates:
     name: "Al-Bayan Reviewer Assigned"
     subject: "مهمة مراجعة جديدة في مجلة البيان"
     file: "emails/src/reviewers/ReviewerAssigned.tsx"
-    html_file: "emails/out/ReviewerAssigned.html"
+    html_file: "emails/out/reviewers/ReviewerAssigned.html"
     variables:
       ARTICLE_TITLE: string
       REVIEW_URL: string
@@ -140,7 +140,7 @@ templates:
     name: "Al-Bayan Review Reminder"
     subject: "تذكير بمراجعة بحث في مجلة البيان"
     file: "emails/src/reviewers/ReviewReminder.tsx"
-    html_file: "emails/out/ReviewReminder.html"
+    html_file: "emails/out/reviewers/ReviewReminder.html"
     variables:
       ARTICLE_TITLE: string
       REVIEW_URL: string
@@ -156,7 +156,7 @@ templates:
     name: "Al-Bayan Review Submitted"
     subject: "تم تسليم مراجعة جديدة"
     file: "emails/src/reviewers/ReviewSubmitted.tsx"
-    html_file: "emails/out/ReviewSubmitted.html"
+    html_file: "emails/out/reviewers/ReviewSubmitted.html"
     variables:
       ARTICLE_TITLE: string
       REVIEWER_NAME: string
@@ -205,6 +205,71 @@ templates:
     variables:
       UNREAD_COUNT: string
       NOTIFICATIONS_URL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: account-locked-ar
+    name: "Al-Bayan Account Locked"
+    subject: "تم قفل حسابكم مؤقتًا في مجلة البيان"
+    file: "emails/src/auth/AccountLocked.tsx"
+    html_file: "emails/out/auth/AccountLocked.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: password-changed-ar
+    name: "Al-Bayan Password Changed"
+    subject: "تم تغيير كلمة مرور حسابكم في مجلة البيان"
+    file: "emails/src/auth/PasswordChanged.tsx"
+    html_file: "emails/out/auth/PasswordChanged.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: password-removed-ar
+    name: "Al-Bayan Password Removed"
+    subject: "تمت إزالة كلمة المرور من حسابكم في مجلة البيان"
+    file: "emails/src/auth/PasswordRemoved.tsx"
+    html_file: "emails/out/auth/PasswordRemoved.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: primary-email-changed-ar
+    name: "Al-Bayan Primary Email Changed"
+    subject: "تم تغيير البريد الإلكتروني الأساسي في مجلة البيان"
+    file: "emails/src/auth/PrimaryEmailChanged.tsx"
+    html_file: "emails/out/auth/PrimaryEmailChanged.html"
+    variables:
+      RECIPIENT_EMAIL: string
+      DATE_TEXT: string
+      SITE_URL: string
+      CONTACT_EMAIL: string
+      ASSET_BASE_URL: string
+    publish: true
+
+  - alias: new-device-sign-in-ar
+    name: "Al-Bayan New Device Sign In"
+    subject: "تسجيل دخول إلى حسابكم في مجلة البيان من جهاز جديد"
+    file: "emails/src/auth/NewDeviceSignIn.tsx"
+    html_file: "emails/out/auth/NewDeviceSignIn.html"
+    variables:
+      RECIPIENT_EMAIL: string
       DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string

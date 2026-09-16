@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { VersionRead } from "@/lib/api/articles";
+import type { DraftCompileStatus } from "@/lib/api/articles";
 import { isDevMode } from "@/lib/dev-mode";
 import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 import { useNumerals } from "@/components/numeral-provider";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-export type CompileStatus = VersionRead["compile_status"];
+export type CompileStatus = DraftCompileStatus["status"];
 
 type GetToken = () => Promise<string | null>;
 

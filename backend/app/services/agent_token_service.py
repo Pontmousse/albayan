@@ -13,7 +13,7 @@ ALLOWED_AGENT_SCOPES: frozenset[str] = frozenset(
     {
         "profile:read",
         "articles:read",
-        "articles:session:write",
+        "articles:draft:write",
         "reviews:read",
         "reviews:draft:write",
         "editor:read",
@@ -23,7 +23,7 @@ ALLOWED_AGENT_SCOPES: frozenset[str] = frozenset(
 DEFAULT_AGENT_SCOPES: list[str] = [
     "profile:read",
     "articles:read",
-    "articles:session:write",
+    "articles:draft:write",
 ]
 
 MAX_ACTIVE_AGENT_TOKENS = 5

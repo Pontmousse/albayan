@@ -1,17 +1,29 @@
 import enum
 
 
-class VersionStatus(str, enum.Enum):
+class ArticleStatus(str, enum.Enum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
     UNDER_REVIEW = "under_review"
+    REVISION_REQUESTED = "revision_requested"
     ACCEPTED = "accepted"
     REJECTED = "rejected"
     PUBLISHED = "published"
 
 
-# Deprecated alias — status lives on article_versions, not articles
-ArticleStatus = VersionStatus
+class DraftActorType(str, enum.Enum):
+    HUMAN = "human"
+    AGENT = "agent"
+    SYSTEM = "system"
+
+
+class DraftRevisionReason(str, enum.Enum):
+    INITIAL = "initial"
+    AUTOSAVE = "autosave"
+    AI_EDIT = "ai_edit"
+    METADATA_EDIT = "metadata_edit"
+    RESTORE = "restore"
+    REVISION_REQUEST = "revision_request"
 
 
 class ReviewerAssignmentStatus(str, enum.Enum):
