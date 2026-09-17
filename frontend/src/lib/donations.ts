@@ -1,6 +1,25 @@
 import { API_BASE, apiErrorMessage } from "@/lib/api";
 import { normalizeDigits } from "@/lib/numerals";
 
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "BIF",
+  "CLP",
+  "DJF",
+  "GNF",
+  "JPY",
+  "KMF",
+  "KRW",
+  "MGA",
+  "PYG",
+  "RWF",
+  "UGX",
+  "VND",
+  "VUV",
+  "XAF",
+  "XOF",
+  "XPF",
+]);
+
 export type DonationConfig = {
   currency: string;
   min_amount_minor: number;
@@ -64,6 +83,10 @@ export function getDonationStatus(sessionId: string) {
   return publicDonationFetch<DonationStatus>(
     `/api/v1/public/donations/session/${encodeURIComponent(sessionId)}`,
   );
+}
+
+export function donationMinorUnitDivisor(currency: string): number {
+  return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 1 : 100;
 }
 
 export function formatDonationAmount(
