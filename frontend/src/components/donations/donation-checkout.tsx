@@ -245,18 +245,13 @@ export function DonationCheckout() {
         className="rounded-3xl border border-[var(--journal-border)] bg-white/90 p-5 shadow-[0_20px_60px_rgba(18,63,51,0.08)] sm:p-7"
       >
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold tracking-wide text-[var(--journal-muted)]">
-              مساهمة اختيارية لمرة واحدة
-            </p>
-            <h2
-              id="donation-checkout-heading"
-              className="mt-1 text-2xl font-bold text-[var(--journal-accent-strong)]"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              اختر مقدار المساهمة
-            </h2>
-          </div>
+          <h2
+            id="donation-checkout-heading"
+            className="text-2xl font-bold text-[var(--journal-accent-strong)]"
+            style={{ fontFamily: "var(--font-display-ar), serif" }}
+          >
+            اختر مقدار المساهمة
+          </h2>
           <span className="rounded-full border border-[var(--journal-border)] bg-[var(--journal-paper)] px-3 py-1 text-xs font-semibold text-slate-600">
             دفع آمن
           </span>
@@ -392,7 +387,7 @@ export function DonationCheckout() {
 
         <div className="mt-6 border-t border-[var(--journal-border)] pt-4 text-xs leading-6 text-slate-500">
           <p>
-            بيانات البطاقة ووسيلة الدفع تُدخل مباشرة في حقول آمنة تديرها Stripe، ولا تمر أرقام البطاقة أو رمز CVC عبر خوادم مجلة البيان.
+            تتم عملية الدفع عبر حقول آمنة ومشفّرة، ولا تستقبل خوادم مجلة البيان أرقام البطاقة أو رمز الأمان.
           </p>
         </div>
       </section>
