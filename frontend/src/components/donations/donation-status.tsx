@@ -73,8 +73,8 @@ export function DonationStatusCard() {
 
   if (!status || status.status === "pending") {
     return (
-      <StatusShell title="جارٍ تثبيت نتيجة الدفع">
-        <p>وصلتَ إلى صفحة العودة، وننتظر التأكيد الموثوق من خدمة الدفع. قد يستغرق ذلك لحظات قليلة.</p>
+      <StatusShell title="جارٍ التحقق من عملية الدفع">
+        <p>نعمل الآن على التحقق من نتيجة الدفع. قد يستغرق ذلك بضع لحظات.</p>
         <div className="mx-auto mt-5 h-2 w-36 overflow-hidden rounded-full bg-slate-100">
           <div className="h-full w-1/2 animate-pulse rounded-full bg-[var(--journal-accent)]" />
         </div>
@@ -87,7 +87,7 @@ export function DonationStatusCard() {
       <StatusShell title="جزاكم الله خيرًا">
         <p>تم استلام مساهمتكم بنجاح{amount ? ` بمقدار ${amount}` : ""}. نسأل الله أن يبارك في العلم النافع وأهله.</p>
         <p className="mt-4 text-sm text-slate-500">
-          إن أضفت بريداً إلكترونياً، سيصلك تأكيد من مجلة البيان بعد معالجة الإشعار الموثوق.
+          إن أضفت بريداً إلكترونياً، سيصلك تأكيد من مجلة البيان بعد اكتمال التحقق من الدفع.
         </p>
         <Link
           href="/"
@@ -100,8 +100,8 @@ export function DonationStatusCard() {
   }
 
   return (
-    <StatusShell title={status.status === "expired" ? "انتهت جلسة الدفع" : "لم يكتمل الدفع"}>
-      <p>لم تُسجّل مساهمة مكتملة لهذه العملية. لمتابعة الدعم، ابدأ عملية جديدة.</p>
+    <StatusShell title={status.status === "expired" ? "انتهت مهلة الدفع" : "لم يكتمل الدفع"}>
+      <p>لم تكتمل هذه المساهمة. يمكنك العودة إلى صفحة الدعم وبدء عملية جديدة.</p>
       <ReturnLink />
     </StatusShell>
   );
