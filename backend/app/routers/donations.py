@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 
-from app.core.clerk import DbDep
 from app.schemas.donation import (
     DonationCheckoutCreate,
     DonationCheckoutResponse,
@@ -20,14 +19,12 @@ def donation_config() -> DonationConfigResponse:
 @router.post("/checkout-session", response_model=DonationCheckoutResponse)
 def create_checkout_session(
     payload: DonationCheckoutCreate,
-    db: DbDep,
 ) -> DonationCheckoutResponse:
-    return donation_service.create_checkout_session(db, payload.amount_minor)
+    return donation_service.create_checkout_session(payload.amount_minor)
 
 
 @router.get("/session/{session_id}", response_model=DonationSessionStatusResponse)
 def donation_session_status(
     session_id: str,
-    db: DbDep,
 ) -> DonationSessionStatusResponse:
-    return donation_service.session_status(db, session_id)
+    return donation_service.session_status(session_id)
