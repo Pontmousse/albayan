@@ -10,6 +10,7 @@ from albayan_mcp.tools.assets import register_asset_tools
 from albayan_mcp.tools.articles import register_article_tools
 from albayan_mcp.tools.profile import register_profile_tools
 from albayan_mcp.tools.drafts import register_draft_tools
+from albayan_mcp.tools.transport_probe import register_transport_probe_tool
 
 
 def create_server() -> MCPServer:
@@ -65,5 +66,6 @@ def create_server() -> MCPServer:
     register_article_tools(server)
     register_draft_tools(server)
     register_asset_tools(server)
+    register_transport_probe_tool(server)
 
     return server
