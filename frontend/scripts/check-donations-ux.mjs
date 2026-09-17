@@ -39,10 +39,13 @@ test("landing Quran verses use the same display Arabic font as the donation vers
 });
 
 
-test("checkout uses secure Arabic payment controls without raw card inputs", () => {
+test("checkout uses secure Arabic payment controls and localized currency without raw card inputs", () => {
   assert.match(checkout, /https:\/\/js\.stripe\.com\/dahlia\/stripe\.js/);
   assert.match(checkout, /locale: "ar"/);
   assert.match(checkout, /initCheckoutElementsSdk/);
+  assert.match(checkout, /adaptivePricing: \{ allowed: true \}/);
+  assert.match(checkout, /createCurrencySelectorElement/);
+  assert.match(checkout, /donation-currency-selector/);
   assert.match(checkout, /createPaymentElement/);
   assert.match(checkout, /loadActions/);
   assert.match(checkout, /actionsRef\.current\.confirm/);
