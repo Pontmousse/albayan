@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import logging
-import uuid
 from datetime import UTC, datetime
 from typing import Any
 
 import stripe
 from fastapi import HTTPException
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.donation import Donation, StripeWebhookEvent
+from app.models.donation import DonationEmailReceipt
 from app.schemas.donation import (
     DonationCheckoutResponse,
     DonationConfigResponse,
@@ -24,11 +22,27 @@ logger = logging.getLogger(__name__)
 
 DONATION_FLOW_METADATA = "albayan_donation"
 DEFAULT_PRESET_AMOUNTS_MINOR = (1000, 2500, 5000)
-SUPPORTED_WEBHOOK_EVENTS = {
+PAID_WEBHOOK_EVENTS = {
     "checkout.session.completed",
     "checkout.session.async_payment_succeeded",
-    "checkout.session.async_payment_failed",
-    "checkout.session.expired",
+}
+ZERO_DECIMAL_CURRENCIES = {
+    "bif",
+    "clp",
+    "djf",
+    "gnf",
+    "jpy",
+    "kmf",
+    "krw",
+    "mga",
+    "pyg",
+    "rwf",
+    "ugx",
+    "vnd",
+    "vuv",
+    "xaf",
+    "xof",
+    "xpf",
 }
 
 
@@ -91,18 +105,11 @@ def _validate_amount(amount_minor: int) -> None:
         )
 
 
-def create_checkout_session(
-    db: Session,
-    amount_minor: int,
-) -> DonationCheckoutResponse:
+def create_checkout_session(amount_minor: int) -> DonationCheckoutResponse:
     _require_stripe()
     _validate_amount(amount_minor)
 
-    donation_id = uuid.uuid4()
-    metadata = {
-        "albayan_flow": DONATION_FLOW_METADATA,
-        "albayan_donation_id": str(donation_id),
-    }
+    metadata = {"albayan_flow": DONATION_FLOW_METADATA}
     return_url = (
         f"{settings.frontend_base_url.rstrip('/')}/daam-al-bayan/tamam"
         "?session_id={CHECKOUT_SESSION_ID}"
@@ -114,6 +121,7 @@ def create_checkout_session(
                 "ui_mode": "elements",
                 "mode": "payment",
                 "return_url": return_url,
+                "adaptive_pricing": {"enabled": True},
                 "allowed_payment_method_types": ["card"],
                 "billing_address_collection": "auto",
                 "line_items": [
@@ -123,9 +131,7 @@ def create_checkout_session(
                             "unit_amount": amount_minor,
                             "product_data": {
                                 "name": "دعم مجلة البيان",
-                                "description": (
-                                    "مساهمة اختيارية لدعم استمرار المشروع العلمي المفتوح."
-                                ),
+                                "description": "مساهمة لدعم استمرار المشروع العلمي المفتوح.",
                             },
                         },
                         "quantity": 1,
@@ -154,27 +160,6 @@ def create_checkout_session(
             detail="تعذّر بدء عملية المساهمة. حاول مجدداً.",
         )
 
-    donation = Donation(
-        id=donation_id,
-        stripe_checkout_session_id=session_id,
-        amount_minor=amount_minor,
-        currency=settings.donation_currency,
-        status="pending",
-    )
-    db.add(donation)
-    try:
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        logger.warning(
-            "Donation persistence failed after Checkout Session creation error=%s",
-            type(exc).__name__,
-        )
-        raise HTTPException(
-            status_code=503,
-            detail="تعذّر حفظ عملية المساهمة. حاول مجدداً.",
-        ) from exc
-
     return DonationCheckoutResponse(
         client_secret=client_secret,
         session_id=session_id,
@@ -183,21 +168,62 @@ def create_checkout_session(
     )
 
 
-def session_status(db: Session, session_id: str) -> DonationSessionStatusResponse:
+def _session_metadata(session: Any) -> dict[str, Any]:
+    metadata = _read(session, "metadata", {})
+    return metadata if isinstance(metadata, dict) else dict(metadata or {})
+
+
+def _validate_donation_session(session: Any) -> None:
+    if _session_metadata(session).get("albayan_flow") != DONATION_FLOW_METADATA:
+        raise HTTPException(status_code=404, detail="تعذّر العثور على عملية المساهمة.")
+
+
+def _presented_amount_and_currency(session: Any) -> tuple[int, str]:
+    presentment = _read(session, "presentment_details", {})
+    amount = _read(presentment, "presentment_amount")
+    currency = _read(presentment, "presentment_currency")
+    if isinstance(amount, int) and amount >= 0 and isinstance(currency, str):
+        return amount, currency.lower()
+
+    amount = _read(session, "amount_total")
+    currency = _read(session, "currency")
+    if not isinstance(amount, int) or amount < 0 or not isinstance(currency, str):
+        raise HTTPException(status_code=502, detail="تعذّر التحقق من عملية المساهمة.")
+    return amount, currency.lower()
+
+
+def session_status(session_id: str) -> DonationSessionStatusResponse:
     if not session_id.startswith("cs_") or len(session_id) > 255:
         raise HTTPException(status_code=404, detail="تعذّر العثور على عملية المساهمة.")
 
-    donation = db.scalar(
-        select(Donation).where(Donation.stripe_checkout_session_id == session_id)
-    )
-    if donation is None:
-        raise HTTPException(status_code=404, detail="تعذّر العثور على عملية المساهمة.")
+    try:
+        session = _stripe_client().v1.checkout.sessions.retrieve(session_id)
+    except Exception as exc:
+        logger.warning(
+            "Stripe Checkout Session retrieval failed error=%s",
+            type(exc).__name__,
+        )
+        raise HTTPException(status_code=404, detail="تعذّر العثور على عملية المساهمة.") from exc
+
+    _validate_donation_session(session)
+    amount_minor, currency = _presented_amount_and_currency(session)
+    payment_status = _read(session, "payment_status")
+    checkout_status = _read(session, "status")
+
+    if payment_status == "paid":
+        status = "paid"
+    elif checkout_status == "expired":
+        status = "expired"
+    elif checkout_status == "complete":
+        status = "failed"
+    else:
+        status = "pending"
 
     return DonationSessionStatusResponse(
-        session_id=donation.stripe_checkout_session_id,
-        status=donation.status,
-        amount_minor=donation.amount_minor,
-        currency=donation.currency,
+        session_id=session_id,
+        status=status,
+        amount_minor=amount_minor,
+        currency=currency,
     )
 
 
@@ -217,19 +243,6 @@ def verify_stripe_webhook(payload: bytes, signature: str) -> Any:
         raise HTTPException(status_code=400, detail="طلب غير صالح.") from exc
 
 
-def _session_metadata(session: Any) -> dict[str, Any]:
-    metadata = _read(session, "metadata", {})
-    return metadata if isinstance(metadata, dict) else dict(metadata or {})
-
-
-def _payment_intent_id(session: Any) -> str | None:
-    payment_intent = _read(session, "payment_intent")
-    if isinstance(payment_intent, str):
-        return payment_intent
-    value = _read(payment_intent, "id")
-    return value if isinstance(value, str) else None
-
-
 def _customer_email(session: Any) -> str | None:
     details = _read(session, "customer_details")
     email = _read(details, "email") or _read(session, "customer_email")
@@ -239,136 +252,78 @@ def _customer_email(session: Any) -> str | None:
     return email[:320] if email else None
 
 
-def _donation_for_session(db: Session, session: Any) -> Donation | None:
+def _format_amount(session: Any) -> str:
+    amount_minor, currency = _presented_amount_and_currency(session)
+    divisor = 1 if currency in ZERO_DECIMAL_CURRENCIES else 100
+    major = amount_minor / divisor
+    decimals = 0 if divisor == 1 else 2
+    return f"{major:.{decimals}f} {currency.upper()}"
+
+
+def _send_confirmation_once(db: Session, session: Any) -> bool:
     session_id = _read(session, "id")
-    if not isinstance(session_id, str):
-        return None
-
-    donation = db.scalar(
-        select(Donation).where(Donation.stripe_checkout_session_id == session_id)
-    )
-    if donation is not None:
-        return donation
-
-    metadata = _session_metadata(session)
-    if metadata.get("albayan_flow") != DONATION_FLOW_METADATA:
-        return None
-
-    donation_id_raw = metadata.get("albayan_donation_id")
-    try:
-        donation_id = uuid.UUID(str(donation_id_raw))
-    except (TypeError, ValueError, AttributeError):
-        return None
-
-    amount_minor = _read(session, "amount_total")
-    currency = _read(session, "currency")
-    if not isinstance(amount_minor, int) or amount_minor <= 0:
-        return None
-    if not isinstance(currency, str) or len(currency) != 3:
-        return None
-
-    donation = Donation(
-        id=donation_id,
-        stripe_checkout_session_id=session_id,
-        amount_minor=amount_minor,
-        currency=currency.lower(),
-        status="pending",
-    )
-    db.add(donation)
-    return donation
-
-
-def _format_amount(donation: Donation) -> str:
-    divisor = settings.donation_minor_unit_divisor
-    major = donation.amount_minor / divisor
-    decimals = 0 if divisor == 1 else len(str(divisor)) - 1
-    return f"{major:.{decimals}f} {donation.currency.upper()}"
-
-
-def _maybe_send_confirmation(db: Session, donation: Donation | None) -> None:
+    donor_email = _customer_email(session)
     if (
-        donation is None
-        or donation.status != "paid"
-        or donation.confirmation_email_sent_at is not None
-        or not donation.donor_email
+        not isinstance(session_id, str)
+        or not donor_email
         or not settings.email_enabled
     ):
-        return
+        return False
+
+    receipt = db.get(DonationEmailReceipt, session_id)
+    if receipt is not None and receipt.email_sent_at is not None:
+        return False
+
+    if receipt is None:
+        receipt = DonationEmailReceipt(stripe_checkout_session_id=session_id)
+        db.add(receipt)
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            receipt = db.get(DonationEmailReceipt, session_id)
+            if receipt is not None and receipt.email_sent_at is not None:
+                return False
 
     try:
         donation_email_service.send_donation_received_email(
-            to=donation.donor_email,
-            amount_text=_format_amount(donation),
-            donation_reference=str(donation.id),
-            idempotency_key=f"donation-received/{donation.stripe_checkout_session_id}",
+            to=donor_email,
+            amount_text=_format_amount(session),
+            donation_reference=session_id,
+            idempotency_key=f"donation-received/{session_id}",
         )
     except Exception as exc:
         logger.warning(
-            "Donation confirmation email failed donation_id=%s error=%s",
-            donation.id,
+            "Donation confirmation email failed session=%s error=%s",
+            session_id,
             type(exc).__name__,
         )
-        return
+        raise HTTPException(
+            status_code=503,
+            detail="تعذّر معالجة إشعار الدفع.",
+        ) from exc
 
-    donation.confirmation_email_sent_at = datetime.now(UTC)
-    db.commit()
+    receipt = db.get(DonationEmailReceipt, session_id) or receipt
+    if receipt is not None:
+        receipt.email_sent_at = datetime.now(UTC)
+        db.commit()
+    return True
 
 
 def handle_stripe_webhook(db: Session, event: Any) -> dict[str, object]:
-    event_id = _read(event, "id")
     event_type = _read(event, "type")
-    if not isinstance(event_id, str) or not isinstance(event_type, str):
+    if not isinstance(event_type, str):
         raise HTTPException(status_code=400, detail="طلب غير صالح.")
 
     data = _read(event, "data", {})
     session = _read(data, "object")
-    existing = db.get(StripeWebhookEvent, event_id)
-    if existing is not None:
-        donation = _donation_for_session(db, session)
-        _maybe_send_confirmation(db, donation)
-        return {"received": True, "duplicate": True}
 
-    receipt = StripeWebhookEvent(event_id=event_id, event_type=event_type)
-    db.add(receipt)
-    try:
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        donation = _donation_for_session(db, session)
-        _maybe_send_confirmation(db, donation)
-        return {"received": True, "duplicate": True}
-
-    if event_type not in SUPPORTED_WEBHOOK_EVENTS:
-        db.commit()
+    if event_type not in PAID_WEBHOOK_EVENTS:
+        return {"received": True, "ignored": True}
+    if _session_metadata(session).get("albayan_flow") != DONATION_FLOW_METADATA:
+        return {"received": True, "ignored": True}
+    if _read(session, "payment_status") != "paid":
         return {"received": True, "ignored": True}
 
-    metadata = _session_metadata(session)
-    if metadata.get("albayan_flow") != DONATION_FLOW_METADATA:
-        db.commit()
-        return {"received": True, "ignored": True}
-
-    donation = _donation_for_session(db, session)
-    if donation is None:
-        logger.warning("Stripe donation webhook could not resolve donation event=%s", event_id)
-        db.commit()
-        return {"received": True, "ignored": True}
-
-    donation.stripe_payment_intent_id = _payment_intent_id(session)
-    donor_email = _customer_email(session)
-    if donor_email:
-        donation.donor_email = donor_email
-
-    payment_status = _read(session, "payment_status")
-    if event_type in {
-        "checkout.session.completed",
-        "checkout.session.async_payment_succeeded",
-    } and payment_status == "paid":
-        donation.status = "paid"
-    elif event_type == "checkout.session.async_payment_failed":
-        donation.status = "failed"
-    elif event_type == "checkout.session.expired" and donation.status != "paid":
-        donation.status = "expired"
-
-    db.commit()
-    _maybe_send_confirmation(db, donation)
-    return {"received": True}
+    sent = _send_confirmation_once(db, session)
+    return {"received": True, "email_sent": sent}
