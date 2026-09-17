@@ -27,7 +27,7 @@ type CheckoutLoadActionsResult =
   | { type: "success"; actions: CheckoutActions }
   | { type: "error"; error?: unknown };
 
-type CheckoutPaymentElement = {
+type CheckoutElement = {
   mount(target: HTMLElement | string): void;
   destroy?: () => void;
   unmount?: () => void;
@@ -38,7 +38,8 @@ type CheckoutInstance = {
   createPaymentElement(options?: {
     layout?: { type: "accordion" | "tabs" };
     wallets?: { link?: "auto" | "never" };
-  }): CheckoutPaymentElement;
+  }): CheckoutElement;
+  createCurrencySelectorElement(): CheckoutElement;
   loadActions(): Promise<CheckoutLoadActionsResult>;
 };
 
@@ -49,6 +50,7 @@ type StripeClient = {
       appearance?: Record<string, unknown>;
       loader?: "auto" | "always" | "never";
     };
+    adaptivePricing?: { allowed: boolean };
   }): CheckoutInstance;
 };
 
@@ -103,6 +105,7 @@ export function DonationCheckout() {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const currencySelectorHost = useRef<HTMLDivElement>(null);
   const paymentElementHost = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<CheckoutActions | null>(null);
 
@@ -123,7 +126,12 @@ export function DonationCheckout() {
   }, []);
 
   useEffect(() => {
-    if (!stripeLoaded || !clientSecret || !paymentElementHost.current) return;
+    if (
+      !stripeLoaded ||
+      !clientSecret ||
+      !paymentElementHost.current ||
+      !currencySelectorHost.current
+    ) return;
     if (!publishableKey || !window.Stripe) {
       setError("خدمة المساهمة غير متاحة مؤقتاً.");
       return;
@@ -133,16 +141,21 @@ export function DonationCheckout() {
     setCanConfirm(false);
     actionsRef.current = null;
     paymentElementHost.current.replaceChildren();
+    currencySelectorHost.current.replaceChildren();
 
     const stripe = window.Stripe(publishableKey, { locale: "ar" });
     const checkout = stripe.initCheckoutElementsSdk({
       clientSecret,
       elementsOptions: { appearance, loader: "auto" },
+      adaptivePricing: { allowed: true },
     });
     checkout.on("change", (session) => {
       setCanConfirm(session.canConfirm);
       setDisplayTotal(session.total.total.amount);
     });
+
+    const currencySelectorElement = checkout.createCurrencySelectorElement();
+    currencySelectorElement.mount(currencySelectorHost.current);
 
     const paymentElement = checkout.createPaymentElement({
       layout: { type: "accordion" },
@@ -170,6 +183,8 @@ export function DonationCheckout() {
       active = false;
       actionsRef.current = null;
       setCheckoutReady(false);
+      currencySelectorElement.unmount?.();
+      currencySelectorElement.destroy?.();
       paymentElement.unmount?.();
       paymentElement.destroy?.();
     };
@@ -322,7 +337,7 @@ export function DonationCheckout() {
             ) : null}
 
             <p className="mt-3 text-xs leading-6 text-slate-500">
-              الحد الأدنى {formatDonationAmount(config.min_amount_minor, config.currency, config.minor_unit_divisor)}، والحد الأقصى {formatDonationAmount(config.max_amount_minor, config.currency, config.minor_unit_divisor)}.
+              تُحدَّد المساهمة بهذه العملة أولاً، ثم تظهر لك العملة المحلية المتاحة تلقائياً عند تجهيز الدفع.
             </p>
           </>
         ) : null}
@@ -357,8 +372,9 @@ export function DonationCheckout() {
             </div>
 
             <div className="rounded-2xl border border-[var(--journal-border)] bg-white p-4 sm:p-5">
-              <p className="mb-4 text-sm font-semibold text-slate-800">وسيلة الدفع</p>
-              <div ref={paymentElementHost} id="donation-payment-element" dir="rtl" />
+              <p className="mb-3 text-sm font-semibold text-slate-800">العملة ووسيلة الدفع</p>
+              <div ref={currencySelectorHost} id="donation-currency-selector" dir="rtl" />
+              <div className="mt-4" ref={paymentElementHost} id="donation-payment-element" dir="rtl" />
             </div>
 
             <div className="rounded-xl bg-[var(--journal-paper)] px-4 py-3 text-sm text-slate-700">
