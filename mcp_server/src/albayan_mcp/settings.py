@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     mcp_resource_url: str = "http://localhost:8080/mcp"
     host: str = "0.0.0.0"
     port: int = 8080
+    enable_transport_probe: bool = True
 
     @property
     def oauth_enabled(self) -> bool:
