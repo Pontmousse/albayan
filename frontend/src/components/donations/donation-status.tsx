@@ -4,10 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  donationMinorUnitDivisor,
   formatDonationAmount,
-  getDonationConfig,
   getDonationStatus,
-  type DonationConfig,
   type DonationStatus,
 } from "@/lib/donations";
 
@@ -15,7 +14,6 @@ export function DonationStatusCard() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const [status, setStatus] = useState<DonationStatus | null>(null);
-  const [config, setConfig] = useState<DonationConfig | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -27,10 +25,6 @@ export function DonationStatusCard() {
     let active = true;
     let timeout: ReturnType<typeof setTimeout> | null = null;
     let attempts = 0;
-
-    void getDonationConfig().then((value) => {
-      if (active) setConfig(value);
-    }).catch(() => undefined);
 
     const load = async () => {
       try {
@@ -53,14 +47,13 @@ export function DonationStatusCard() {
     };
   }, [sessionId]);
 
-  const amount =
-    status && config
-      ? formatDonationAmount(
-          status.amount_minor,
-          status.currency,
-          config.minor_unit_divisor,
-        )
-      : null;
+  const amount = status
+    ? formatDonationAmount(
+        status.amount_minor,
+        status.currency,
+        donationMinorUnitDivisor(status.currency),
+      )
+    : null;
 
   if (failed) {
     return (
