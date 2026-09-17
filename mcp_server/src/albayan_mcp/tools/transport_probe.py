@@ -1,6 +1,6 @@
 """Self-contained MCP transport diagnostics for ChatGPT/Inspector interoperability.
 
-This module deliberately does not call FastAPI, object storage, or the compiler.  It
+This module deliberately does not call FastAPI, object storage, or the compiler. It
 uses tiny deterministic fixtures so a client can test how MCP content blocks and
 OpenAI file parameters survive the MCP bridge in isolation.
 """
@@ -32,7 +32,7 @@ _TEST_PNG_BASE64 = (
 )
 
 # A deterministic one-page PDF containing the text "Al-Bayan MCP transport probe",
-# 608 bytes.  It is a complete PDF with a valid xref/trailer and no external assets.
+# 608 bytes. It is a complete PDF with a valid xref/trailer and no external assets.
 _TEST_PDF_BASE64 = (
     "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMTQ0XSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA1OCA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDM2IDkwIFRkIChBbC1CYXlhbiBNQ1AgdHJhbnNwb3J0IHByb2JlKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA2NCAwMDAwMCBuIAowMDAwMDAwMTIxIDAwMDAwIG4gCjAwMDAwMDAyNDcgMDAwMDAgbiAKMDAwMDAwMDM1NSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQyNQolJUVPRgo="
 )
@@ -80,7 +80,6 @@ ProbeFileItem = DiagnosticFileInput | StrictStr
 ProbeFilesArg = Annotated[
     list[ProbeFileItem] | None,
     Field(
-        default=None,
         description=(
             "Optional ChatGPT-native file binding used only with case=upload_file_params. "
             "The permissive schema accepts the normal web object as well as reported "
@@ -108,19 +107,26 @@ def _safe_upload_summary(files: list[ProbeFileItem] | None) -> str:
     """Describe binding shape without echoing URLs, file IDs, or other opaque secrets."""
 
     items: list[dict[str, Any]] = []
-    for item in files or []:
-        if isinstance(item, str):
-            scheme = item.split("://", 1)[0] if "://" in item else None
+    for raw_item in files or []:
+        if isinstance(raw_item, str):
+            scheme = raw_item.split("://", 1)[0] if "://" in raw_item else None
             items.append(
                 {
                     "kind": "string",
-                    "length": len(item),
-                    "chat_upload_reference": item == "chat_upload" or scheme == "chat_upload",
+                    "length": len(raw_item),
+                    "chat_upload_reference": (
+                        raw_item == "chat_upload" or scheme == "chat_upload"
+                    ),
                     "scheme": scheme if scheme in {"chat_upload"} else None,
                 }
             )
             continue
 
+        item = (
+            DiagnosticFileInput.model_validate(raw_item)
+            if isinstance(raw_item, dict)
+            else raw_item
+        )
         download_scheme: str | None = None
         if item.download_url:
             try:
