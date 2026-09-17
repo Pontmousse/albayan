@@ -4,6 +4,30 @@ on:
   push:
     branches:
       - feature/stripe-donations
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/stripe-donations-ci.yml"
+      - "backend/app/core/config.py"
+      - "backend/app/models/donation.py"
+      - "backend/app/routers/donations.py"
+      - "backend/app/routers/webhooks.py"
+      - "backend/app/schemas/donation.py"
+      - "backend/app/services/donation_email_service.py"
+      - "backend/app/services/donation_service.py"
+      - "backend/tests/test_donations.py"
+      - "backend/alembic/versions/*donations*.py"
+      - "frontend/src/app/daam-al-bayan/**"
+      - "frontend/src/components/donations/**"
+      - "frontend/src/components/main-nav.tsx"
+      - "frontend/src/components/journal/quranic-opening.tsx"
+      - "frontend/src/lib/nav-config.ts"
+      - "frontend/src/lib/donations.ts"
+      - "frontend/scripts/check-donations-ux.mjs"
+      - "emails/src/donations/**"
+      - "emails/scripts/check-donation-template.mjs"
+      - "emails/templates.yaml"
 
 jobs:
   backend:
