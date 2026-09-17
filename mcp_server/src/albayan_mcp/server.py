@@ -66,6 +66,7 @@ def create_server() -> MCPServer:
     register_article_tools(server)
     register_draft_tools(server)
     register_asset_tools(server)
-    register_transport_probe_tool(server)
+    if getattr(settings, "enable_transport_probe", False):
+        register_transport_probe_tool(server)
 
     return server
