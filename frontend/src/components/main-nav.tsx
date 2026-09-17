@@ -14,6 +14,7 @@ import {
   contactNavLink,
   navGroups,
   primaryNavLink,
+  supportNavLink,
   type NavGroup,
 } from "@/lib/nav-config";
 import { isMcpEnabled } from "@/lib/mcp-enabled";
@@ -40,6 +41,25 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeWidth={2}
     >
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function SupportIcon() {
+  return (
+    <svg
+      aria-hidden
+      className="h-4 w-4 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 20.25s-7.5-4.35-7.5-10.05A4.45 4.45 0 0 1 12 6.95a4.45 4.45 0 0 1 7.5 3.25C19.5 15.9 12 20.25 12 20.25Z"
+      />
     </svg>
   );
 }
@@ -138,6 +158,30 @@ function NavTextLink({ href, label }: { href: string; label: string }) {
   );
 }
 
+function SupportNavLink({
+  mobile = false,
+  onClick,
+}: {
+  mobile?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={supportNavLink.href}
+      onClick={onClick}
+      aria-label="دعم مجلة البيان"
+      className={
+        mobile
+          ? "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--journal-accent)] px-4 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--journal-accent-strong)] active:bg-[var(--journal-accent-strong)]"
+          : "inline-flex min-h-10 items-center gap-1.5 rounded-md bg-[var(--journal-accent)] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--journal-accent-strong)]"
+      }
+    >
+      <SupportIcon />
+      <span>{supportNavLink.label}</span>
+    </Link>
+  );
+}
+
 /** قائمة موحّدة للشاشات الصغيرة */
 function MobileNav() {
   const { user } = useUser();
@@ -181,6 +225,9 @@ function MobileNav() {
             {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
             {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
           </div>
+          <div className="border-b border-[var(--journal-border)] px-4 py-3">
+            <SupportNavLink mobile onClick={close} />
+          </div>
           <ul className="py-1">
             {flatLinks.map((item) => (
               <li key={item.href} role="none">
@@ -222,6 +269,7 @@ export function MainNav() {
           <NavDropdown key={group.label} group={group} />
         ))}
         <NavTextLink href={contactNavLink.href} label={contactNavLink.label} />
+        <SupportNavLink />
         <div className="ms-1.5 flex items-center gap-1.5 border-s border-[var(--journal-border)] ps-2">
           <ReportsNavLink />
           {isAdmin ? <AdminNavLink /> : null}
