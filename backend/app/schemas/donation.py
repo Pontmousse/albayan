@@ -27,3 +27,4 @@ class DonationSessionStatusResponse(BaseModel):
     status: str
     amount_minor: int
     currency: str
+    minor_unit_divisor: int
