@@ -52,6 +52,12 @@ export const contactNavLink: NavLink = {
   label: "التواصل",
 };
 
+export const supportNavLink: NavLink = {
+  href: "/daam-al-bayan",
+  label: "دعم البيان",
+  description: "المساهمة في استمرار المجلة وخدماتها العلمية المفتوحة",
+};
+
 export const footerLinks = {
   authors: [
     { href: "/irshadat-al-mualifin", label: "إرشادات المؤلفين" },
@@ -61,7 +67,7 @@ export const footerLinks = {
   about: [
     { href: "/hayat-at-tahrir", label: "هيئة التحرير" },
     { href: "/al-siyasat-wal-shurut", label: "السياسات والشروط" },
-    { href: "/daam-al-bayan", label: "دعم البيان" },
+    supportNavLink,
     { href: "/al-tawasul", label: "التواصل" },
   ],
 };

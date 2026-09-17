@@ -40,7 +40,10 @@ export function QuranicOpening() {
             <br />
             بسم الله الرحمن الرحيم
           </div>
-          <blockquote className="mt-4 text-pretty text-center text-base font-bold leading-[1.95] text-slate-950 sm:mt-6 sm:text-2xl sm:leading-[2.05] lg:text-3xl">
+          <blockquote
+            className="mt-4 text-pretty text-center text-base font-bold leading-[1.95] text-slate-950 sm:mt-6 sm:text-2xl sm:leading-[2.05] lg:text-3xl"
+            style={{ fontFamily: "var(--font-display-ar), serif" }}
+          >
             {verses.map((verse, index) => (
               <span key={verse}>
                 {verse}

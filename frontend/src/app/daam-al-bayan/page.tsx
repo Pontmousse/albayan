@@ -4,7 +4,7 @@ import { DonationCheckout } from "@/components/donations/donation-checkout";
 
 export const metadata: Metadata = {
   title: "دعم البيان | مجلة البيان",
-  description: "مساهمة اختيارية لدعم استمرار مجلة البيان وخدماتها العلمية المجانية.",
+  description: "دعم استمرار مجلة البيان وخدماتها العلمية المفتوحة والمتاحة دون مقابل.",
 };
 
 export default function SupportAlbayanPage() {
@@ -27,7 +27,7 @@ export default function SupportAlbayanPage() {
             دعم مجلة البيان
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-            إن رغبت، يمكنك المساهمة اختيارياً في تكاليف استمرار المجلة وتطوير أدواتها وخدماتها العلمية المفتوحة.
+            إن رغبت، يمكنك المساهمة في تكاليف استمرار المجلة وتطوير أدواتها وخدماتها العلمية المفتوحة.
           </p>
         </header>
 
@@ -44,7 +44,7 @@ export default function SupportAlbayanPage() {
         <div className="mx-auto mt-8 grid max-w-4xl gap-6 lg:grid-cols-[0.86fr_1.14fr] lg:items-start">
           <aside className="space-y-5">
             <section className="rounded-2xl border border-[var(--journal-border)] bg-white/80 p-5 shadow-sm">
-              <h2 className="font-bold text-[var(--journal-accent-strong)]">المساهمة لا تشتري امتيازاً</h2>
+              <h2 className="font-bold text-[var(--journal-accent-strong)]">الدعم مستقل عن المسار العلمي</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600">
                 خدمات مجلة البيان العلمية متاحة دون مقابل، والمساهمة اختيارية ولا تؤثر بأي صورة في التقديم أو التحكيم أو القرار التحريري أو النشر.
               </p>
@@ -56,7 +56,7 @@ export default function SupportAlbayanPage() {
               </p>
             </section>
             <p className="px-1 text-xs leading-6 text-slate-500">
-              هذه المساهمة ليست رسماً للنشر، ولا نعرضها بوصفها تبرعاً معفى من الضرائب أو زكاة أو إيصالاً خيرياً.
+              الدعم لا يُعد رسماً للنشر، ولا يُقدَّم بوصفه تبرعاً معفى من الضرائب أو زكاة أو إيصالاً خيرياً.
             </p>
           </aside>
           <DonationCheckout />
