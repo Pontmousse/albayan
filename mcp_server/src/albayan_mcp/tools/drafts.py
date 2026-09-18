@@ -99,7 +99,7 @@ class DocumentIndexedLabelResult(DraftResultModel):
     key: str
     kind: Literal["fig", "tab", "eq"]
     caption: str
-    number: int = Field(ge=1)
+    number: int
     block_id: str | None = None
     field_id: str | None = None
     token_id: str | None = None
