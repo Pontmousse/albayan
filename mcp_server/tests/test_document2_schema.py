@@ -96,6 +96,8 @@ class Document2McpSchemaTests(unittest.TestCase):
             {
                 "get_draft_outline",
                 "get_draft_blocks",
+                "get_draft_references",
+                "get_draft_reference_index",
                 "apply_draft_command",
                 "compile_draft",
                 "get_compile_status",
