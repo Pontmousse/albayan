@@ -42,6 +42,119 @@ class BuTeXWorkerClientTests(unittest.TestCase):
         self.assertEqual(args[0], "/v1/document2/export")
         self.assertEqual(kwargs["json"], {"document": {"blocks": []}})
 
+    def test_reads_reference_catalog_from_worker(self) -> None:
+        references = [
+            {
+                "key": "smith2026",
+                "authors": "A. Smith",
+                "title": "Example paper",
+                "year": "2026",
+                "venue": "Example Journal",
+                "url": "https://example.org/paper",
+                "field_separator": "،",
+            }
+        ]
+        response = httpx.Response(200, json={"ok": True, "references": references})
+        client = _client_for(response)
+        document = {"node_type": "DocumentObject", "blocks": []}
+
+        with patch.object(
+            butex_worker_client.settings, "butex_worker_url", "http://butex"
+        ), patch.object(
+            butex_worker_client.settings, "butex_worker_token", "secret"
+        ), patch.object(
+            butex_worker_client.httpx, "Client", return_value=client
+        ):
+            result = butex_worker_client.reference_document(document)
+
+        self.assertEqual(result, references)
+        args, kwargs = client.__enter__.return_value.post.call_args
+        self.assertEqual(args[0], "/v1/document2/references")
+        self.assertEqual(kwargs["json"], {"document": document})
+
+    def test_reads_reference_index_from_worker(self) -> None:
+        reference_index = {
+            "citations": [
+                {
+                    "kind": "cite",
+                    "block_id": "block-1",
+                    "field_id": "field-1",
+                    "token_id": "cite-1",
+                    "keys": ["smith2026", "missing"],
+                    "unresolved_keys": ["missing"],
+                }
+            ],
+            "cross_references": [
+                {
+                    "kind": "ref",
+                    "ref_command": "eqref",
+                    "block_id": "block-2",
+                    "field_id": "field-2",
+                    "token_id": "ref-1",
+                    "keys": ["eq:energy"],
+                    "unresolved_keys": [],
+                }
+            ],
+            "labels": [
+                {
+                    "key": "eq:energy",
+                    "kind": "eq",
+                    "caption": "",
+                    "number": 1,
+                    "block_id": "block-3",
+                    "field_id": "field-3",
+                    "token_id": "math-1",
+                }
+            ],
+            "unresolved": {
+                "citation_keys": ["missing"],
+                "cross_reference_keys": [],
+            },
+        }
+        response = httpx.Response(
+            200, json={"ok": True, "reference_index": reference_index}
+        )
+        client = _client_for(response)
+        document = {"node_type": "DocumentObject", "blocks": []}
+
+        with patch.object(
+            butex_worker_client.settings, "butex_worker_url", "http://butex"
+        ), patch.object(
+            butex_worker_client.settings, "butex_worker_token", "secret"
+        ), patch.object(
+            butex_worker_client.httpx, "Client", return_value=client
+        ):
+            result = butex_worker_client.reference_index_document(document)
+
+        self.assertEqual(result, reference_index)
+        args, kwargs = client.__enter__.return_value.post.call_args
+        self.assertEqual(args[0], "/v1/document2/reference-index")
+        self.assertEqual(kwargs["json"], {"document": document})
+
+    def test_rejects_malformed_reference_index_success(self) -> None:
+        response = httpx.Response(
+            200,
+            json={
+                "ok": True,
+                "reference_index": {
+                    "citations": [],
+                    "cross_references": [],
+                    "labels": [],
+                    "unresolved": {"citation_keys": "not-a-list"},
+                },
+            },
+        )
+        with patch.object(
+            butex_worker_client.settings, "butex_worker_url", "http://butex"
+        ), patch.object(
+            butex_worker_client.settings, "butex_worker_token", "secret"
+        ), patch.object(
+            butex_worker_client.httpx, "Client", return_value=_client_for(response)
+        ), self.assertRaises(HTTPException) as raised:
+            butex_worker_client.reference_index_document({"blocks": []})
+
+        self.assertEqual(raised.exception.status_code, 502)
+
     def test_preserves_bounded_export_validation_issues(self) -> None:
         response = httpx.Response(
             422,

@@ -60,6 +60,69 @@ class DraftBlocksResult(DraftResultModel):
     blocks: list[dict[str, Any]]
 
 
+class DocumentReferenceResult(DraftResultModel):
+    key: str
+    authors: str
+    title: str
+    year: str
+    venue: str
+    url: str
+    field_separator: Literal[",", "،"]
+
+
+class DraftReferencesResult(DraftResultModel):
+    revision_id: uuid.UUID
+    revision_number: int = Field(ge=1)
+    references: list[DocumentReferenceResult]
+
+
+class DocumentCitationIndexEntryResult(DraftResultModel):
+    kind: Literal["cite"]
+    block_id: str
+    field_id: str
+    token_id: str
+    keys: list[str]
+    unresolved_keys: list[str]
+
+
+class DocumentCrossReferenceIndexEntryResult(DraftResultModel):
+    kind: Literal["ref"]
+    ref_command: Literal["ref", "eqref"]
+    block_id: str
+    field_id: str
+    token_id: str
+    keys: list[str]
+    unresolved_keys: list[str]
+
+
+class DocumentIndexedLabelResult(DraftResultModel):
+    key: str
+    kind: Literal["fig", "tab", "eq"]
+    caption: str
+    number: int
+    block_id: str | None = None
+    field_id: str | None = None
+    token_id: str | None = None
+
+
+class DocumentUnresolvedReferencesResult(DraftResultModel):
+    citation_keys: list[str]
+    cross_reference_keys: list[str]
+
+
+class DocumentReferenceIndexResult(DraftResultModel):
+    citations: list[DocumentCitationIndexEntryResult]
+    cross_references: list[DocumentCrossReferenceIndexEntryResult]
+    labels: list[DocumentIndexedLabelResult]
+    unresolved: DocumentUnresolvedReferencesResult
+
+
+class DraftReferenceIndexResult(DraftResultModel):
+    revision_id: uuid.UUID
+    revision_number: int = Field(ge=1)
+    reference_index: DocumentReferenceIndexResult
+
+
 class DraftDocumentResult(DraftResultModel):
     node_type: str | None = None
     meta: dict[str, Any] | None = None
@@ -117,6 +180,37 @@ def register_draft_tools(server: MCPServer) -> None:
     async def get_draft_blocks(article_id: ArticleId) -> DraftBlocksResult:
         return DraftBlocksResult(
             **await api_get_object(f"/api/v1/articles/{article_id}/draft/blocks")
+        )
+
+    @server.tool(
+        name="get_draft_references",
+        title="Article draft bibliography references",
+        description=(
+            "Read the current canonical Document2 bibliography catalog through FastAPI. "
+            "This is a pure read: it needs no command_id or base_revision and creates no revision."
+        ),
+    )
+    async def get_draft_references(article_id: ArticleId) -> DraftReferencesResult:
+        return DraftReferencesResult(
+            **await api_get_object(f"/api/v1/articles/{article_id}/draft/references")
+        )
+
+    @server.tool(
+        name="get_draft_reference_index",
+        title="Article draft citation and cross-reference index",
+        description=(
+            "Read BuTeX's semantic index of cite/ref/eqref tokens, labels, stable IDs, and "
+            "unresolved keys for the current canonical draft. This is a pure read and does "
+            "not rebuild the index in MCP or mutate the draft."
+        ),
+    )
+    async def get_draft_reference_index(
+        article_id: ArticleId,
+    ) -> DraftReferenceIndexResult:
+        return DraftReferenceIndexResult(
+            **await api_get_object(
+                f"/api/v1/articles/{article_id}/draft/reference-index"
+            )
         )
 
     @server.tool(
