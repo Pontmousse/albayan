@@ -102,6 +102,37 @@ def _require_success_outline(payload: Any) -> list[dict[str, Any]]:
     return outline
 
 
+def _require_success_references(payload: Any) -> list[dict[str, Any]]:
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise _invalid_response()
+    references = payload.get("references")
+    if not isinstance(references, list) or not all(
+        isinstance(reference, dict) for reference in references
+    ):
+        raise _invalid_response()
+    return references
+
+
+def _require_success_reference_index(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise _invalid_response()
+    reference_index = payload.get("reference_index")
+    if not isinstance(reference_index, dict):
+        raise _invalid_response()
+    for key in ("citations", "cross_references", "labels"):
+        rows = reference_index.get(key)
+        if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
+            raise _invalid_response()
+    unresolved = reference_index.get("unresolved")
+    if not isinstance(unresolved, dict):
+        raise _invalid_response()
+    for key in ("citation_keys", "cross_reference_keys"):
+        values = unresolved.get(key)
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise _invalid_response()
+    return reference_index
+
+
 def _require_success_export(payload: Any) -> tuple[str, list[str]]:
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise _invalid_response()
@@ -167,6 +198,18 @@ def normalize_document(document: dict[str, Any]) -> dict[str, Any]:
 def outline_document(document: dict[str, Any]) -> list[dict[str, Any]]:
     return _require_success_outline(
         _post("/v1/document2/outline", {"document": document})
+    )
+
+
+def reference_document(document: dict[str, Any]) -> list[dict[str, Any]]:
+    return _require_success_references(
+        _post("/v1/document2/references", {"document": document})
+    )
+
+
+def reference_index_document(document: dict[str, Any]) -> dict[str, Any]:
+    return _require_success_reference_index(
+        _post("/v1/document2/reference-index", {"document": document})
     )
 
 
