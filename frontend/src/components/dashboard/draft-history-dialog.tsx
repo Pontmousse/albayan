@@ -44,12 +44,14 @@ export function DraftHistoryDialog({
   getToken,
   onClose,
   onRestore,
+  latestChangesUnsaved = false,
 }: {
   open: boolean;
   articleId: string;
   getToken: GetToken;
   onClose: () => void;
   onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;
+  latestChangesUnsaved?: boolean;
 }) {
   const { formatDateTime, formatDigits } = useNumerals();
   const [revisions, setRevisions] = useState<DraftRevisionHistoryItem[]>([]);
@@ -75,7 +77,7 @@ export function DraftHistoryDialog({
         return rows.find((row) => row.is_current) ?? rows[0] ?? null;
       });
     } catch (err) {
-      setError(userFacingErrorMessage(err, "تعذّر تحميل سجل المسودة."));
+      setError(userFacingErrorMessage(err, "تعذّر تحميل سجل النسخ."));
     } finally {
       setLoadingList(false);
     }
@@ -102,7 +104,7 @@ export function DraftHistoryDialog({
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(userFacingErrorMessage(err, "تعذّر تحميل هذه المراجعة."));
+          setError(userFacingErrorMessage(err, "تعذّر تحميل هذه النسخة."));
         }
       })
       .finally(() => {
@@ -121,7 +123,7 @@ export function DraftHistoryDialog({
       await onRestore(selected);
       setConfirming(false);
     } catch (err) {
-      setError(userFacingErrorMessage(err, "تعذّرت استعادة المراجعة."));
+      setError(userFacingErrorMessage(err, "تعذّرت استعادة النسخة."));
       setConfirming(false);
     } finally {
       setRestoring(false);
@@ -143,10 +145,10 @@ export function DraftHistoryDialog({
               className="text-xl font-bold text-slate-900"
               style={{ fontFamily: "var(--font-display-ar), serif" }}
             >
-              سجل المسودة
+              سجل النسخ
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              آخر مئة مراجعة محفوظة للمقال
+              نسخ محفوظة للمقال يمكنك الرجوع إليها عبر جلسات التحرير
             </p>
           </div>
           <button
@@ -157,6 +159,16 @@ export function DraftHistoryDialog({
             إغلاق
           </button>
         </header>
+
+        <div className="mx-4 mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 sm:mx-6">
+          التراجع والإعادة يخصان جلسة التحرير الحالية فقط. أمّا سجل النسخ فيحفظ نسخاً على الخادم يمكن الرجوع إليها عبر الجلسات. استعادة نسخة محفوظة تبدأ سجلاً محلياً جديداً للتراجع والإعادة من الحالة المستعادة.
+        </div>
+
+        {latestChangesUnsaved ? (
+          <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">
+            أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك تصفح النسخ المحفوظة ومعاينتها الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:mx-6" role="alert">
@@ -176,7 +188,7 @@ export function DraftHistoryDialog({
                 <SkeletonBlock className="h-20" />
               </div>
             ) : revisions.length === 0 ? (
-              <p className="p-4 text-center text-sm text-slate-500">لا توجد مراجعات محفوظة.</p>
+              <p className="p-4 text-center text-sm text-slate-500">لا توجد نسخ محفوظة.</p>
             ) : (
               <ol className="space-y-2">
                 {revisions.map((revision) => (
@@ -192,7 +204,7 @@ export function DraftHistoryDialog({
                     >
                       <span className="flex items-center justify-between gap-2">
                         <strong className="text-sm text-slate-900">
-                          المراجعة {formatDigits(String(revision.revision_number))}
+                          النسخة {formatDigits(String(revision.revision_number))}
                         </strong>
                         {revision.is_current ? (
                           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">الحالية</span>
@@ -206,7 +218,7 @@ export function DraftHistoryDialog({
                       </span>
                       {revision.restored_from_revision_number ? (
                         <span className="mt-1 block text-xs font-medium text-amber-800">
-                          مستعادة من المراجعة {formatDigits(String(revision.restored_from_revision_number))}
+                          مستعادة من النسخة {formatDigits(String(revision.restored_from_revision_number))}
                         </span>
                       ) : null}
                     </button>
@@ -227,7 +239,7 @@ export function DraftHistoryDialog({
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="font-bold text-slate-900">
-                      معاينة المراجعة {formatDigits(String(detail.revision_number))}
+                      معاينة النسخة {formatDigits(String(detail.revision_number))}
                     </h3>
                     <p className="mt-1 text-xs text-slate-500">
                       {formatDateTime(new Date(detail.created_at))}
@@ -239,7 +251,7 @@ export function DraftHistoryDialog({
                       onClick={() => setConfirming(true)}
                       className="min-h-10 rounded-md bg-[var(--journal-accent-strong)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
                     >
-                      استعادة هذه المراجعة
+                      استعادة هذه النسخة
                     </button>
                   ) : null}
                 </div>
@@ -250,7 +262,7 @@ export function DraftHistoryDialog({
                 />
               </div>
             ) : !loadingList ? (
-              <p className="py-12 text-center text-sm text-slate-500">اختر مراجعة لمعاينتها.</p>
+              <p className="py-12 text-center text-sm text-slate-500">اختر نسخة لمعاينتها.</p>
             ) : null}
           </section>
         </div>
@@ -258,9 +270,9 @@ export function DraftHistoryDialog({
 
       <ConfirmDialog
         open={confirming}
-        title="استعادة مراجعة سابقة"
-        description={`ستصبح المراجعة ${selected ? formatDigits(String(selected.revision_number)) : ""} مراجعة جديدة للمسودة. لن تُحذف المراجعات الأحدث، ولن تتغير قائمة مؤلفي المقال.`}
-        confirmLabel="استعادة كمراجعة جديدة"
+        title="استعادة نسخة محفوظة"
+        description={`ستُستعاد النسخة ${selected ? formatDigits(String(selected.revision_number)) : ""} كنسخة حالية جديدة من المسودة، من دون حذف النسخ الأحدث. بعد الاستعادة يبدأ سجل التراجع والإعادة المحلي من الحالة المستعادة من جديد، وتبقى الحالة التي كانت حالية قبل الاستعادة قابلة للرجوع من سجل النسخ ما دامت ضمن النسخ المحفوظة. لن تتغير قائمة مؤلفي المقال.`}
+        confirmLabel="استعادة كنسخة حالية جديدة"
         submitting={restoring}
         onConfirm={() => void confirmRestore()}
         onCancel={() => setConfirming(false)}
