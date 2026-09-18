@@ -31,6 +31,10 @@ import {
   DraftAutosaveController,
 } from "@/lib/draft-autosave";
 import { createButexImageAssetListCache } from "@/lib/butex-image-assets";
+import {
+  openHistoryWithBackgroundFlush,
+  type HistorySaveStatus,
+} from "@/lib/draft-history-performance";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
@@ -81,6 +85,8 @@ export default function TahrirPage() {
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [historyCurrentRevision, setHistoryCurrentRevision] = useState<DraftRevision | null>(null);
+  const [historySaveStatus, setHistorySaveStatus] = useState<HistorySaveStatus>({ kind: "idle" });
   /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
   const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
 
@@ -108,6 +114,7 @@ export default function TahrirPage() {
   }, []);
 
   const applyRevisionToEditor = useCallback((revision: DraftRevision) => {
+    setHistoryCurrentRevision(revision);
     latestDocumentJson.current = revision.document;
     syncVisibleMetadata(revision.document);
     setInitialDocument(revision.document);
@@ -118,11 +125,15 @@ export default function TahrirPage() {
   }, [prefetchFromDocument, syncVisibleMetadata]);
 
   const installAutosaveController = useCallback((initial: DraftRevision) => {
+    setHistoryCurrentRevision(initial);
     autosaveController.current?.dispose();
     autosaveController.current = new DraftAutosaveController({
       initial,
-      save: (document, baseRevision) =>
-        putArticleDraft(getToken, articleId, document, baseRevision),
+      save: async (document, baseRevision) => {
+        const saved = await putArticleDraft(getToken, articleId, document, baseRevision);
+        setHistoryCurrentRevision(saved);
+        return saved;
+      },
       reload: () => getArticleDraft(getToken, articleId),
       onState: (state) => {
         setDirty(state.dirty);
@@ -421,7 +432,11 @@ export default function TahrirPage() {
 
   function handleOpenHistory() {
     setError(null);
-    setHistoryOpen(true);
+    openHistoryWithBackgroundFlush({
+      controller: autosaveController.current,
+      onOpen: () => setHistoryOpen(true),
+      onStatus: setHistorySaveStatus,
+    });
   }
 
   async function handleRestoreHistory(revision: DraftRevisionHistoryItem) {
@@ -557,7 +572,7 @@ export default function TahrirPage() {
                 type="button"
                 onClick={() => {
                   setConflictNotice(null);
-                  setHistoryOpen(true);
+                  handleOpenHistory();
                 }}
                 className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
               >
@@ -657,6 +672,8 @@ export default function TahrirPage() {
         onClose={() => setHistoryOpen(false)}
         onRestore={handleRestoreHistory}
         latestChangesUnsaved={dirty || saveFailed}
+        currentRevision={historyCurrentRevision}
+        backgroundSaveStatus={historySaveStatus}
       />
 
       {showDevJson ? (

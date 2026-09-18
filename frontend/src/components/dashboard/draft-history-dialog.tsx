@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
@@ -9,9 +9,16 @@ import { AnimatedOverlay } from "@/components/ui/animated-overlay";
 import {
   getDraftRevision,
   listDraftRevisions,
+  type DraftRevision,
   type DraftRevisionHistoryDetail,
   type DraftRevisionHistoryItem,
 } from "@/lib/api/articles";
+import {
+  findLocalHistoryDetail,
+  historyDetailFromLocalRevision,
+  historyItemFromLocalRevision,
+  type HistorySaveStatus,
+} from "@/lib/draft-history-performance";
 import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type GetToken = () => Promise<string | null>;
@@ -45,6 +52,8 @@ export function DraftHistoryDialog({
   onClose,
   onRestore,
   latestChangesUnsaved = false,
+  currentRevision,
+  backgroundSaveStatus = { kind: "idle" },
 }: {
   open: boolean;
   articleId: string;
@@ -52,6 +61,8 @@ export function DraftHistoryDialog({
   onClose: () => void;
   onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;
   latestChangesUnsaved?: boolean;
+  currentRevision: DraftRevision | null;
+  backgroundSaveStatus?: HistorySaveStatus;
 }) {
   const { formatDateTime, formatDigits } = useNumerals();
   const [revisions, setRevisions] = useState<DraftRevisionHistoryItem[]>([]);
@@ -62,6 +73,11 @@ export function DraftHistoryDialog({
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const localDetailsRef = useRef(new Map<string, DraftRevisionHistoryDetail>());
+  const currentRevisionRef = useRef<DraftRevision | null>(currentRevision);
+  const followingCurrentRef = useRef(true);
+  const wasOpenRef = useRef(false);
+  currentRevisionRef.current = currentRevision;
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -69,12 +85,32 @@ export function DraftHistoryDialog({
     try {
       const rows = await listDraftRevisions(getToken, articleId);
       setRevisions(rows);
+      for (const row of rows) {
+        const local = localDetailsRef.current.get(row.revision_id);
+        if (local) {
+          localDetailsRef.current.set(row.revision_id, {
+            ...local,
+            ...row,
+            document: local.document,
+          });
+        }
+      }
       setSelected((current) => {
+        const localCurrent = currentRevisionRef.current;
+        if (followingCurrentRef.current && localCurrent) {
+          return (
+            rows.find((row) => row.revision_id === localCurrent.revision_id) ??
+            rows.find((row) => row.is_current) ??
+            historyItemFromLocalRevision(localCurrent)
+          );
+        }
         if (current) {
           const refreshed = rows.find((row) => row.revision_id === current.revision_id);
           if (refreshed) return refreshed;
         }
-        return rows.find((row) => row.is_current) ?? rows[0] ?? null;
+        const fallback = rows.find((row) => row.is_current) ?? rows[0] ?? null;
+        followingCurrentRef.current = fallback?.is_current ?? false;
+        return fallback;
       });
     } catch (err) {
       setError(userFacingErrorMessage(err, "تعذّر تحميل سجل النسخ."));
@@ -84,14 +120,41 @@ export function DraftHistoryDialog({
   }, [articleId, getToken]);
 
   useEffect(() => {
-    if (!open) return;
-    setDetail(null);
+    if (!open) {
+      wasOpenRef.current = false;
+      return;
+    }
+    if (!wasOpenRef.current) {
+      followingCurrentRef.current = true;
+      wasOpenRef.current = true;
+    }
+    if (currentRevision) {
+      const localDetail = historyDetailFromLocalRevision(currentRevision);
+      localDetailsRef.current.set(currentRevision.revision_id, localDetail);
+      if (followingCurrentRef.current) {
+        setSelected(historyItemFromLocalRevision(currentRevision));
+        setDetail(localDetail);
+        setLoadingDetail(false);
+      }
+    } else if (followingCurrentRef.current) {
+      setSelected(null);
+      setDetail(null);
+    }
     void loadList();
-  }, [open, loadList]);
+  }, [currentRevision, loadList, open]);
 
   useEffect(() => {
     if (!open || !selected) {
       setDetail(null);
+      return;
+    }
+    const local = findLocalHistoryDetail(selected.revision_id, localDetailsRef.current);
+    if (local) {
+      const resolved = { ...local, ...selected, document: local.document };
+      localDetailsRef.current.set(selected.revision_id, resolved);
+      setDetail(resolved);
+      setLoadingDetail(false);
+      setError(null);
       return;
     }
     let cancelled = false;
@@ -164,7 +227,15 @@ export function DraftHistoryDialog({
           التراجع والإعادة يخصان جلسة التحرير الحالية فقط. أمّا سجل النسخ فيحفظ نسخاً على الخادم يمكن الرجوع إليها عبر الجلسات. استعادة نسخة محفوظة تبدأ سجلاً محلياً جديداً للتراجع والإعادة من الحالة المستعادة.
         </div>
 
-        {latestChangesUnsaved ? (
+        {backgroundSaveStatus.kind === "saving" ? (
+          <div className="mx-4 mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 sm:mx-6" role="status">
+            جارٍ حفظ أحدث تغييرات جلسة التحرير في الخلفية. يمكنك تصفح النسخ المحفوظة الآن، وستظهر النسخة الجديدة هنا فور اكتمال الحفظ.
+          </div>
+        ) : backgroundSaveStatus.kind === "failed" ? (
+          <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">
+            {backgroundSaveStatus.message}
+          </div>
+        ) : latestChangesUnsaved ? (
           <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">
             أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك تصفح النسخ المحفوظة ومعاينتها الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.
           </div>
@@ -195,7 +266,10 @@ export function DraftHistoryDialog({
                   <li key={revision.revision_id}>
                     <button
                       type="button"
-                      onClick={() => setSelected(revision)}
+                      onClick={() => {
+                        followingCurrentRef.current = revision.is_current;
+                        setSelected(revision);
+                      }}
                       className={`w-full rounded-lg border p-3 text-start transition ${
                         selected?.revision_id === revision.revision_id
                           ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)]"
