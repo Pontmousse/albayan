@@ -216,6 +216,69 @@ class DocumentBlocksRead(BaseModel):
     blocks: list[Any]
 
 
+class DocumentReferenceRead(BaseModel):
+    key: str
+    authors: str
+    title: str
+    year: str
+    venue: str
+    url: str
+    field_separator: Literal[",", "،"]
+
+
+class DraftReferencesRead(BaseModel):
+    revision_id: UUID
+    revision_number: int
+    references: list[DocumentReferenceRead]
+
+
+class DocumentCitationIndexEntry(BaseModel):
+    kind: Literal["cite"]
+    block_id: str
+    field_id: str
+    token_id: str
+    keys: list[str]
+    unresolved_keys: list[str]
+
+
+class DocumentCrossReferenceIndexEntry(BaseModel):
+    kind: Literal["ref"]
+    ref_command: Literal["ref", "eqref"]
+    block_id: str
+    field_id: str
+    token_id: str
+    keys: list[str]
+    unresolved_keys: list[str]
+
+
+class DocumentIndexedLabel(BaseModel):
+    key: str
+    kind: Literal["fig", "tab", "eq"]
+    caption: str
+    number: int = Field(ge=1)
+    block_id: str | None = None
+    field_id: str | None = None
+    token_id: str | None = None
+
+
+class DocumentUnresolvedReferences(BaseModel):
+    citation_keys: list[str]
+    cross_reference_keys: list[str]
+
+
+class DocumentReferenceIndex(BaseModel):
+    citations: list[DocumentCitationIndexEntry]
+    cross_references: list[DocumentCrossReferenceIndexEntry]
+    labels: list[DocumentIndexedLabel]
+    unresolved: DocumentUnresolvedReferences
+
+
+class DraftReferenceIndexRead(BaseModel):
+    revision_id: UUID
+    revision_number: int
+    reference_index: DocumentReferenceIndex
+
+
 class DocumentCommandResult(BaseModel):
     ok: bool = True
     revision_id: UUID
