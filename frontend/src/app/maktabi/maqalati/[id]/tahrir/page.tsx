@@ -419,24 +419,14 @@ export default function TahrirPage() {
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
-  async function handleOpenHistory() {
+  function handleOpenHistory() {
     setError(null);
-    const controller = autosaveController.current;
-    if (!controller) {
-      setError("تعذّر تهيئة سجل المسودة.");
-      return;
-    }
-    const saved = await controller.flush();
-    if (saved === false && controller.isUnsafeToLeave()) {
-      setError("تعذّر حفظ أحدث التغييرات؛ لن يُفتح السجل حتى ينجح الحفظ.");
-      return;
-    }
     setHistoryOpen(true);
   }
 
   async function handleRestoreHistory(revision: DraftRevisionHistoryItem) {
     const controller = autosaveController.current;
-    if (!controller) throw new ApiError("تعذّر تهيئة استعادة المراجعة.", 409);
+    if (!controller) throw new ApiError("تعذّر تهيئة استعادة النسخة.", 409);
     const saved = await controller.flush();
     if (saved === false && controller.isUnsafeToLeave()) {
       throw new ApiError("تعذّر حفظ أحدث التغييرات؛ لن تبدأ الاستعادة.", 409);
@@ -457,7 +447,7 @@ export default function TahrirPage() {
       } : current);
       setHistoryOpen(false);
       setConflictNotice(
-        `تمت استعادة المراجعة ${formatDigits(String(revision.revision_number))} كمراجعة جديدة ${formatDigits(String(restored.revision_number))}.`,
+        `تمت استعادة النسخة ${formatDigits(String(revision.revision_number))} كنسخة حالية جديدة ${formatDigits(String(restored.revision_number))}. يبدأ التراجع والإعادة في جلسة التحرير من هذه الحالة من جديد، وتبقى الحالة التي كانت حالية قبل الاستعادة متاحة من سجل النسخ ما دامت ضمن النسخ المحفوظة.`,
       );
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -468,7 +458,7 @@ export default function TahrirPage() {
         setConflictNotice(
           "وصلت تعديلات أحدث من مصدر آخر؛ حُمّلت أحدث مسودة وأُلغيت الاستعادة.",
         );
-        throw new ApiError("تغيّرت المسودة؛ حُدّث السجل وأُلغيت الاستعادة.", 409);
+        throw new ApiError("تغيّرت المسودة؛ حُدّث سجل النسخ وأُلغيت الاستعادة.", 409);
       }
       throw err;
     }
@@ -524,11 +514,12 @@ export default function TahrirPage() {
             ) : null}
             <button
               type="button"
-              onClick={() => void handleOpenHistory()}
+              onClick={handleOpenHistory}
               disabled={phase !== "ready"}
+              title="سجل النسخ المحفوظة عبر الجلسات. التراجع والإعادة يخصان جلسة التحرير الحالية فقط."
               className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              سجل المسودة
+              سجل النسخ
             </button>
             <button
               type="button"
@@ -557,17 +548,29 @@ export default function TahrirPage() {
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         {conflictNotice ? (
           <div
-            className="mb-4 flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+            className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
             role="alert"
           >
-            <p>{conflictNotice}</p>
-            <button
-              type="button"
-              onClick={() => setConflictNotice(null)}
-              className="shrink-0 rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
-            >
-              حسناً
-            </button>
+            <p className="min-w-0 flex-1">{conflictNotice}</p>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setConflictNotice(null);
+                  setHistoryOpen(true);
+                }}
+                className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+              >
+                عرض سجل النسخ
+              </button>
+              <button
+                type="button"
+                onClick={() => setConflictNotice(null)}
+                className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+              >
+                حسناً
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -653,6 +656,7 @@ export default function TahrirPage() {
         getToken={getToken}
         onClose={() => setHistoryOpen(false)}
         onRestore={handleRestoreHistory}
+        latestChangesUnsaved={dirty || saveFailed}
       />
 
       {showDevJson ? (
