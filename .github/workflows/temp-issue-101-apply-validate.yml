@@ -1,0 +1,148 @@
+name: Temporary issue 101 apply and validate
+
+on:
+  push:
+    branches:
+      - perf/issue-101-history-open
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: perf/issue-101-history-open
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Apply issue 101 host changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: Path, old: str, new: str):
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected exactly one match in {path}: found {count}\n{old[:160]}")
+              path.write_text(text.replace(old, new, 1))
+
+          page = Path('frontend/src/app/maktabi/maqalati/[id]/tahrir/page.tsx')
+          dialog = Path('frontend/src/components/dashboard/draft-history-dialog.tsx')
+
+          replace_once(
+              page,
+              'import { createButexImageAssetListCache } from "@/lib/butex-image-assets";\n',
+              'import { createButexImageAssetListCache } from "@/lib/butex-image-assets";\nimport {\n  openHistoryWithBackgroundFlush,\n  type HistorySaveStatus,\n} from "@/lib/draft-history-performance";\n',
+          )
+          replace_once(
+              page,
+              '  const [historyOpen, setHistoryOpen] = useState(false);\n  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);\n',
+              '  const [historyOpen, setHistoryOpen] = useState(false);\n  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);\n  const [historyCurrentRevision, setHistoryCurrentRevision] = useState<DraftRevision | null>(null);\n  const [historySaveStatus, setHistorySaveStatus] = useState<HistorySaveStatus>({ kind: "idle" });\n',
+          )
+          replace_once(
+              page,
+              '  const applyRevisionToEditor = useCallback((revision: DraftRevision) => {\n    latestDocumentJson.current = revision.document;\n',
+              '  const applyRevisionToEditor = useCallback((revision: DraftRevision) => {\n    setHistoryCurrentRevision(revision);\n    latestDocumentJson.current = revision.document;\n',
+          )
+          replace_once(
+              page,
+              '  const installAutosaveController = useCallback((initial: DraftRevision) => {\n    autosaveController.current?.dispose();\n',
+              '  const installAutosaveController = useCallback((initial: DraftRevision) => {\n    setHistoryCurrentRevision(initial);\n    autosaveController.current?.dispose();\n',
+          )
+          replace_once(
+              page,
+              '      save: (document, baseRevision) =>\n        putArticleDraft(getToken, articleId, document, baseRevision),\n',
+              '      save: async (document, baseRevision) => {\n        const saved = await putArticleDraft(getToken, articleId, document, baseRevision);\n        setHistoryCurrentRevision(saved);\n        return saved;\n      },\n',
+          )
+          replace_once(
+              page,
+              '  function handleOpenHistory() {\n    setError(null);\n    setHistoryOpen(true);\n  }\n',
+              '  function handleOpenHistory() {\n    setError(null);\n    openHistoryWithBackgroundFlush({\n      controller: autosaveController.current,\n      onOpen: () => setHistoryOpen(true),\n      onStatus: setHistorySaveStatus,\n    });\n  }\n',
+          )
+          replace_once(
+              page,
+              '                onClick={() => {\n                  setConflictNotice(null);\n                  setHistoryOpen(true);\n                }}\n',
+              '                onClick={() => {\n                  setConflictNotice(null);\n                  handleOpenHistory();\n                }}\n',
+          )
+          replace_once(
+              page,
+              '        onRestore={handleRestoreHistory}\n        latestChangesUnsaved={dirty || saveFailed}\n',
+              '        onRestore={handleRestoreHistory}\n        latestChangesUnsaved={dirty || saveFailed}\n        currentRevision={historyCurrentRevision}\n        backgroundSaveStatus={historySaveStatus}\n',
+          )
+
+          replace_once(
+              dialog,
+              'import { useCallback, useEffect, useState } from "react";\n',
+              'import { useCallback, useEffect, useRef, useState } from "react";\n',
+          )
+          replace_once(
+              dialog,
+              '  listDraftRevisions,\n  type DraftRevisionHistoryDetail,\n',
+              '  listDraftRevisions,\n  type DraftRevision,\n  type DraftRevisionHistoryDetail,\n',
+          )
+          replace_once(
+              dialog,
+              'import { userFacingErrorMessage } from "@/lib/user-facing-errors";\n',
+              'import {\n  findLocalHistoryDetail,\n  historyDetailFromLocalRevision,\n  historyItemFromLocalRevision,\n  type HistorySaveStatus,\n} from "@/lib/draft-history-performance";\nimport { userFacingErrorMessage } from "@/lib/user-facing-errors";\n',
+          )
+          replace_once(
+              dialog,
+              '  onRestore,\n  latestChangesUnsaved = false,\n}: {\n',
+              '  onRestore,\n  latestChangesUnsaved = false,\n  currentRevision,\n  backgroundSaveStatus = { kind: "idle" },\n}: {\n',
+          )
+          replace_once(
+              dialog,
+              '  onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;\n  latestChangesUnsaved?: boolean;\n}) {\n',
+              '  onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;\n  latestChangesUnsaved?: boolean;\n  currentRevision: DraftRevision | null;\n  backgroundSaveStatus?: HistorySaveStatus;\n}) {\n',
+          )
+          replace_once(
+              dialog,
+              '  const [confirming, setConfirming] = useState(false);\n  const [restoring, setRestoring] = useState(false);\n\n  const loadList = useCallback(async () => {\n',
+              '  const [confirming, setConfirming] = useState(false);\n  const [restoring, setRestoring] = useState(false);\n  const localDetailsRef = useRef(new Map<string, DraftRevisionHistoryDetail>());\n  const currentRevisionRef = useRef<DraftRevision | null>(currentRevision);\n  const followingCurrentRef = useRef(true);\n  const wasOpenRef = useRef(false);\n  currentRevisionRef.current = currentRevision;\n\n  const loadList = useCallback(async () => {\n',
+          )
+
+          old_logic = '''  const loadList = useCallback(async () => {\n    setLoadingList(true);\n    setError(null);\n    try {\n      const rows = await listDraftRevisions(getToken, articleId);\n      setRevisions(rows);\n      setSelected((current) => {\n        if (current) {\n          const refreshed = rows.find((row) => row.revision_id === current.revision_id);\n          if (refreshed) return refreshed;\n        }\n        return rows.find((row) => row.is_current) ?? rows[0] ?? null;\n      });\n    } catch (err) {\n      setError(userFacingErrorMessage(err, "تعذّر تحميل سجل النسخ."));\n    } finally {\n      setLoadingList(false);\n    }\n  }, [articleId, getToken]);\n\n  useEffect(() => {\n    if (!open) return;\n    setDetail(null);\n    void loadList();\n  }, [open, loadList]);\n\n  useEffect(() => {\n    if (!open || !selected) {\n      setDetail(null);\n      return;\n    }\n    let cancelled = false;\n    setLoadingDetail(true);\n    setDetail(null);\n    setError(null);\n    getDraftRevision(getToken, articleId, selected.revision_id)\n      .then((value) => {\n        if (!cancelled) setDetail(value);\n      })\n      .catch((err) => {\n        if (!cancelled) {\n          setError(userFacingErrorMessage(err, "تعذّر تحميل هذه النسخة."));\n        }\n      })\n      .finally(() => {\n        if (!cancelled) setLoadingDetail(false);\n      });\n    return () => {\n      cancelled = true;\n    };\n  }, [articleId, getToken, open, selected]);\n'''
+          new_logic = '''  const loadList = useCallback(async () => {\n    setLoadingList(true);\n    setError(null);\n    try {\n      const rows = await listDraftRevisions(getToken, articleId);\n      setRevisions(rows);\n      for (const row of rows) {\n        const local = localDetailsRef.current.get(row.revision_id);\n        if (local) {\n          localDetailsRef.current.set(row.revision_id, {\n            ...local,\n            ...row,\n            document: local.document,\n          });\n        }\n      }\n      setSelected((current) => {\n        const localCurrent = currentRevisionRef.current;\n        if (followingCurrentRef.current && localCurrent) {\n          return (\n            rows.find((row) => row.revision_id === localCurrent.revision_id) ??\n            rows.find((row) => row.is_current) ??\n            historyItemFromLocalRevision(localCurrent)\n          );\n        }\n        if (current) {\n          const refreshed = rows.find((row) => row.revision_id === current.revision_id);\n          if (refreshed) return refreshed;\n        }\n        const fallback = rows.find((row) => row.is_current) ?? rows[0] ?? null;\n        followingCurrentRef.current = fallback?.is_current ?? false;\n        return fallback;\n      });\n    } catch (err) {\n      setError(userFacingErrorMessage(err, "تعذّر تحميل سجل النسخ."));\n    } finally {\n      setLoadingList(false);\n    }\n  }, [articleId, getToken]);\n\n  useEffect(() => {\n    if (!open) {\n      wasOpenRef.current = false;\n      return;\n    }\n    if (!wasOpenRef.current) {\n      followingCurrentRef.current = true;\n      wasOpenRef.current = true;\n    }\n    if (currentRevision) {\n      const localDetail = historyDetailFromLocalRevision(currentRevision);\n      localDetailsRef.current.set(currentRevision.revision_id, localDetail);\n      if (followingCurrentRef.current) {\n        setSelected(historyItemFromLocalRevision(currentRevision));\n        setDetail(localDetail);\n        setLoadingDetail(false);\n      }\n    } else if (followingCurrentRef.current) {\n      setSelected(null);\n      setDetail(null);\n    }\n    void loadList();\n  }, [currentRevision, loadList, open]);\n\n  useEffect(() => {\n    if (!open || !selected) {\n      setDetail(null);\n      return;\n    }\n    const local = findLocalHistoryDetail(selected.revision_id, localDetailsRef.current);\n    if (local) {\n      const resolved = { ...local, ...selected, document: local.document };\n      localDetailsRef.current.set(selected.revision_id, resolved);\n      setDetail(resolved);\n      setLoadingDetail(false);\n      setError(null);\n      return;\n    }\n    let cancelled = false;\n    setLoadingDetail(true);\n    setDetail(null);\n    setError(null);\n    getDraftRevision(getToken, articleId, selected.revision_id)\n      .then((value) => {\n        if (!cancelled) setDetail(value);\n      })\n      .catch((err) => {\n        if (!cancelled) {\n          setError(userFacingErrorMessage(err, "تعذّر تحميل هذه النسخة."));\n        }\n      })\n      .finally(() => {\n        if (!cancelled) setLoadingDetail(false);\n      });\n    return () => {\n      cancelled = true;\n    };\n  }, [articleId, getToken, open, selected]);\n'''
+          replace_once(dialog, old_logic, new_logic)
+
+          replace_once(
+              dialog,
+              '                      onClick={() => setSelected(revision)}\n',
+              '                      onClick={() => {\n                        followingCurrentRef.current = revision.is_current;\n                        setSelected(revision);\n                      }}\n',
+          )
+
+          old_status = '''        {latestChangesUnsaved ? (\n          <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">\n            أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك تصفح النسخ المحفوظة ومعاينتها الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.\n          </div>\n        ) : null}\n'''
+          new_status = '''        {backgroundSaveStatus.kind === "saving" ? (\n          <div className="mx-4 mt-3 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 sm:mx-6" role="status">\n            جارٍ حفظ أحدث تغييرات جلسة التحرير في الخلفية. يمكنك تصفح النسخ المحفوظة الآن، وستظهر النسخة الجديدة هنا فور اكتمال الحفظ.\n          </div>\n        ) : backgroundSaveStatus.kind === "failed" ? (\n          <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">\n            {backgroundSaveStatus.message}\n          </div>\n        ) : latestChangesUnsaved ? (\n          <div className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 sm:mx-6" role="status">\n            أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك تصفح النسخ المحفوظة ومعاينتها الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.\n          </div>\n        ) : null}\n'''
+          replace_once(dialog, old_status, new_status)
+          PY
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Test
+        working-directory: frontend
+        run: npm test
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+      - name: Commit validated changes and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temp-issue-101-apply-validate.yml
+          git add frontend/src/app/maktabi/maqalati/'[id]'/tahrir/page.tsx frontend/src/components/dashboard/draft-history-dialog.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "Optimize draft history opening and current revision reuse"
+          git push
