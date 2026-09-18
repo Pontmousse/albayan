@@ -53,6 +53,8 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "update_article_metadata",
                 "get_draft_outline",
                 "get_draft_blocks",
+                "get_draft_references",
+                "get_draft_reference_index",
                 "apply_draft_command",
                 "compile_draft",
                 "get_compile_status",
