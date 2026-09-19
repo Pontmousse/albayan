@@ -197,7 +197,7 @@ class DonationServiceTests(unittest.TestCase):
             to="donor@example.com",
             amount_text="25.00 CAD",
             donation_reference="cs_test_paid",
-            idempotency_key=f"donation-received/{session_id}",
+            idempotency_key="donation-received/cs_test_paid",
         )
 
     def test_paid_webhook_does_not_resend_after_durable_email_receipt(self) -> None:
