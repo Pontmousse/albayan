@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 _MAX_BODY_BYTES = 5 * 1024 * 1024
 _TIMEOUT_SECONDS = 15.0
 _EXPECTED_WORKER_STATUSES = {400, 401, 404, 413, 422}
+_DIFF_KINDS = {"added", "removed", "context"}
+_MAX_DIFF_CHUNKS = 500
+_MAX_DIFF_CHUNK_CHARS = 20_000
 
 _UNCONFIGURED = HTTPException(
     status_code=503,
@@ -150,6 +153,48 @@ def _require_success_export(payload: Any) -> tuple[str, list[str]]:
     return latex, asset_ids
 
 
+def _require_success_diff(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise _invalid_response()
+    diff = payload.get("diff")
+    if not isinstance(diff, dict):
+        raise _invalid_response()
+    if diff.get("version") != 1:
+        raise _invalid_response()
+    changed = diff.get("changed")
+    truncated = diff.get("truncated")
+    chunks = diff.get("chunks")
+    if not isinstance(changed, bool) or not isinstance(truncated, bool):
+        raise _invalid_response()
+    if not isinstance(chunks, list) or len(chunks) > _MAX_DIFF_CHUNKS:
+        raise _invalid_response()
+
+    validated_chunks: list[dict[str, str]] = []
+    for chunk in chunks:
+        if not isinstance(chunk, dict) or set(chunk) != {"kind", "text"}:
+            raise _invalid_response()
+        kind = chunk.get("kind")
+        text = chunk.get("text")
+        if kind not in _DIFF_KINDS:
+            raise _invalid_response()
+        if (
+            not isinstance(text, str)
+            or not text
+            or len(text) > _MAX_DIFF_CHUNK_CHARS
+        ):
+            raise _invalid_response()
+        validated_chunks.append({"kind": kind, "text": text})
+
+    if changed is False and validated_chunks:
+        raise _invalid_response()
+    return {
+        "version": 1,
+        "changed": changed,
+        "truncated": truncated,
+        "chunks": validated_chunks,
+    }
+
+
 def _post(path: str, payload: dict[str, Any]) -> Any:
     base = settings.butex_worker_url.rstrip("/")
     token = settings.butex_worker_token.strip()
@@ -216,6 +261,14 @@ def reference_index_document(document: dict[str, Any]) -> dict[str, Any]:
 def export_document(document: dict[str, Any]) -> tuple[str, list[str]]:
     return _require_success_export(
         _post("/v1/document2/export", {"document": document})
+    )
+
+
+def diff_documents(
+    before: dict[str, Any], after: dict[str, Any]
+) -> dict[str, Any]:
+    return _require_success_diff(
+        _post("/v1/document2/diff", {"before": before, "after": after})
     )
 
 
