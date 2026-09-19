@@ -18,6 +18,7 @@ from app.models.issue import Issue, IssueImage, IssueUpvote  # noqa: F401
 from app.models.invitation import Invitation  # noqa: F401
 from app.models.mcp_call_log import McpCallLog  # noqa: F401
 from app.models.notification import Notification  # noqa: F401
+from app.models.revision_summary import DraftRevisionChangeSummary  # noqa: F401
 from app.models.user import User  # noqa: F401
 
 config = context.config
