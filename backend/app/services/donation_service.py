@@ -122,7 +122,6 @@ def create_checkout_session(amount_minor: int) -> DonationCheckoutResponse:
                 "mode": "payment",
                 "return_url": return_url,
                 "adaptive_pricing": {"enabled": True},
-                "allowed_payment_method_types": ["card"],
                 "billing_address_collection": "auto",
                 "line_items": [
                     {
@@ -142,9 +141,14 @@ def create_checkout_session(amount_minor: int) -> DonationCheckoutResponse:
             }
         )
     except Exception as exc:
+        stripe_message = str(exc).replace("\n", " ")[:500]
         logger.warning(
-            "Stripe Checkout Session creation failed error=%s",
+            "Stripe Checkout Session creation failed error=%s code=%s param=%s request_id=%s message=%s",
             type(exc).__name__,
+            getattr(exc, "code", None),
+            getattr(exc, "param", None),
+            getattr(exc, "request_id", None),
+            stripe_message,
         )
         raise HTTPException(
             status_code=502,
