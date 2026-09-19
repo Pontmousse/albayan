@@ -86,6 +86,7 @@ class DonationServiceTests(unittest.TestCase):
         params = client.v1.checkout.sessions.create.call_args.kwargs["params"]
         self.assertEqual(params["ui_mode"], "elements")
         self.assertEqual(params["mode"], "payment")
+        self.assertEqual(params["managed_payments"], {"enabled": False})
         self.assertEqual(params["adaptive_pricing"], {"enabled": True})
         self.assertNotIn("allowed_payment_method_types", params)
         self.assertEqual(params["line_items"][0]["price_data"]["unit_amount"], 2500)
@@ -196,7 +197,7 @@ class DonationServiceTests(unittest.TestCase):
             to="donor@example.com",
             amount_text="25.00 CAD",
             donation_reference="cs_test_paid",
-            idempotency_key=f"donation-received/cs_test_paid",
+            idempotency_key=f"donation-received/{session_id}",
         )
 
     def test_paid_webhook_does_not_resend_after_durable_email_receipt(self) -> None:
