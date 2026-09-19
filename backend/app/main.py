@@ -15,6 +15,7 @@ from app.routers import (
     mcp_logs,
     notifications,
     public,
+    revision_summaries,
     reviews,
     users,
     webhooks,
@@ -42,6 +43,7 @@ app.include_router(webhooks.router)
 app.include_router(agent_tokens.router)
 app.include_router(articles.router)
 app.include_router(draft_references.router)
+app.include_router(revision_summaries.router)
 app.include_router(admin.router)
 app.include_router(admin_mcp.router)
 app.include_router(mcp_logs.router)
