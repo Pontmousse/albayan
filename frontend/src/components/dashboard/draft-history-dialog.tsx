@@ -228,6 +228,7 @@ export function DraftHistoryDialog({
     setPreviewOpen(false);
     setPreviewDocument(null);
     setPreviewError(null);
+    setLoadingPreview(false);
     setSummary(null);
     setSummaryUnavailable(false);
     void loadList();
@@ -238,6 +239,7 @@ export function DraftHistoryDialog({
     setPreviewOpen(false);
     setPreviewDocument(null);
     setPreviewError(null);
+    setLoadingPreview(false);
 
     if (!open || !selected) {
       setSummary(null);
