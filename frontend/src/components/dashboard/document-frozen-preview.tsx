@@ -11,17 +11,17 @@ import {
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
-const ButexDocumentEditor2 = dynamic(
+const ButexDocumentPreview = dynamic(
   () =>
-    import("@drghaliasri/butex/react-document2").then(
-      (mod) => mod.ButexDocumentEditor2,
+    import("@drghaliasri/butex/react-document2-preview").then(
+      (mod) => mod.ButexDocumentPreview,
     ),
   { ssr: false },
 );
 
 type GetToken = () => Promise<string | null>;
 
-/** معاينة مجمّدة — ButexDocumentEditor2 مع previewOnly (BuTeX 4.3+). */
+/** Lightweight, read-only BuTeX Document2 preview for frozen revisions. */
 export function DocumentFrozenPreview({
   documentJson,
   articleId,
@@ -92,10 +92,9 @@ export function DocumentFrozenPreview({
 
   return (
     <div className="overflow-x-auto rounded-xl border border-[var(--journal-border)] bg-white p-3 sm:p-5">
-      <ButexDocumentEditor2
+      <ButexDocumentPreview
         className={ALBAYAN_BUTEX_THEME_CLASS}
-        initialDocument={documentJson as Document2Json | Document2Node}
-        previewOnly
+        document={documentJson as Document2Json | Document2Node}
         documentDirection="rtl"
         uiLocale="ar"
         mathOutput="svg"
