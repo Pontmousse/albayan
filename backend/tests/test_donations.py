@@ -87,10 +87,41 @@ class DonationServiceTests(unittest.TestCase):
         self.assertEqual(params["ui_mode"], "elements")
         self.assertEqual(params["mode"], "payment")
         self.assertEqual(params["adaptive_pricing"], {"enabled": True})
+        self.assertNotIn("allowed_payment_method_types", params)
         self.assertEqual(params["line_items"][0]["price_data"]["unit_amount"], 2500)
         self.assertEqual(params["line_items"][0]["price_data"]["currency"], "cad")
         self.assertEqual(params["metadata"]["albayan_flow"], "albayan_donation")
         self.assertNotIn("albayan_donation_id", params["metadata"])
+
+    def test_checkout_failure_logs_stripe_diagnostics_without_secrets(self) -> None:
+        class StripeRequestError(Exception):
+            code = "parameter_invalid"
+            param = "allowed_payment_method_types"
+            request_id = "req_test_managed_payments"
+
+        client = MagicMock()
+        client.v1.checkout.sessions.create.side_effect = StripeRequestError(
+            "allowed_payment_method_types cannot be used with Managed Payments"
+        )
+        patches = self._stripe_patches()
+
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch.object(
+            donation_service, "_stripe_client", return_value=client
+        ), patch.object(settings, "frontend_base_url", "https://albayan-journal.org"), self.assertLogs(
+            donation_service.logger, level="WARNING"
+        ) as logs:
+            with self.assertRaises(HTTPException) as error:
+                donation_service.create_checkout_session(2500)
+
+        self.assertEqual(error.exception.status_code, 502)
+        output = "\n".join(logs.output)
+        self.assertIn("StripeRequestError", output)
+        self.assertIn("parameter_invalid", output)
+        self.assertIn("allowed_payment_method_types", output)
+        self.assertIn("req_test_managed_payments", output)
+        self.assertIn("Managed Payments", output)
+        self.assertNotIn("sk_test_example", output)
+        self.assertNotIn("whsec_example", output)
 
     def test_session_status_reads_stripe_and_prefers_presentment_currency(self) -> None:
         session = {
@@ -165,7 +196,7 @@ class DonationServiceTests(unittest.TestCase):
             to="donor@example.com",
             amount_text="25.00 CAD",
             donation_reference="cs_test_paid",
-            idempotency_key="donation-received/cs_test_paid",
+            idempotency_key=f"donation-received/cs_test_paid",
         )
 
     def test_paid_webhook_does_not_resend_after_durable_email_receipt(self) -> None:
