@@ -56,7 +56,42 @@ export function DonationReceived({
             margin: "0",
           }}
         >
-          تم استلام مساهمتكم الاختيارية بمقدار <strong>{AMOUNT_TEXT}</strong>.
+          تم استلام مساهمتكم الاختيارية بنجاح.
+        </Text>
+      </Section>
+      <Section
+        style={{
+          backgroundColor: colors.paper,
+          border: `1px solid ${colors.border}`,
+          borderRadius: "14px",
+          margin: "10px 34px 18px",
+          padding: "16px 18px",
+          textAlign: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: colors.muted,
+            fontFamily,
+            fontSize: "13px",
+            lineHeight: "1.8",
+            margin: "0 0 4px",
+          }}
+        >
+          قيمة المساهمة
+        </Text>
+        <Text
+          dir="ltr"
+          style={{
+            color: colors.ink,
+            fontFamily,
+            fontSize: "24px",
+            fontWeight: 700,
+            lineHeight: "1.5",
+            margin: 0,
+          }}
+        >
+          {AMOUNT_TEXT}
         </Text>
       </Section>
       <Section
@@ -97,12 +132,24 @@ export function DonationReceived({
             fontFamily,
             fontSize: "13px",
             lineHeight: "1.9",
-            margin: 0,
+            margin: "0 0 6px",
           }}
         >
           مرجع المساهمة
-          <br />
-          <strong>{DONATION_REFERENCE}</strong>
+        </Text>
+        <Text
+          dir="ltr"
+          style={{
+            color: colors.muted,
+            fontFamily: "Consolas, Monaco, 'Courier New', monospace",
+            fontSize: "12px",
+            lineHeight: "1.7",
+            margin: 0,
+            overflowWrap: "anywhere",
+            wordBreak: "break-all",
+          }}
+        >
+          {DONATION_REFERENCE}
         </Text>
       </Section>
       <Section style={{ padding: "0 34px 12px", textAlign: "right" }}>
@@ -124,7 +171,7 @@ export function DonationReceived({
 
 DonationReceived.PreviewProps = {
   AMOUNT_TEXT: "25.00 CAD",
-  DONATION_REFERENCE: "00000000-0000-0000-0000-000000000000",
+  DONATION_REFERENCE: "cs_test_example_reference_that_wraps_cleanly_on_mobile",
   DATE_TEXT: "١ ربيع الأول ١٤٤٨ هـ",
   SITE_URL: "https://albayan-journal.org",
   CONTACT_EMAIL: "support@albayan-journal.org",
