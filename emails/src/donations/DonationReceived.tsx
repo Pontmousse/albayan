@@ -27,7 +27,7 @@ export function DonationReceived({
 }: DonationReceivedProps) {
   return (
     <AlbayanLayout
-      preview="جزاكم الله خيرًا على دعم مجلة البيان"
+      preview="جزاكم الله خيرًا وبارك فيكم على دعم مجلة البيان"
       siteUrl={SITE_URL}
       contactEmail={CONTACT_EMAIL}
       assetBaseUrl={ASSET_BASE_URL}
@@ -45,7 +45,7 @@ export function DonationReceived({
             margin: "0 0 14px",
           }}
         >
-          شكرًا لدعمكم مجلة البيان
+          جزاكم الله خيرًا وبارك فيكم
         </Text>
         <Text
           style={{
@@ -57,6 +57,28 @@ export function DonationReceived({
           }}
         >
           تم استلام مساهمتكم الاختيارية بمقدار <strong>{AMOUNT_TEXT}</strong>.
+        </Text>
+      </Section>
+      <Section
+        style={{
+          backgroundColor: colors.paper,
+          border: `1px solid ${colors.border}`,
+          borderRadius: "14px",
+          margin: "10px 34px 18px",
+          padding: "16px 18px",
+          textAlign: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: colors.accentStrong,
+            fontFamily,
+            fontSize: "15px",
+            lineHeight: "2",
+            margin: 0,
+          }}
+        >
+          نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
         </Text>
       </Section>
       <Section
