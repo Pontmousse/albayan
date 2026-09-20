@@ -8,7 +8,6 @@ const html = await readFile(resolve(root, "out/donations/DonationReceived.html")
 
 for (const variable of [
   "AMOUNT_TEXT",
-  "DONATION_REFERENCE",
   "DATE_TEXT",
   "SITE_URL",
   "CONTACT_EMAIL",
@@ -17,6 +16,7 @@ for (const variable of [
   assert.match(html, new RegExp(`\\{\\{\\{${variable}\\}\\}\\}`));
 }
 
+assert.ok(!html.includes("DONATION_REFERENCE"));
 assert.ok(!html.includes("/static/"));
 assert.ok(!/\b(?:Stripe|Resend|FastAPI|Next\.js)\b/i.test(html));
 assert.match(html, /خدمات مجلة البيان العلمية متاحة دون مقابل/);
