@@ -176,7 +176,19 @@ def create_checkout_session(amount_minor: int) -> DonationCheckoutResponse:
 
 def _session_metadata(session: Any) -> dict[str, Any]:
     metadata = _read(session, "metadata", {})
-    return metadata if isinstance(metadata, dict) else dict(metadata or {})
+    if isinstance(metadata, dict):
+        return metadata
+    if metadata is None:
+        return {}
+
+    to_dict = getattr(metadata, "to_dict", None)
+    if callable(to_dict):
+        plain_metadata = to_dict()
+        if isinstance(plain_metadata, dict):
+            return plain_metadata
+
+    logger.warning("Unexpected Stripe session metadata type=%s", type(metadata).__name__)
+    return {}
 
 
 def _validate_donation_session(session: Any) -> None:
