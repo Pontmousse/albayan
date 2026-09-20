@@ -60,8 +60,12 @@ test("checkout uses secure Arabic payment controls and localized currency withou
 });
 
 
-test("donation status copy stays clear and non-technical", () => {
+test("donation status copy stays clear, warm, and non-technical", () => {
   assert.match(status, /جارٍ التحقق من عملية الدفع/);
+  assert.match(status, /تم استلام مساهمتكم بنجاح/);
+  assert.match(status, /جزاكم الله خيرًا وبارك فيكم/);
+  assert.match(status, /نسأل الله أن يبارك فيكم وفي أهليكم/);
+  assert.match(status, /نشر العلم النافع وخدمة أهله/);
   assert.doesNotMatch(status, /تثبيت نتيجة الدفع/);
   assert.doesNotMatch(status, /وصلتَ إلى صفحة العودة/);
   assert.doesNotMatch(status, /الإشعار الموثوق/);
