@@ -34,8 +34,9 @@ def send_donation_received_email(
     site_url = html_lib.escape(settings.frontend_base_url.rstrip("/"), quote=True)
     html = f"""
     <div dir="rtl" lang="ar" style="font-family:Arial,sans-serif;line-height:2;text-align:right">
-      <h2>جزاكم الله خيرًا على دعم مجلة البيان</h2>
+      <h2>جزاكم الله خيرًا وبارك فيكم</h2>
       <p>تم استلام مساهمتكم الاختيارية بمقدار <strong>{safe_amount}</strong>.</p>
+      <p>نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.</p>
       <p>المرجع: <strong>{safe_reference}</strong></p>
       <p>خدمات مجلة البيان العلمية متاحة دون مقابل، ولا تؤثر المساهمات في التقديم أو التحكيم أو القرار التحريري أو النشر.</p>
       <p><a href="{site_url}">مجلة البيان</a></p>
