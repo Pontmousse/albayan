@@ -17,9 +17,18 @@ logger = logging.getLogger(__name__)
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _TIMEOUT_SECONDS = 20.0
 
-_SYSTEM_PROMPT = """You summarize changes between two immutable revisions of an academic document.
-Return concise Arabic text only through the required JSON schema.
+_SYSTEM_PROMPT = """You summarize changes between two immutable revisions of an academic document for the journal's end users.
+Return concise, polished Arabic text only through the required JSON schema.
+Describe what changed in the article, never how the change is represented, serialized, stored, or implemented.
 Describe only facts supported by the supplied diff. Do not infer motives, quality, intent, or changes not present in the diff.
+
+Treat the diff as machine-oriented evidence, not as wording to copy. Never expose implementation details such as JSON keys or field names (for example image_id, caption_enabled, centered, label_enabled), asset/storage paths such as assets/..., UUIDs or internal identifiers, raw true/false values, database/API terminology, or other server-side names.
+Do not expose technical document labels such as fig:... unless their literal text is genuinely useful to a reader. Prefer visible, user-authored content such as a figure caption when it helps identify the change.
+Translate settings into natural user-facing Arabic. For example, say that a figure caption was shown or hidden, that the figure was centered or no longer centered, or that its visible label was enabled or disabled; do not name the backing fields.
+When an image asset changes, say simply that the image was replaced or updated. Never quote old/new filenames, asset paths, hashes, or identifiers.
+When low-level added/removed pairs clearly represent one edit or replacement, combine them into one semantic change. Group closely related presentation changes into one concise item instead of listing every machine field separately.
+Prefer the final reader-visible effect and avoid repetitive or contradictory before/after statements.
+
 Use at most four items. Classify each item as added, removed, edited, moved, metadata, or other.
 Prefer a single clear sentence per item."""
 
@@ -35,6 +44,7 @@ _RESPONSE_FORMAT = {
                 "items": {
                     "type": "array",
                     "maxItems": 4,
+                    "description": "At most four semantic, reader-facing revision changes.",
                     "items": {
                         "type": "object",
                         "properties": {
@@ -53,6 +63,11 @@ _RESPONSE_FORMAT = {
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 300,
+                                "description": (
+                                    "A polished reader-facing Arabic sentence describing the semantic "
+                                    "change without internal field names, identifiers, storage paths, "
+                                    "serialization details, or raw booleans."
+                                ),
                             },
                         },
                         "required": ["kind", "text"],
