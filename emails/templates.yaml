@@ -283,7 +283,6 @@ templates:
     html_file: "emails/out/donations/DonationReceived.html"
     variables:
       AMOUNT_TEXT: string
-      DONATION_REFERENCE: string
       DATE_TEXT: string
       SITE_URL: string
       CONTACT_EMAIL: string
