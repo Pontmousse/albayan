@@ -77,10 +77,25 @@ export function DonationStatusCard() {
 
   if (status.status === "paid") {
     return (
-      <StatusShell title="جزاكم الله خيرًا">
-        <p>تم استلام مساهمتكم بنجاح{amount ? ` بمقدار ${amount}` : ""}. نسأل الله أن يبارك في العلم النافع وأهله.</p>
+      <StatusShell title="جزاكم الله خيرًا وبارك فيكم">
+        <div
+          aria-hidden="true"
+          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--journal-border)] bg-[var(--journal-paper)] text-[var(--journal-accent-strong)]"
+        >
+          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <path d="m5 12.5 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <p className="font-semibold text-slate-700">
+          تم استلام مساهمتكم بنجاح{amount ? ` بمقدار ${amount}` : ""}.
+        </p>
+        <div className="mt-5 rounded-2xl border border-[var(--journal-border)] bg-[var(--journal-paper)] px-5 py-4">
+          <p className="text-[15px] leading-8 text-[var(--journal-accent-strong)]">
+            نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
+          </p>
+        </div>
         <p className="mt-4 text-sm text-slate-500">
-          إن أضفت بريداً إلكترونياً، سيصلك تأكيد من مجلة البيان بعد اكتمال التحقق من الدفع.
+          إذا أدخلتم بريدكم الإلكتروني، فسيصلكم تأكيد من مجلة البيان بعد اكتمال التحقق من الدفع.
         </p>
         <Link
           href="/"
