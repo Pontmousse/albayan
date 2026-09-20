@@ -48,6 +48,9 @@ test("checkout uses secure Arabic payment controls and localized currency withou
   assert.match(checkout, /donation-currency-selector/);
   assert.match(checkout, /createPaymentElement/);
   assert.match(checkout, /loadActions/);
+  assert.match(checkout, /updateEmail/);
+  assert.match(checkout, /emailSynced/);
+  assert.match(checkout, /البريد الإلكتروني مطلوب لإتمام الدفع/);
   assert.match(checkout, /actionsRef\.current\.confirm/);
   assert.doesNotMatch(checkout, /name=["']card_number["']/);
   assert.doesNotMatch(checkout, /CVC.*input/i);
