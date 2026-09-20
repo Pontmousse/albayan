@@ -19,8 +19,13 @@ type CheckoutConfirmResult =
   | { type: "success" }
   | { type: "error"; error?: unknown };
 
+type CheckoutUpdateEmailResult = {
+  error?: unknown;
+};
+
 type CheckoutActions = {
   confirm(options?: { email?: string }): Promise<CheckoutConfirmResult>;
+  updateEmail(email: string | null): Promise<CheckoutUpdateEmailResult>;
 };
 
 type CheckoutLoadActionsResult =
@@ -64,6 +69,7 @@ declare global {
 }
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 const appearance = {
   theme: "stripe",
@@ -97,6 +103,9 @@ export function DonationCheckout() {
   const [customMode, setCustomMode] = useState(false);
   const [customAmount, setCustomAmount] = useState("");
   const [email, setEmail] = useState("");
+  const [emailSynced, setEmailSynced] = useState(false);
+  const [emailSyncing, setEmailSyncing] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [stripeLoaded, setStripeLoaded] = useState(false);
   const [checkoutReady, setCheckoutReady] = useState(false);
   const [canConfirm, setCanConfirm] = useState(false);
@@ -139,6 +148,9 @@ export function DonationCheckout() {
 
     setCheckoutReady(false);
     setCanConfirm(false);
+    setEmailSynced(false);
+    setEmailSyncing(false);
+    setEmailError(null);
     actionsRef.current = null;
     paymentElementHost.current.replaceChildren();
     currencySelectorHost.current.replaceChildren();
@@ -183,6 +195,8 @@ export function DonationCheckout() {
       active = false;
       actionsRef.current = null;
       setCheckoutReady(false);
+      setEmailSynced(false);
+      setEmailSyncing(false);
       currencySelectorElement.unmount?.();
       currencySelectorElement.destroy?.();
       paymentElement.unmount?.();
@@ -219,14 +233,48 @@ export function DonationCheckout() {
     }
   }
 
-  async function submitPayment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!actionsRef.current || !checkoutReady || !canConfirm || !displayTotal) {
-      setError("انتظر حتى يكتمل تجهيز وسيلة الدفع.");
+  async function syncEmailToCheckout() {
+    const normalizedEmail = email.trim();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setEmailSynced(false);
+      setEmailError("أدخل بريداً إلكترونياً صالحاً لإتمام الدفع.");
       return;
     }
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      setError("أدخل بريداً إلكترونياً صالحاً أو اترك الحقل فارغاً.");
+
+    const actions = actionsRef.current;
+    if (!actions || !checkoutReady) {
+      setEmailSynced(false);
+      return;
+    }
+
+    setEmailError(null);
+    setEmailSyncing(true);
+    try {
+      const result = await actions.updateEmail(normalizedEmail);
+      if (result.error) {
+        setEmailSynced(false);
+        setEmailError("تعذّر التحقق من البريد الإلكتروني. راجعه ثم حاول مجدداً.");
+        return;
+      }
+      setEmailSynced(true);
+    } catch {
+      setEmailSynced(false);
+      setEmailError("تعذّر التحقق من البريد الإلكتروني. حاول مجدداً.");
+    } finally {
+      setEmailSyncing(false);
+    }
+  }
+
+  async function submitPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalizedEmail = email.trim();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      setEmailSynced(false);
+      setEmailError("أدخل بريداً إلكترونياً صالحاً لإتمام الدفع.");
+      return;
+    }
+    if (!actionsRef.current || !checkoutReady || !canConfirm || !displayTotal || !emailSynced) {
+      setError("انتظر حتى يكتمل تجهيز وسيلة الدفع والتحقق من البريد الإلكتروني.");
       return;
     }
 
@@ -234,7 +282,7 @@ export function DonationCheckout() {
     setConfirming(true);
     try {
       const result = await actionsRef.current.confirm({
-        email: email.trim() || undefined,
+        email: normalizedEmail,
       });
       if (result.type === "error") {
         setError("تعذّر إتمام الدفع. راجع بيانات الدفع ثم حاول مجدداً.");
@@ -355,20 +403,34 @@ export function DonationCheckout() {
           <form onSubmit={submitPayment} className="mt-7 space-y-5">
             <div className="rounded-2xl border border-[var(--journal-border)] bg-[var(--journal-paper)] p-4">
               <label className="block text-sm font-medium text-slate-700">
-                البريد الإلكتروني <span className="font-normal text-slate-500">(اختياري)</span>
+                البريد الإلكتروني
                 <input
                   type="email"
                   autoComplete="email"
+                  required
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    setEmailSynced(false);
+                    setEmailError(null);
+                  }}
+                  onBlur={() => {
+                    void syncEmailToCheckout();
+                  }}
+                  aria-invalid={emailError ? "true" : undefined}
                   placeholder="name@example.com"
                   className="mt-2 w-full rounded-xl border border-[var(--journal-border)] bg-white px-4 py-3 text-left text-base outline-none transition focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[color:rgba(36,88,74,0.12)]"
                   dir="ltr"
                 />
               </label>
               <p className="mt-2 text-xs leading-6 text-slate-500">
-                إذا أدخلته، نرسل إليه تأكيداً عربياً بعد ثبوت نجاح الدفع.
+                البريد الإلكتروني مطلوب لإتمام الدفع، ونرسل إليه تأكيداً عربياً بعد ثبوت نجاح الدفع.
               </p>
+              {emailError ? (
+                <p role="alert" className="mt-2 text-xs font-medium text-red-700">
+                  {emailError}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-[var(--journal-border)] bg-white p-4 sm:p-5">
@@ -384,10 +446,21 @@ export function DonationCheckout() {
 
             <button
               type="submit"
-              disabled={!checkoutReady || !canConfirm || !displayTotal || confirming}
+              disabled={
+                !checkoutReady ||
+                !canConfirm ||
+                !displayTotal ||
+                !emailSynced ||
+                emailSyncing ||
+                confirming
+              }
               className="w-full rounded-xl bg-[var(--journal-accent)] px-5 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {confirming ? "جارٍ إتمام الدفع…" : "ساهم في دعم البيان"}
+              {confirming
+                ? "جارٍ إتمام الدفع…"
+                : emailSyncing
+                  ? "جارٍ التحقق من البريد الإلكتروني…"
+                  : "ساهم في دعم البيان"}
             </button>
           </form>
         )}
