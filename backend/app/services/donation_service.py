@@ -123,6 +123,7 @@ def create_checkout_session(amount_minor: int) -> DonationCheckoutResponse:
                 "return_url": return_url,
                 "managed_payments": {"enabled": False},
                 "adaptive_pricing": {"enabled": True},
+                "excluded_payment_method_types": ["klarna"],
                 "billing_address_collection": "auto",
                 "line_items": [
                     {
