@@ -151,6 +151,32 @@ class DonationServiceTests(unittest.TestCase):
         self.assertEqual(result.currency, "usd")
         client.v1.checkout.sessions.retrieve.assert_called_once_with("cs_test_paid")
 
+    def test_session_status_accepts_stripe_object_metadata(self) -> None:
+        class StripeMetadataObject:
+            def to_dict(self) -> dict[str, str]:
+                return {"albayan_flow": "albayan_donation"}
+
+        session = SimpleNamespace(
+            id="cs_test_paid_object",
+            status="complete",
+            payment_status="paid",
+            amount_total=1000,
+            currency="cad",
+            presentment_details=None,
+            metadata=StripeMetadataObject(),
+        )
+        client = MagicMock()
+        client.v1.checkout.sessions.retrieve.return_value = session
+        patches = self._stripe_patches()
+        with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch.object(
+            donation_service, "_stripe_client", return_value=client
+        ):
+            result = donation_service.session_status("cs_test_paid_object")
+
+        self.assertEqual(result.status, "paid")
+        self.assertEqual(result.amount_minor, 1000)
+        self.assertEqual(result.currency, "cad")
+
     def test_invalid_signature_is_mapped_without_provider_detail(self) -> None:
         patches = self._stripe_patches()
         with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patch.object(
