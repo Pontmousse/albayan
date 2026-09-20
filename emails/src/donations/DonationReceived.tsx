@@ -10,7 +10,6 @@ import {
 
 export type DonationReceivedProps = {
   AMOUNT_TEXT?: string;
-  DONATION_REFERENCE?: string;
   DATE_TEXT?: string;
   SITE_URL?: string;
   CONTACT_EMAIL?: string;
@@ -19,7 +18,6 @@ export type DonationReceivedProps = {
 
 export function DonationReceived({
   AMOUNT_TEXT = resendTemplateVariable("AMOUNT_TEXT"),
-  DONATION_REFERENCE = resendTemplateVariable("DONATION_REFERENCE"),
   DATE_TEXT = resendTemplateVariable("DATE_TEXT"),
   SITE_URL = resendTemplateVariable("SITE_URL"),
   CONTACT_EMAIL = resendTemplateVariable("CONTACT_EMAIL"),
@@ -56,7 +54,42 @@ export function DonationReceived({
             margin: "0",
           }}
         >
-          تم استلام مساهمتكم الاختيارية بمقدار <strong>{AMOUNT_TEXT}</strong>.
+          تم استلام مساهمتكم الاختيارية بنجاح.
+        </Text>
+      </Section>
+      <Section
+        style={{
+          backgroundColor: colors.paper,
+          border: `1px solid ${colors.border}`,
+          borderRadius: "14px",
+          margin: "10px 34px 18px",
+          padding: "16px 18px",
+          textAlign: "center",
+        }}
+      >
+        <Text
+          style={{
+            color: colors.muted,
+            fontFamily,
+            fontSize: "13px",
+            lineHeight: "1.8",
+            margin: "0 0 4px",
+          }}
+        >
+          قيمة المساهمة
+        </Text>
+        <Text
+          dir="ltr"
+          style={{
+            color: colors.ink,
+            fontFamily,
+            fontSize: "24px",
+            fontWeight: 700,
+            lineHeight: "1.5",
+            margin: 0,
+          }}
+        >
+          {AMOUNT_TEXT}
         </Text>
       </Section>
       <Section
@@ -81,30 +114,6 @@ export function DonationReceived({
           نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
         </Text>
       </Section>
-      <Section
-        style={{
-          backgroundColor: colors.paper,
-          border: `1px solid ${colors.border}`,
-          borderRadius: "14px",
-          margin: "10px 34px 18px",
-          padding: "14px 18px",
-          textAlign: "center",
-        }}
-      >
-        <Text
-          style={{
-            color: colors.muted,
-            fontFamily,
-            fontSize: "13px",
-            lineHeight: "1.9",
-            margin: 0,
-          }}
-        >
-          مرجع المساهمة
-          <br />
-          <strong>{DONATION_REFERENCE}</strong>
-        </Text>
-      </Section>
       <Section style={{ padding: "0 34px 12px", textAlign: "right" }}>
         <Text
           style={{
@@ -124,7 +133,6 @@ export function DonationReceived({
 
 DonationReceived.PreviewProps = {
   AMOUNT_TEXT: "25.00 CAD",
-  DONATION_REFERENCE: "00000000-0000-0000-0000-000000000000",
   DATE_TEXT: "١ ربيع الأول ١٤٤٨ هـ",
   SITE_URL: "https://albayan-journal.org",
   CONTACT_EMAIL: "support@albayan-journal.org",

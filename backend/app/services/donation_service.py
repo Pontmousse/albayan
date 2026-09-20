@@ -307,7 +307,6 @@ def _send_confirmation_once(db: Session, session: Any) -> bool:
         donation_email_service.send_donation_received_email(
             to=donor_email,
             amount_text=_format_amount(session),
-            donation_reference=session_id,
             idempotency_key=f"donation-received/{session_id}",
         )
     except Exception as exc:

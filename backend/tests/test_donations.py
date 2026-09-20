@@ -223,7 +223,6 @@ class DonationServiceTests(unittest.TestCase):
         send.assert_called_once_with(
             to="donor@example.com",
             amount_text="25.00 CAD",
-            donation_reference="cs_test_paid",
             idempotency_key="donation-received/cs_test_paid",
         )
 
