@@ -10,13 +10,11 @@ def send_donation_received_email(
     *,
     to: str,
     amount_text: str,
-    donation_reference: str,
     idempotency_key: str,
 ) -> str | None:
     template = settings.resend_donation_received_template.strip()
     variables = {
         "AMOUNT_TEXT": amount_text,
-        "DONATION_REFERENCE": donation_reference,
         **email_service._common_variables(),
     }
 
@@ -30,7 +28,6 @@ def send_donation_received_email(
         )
 
     safe_amount = html_lib.escape(amount_text)
-    safe_reference = html_lib.escape(donation_reference)
     site_url = html_lib.escape(settings.frontend_base_url.rstrip("/"), quote=True)
     html = f"""
     <div dir="rtl" lang="ar" style="margin:0;padding:0;background:#f5f2e8;font-family:Arial,Tahoma,sans-serif;color:#1f2925;">
@@ -68,18 +65,6 @@ def send_donation_received_email(
                     <tr>
                       <td style="padding:18px 20px;text-align:center;font-size:16px;line-height:2.1;color:#235a4d;">
                         نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:8px 28px;">
-                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#fbfaf6;border:1px solid #e6dfcd;border-radius:14px;">
-                    <tr>
-                      <td style="padding:14px 18px;text-align:center;">
-                        <div style="font-size:12px;line-height:1.8;color:#8a8375;margin-bottom:6px;">مرجع المساهمة</div>
-                        <div dir="ltr" style="font-family:Consolas,Monaco,'Courier New',monospace;font-size:12px;line-height:1.7;color:#555f5b;word-break:break-all;overflow-wrap:anywhere;unicode-bidi:embed;">{safe_reference}</div>
                       </td>
                     </tr>
                   </table>
