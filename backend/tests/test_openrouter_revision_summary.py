@@ -62,8 +62,30 @@ def test_openrouter_requests_strict_structured_arabic_summary() -> None:
         "metadata",
         "other",
     ]
+    text_description = schema["properties"]["items"]["items"]["properties"]["text"][
+        "description"
+    ]
+    assert "reader-facing Arabic" in text_description
+    assert "internal field names" in text_description
     assert json.loads(body["messages"][1]["content"]) == {"diff": _diff()}
     assert kwargs["headers"]["Authorization"] == "Bearer sk-or-v1-test"
+
+
+def test_openrouter_prompt_hides_machine_or_storage_details_from_readers() -> None:
+    prompt = openrouter_client._SYSTEM_PROMPT
+
+    assert "Describe what changed in the article" in prompt
+    assert "never how the change is represented, serialized, stored, or implemented" in prompt
+    assert "image_id" in prompt
+    assert "caption_enabled" in prompt
+    assert "centered" in prompt
+    assert "label_enabled" in prompt
+    assert "assets/..." in prompt
+    assert "UUIDs" in prompt
+    assert "raw true/false values" in prompt
+    assert "Never quote old/new filenames" in prompt
+    assert "combine them into one semantic change" in prompt
+    assert "final reader-visible effect" in prompt
 
 
 def test_openrouter_rejects_invalid_schema_output() -> None:
