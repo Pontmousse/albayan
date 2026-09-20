@@ -88,6 +88,7 @@ class DonationServiceTests(unittest.TestCase):
         self.assertEqual(params["mode"], "payment")
         self.assertEqual(params["managed_payments"], {"enabled": False})
         self.assertEqual(params["adaptive_pricing"], {"enabled": True})
+        self.assertEqual(params["excluded_payment_method_types"], ["klarna"])
         self.assertNotIn("allowed_payment_method_types", params)
         self.assertEqual(params["line_items"][0]["price_data"]["unit_amount"], 2500)
         self.assertEqual(params["line_items"][0]["price_data"]["currency"], "cad")
