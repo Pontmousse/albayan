@@ -8,8 +8,9 @@ from albayan_mcp.settings import settings
 from albayan_mcp.token_verifier import PassThroughTokenVerifier
 from albayan_mcp.tools.assets import register_asset_tools
 from albayan_mcp.tools.articles import register_article_tools
-from albayan_mcp.tools.profile import register_profile_tools
 from albayan_mcp.tools.drafts import register_draft_tools
+from albayan_mcp.tools.equations import register_equation_tools
+from albayan_mcp.tools.profile import register_profile_tools
 from albayan_mcp.tools.transport_probe import register_transport_probe_tool
 
 
@@ -38,7 +39,9 @@ def create_server() -> MCPServer:
             "خادم MCP لمجلة البيان. يستدعي واجهة FastAPI فقط — "
             "المصادقة والتفويض والمراجعات والحفظ على الخادم الخلفي. "
             "قبل تحرير المقال افحص outline للتنقل أو blocks للهويات الدقيقة، ولا تخترع "
-            "معرّفات الكتل أو الحقول أو الرموز أو القوائم أو الجداول. استخدم أحدث revision "
+            "معرّفات الكتل أو الحقول أو الرموز أو القوائم أو الجداول. للمعادلات استخدم "
+            "get_draft_equations؛ فهو يعرض LaTeX إنجليزيًا قانونيًا للتوافق مع الذكاء "
+            "الاصطناعي داخل مقال رياضي عربي، مع اصطلاحات الرموز العربية الحالية. استخدم أحدث revision "
             "كـ base_revision، وعند revision_conflict أعد قراءة المسودة قبل المحاولة. "
             "خصّص command_id واحدًا لكل تعديل منطقي ولا تعِد استخدامه لحمولة مختلفة. "
             "فضّل أمر Document2 موجهاً على إنشاء مستند خام كامل. لا تستدع compile_draft "
@@ -65,6 +68,7 @@ def create_server() -> MCPServer:
     register_profile_tools(server)
     register_article_tools(server)
     register_draft_tools(server)
+    register_equation_tools(server)
     register_asset_tools(server)
     if getattr(settings, "enable_transport_probe", False):
         register_transport_probe_tool(server)
