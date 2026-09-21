@@ -62,7 +62,7 @@ export function AnimatedOverlay({
     ? "items-stretch p-0 md:items-center md:p-4"
     : "items-end p-0 sm:items-center sm:p-4";
   const panelSurfaceClassName = mobileFullscreen
-    ? "h-dvh max-h-dvh rounded-none border-0 p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:h-auto md:max-h-[calc(100dvh-2rem)] md:rounded-2xl md:border md:p-6 md:pt-6 md:pb-6"
+    ? "h-[100dvh] max-h-[100dvh] rounded-none border-0 p-0 md:h-auto md:max-h-[calc(100dvh-2rem)] md:rounded-2xl md:border md:p-6"
     : "rounded-t-2xl border p-5 sm:rounded-2xl sm:p-6 pb-[max(1.25rem,env(safe-area-inset-bottom))]";
 
   return (
@@ -100,7 +100,19 @@ export function AnimatedOverlay({
           transitionTimingFunction: easing,
         }}
       >
+        {mobileFullscreen ? (
+          <span
+            aria-hidden="true"
+            className="block h-[env(safe-area-inset-top)] shrink-0 md:hidden"
+          />
+        ) : null}
         {children}
+        {mobileFullscreen ? (
+          <span
+            aria-hidden="true"
+            className="block h-[env(safe-area-inset-bottom)] shrink-0 md:hidden"
+          />
+        ) : null}
       </div>
     </div>
   );
