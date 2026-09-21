@@ -62,7 +62,7 @@ app.include_router(issues.router)
 def read_root() -> dict[str, str]:
     return {
         "service": "albayan-backend",
-        "message": "مرحبًا بك في واجهة برمجة تطبيقات مجلة البيان العلمية (هيكل أولي للتطوير).",
+        "message": "مرحبًا بك في واجهة برمجة تطبيقات مجلة البيان.",
     }
 
 
