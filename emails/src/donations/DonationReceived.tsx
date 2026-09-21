@@ -57,63 +57,84 @@ export function DonationReceived({
           تم استلام مساهمتكم الاختيارية بنجاح.
         </Text>
       </Section>
+
       <Section
-        style={{
-          backgroundColor: colors.paper,
-          border: `1px solid ${colors.border}`,
-          borderRadius: "14px",
-          margin: "10px 34px 18px",
-          padding: "16px 18px",
-          textAlign: "center",
-        }}
+        className="donation-card-shell"
+        style={{ padding: "10px 34px 18px" }}
       >
-        <Text
+        <Section
+          className="donation-card"
           style={{
-            color: colors.muted,
-            fontFamily,
-            fontSize: "13px",
-            lineHeight: "1.8",
-            margin: "0 0 4px",
-          }}
-        >
-          قيمة المساهمة
-        </Text>
-        <Text
-          dir="ltr"
-          style={{
-            color: colors.ink,
-            fontFamily,
-            fontSize: "24px",
-            fontWeight: 700,
-            lineHeight: "1.5",
+            backgroundColor: colors.paper,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "14px",
             margin: 0,
+            padding: "16px 18px",
+            textAlign: "center",
+            width: "100%",
           }}
         >
-          {AMOUNT_TEXT}
-        </Text>
+          <Text
+            style={{
+              color: colors.muted,
+              fontFamily,
+              fontSize: "13px",
+              lineHeight: "1.8",
+              margin: "0 0 4px",
+            }}
+          >
+            قيمة المساهمة
+          </Text>
+          <Text
+            dir="ltr"
+            style={{
+              color: colors.ink,
+              fontFamily,
+              fontSize: "24px",
+              fontWeight: 700,
+              lineHeight: "1.5",
+              margin: 0,
+              textAlign: "center",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span dir="ltr" style={{ unicodeBidi: "isolate" }}>
+              {AMOUNT_TEXT}
+            </span>
+          </Text>
+        </Section>
       </Section>
+
       <Section
-        style={{
-          backgroundColor: colors.paper,
-          border: `1px solid ${colors.border}`,
-          borderRadius: "14px",
-          margin: "10px 34px 18px",
-          padding: "16px 18px",
-          textAlign: "center",
-        }}
+        className="donation-card-shell"
+        style={{ padding: "0 34px 18px" }}
       >
-        <Text
+        <Section
+          className="donation-card"
           style={{
-            color: colors.accentStrong,
-            fontFamily,
-            fontSize: "15px",
-            lineHeight: "2",
+            backgroundColor: colors.paper,
+            border: `1px solid ${colors.border}`,
+            borderRadius: "14px",
             margin: 0,
+            padding: "16px 18px",
+            textAlign: "center",
+            width: "100%",
           }}
         >
-          نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
-        </Text>
+          <Text
+            style={{
+              color: colors.accentStrong,
+              fontFamily,
+              fontSize: "15px",
+              lineHeight: "2",
+              margin: 0,
+            }}
+          >
+            نسأل الله أن يبارك فيكم وفي أهليكم، وأن ينفع بكم، ويجزيكم خير الجزاء، ويجعل مساهمتكم عونًا على نشر العلم النافع وخدمة أهله.
+          </Text>
+        </Section>
       </Section>
+
       <Section style={{ padding: "0 34px 12px", textAlign: "right" }}>
         <Text
           style={{
