@@ -30,7 +30,7 @@ jobs:
           cache-dependency-path: |
             backend/requirements.txt
             mcp_server/pyproject.toml
-      - run: pip install -r backend/requirements.txt
+      - run: pip install -r backend/requirements.txt pytest
       - run: pip install -e mcp_server
       - name: Backend equation tests
         run: PYTHONPATH=backend pytest -q backend/tests/test_equation_mapping_service.py backend/tests/test_burhan_math_commands.py
