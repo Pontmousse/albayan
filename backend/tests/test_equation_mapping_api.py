@@ -3,7 +3,7 @@ import uuid
 import pytest
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from app.core.actor import Actor
@@ -87,7 +87,7 @@ def test_author_can_replace_or_reset_mappings_without_creating_draft_revision() 
         assert reloaded.equation_mappings == {"x": "ص", "y": "ع"}
         assert reloaded.current_draft_revision_id == current_revision_id
         assert reloaded.draft_revision_number == before_revision_number
-        assert db.scalar(select(ArticleDraftRevision).count()) is None
+        assert db.query(ArticleDraftRevision).count() == 0
 
         reset = put_equation_mappings(
             article.id,
