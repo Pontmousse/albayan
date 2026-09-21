@@ -1,0 +1,38 @@
+name: Equation integration CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/equation-integration-ci.yml"
+      - "backend/app/core/config.py"
+      - "backend/app/schemas/article.py"
+      - "backend/app/schemas/draft_command.py"
+      - "backend/app/services/article_draft_service.py"
+      - "backend/app/services/burhan_client.py"
+      - "backend/app/services/equation_mapping_service.py"
+      - "backend/tests/test_burhan_math_commands.py"
+      - "backend/tests/test_equation_mapping_service.py"
+      - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
+      - "mcp_server/src/albayan_mcp/tools/drafts.py"
+      - "mcp_server/tests/test_draft_command_schema.py"
+
+jobs:
+  equation-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            mcp_server/pyproject.toml
+      - run: pip install -r backend/requirements.txt
+      - run: pip install -e mcp_server
+      - name: Backend equation tests
+        run: PYTHONPATH=backend pytest -q backend/tests/test_equation_mapping_service.py backend/tests/test_burhan_math_commands.py
+      - name: MCP equation schema tests
+        run: PYTHONPATH=mcp_server/src pytest -q mcp_server/tests/test_draft_command_schema.py
