@@ -46,10 +46,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col bg-[var(--journal-paper)]">
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-5 sm:gap-6 sm:px-6 sm:py-8 lg:flex-row lg:gap-10 lg:px-6 lg:py-12">
-        <aside className="sticky top-[3.25rem] z-20 -mx-3 shrink-0 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 px-3 py-2 backdrop-blur-sm sm:top-[3.75rem] sm:-mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none lg:static lg:w-52">
+        <aside className="-mx-3 shrink-0 border-b border-[var(--journal-border)] bg-[var(--journal-paper)] px-3 py-2 sm:-mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 lg:w-52">
           <nav
             aria-label="أقسام المكتب"
-            className="nav-scroll flex gap-1 overflow-x-auto pb-0.5 lg:flex-col lg:gap-0.5 lg:overflow-visible"
+            className="nav-scroll flex snap-x gap-1 overflow-x-auto pb-0.5 lg:flex-col lg:gap-0.5 lg:overflow-visible"
           >
             {sections.map((section) => {
               const active = isActive(pathname, section.href);
