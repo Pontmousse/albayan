@@ -39,5 +39,7 @@ class EquationMappingsUpdate(BaseModel):
                 raise ValueError(
                     f"mapping keys and values must be at most {_MAX_SYMBOL_LENGTH} characters"
                 )
+            if english in normalized:
+                raise ValueError("mapping keys must be unique after trimming whitespace")
             normalized[english] = arabic
         return normalized
