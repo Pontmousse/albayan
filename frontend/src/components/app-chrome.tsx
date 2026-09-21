@@ -11,13 +11,22 @@ function isMinimalChromePath(pathname: string): boolean {
 }
 
 /**
- * Global journal chrome. OAuth consent uses a bare shell so the authorization
- * decision is not diluted by navigation or account menus.
+ * Authoring is a focused workspace with its own compact Al Bayan editor header.
+ * Keep the normal site masthead/footer out of the route instead of hiding them
+ * after render so BuTeX receives the full available viewport.
+ */
+function isEditorChromePath(pathname: string): boolean {
+  return /^\/maktabi\/maqalati\/[^/]+\/tahrir\/?$/.test(pathname);
+}
+
+/**
+ * Global journal chrome. Focused flows render their own purpose-built shell;
+ * all normal journal pages retain the standard header and footer.
  */
 export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
-  if (isMinimalChromePath(pathname)) {
+  if (isMinimalChromePath(pathname) || isEditorChromePath(pathname)) {
     return <div className="flex min-h-screen flex-1 flex-col">{children}</div>;
   }
 
