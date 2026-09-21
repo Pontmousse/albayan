@@ -22,6 +22,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
+  type ReactNode,
 } from "react";
 import {
   MobileSheet,
@@ -46,7 +48,7 @@ type ArticleEditorHeaderProps = {
   resubmission: boolean;
   showDevJson: boolean;
   onBack: () => void;
-  onOpenAssets: (returnFocus: HTMLElement) => void;
+  onOpenAssets: (returnFocus: HTMLElement | null) => void;
   onOpenEquationMappings: () => void;
   onOpenHistory: () => void;
   onOpenJson: () => void;
@@ -54,9 +56,9 @@ type ArticleEditorHeaderProps = {
 };
 
 type MenuActionProps = {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   tone?: "default" | "gold" | "dev";
 };
@@ -100,15 +102,11 @@ function MenuLink({
 }: {
   href: string;
   label: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   onClick: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={menuOptionClassName}
-    >
+    <Link href={href} onClick={onClick} className={menuOptionClassName}>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[var(--journal-accent)] shadow-sm ring-1 ring-[var(--journal-border)] md:h-7 md:w-7">
         {icon}
       </span>
@@ -117,7 +115,7 @@ function MenuLink({
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children: ReactNode }) {
   return (
     <p className="px-5 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slate-500 md:px-3 md:pb-1 md:pt-3">
       {children}
@@ -240,8 +238,8 @@ export const ArticleEditorHeader = forwardRef<
           icon={<ImageIcon className="h-4 w-4" aria-hidden />}
           label={assetsUploading ? "جارٍ رفع الصور…" : "صور المقال وملفاته"}
           disabled={assetsUploading || !ready}
-          onClick={(event) => {
-            const returnFocus = event.currentTarget;
+          onClick={() => {
+            const returnFocus = menuButtonRef.current;
             closeMenu();
             onOpenAssets(returnFocus);
           }}
