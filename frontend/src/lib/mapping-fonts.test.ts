@@ -6,10 +6,8 @@ import {
 } from "@/lib/mapping-fonts";
 
 describe("mapping font codec", () => {
-  it("serializes all supported BuTeX mapping styles canonically", () => {
-    expect(serializeMappingTarget("السرعة", "default")).toBe(
-      "\\text{السرعة}",
-    );
+  it("uses one plain default state and serializes special fonts canonically", () => {
+    expect(serializeMappingTarget("السرعة", "default")).toBe("السرعة");
     expect(serializeMappingTarget("السرعة", "takween")).toBe(
       "\\butextakween{السرعة}",
     );
@@ -22,44 +20,41 @@ describe("mapping font codec", () => {
     expect(serializeMappingTarget("السرعة", "maghribi")).toBe(
       "\\butexmaghribi{السرعة}",
     );
-    expect(serializeMappingTarget("x_1", "none")).toBe("x_1");
   });
 
-  it("parses canonical BuTeX wrappers into plain author-facing values", () => {
-    expect(parseMappingTarget("\\text{السرعة}")).toEqual({
-      target: "السرعة",
-      fontId: "default",
-    });
-    expect(parseMappingTarget("\\butextakween{السرعة}")).toEqual({
-      target: "السرعة",
-      fontId: "takween",
-    });
-    expect(parseMappingTarget("\\butexdiwani{السرعة}")).toEqual({
-      target: "السرعة",
-      fontId: "diwani",
-    });
-    expect(parseMappingTarget("\\butexdiwanioutline{السرعة}")).toEqual({
-      target: "السرعة",
-      fontId: "diwaniOutline",
-    });
-    expect(parseMappingTarget("\\butexmaghribi{السرعة}")).toEqual({
-      target: "السرعة",
-      fontId: "maghribi",
-    });
+  it("parses raw values as the default no-special-font state", () => {
     expect(parseMappingTarget("x_1")).toEqual({
       target: "x_1",
-      fontId: "none",
+      fontId: "default",
     });
   });
 
-  it("round-trips supported styles, including nested braces", () => {
+  it("keeps older text-wrapped default values lossless until edited", () => {
+    const oldDefault = "\\text{السرعة}";
+    const parsed = parseMappingTarget(oldDefault);
+
+    expect(parsed).toEqual({
+      target: "السرعة",
+      fontId: "default",
+      legacySerialized: oldDefault,
+    });
+    expect(
+      serializeMappingTarget(
+        parsed.target,
+        parsed.fontId,
+        parsed.legacySerialized,
+      ),
+    ).toBe(oldDefault);
+    expect(serializeMappingTarget(parsed.target, parsed.fontId)).toBe("السرعة");
+  });
+
+  it("round-trips every current style, including nested braces", () => {
     for (const fontId of [
       "default",
       "takween",
       "diwani",
       "diwaniOutline",
       "maghribi",
-      "none",
     ] as const) {
       const serialized = serializeMappingTarget("ق_{1_{2}}", fontId);
       const parsed = parseMappingTarget(serialized);
