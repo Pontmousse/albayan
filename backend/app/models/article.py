@@ -64,6 +64,9 @@ class Article(Base):
         index=True,
     )
     draft_revision_number: Mapped[int] = mapped_column(Integer, default=0)
+    equation_mappings: Mapped[dict[str, str]] = mapped_column(
+        JSON, default=dict, nullable=False
+    )
     revision_request_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     revision_requested_for_version_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("article_versions.id", ondelete="SET NULL", use_alter=True),
