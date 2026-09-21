@@ -11,6 +11,7 @@ from app.routers import (
     draft_equations,
     draft_references,
     editor,
+    equation_mappings,
     invitations,
     issues,
     mcp_logs,
@@ -45,6 +46,7 @@ app.include_router(agent_tokens.router)
 app.include_router(articles.router)
 app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
+app.include_router(equation_mappings.router)
 app.include_router(revision_summaries.router)
 app.include_router(admin.router)
 app.include_router(admin_mcp.router)
@@ -60,7 +62,7 @@ app.include_router(issues.router)
 def read_root() -> dict[str, str]:
     return {
         "service": "albayan-backend",
-        "message": "مرحبًا بك في واجهة برمجة تطبيقات مجلة البيان.",
+        "message": "مرحبًا بك في واجهة برمجة تطبيقات مجلة البيان العلمية.",
     }
 
 
