@@ -287,59 +287,61 @@ export default function ArticleDetailPage() {
         >
           → مقالاتي
         </Link>
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1
-                className="text-2xl font-bold leading-relaxed text-slate-900 sm:text-3xl"
-                style={{ fontFamily: "var(--font-display-ar), serif" }}
+        <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 lg:flex-1">
+            <h1
+              className="w-full break-words text-2xl font-bold leading-relaxed text-slate-900 sm:text-3xl"
+              style={{ fontFamily: "var(--font-display-ar), serif" }}
+            >
+              {article.title}
+            </h1>
+            {isEditable && !editingMetadata ? (
+              <button
+                type="button"
+                onClick={beginMetadataEdit}
+                className="mt-2 rounded-md border border-[var(--journal-border)] bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent)]"
               >
-                {article.title}
-              </h1>
-              {isEditable && !editingMetadata ? (
-                <button
-                  type="button"
-                  onClick={beginMetadataEdit}
-                  className="rounded-md border border-[var(--journal-border)] bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent)]"
-                >
-                  تعديل البيانات
-                </button>
-              ) : null}
-            </div>
-            <p className="mt-2 flex flex-wrap items-center gap-2.5 text-sm text-slate-500">
-              <StatusBadge status={article.status} />
-              <span>
-                {article.latest_version
-                  ? `الإصدار ${formatDigits(article.latest_version.version_number)}`
-                  : `مراجعة المسودة ${formatDigits(article.draft_revision_number)}`}
+                تعديل البيانات
+              </button>
+            ) : null}
+            <div className="mt-3 flex flex-col gap-2 text-sm text-slate-500 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2.5">
+              <span className="flex flex-wrap items-center gap-2.5">
+                <StatusBadge status={article.status} />
+                <span>
+                  {article.latest_version
+                    ? `الإصدار ${formatDigits(article.latest_version.version_number)}`
+                    : `مراجعة المسودة ${formatDigits(article.draft_revision_number)}`}
+                </span>
               </span>
-              <span aria-hidden>·</span>
+              <span className="hidden sm:inline" aria-hidden>·</span>
               <span>أُنشئ في {formatDate(article.created_at)}</span>
-            </p>
+            </div>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-2.5">
+          <div className="grid w-full gap-2.5 sm:flex sm:flex-wrap lg:w-auto lg:shrink-0 lg:justify-end">
             {isEditable ? (
               <>
                 <Link
                   href={`/maktabi/maqalati/${article.id}/tahrir`}
-                  className={buttonClassName}
+                  className={`${buttonClassName} w-full justify-center sm:w-auto`}
                 >
                   {isRevisionRound ? "متابعة التعديل" : "متابعة التحرير"}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setDialogOpen(true)}
-                  className="rounded-md border border-[var(--journal-gold)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)]"
+                  className="min-h-10 w-full rounded-md border border-[var(--journal-gold)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)] sm:w-auto"
                 >
                   {isRevisionRound ? "إعادة تقديم المقال" : "تقديم المقال"}
                 </button>
-                {isDraft ? <button
-                  type="button"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="rounded-md border border-red-300 bg-white px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                >
-                  حذف المسودة
-                </button> : null}
+                {isDraft ? (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="min-h-10 w-full rounded-md px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:w-auto"
+                  >
+                    حذف المسودة
+                  </button>
+                ) : null}
               </>
             ) : null}
           </div>
