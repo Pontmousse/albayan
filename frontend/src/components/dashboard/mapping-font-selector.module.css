@@ -1,0 +1,48 @@
+@font-face {
+  font-family: "AlBayan Mapping Takween";
+  src: url("/Takween.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AlBayan Mapping Diwani";
+  src: url("/Diwani%20Letter%20Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AlBayan Mapping Diwani Outline";
+  src: url("/DWNOUTSH.TTF") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "AlBayan Mapping Maghribi";
+  src: url("/Almaghribi-Warsh-Quran.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+.takween {
+  font-family: "AlBayan Mapping Takween", Amiri, "Noto Serif Arabic", serif;
+}
+
+.diwani {
+  font-family: "AlBayan Mapping Diwani", Amiri, "Noto Serif Arabic", serif;
+}
+
+.diwaniOutline {
+  font-family: "AlBayan Mapping Diwani Outline", "AlBayan Mapping Diwani", Amiri,
+    "Noto Serif Arabic", serif;
+}
+
+.maghribi {
+  font-family: "AlBayan Mapping Maghribi", Amiri, "Noto Serif Arabic", serif;
+}
