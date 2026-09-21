@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from albayan_mcp.api_client import api_get_bytes, api_get_object, api_post_object
 from albayan_mcp.schemas.draft_command import DocumentCommand
+from albayan_mcp.tools.block_projection import project_draft_blocks_response
 
 ArticleId = Annotated[
     uuid.UUID, Field(description="Article UUID whose authoritative draft should be used.")
@@ -179,14 +180,14 @@ def register_draft_tools(server: MCPServer) -> None:
         name="get_draft_blocks",
         title="Article draft blocks",
         description=(
-            "Read canonical Document2 blocks and the current immutable revision identity for "
-            "a precise edit. Never manufacture block, field, token, list, or table IDs."
+            "Read compact Document2 prose/structure plus stable block, field, token, list, and "
+            "table identities for precise edits. Recursive equation MathObject payloads are "
+            "omitted; use get_draft_equations for equation details. Never manufacture IDs."
         ),
     )
     async def get_draft_blocks(article_id: ArticleId) -> DraftBlocksResult:
-        return DraftBlocksResult(
-            **await api_get_object(f"/api/v1/articles/{article_id}/draft/blocks")
-        )
+        data = await api_get_object(f"/api/v1/articles/{article_id}/draft/blocks")
+        return DraftBlocksResult(**project_draft_blocks_response(data))
 
     @server.tool(
         name="get_draft_references",
