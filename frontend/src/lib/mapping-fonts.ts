@@ -4,7 +4,6 @@ export const MAPPING_FONT_IDS = [
   "diwani",
   "diwaniOutline",
   "maghribi",
-  "none",
 ] as const;
 
 export type MappingFontId = (typeof MAPPING_FONT_IDS)[number];
@@ -15,63 +14,61 @@ export type MappingFontConfig = {
   labelAr: string;
   descriptionAr: string;
   latexCommand: string | null;
-  mode: "text" | "command" | "raw";
+  mode: "plain" | "command";
 };
 
 /**
- * Author-facing mapping styles supported by BuTeX v7.1.0.
+ * Author-facing mapping styles.
  *
- * Keep the canonical BuTeX command names here. The UI never asks authors to
- * type these commands; this table is the single serialization source of truth.
+ * "default" deliberately means no special font command. The UI should not
+ * expose a second "no font" choice: choosing no special font is exactly the
+ * default state.
  */
 export const MAPPING_FONTS: readonly MappingFontConfig[] = [
   {
     id: "default",
     labelAr: "الافتراضي",
-    descriptionAr: "نص عربي عادي داخل المعادلة.",
+    descriptionAr: "بدون خط خاص؛ تظهر القيمة بالخط الافتراضي للمعادلة.",
     latexCommand: null,
-    mode: "text",
+    mode: "plain",
   },
   {
     id: "takween",
     labelAr: "تكوين",
-    descriptionAr: "خط KFGQPC Takween المدعوم في BuTeX.",
+    descriptionAr: "يعرض القيمة بخط تكوين.",
     latexCommand: "butextakween",
     mode: "command",
   },
   {
     id: "diwani",
     labelAr: "ديواني",
-    descriptionAr: "الخط الديواني المدعوم في BuTeX.",
+    descriptionAr: "يعرض القيمة بالخط الديواني.",
     latexCommand: "butexdiwani",
     mode: "command",
   },
   {
     id: "diwaniOutline",
     labelAr: "ديواني مزخرف",
-    descriptionAr: "ديواني بإطار محاط، كما يعرّفه BuTeX.",
+    descriptionAr: "يعرض القيمة بالديواني المزخرف.",
     latexCommand: "butexdiwanioutline",
     mode: "command",
   },
   {
     id: "maghribi",
     labelAr: "مغربي",
-    descriptionAr: "الخط المغربي المدعوم في BuTeX.",
+    descriptionAr: "يعرض القيمة بالخط المغربي.",
     latexCommand: "butexmaghribi",
     mode: "command",
-  },
-  {
-    id: "none",
-    labelAr: "بدون تنسيق",
-    descriptionAr: "يحفظ القيمة كما هي من دون تغليف نصي.",
-    latexCommand: null,
-    mode: "raw",
   },
 ] as const;
 
 export type ParsedMappingTarget = {
   target: string;
   fontId: EditableMappingFontId;
+  /**
+   * Exact older/custom serialization to keep untouched until the author edits
+   * this row or explicitly chooses a supported style.
+   */
   legacySerialized?: string;
 };
 
@@ -121,13 +118,17 @@ function unwrapCommand(value: string, command: string): string | null {
  * Convert the author-facing target + style into the value persisted by the
  * existing article equation-mappings API.
  *
- * BuTeX v7.1.0 canonical contract:
- * - default        -> \\text{...}
+ * Current authoring contract:
+ * - default        -> raw/plain value (no special font command)
  * - takween        -> \\butextakween{...}
  * - diwani         -> \\butexdiwani{...}
  * - diwani outline -> \\butexdiwanioutline{...}
  * - maghribi       -> \\butexmaghribi{...}
- * - none           -> raw value
+ *
+ * A recognized older default wrapper may carry legacySerialized so opening
+ * and saving an unrelated row does not rewrite historical data silently. As
+ * soon as that row is edited, callers clear legacySerialized and the current
+ * plain default representation is emitted.
  */
 export function serializeMappingTarget(
   target: string,
@@ -141,25 +142,22 @@ export function serializeMappingTarget(
   }
 
   const font = MAPPING_FONTS.find((candidate) => candidate.id === fontId);
-  if (!font || font.mode === "text") {
-    return `\\text{${normalizedTarget}}`;
-  }
-  if (font.mode === "raw") {
-    return normalizedTarget;
+  if (!font || font.mode === "plain") {
+    return legacySerialized ?? normalizedTarget;
   }
   if (font.latexCommand) {
     return `\\${font.latexCommand}{${normalizedTarget}}`;
   }
-  return `\\text{${normalizedTarget}}`;
+  return normalizedTarget;
 }
 
 /**
  * Decode a persisted mapping value back into author-facing state.
- * Unknown LaTeX commands are deliberately kept lossless in a custom state.
+ * Unknown commands remain lossless in a custom state.
  *
- * The old Jissr-style \\text{\\diwani{...}} / \\diwani{...} forms remain
- * readable so existing values can be edited without data loss. New saves use
- * the canonical BuTeX command above once the author explicitly changes style.
+ * Older default `\\text{...}` values are displayed as the single default
+ * choice while retaining their exact serialized value until the author edits
+ * that row. Old Jissr-style Diwani aliases remain readable as well.
  */
 export function parseMappingTarget(serialized: string): ParsedMappingTarget {
   const normalized = serialized.trim();
@@ -172,8 +170,6 @@ export function parseMappingTarget(serialized: string): ParsedMappingTarget {
     }
   }
 
-  // Backwards compatibility with the earlier Jissr-inspired AlBayan/Jissr
-  // representation. Never emit these aliases for new values.
   const directLegacyDiwani = unwrapCommand(normalized, "diwani");
   if (directLegacyDiwani !== null) {
     return { target: directLegacyDiwani, fontId: "diwani" };
@@ -192,7 +188,11 @@ export function parseMappingTarget(serialized: string): ParsedMappingTarget {
         legacySerialized: serialized,
       };
     }
-    return { target: textTarget, fontId: "default" };
+    return {
+      target: textTarget,
+      fontId: "default",
+      legacySerialized: serialized,
+    };
   }
 
   if (looksLikeUnsupportedLatex(normalized)) {
@@ -203,7 +203,7 @@ export function parseMappingTarget(serialized: string): ParsedMappingTarget {
     };
   }
 
-  return { target: normalized, fontId: "none" };
+  return { target: normalized, fontId: "default" };
 }
 
 export function mappingFontLabel(fontId: EditableMappingFontId): string {
