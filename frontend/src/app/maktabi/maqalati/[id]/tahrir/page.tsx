@@ -12,6 +12,7 @@ import {
 } from "@/components/dashboard/article-assets-panel";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { DraftHistoryDialog } from "@/components/dashboard/draft-history-dialog";
+import { EquationMappingsPanel } from "@/components/dashboard/equation-mappings-panel";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import { useNumerals } from "@/components/numeral-provider";
@@ -80,6 +81,7 @@ export default function TahrirPage() {
   const [submitting, setSubmitting] = useState(false);
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [equationMappingsOpen, setEquationMappingsOpen] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
   const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
@@ -473,7 +475,7 @@ export default function TahrirPage() {
         ref={actionBarRef}
         className="article-editor__actions sticky z-30 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm"
       >
-        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -489,7 +491,7 @@ export default function TahrirPage() {
               {article?.title ?? "المحرر"}
             </h1>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="nav-scroll -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:pb-0">
             {saveMessage ? (
               <span
                 className={`text-xs ${saveFailed ? "text-red-700" : "text-emerald-700"}`}
@@ -512,6 +514,21 @@ export default function TahrirPage() {
                 عرض JSON
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setEquationMappingsOpen(true)}
+              disabled={phase !== "ready"}
+              title="ضبط رموز المعادلات لهذا المقال"
+              className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span
+                aria-hidden
+                className="inline-flex h-5 min-w-8 items-center justify-center rounded-full bg-[var(--journal-accent-soft)] px-1.5 font-mono text-[10px] text-[var(--journal-accent-strong)]"
+              >
+                x↔س
+              </span>
+              رموز المعادلات
+            </button>
             <button
               type="button"
               onClick={handleOpenHistory}
@@ -647,6 +664,13 @@ export default function TahrirPage() {
         onConfirm={handleSubmit}
         onCancel={() => setDialogOpen(false)}
         resubmission={article?.status === "revision_requested"}
+      />
+
+      <EquationMappingsPanel
+        open={equationMappingsOpen}
+        articleId={articleId}
+        getToken={getToken}
+        onClose={() => setEquationMappingsOpen(false)}
       />
 
       <DraftHistoryDialog

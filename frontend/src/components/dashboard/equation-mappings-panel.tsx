@@ -1,8 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowLeftRight,
+  Plus,
+  Sigma,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useNumerals } from "@/components/numeral-provider";
 import { AnimatedOverlay } from "@/components/ui/animated-overlay";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
@@ -14,9 +22,13 @@ import {
   equationMappingsFromRows,
   type EquationMappingRow,
 } from "@/lib/equation-mappings";
-import { userFacingErrorMessage } from "@/lib/user-facing-errors";
+import {
+  UserFacingError,
+  userFacingErrorMessage,
+} from "@/lib/user-facing-errors";
 
 type GetToken = () => Promise<string | null>;
+type EditableEquationMappingRow = EquationMappingRow & { id: string };
 
 export function EquationMappingsPanel({
   open,
@@ -29,10 +41,21 @@ export function EquationMappingsPanel({
   getToken: GetToken;
   onClose: () => void;
 }) {
-  const [rows, setRows] = useState<EquationMappingRow[] | null>(null);
+  const { formatDigits } = useNumerals();
+  const [rows, setRows] = useState<EditableEquationMappingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const nextRowId = useRef(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const createEditableRow = useCallback(
+    (row: EquationMappingRow = { english: "", arabic: "" }) => ({
+      ...row,
+      id: `equation-mapping-${nextRowId.current++}`,
+    }),
+    [],
+  );
 
   const load = useCallback(async () => {
     setError(null);
@@ -40,12 +63,12 @@ export function EquationMappingsPanel({
     setRows(null);
     try {
       const response = await getEquationMappings(getToken, articleId);
-      setRows(equationMappingRows(response.mappings));
+      setRows(equationMappingRows(response.mappings).map(createEditableRow));
     } catch (err) {
       setRows([]);
-      setError(userFacingErrorMessage(err, "تعذّر تحميل الرموز الرياضية."));
+      setError(userFacingErrorMessage(err, "تعذّر تحميل رموز المقال."));
     }
-  }, [articleId, getToken]);
+  }, [articleId, createEditableRow, getToken]);
 
   useEffect(() => {
     if (open) void load();
@@ -62,12 +85,22 @@ export function EquationMappingsPanel({
 
   function addRow() {
     setSaved(false);
-    setRows((current) => [...(current ?? []), { english: "", arabic: "" }]);
+    const row = createEditableRow();
+    setRows((current) => [...(current ?? []), row]);
+    requestAnimationFrame(() => {
+      document.getElementById(`${row.id}-original`)?.focus();
+      listRef.current?.scrollTo({
+        top: listRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    });
   }
 
   function removeRow(index: number) {
     setSaved(false);
-    setRows((current) => (current ?? []).filter((_, rowIndex) => rowIndex !== index));
+    setRows((current) =>
+      (current ?? []).filter((_, rowIndex) => rowIndex !== index),
+    );
   }
 
   async function save() {
@@ -78,13 +111,16 @@ export function EquationMappingsPanel({
     try {
       const mappings = equationMappingsFromRows(rows);
       const response = await putEquationMappings(getToken, articleId, mappings);
-      setRows(equationMappingRows(response.mappings));
+      setRows(equationMappingRows(response.mappings).map(createEditableRow));
       setSaved(true);
     } catch (err) {
       setError(
-        err instanceof Error && !("status" in err)
-          ? err.message
-          : userFacingErrorMessage(err, "تعذّر حفظ الرموز الرياضية."),
+        err instanceof UserFacingError
+          ? userFacingErrorMessage(err, "تعذّر حفظ رموز المقال.")
+          : userFacingErrorMessage(
+              err,
+              "تعذّر حفظ رموز المقال. حاول مجدداً.",
+            ),
       );
     } finally {
       setSaving(false);
@@ -96,10 +132,10 @@ export function EquationMappingsPanel({
       open={open}
       onClose={onClose}
       labelledBy="equation-mappings-title"
-      panelClassName="sm:max-w-2xl max-h-[88vh] overflow-y-auto"
+      panelClassName="!p-0 flex h-[min(94dvh,56rem)] max-h-[94dvh] flex-col overflow-hidden sm:h-[min(86dvh,52rem)] sm:max-w-5xl"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[var(--journal-border)] bg-white/80 px-5 py-4 sm:px-6 sm:py-5">
+        <div className="min-w-0">
           <p className="text-xs font-semibold text-[var(--journal-accent-strong)]">
             اصطلاحات المقال
           </p>
@@ -108,181 +144,250 @@ export function EquationMappingsPanel({
             className="mt-1 text-xl font-bold text-slate-900"
             style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
-            الرموز الرياضية العربية
+            رموز المعادلات
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-            حدّد كيف تقابل الرموز الأصلية الرموز العربية في هذا المقال. تستخدم أدوات
-            البيان هذه الخريطة عند تحويل المعادلات ومساعدة الوكيل على فهم اصطلاحاتك.
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            احفظ المقابل العربي للرموز المستخدمة في هذا المقال.
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="إغلاق"
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--journal-border)] bg-white text-lg text-slate-500 hover:border-[var(--journal-accent)] hover:text-slate-800"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--journal-border)] bg-white text-slate-500 transition hover:border-[var(--journal-accent)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]"
         >
-          ×
+          <X aria-hidden className="h-4 w-4" />
         </button>
-      </div>
+      </header>
 
-      <div className="mt-5 rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-sm leading-6 text-sky-950">
-        <p>
-          كلما كانت اصطلاحات الرموز واضحة، كان من الأسهل على أدوات الذكاء الاصطناعي
-          التعامل مع الرياضيات العربية في مقالك. يمكنك أيضاً مراجعة
-          {" "}
-          <Link
-            href="/al-idayat/wukala"
-            className="font-semibold text-[var(--journal-accent-strong)] underline underline-offset-4"
-          >
-            إعدادات الوكلاء
-          </Link>
-          .
-        </p>
-        <p className="mt-2 text-xs text-sky-800">
-          هذه الاختيارات تساعد مشروع البيان على بناء دعم أفضل للرياضيات العربية مستقبلاً.
-        </p>
-      </div>
-
-      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-        تغيير تفضيل رمز هنا لا يعيد كتابة المعادلات الموجودة تلقائياً. يطبّق التفضيل على
-        أعمال Burhan والوكيل اللاحقة، ويمكنك مراجعة المعادلات القديمة وتعديلها صراحةً عند
-        الحاجة.
-      </div>
-
-      {error ? (
-        <p
-          className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : null}
-      {saved ? (
-        <p
-          className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-          role="status"
-        >
-          تم حفظ اصطلاحات الرموز.
-        </p>
-      ) : null}
-
-      <div className="mt-5 space-y-3">
-        {rows === null ? (
-          <div className="space-y-3" aria-label="جارٍ تحميل الرموز">
-            <div className="h-20 animate-pulse rounded-xl bg-slate-100" />
-            <div className="h-20 animate-pulse rounded-xl bg-slate-100" />
+      <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[18rem_minmax(0,1fr)] lg:grid-rows-1">
+        <aside className="shrink-0 border-b border-[var(--journal-border)] bg-gradient-to-b from-[var(--journal-accent-soft)]/75 to-white px-5 py-4 lg:border-b-0 lg:border-l lg:px-6 lg:py-6">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--journal-accent-strong)] text-white shadow-sm">
+              <Sigma aria-hidden className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="font-bold text-slate-900">اصطلاحات واضحة</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                عيّن لكل رمز أصلي المقابل العربي الذي تعتمده.
+              </p>
+            </div>
           </div>
-        ) : rows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--journal-border)] bg-white p-6 text-center">
-            <p className="font-semibold text-slate-800">لا توجد اصطلاحات محفوظة بعد</p>
-            <p className="mt-1 text-sm text-slate-500">
-              أضف أول رمز عندما تريد تثبيت اختيار عربي للمقال.
+
+          <div className="mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/80 p-3.5 text-sm leading-6 text-emerald-950">
+            <div className="flex items-start gap-2.5">
+              <Sparkles
+                aria-hidden
+                className="mt-1 h-4 w-4 shrink-0 text-emerald-700"
+              />
+              <p>
+                كل اختيار تضيفه يسهم، بإذن الله، في خدمة مجتمع الباحثين والعلماء
+                الناطقين بالعربية.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            تسري التغييرات على التحويلات القادمة فقط؛ وتبقى المعادلات الحالية كما هي.
+          </p>
+
+          <div className="mt-5 hidden border-t border-[var(--journal-border)] pt-4 lg:block">
+            <p className="text-xs font-semibold text-slate-500">عدد الرموز</p>
+            <p className="mt-1 text-2xl font-bold text-[var(--journal-accent-strong)]">
+              {rows === null ? "—" : formatDigits(String(rows.length))}
             </p>
+          </div>
+        </aside>
+
+        <section className="flex min-h-0 min-w-0 flex-col bg-white/45">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--journal-border)] px-4 py-3 sm:px-5">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">قائمة الرموز</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {rows === null
+                  ? "جارٍ التحميل…"
+                  : rows.length === 0
+                    ? "لا توجد رموز مضافة"
+                    : `${formatDigits(String(rows.length))} ${rows.length === 1 ? "رمز" : "رموز"}`}
+              </p>
+            </div>
             <button
               type="button"
               onClick={addRow}
-              className="mt-4 min-h-10 rounded-md bg-[var(--journal-accent-strong)] px-4 text-sm font-semibold text-white"
+              disabled={rows === null}
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg bg-[var(--journal-accent-strong)] px-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
             >
-              إضافة رمز
+              <Plus aria-hidden className="h-4 w-4" />
+              <span className="hidden sm:inline">إضافة رمز</span>
+              <span className="sm:hidden">إضافة</span>
             </button>
           </div>
-        ) : (
-          rows.map((row, index) => (
-            <div
-              key={`${index}-${row.english}`}
-              className="rounded-xl border border-[var(--journal-border)] bg-white p-3 shadow-sm"
+
+          {error ? (
+            <p
+              className="mx-4 mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 sm:mx-5"
+              role="alert"
             >
-              <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-end">
-                <label className="block min-w-0">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">
-                    الرمز الأصلي
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      dir="ltr"
-                      value={row.english}
-                      onChange={(event) => updateRow(index, { english: event.target.value })}
-                      maxLength={128}
-                      placeholder="x"
-                      aria-label={`الرمز الأصلي ${index + 1}`}
-                      className="min-h-10 min-w-0 flex-1 rounded-md border border-[var(--journal-border)] bg-slate-50 px-3 font-mono text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:bg-white"
-                    />
-                    <CopyButton value={row.english.trim()} ariaLabel="نسخ الرمز الأصلي" />
-                  </div>
-                </label>
+              {error}
+            </p>
+          ) : null}
+          {saved ? (
+            <p
+              className="mx-4 mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 sm:mx-5"
+              role="status"
+            >
+              حُفظت رموز المقال.
+            </p>
+          ) : null}
 
-                <span className="hidden pb-2 text-slate-400 sm:block">←</span>
-
-                <label className="block min-w-0">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500">
-                    الرمز العربي
-                  </span>
-                  <div className="flex gap-2">
-                    <input
-                      dir="rtl"
-                      value={row.arabic}
-                      onChange={(event) => updateRow(index, { arabic: event.target.value })}
-                      maxLength={128}
-                      placeholder="س"
-                      aria-label={`الرمز العربي ${index + 1}`}
-                      className="min-h-10 min-w-0 flex-1 rounded-md border border-[var(--journal-border)] bg-slate-50 px-3 text-lg text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:bg-white"
-                    />
-                    <CopyButton value={row.arabic.trim()} ariaLabel="نسخ الرمز العربي" />
-                  </div>
-                </label>
-
+          <div
+            ref={listRef}
+            className="equation-mappings-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5"
+          >
+            {rows === null ? (
+              <div className="space-y-3" aria-label="جارٍ تحميل الرموز">
+                <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+                <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+                <div className="h-24 animate-pulse rounded-xl bg-slate-100" />
+              </div>
+            ) : rows.length === 0 ? (
+              <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--journal-border)] bg-white/80 p-6 text-center">
+                <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]">
+                  <Sigma aria-hidden className="h-7 w-7" />
+                </span>
+                <p className="mt-4 font-semibold text-slate-800">
+                  ابدأ بإضافة أول رمز
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  مثال: الرمز x يقابله س.
+                </p>
                 <button
                   type="button"
-                  onClick={() => removeRow(index)}
-                  className="min-h-10 rounded-md border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 hover:bg-red-100"
+                  onClick={addRow}
+                  className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-[var(--journal-accent-strong)] px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                 >
-                  حذف
+                  <Plus aria-hidden className="h-4 w-4" />
+                  إضافة رمز
                 </button>
               </div>
-            </div>
-          ))
-        )}
+            ) : (
+              rows.map((row, index) => (
+                <div
+                  key={row.id}
+                  className="mapping-row-enter group rounded-xl border border-[var(--journal-border)] bg-white p-3 shadow-sm transition hover:border-[var(--journal-accent)] hover:shadow-md sm:p-4"
+                >
+                  <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto] sm:items-end">
+                    <span
+                      aria-hidden
+                      className="hidden h-7 w-7 self-center place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-500 sm:grid"
+                    >
+                      {formatDigits(String(index + 1))}
+                    </span>
+                    <label className="block min-w-0">
+                      <span className="mb-1 block text-xs font-semibold text-slate-500">
+                        الرمز الأصلي
+                      </span>
+                      <div className="flex gap-2">
+                        <input
+                          id={`${row.id}-original`}
+                          dir="ltr"
+                          value={row.english}
+                          onChange={(event) =>
+                            updateRow(index, { english: event.target.value })
+                          }
+                          maxLength={128}
+                          placeholder="x"
+                          aria-label={`الرمز الأصلي ${index + 1}`}
+                          className="min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--journal-border)] bg-slate-50 px-3 font-mono text-sm text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
+                        />
+                        <CopyButton
+                          value={row.english.trim()}
+                          ariaLabel="نسخ الرمز الأصلي"
+                          className="h-10 w-10 rounded-lg"
+                        />
+                      </div>
+                    </label>
+
+                    <ArrowLeftRight
+                      aria-hidden
+                      className="mb-2 hidden h-4 w-4 text-slate-400 sm:block"
+                    />
+
+                    <label className="block min-w-0">
+                      <span className="mb-1 block text-xs font-semibold text-slate-500">
+                        المقابل العربي
+                      </span>
+                      <div className="flex gap-2">
+                        <input
+                          dir="rtl"
+                          value={row.arabic}
+                          onChange={(event) =>
+                            updateRow(index, { arabic: event.target.value })
+                          }
+                          maxLength={128}
+                          placeholder="س"
+                          aria-label={`المقابل العربي ${index + 1}`}
+                          className="min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--journal-border)] bg-slate-50 px-3 text-lg text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
+                        />
+                        <CopyButton
+                          value={row.arabic.trim()}
+                          ariaLabel="نسخ الرمز العربي"
+                          className="h-10 w-10 rounded-lg"
+                        />
+                      </div>
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => removeRow(index)}
+                      aria-label={`حذف الرمز ${formatDigits(String(index + 1))}`}
+                      title="حذف الرمز"
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 sm:w-10 sm:px-0"
+                    >
+                      <Trash2 aria-hidden className="h-4 w-4" />
+                      <span className="sm:hidden">حذف</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
 
-      {rows !== null && rows.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={addRow}
-            className="min-h-10 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-semibold text-slate-700 hover:border-[var(--journal-accent)]"
-          >
-            + إضافة رمز
-          </button>
+      <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-[var(--journal-border)] bg-white/90 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        {rows !== null && rows.length > 0 ? (
           <button
             type="button"
             onClick={() => {
               setRows([]);
               setSaved(false);
             }}
-            className="min-h-10 rounded-md border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-red-50"
+            className="min-h-10 rounded-lg px-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
           >
-            مسح الكل
+            مسح جميع الرموز
+          </button>
+        ) : (
+          <span />
+        )}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-10 rounded-lg border border-[var(--journal-border)] bg-white px-4 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+          >
+            إغلاق
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={saving || rows === null}
+            className="min-h-10 rounded-lg bg-[var(--journal-accent-strong)] px-5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          >
+            {saving ? "جارٍ الحفظ…" : "حفظ الرموز"}
           </button>
         </div>
-      ) : null}
-
-      <div className="mt-6 flex flex-col-reverse gap-2 border-t border-[var(--journal-border)] pt-4 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-11 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-medium text-slate-600"
-        >
-          إغلاق
-        </button>
-        <button
-          type="button"
-          onClick={() => void save()}
-          disabled={saving || rows === null}
-          className="min-h-11 rounded-md bg-[var(--journal-accent-strong)] px-5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? "جارٍ الحفظ…" : "حفظ الاصطلاحات"}
-        </button>
-      </div>
+      </footer>
     </AnimatedOverlay>
   );
 }

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { EquationMappingsEditorLauncher } from "@/components/dashboard/equation-mappings-editor-launcher";
-
 export const metadata: Metadata = {
   title: "مكتبي | البيان",
   description:
@@ -10,10 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function MaktabiLayout({ children }: { children: ReactNode }) {
-  return (
-    <>
-      {children}
-      <EquationMappingsEditorLauncher />
-    </>
-  );
+  return children;
 }

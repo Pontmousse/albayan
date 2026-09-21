@@ -1,3 +1,5 @@
+import { UserFacingError } from "@/lib/user-facing-errors";
+
 export type EquationMappingRow = {
   english: string;
   arabic: string;
@@ -16,7 +18,7 @@ export function equationMappingsFromRows(
   rows: EquationMappingRow[],
 ): Record<string, string> {
   if (rows.length > MAX_MAPPING_COUNT) {
-    throw new Error(`يمكن حفظ ${MAX_MAPPING_COUNT} رمزاً كحد أقصى.`);
+    throw new UserFacingError(`يمكن حفظ ${MAX_MAPPING_COUNT} رمزاً كحد أقصى.`);
   }
 
   const mappings: Record<string, string> = {};
@@ -26,13 +28,17 @@ export function equationMappingsFromRows(
 
     if (!english && !arabic) continue;
     if (!english || !arabic) {
-      throw new Error("أكمل الرمز الأصلي والرمز العربي، أو احذف الصف الفارغ.");
+      throw new UserFacingError(
+        "أكمل الرمز الأصلي ومقابله العربي، أو احذف الصف الفارغ.",
+      );
     }
     if (english.length > MAX_MAPPING_LENGTH || arabic.length > MAX_MAPPING_LENGTH) {
-      throw new Error(`يجب ألا يتجاوز كل رمز ${MAX_MAPPING_LENGTH} محرفاً.`);
+      throw new UserFacingError(
+        `يجب ألا يتجاوز كل رمز ${MAX_MAPPING_LENGTH} محرفاً.`,
+      );
     }
     if (Object.prototype.hasOwnProperty.call(mappings, english)) {
-      throw new Error(`الرمز الأصلي «${english}» مكرر.`);
+      throw new UserFacingError(`الرمز الأصلي «${english}» مكرر.`);
     }
     mappings[english] = arabic;
   }
