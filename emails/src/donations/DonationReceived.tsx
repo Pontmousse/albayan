@@ -135,7 +135,7 @@ export function DonationReceived({
         </Section>
       </Section>
 
-      <Section style={{ padding: "0 34px 12px", textAlign: "right" }}>
+      <Section style={{ padding: "0 34px 12px", textAlign: "center" }}>
         <Text
           style={{
             color: colors.muted,
