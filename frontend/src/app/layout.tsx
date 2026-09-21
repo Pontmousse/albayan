@@ -5,6 +5,7 @@ import { AppClerkProvider } from "@/components/app-clerk-provider";
 import { NumeralProvider } from "@/components/numeral-provider";
 import { NUMERAL_STORAGE_KEY } from "@/lib/numerals";
 import "./globals.css";
+import "../styles/revision-history.css";
 
 const notoSansArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
