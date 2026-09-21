@@ -11,7 +11,7 @@ from mcp.types import BlobResourceContents, EmbeddedResource
 from pydantic import BaseModel, ConfigDict, Field
 
 from albayan_mcp.api_client import api_get_bytes, api_get_object, api_post_object
-from albayan_mcp.schemas.document2 import DocumentCommand
+from albayan_mcp.schemas.draft_command import DocumentCommand
 
 ArticleId = Annotated[
     uuid.UUID, Field(description="Article UUID whose authoritative draft should be used.")
@@ -30,7 +30,13 @@ BaseRevision = Annotated[
 ]
 McpDocumentCommand = Annotated[
     DocumentCommand,
-    Field(description="One targeted Document2 operation selected by its op discriminator."),
+    Field(
+        description=(
+            "One targeted Document2 operation selected by its op discriminator. "
+            "For math insert/replace, prefer {kind:'math', latex, display, label}; "
+            "do not construct recursive MathObject JSON."
+        )
+    ),
 ]
 
 
@@ -218,10 +224,12 @@ def register_draft_tools(server: MCPServer) -> None:
         title="Apply one draft command",
         description=(
             "Create an immutable draft revision with one typed Document2 command. Pass the "
-            "latest revision_number and a fresh command_id. Re-read on revision_conflict. "
-            "FastAPI owns authorization, normalization, assets, metadata sync, provenance, "
-            "idempotency, and persistence. Agent edits remain visible in draft history. "
-            "Agents cannot change authors or restore historical revisions; restore is human-only."
+            "latest revision_number and a fresh command_id. For math insert/replace, send "
+            "normal LaTeX in the compact math token; FastAPI/Burhan builds the structured "
+            "equation. Re-read on revision_conflict. FastAPI owns authorization, normalization, "
+            "assets, metadata sync, provenance, idempotency, and persistence. Agent edits remain "
+            "visible in draft history. Agents cannot change authors or restore historical "
+            "revisions; restore is human-only."
         ),
     )
     async def apply_draft_command(
