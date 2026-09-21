@@ -20,6 +20,7 @@ import {
   getEquationMappings,
   putEquationMappings,
 } from "@/lib/api/equation-mappings";
+import { isDevMode } from "@/lib/dev-mode";
 import {
   equationMappingRows,
   equationMappingsFromRows,
@@ -55,6 +56,7 @@ export function EquationMappingsPanel({
   const [saved, setSaved] = useState(false);
   const nextRowId = useRef(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const showTechnicalPreview = isDevMode();
 
   const createEditableRow = useCallback(
     (
@@ -101,15 +103,12 @@ export function EquationMappingsPanel({
     setRows((current) =>
       (current ?? []).map((row, rowIndex) => {
         if (rowIndex !== index) return row;
-        if (row.fontId === "custom") {
-          return {
-            ...row,
-            arabic: value,
-            fontId: "default",
-            legacySerialized: undefined,
-          };
-        }
-        return { ...row, arabic: value };
+        return {
+          ...row,
+          arabic: value,
+          fontId: row.fontId === "custom" ? "default" : row.fontId,
+          legacySerialized: undefined,
+        };
       }),
     );
   }
@@ -186,7 +185,7 @@ export function EquationMappingsPanel({
             رموز المعادلات
           </h2>
           <p className="mt-1 hidden text-sm leading-6 text-slate-600 sm:block">
-            اكتب القيمة العربية واختر خطها؛ ويتولى البيان الصيغة التقنية تلقائياً.
+            اختر المقابل العربي لكل رمز، وأضف خطاً خاصاً فقط عندما تريده.
           </p>
         </div>
         <button
@@ -200,14 +199,29 @@ export function EquationMappingsPanel({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] lg:overflow-hidden">
-        <details className="mx-4 mt-4 rounded-xl border border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/55 px-4 py-3 lg:hidden">
-          <summary className="cursor-pointer text-sm font-semibold text-[var(--journal-accent-strong)]">
-            كيف تُستخدم رموز المعادلات؟
-          </summary>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            اكتب الرمز الأصلي والقيمة العربية المطلوبة، ثم اختر الخط. لا تحتاج إلى كتابة أوامر LaTeX أو BuTeX يدوياً. تسري التغييرات على التحويلات القادمة فقط.
-          </p>
-        </details>
+        <div className="mx-4 mt-4 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 lg:hidden">
+          <div className="flex items-start gap-2.5">
+            <Sparkles
+              aria-hidden
+              className="mt-1 h-4 w-4 shrink-0 text-emerald-700"
+            />
+            <div className="min-w-0">
+              <p className="text-sm leading-6 text-emerald-950">
+                اختر الصيغة العربية التي تفضّلها لرموز مقالك. تساعد هذه الاختيارات أدوات البيان الذكية على فهم اصطلاحاتك الرياضية بصورة أدق، وتُسهم في تطوير دعم أفضل للرياضيات المكتوبة بالعربية.
+              </p>
+              <p className="mt-1.5 text-xs leading-5 text-emerald-800">
+                تبقى المعادلات الحالية كما هي، وتُستخدم اختياراتك في التعديلات والتحويلات القادمة.
+              </p>
+              <Link
+                href="/wukala"
+                className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--journal-accent-strong)] underline-offset-4 hover:underline"
+              >
+                تعرّف إلى وكلاء البيان
+                <ArrowUpLeft aria-hidden className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
 
         <aside className="hidden border-l border-[var(--journal-border)] bg-gradient-to-b from-[var(--journal-accent-soft)]/75 to-white px-6 py-6 lg:block">
           <div className="flex items-start gap-3">
@@ -217,7 +231,7 @@ export function EquationMappingsPanel({
             <div>
               <h3 className="font-bold text-slate-900">اصطلاحات واضحة</h3>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                عيّن لكل رمز أصلي قيمته العربية والخط المطلوب؛ ويتولى البيان تغليفها بالصيغة المناسبة تلقائياً.
+                عيّن لكل رمز أصلي قيمته العربية. اترك الخط على «الافتراضي» ما لم ترغب في خط خاص لهذا الرمز.
               </p>
             </div>
           </div>
@@ -229,8 +243,7 @@ export function EquationMappingsPanel({
                 className="mt-1 h-4 w-4 shrink-0 text-emerald-700"
               />
               <p>
-                مساهمتك اليوم تساعد، بإذن الله، على بناء نماذج مستقبلية أفضل فهماً
-                للمعادلات العربية، خدمةً لمجتمع الباحثين والعلماء الناطقين بالعربية.
+                تساعد اختياراتك أدوات البيان الذكية على فهم اصطلاحات المقال بصورة أدق، وتُسهم في تطوير أدوات ونماذج مستقبلية أكثر فهماً للرياضيات العربية.
               </p>
             </div>
           </div>
@@ -314,7 +327,7 @@ export function EquationMappingsPanel({
                   ابدأ بإضافة أول رمز
                 </p>
                 <p className="mt-1 text-sm text-slate-500">
-                  مثال: x ← السرعة، ثم اختر الخط المطلوب.
+                  مثال: x ← س، واترك الخط على «الافتراضي» إذا لم ترد خطاً خاصاً.
                 </p>
                 <button
                   type="button"
@@ -328,11 +341,13 @@ export function EquationMappingsPanel({
             ) : (
               <>
                 {rows.map((row, index) => {
-                  const serializedPreview = serializeMappingTarget(
-                    row.arabic,
-                    row.fontId,
-                    row.legacySerialized,
-                  );
+                  const serializedPreview = showTechnicalPreview
+                    ? serializeMappingTarget(
+                        row.arabic,
+                        row.fontId,
+                        row.legacySerialized,
+                      )
+                    : "";
 
                   return (
                     <div
@@ -398,7 +413,7 @@ export function EquationMappingsPanel({
                                 updateTarget(index, event.target.value)
                               }
                               maxLength={128}
-                              placeholder="السرعة"
+                              placeholder="س"
                               aria-label={`القيمة العربية ${index + 1}`}
                               className="min-h-10 min-w-0 flex-1 rounded-lg border border-[var(--journal-border)] bg-slate-50 px-3 text-lg text-slate-900 outline-none transition focus:border-[var(--journal-accent)] focus:bg-white focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
                             />
@@ -411,8 +426,14 @@ export function EquationMappingsPanel({
                         </label>
                       </div>
 
-                      <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:items-start">
-                        <label className="block min-w-0">
+                      <div
+                        className={`mt-3 grid gap-3 ${
+                          showTechnicalPreview
+                            ? "md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:items-start"
+                            : "md:max-w-[20rem]"
+                        }`}
+                      >
+                        <div className="block min-w-0">
                           <span className="mb-1 block text-xs font-semibold text-slate-500">
                             الخط
                           </span>
@@ -422,27 +443,30 @@ export function EquationMappingsPanel({
                             onChange={(fontId) => updateFont(index, fontId)}
                             ariaLabel={`خط الرمز ${index + 1}`}
                           />
-                        </label>
+                        </div>
 
-                        <details className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
-                          <summary className="cursor-pointer font-semibold text-slate-600">
-                            معاينة الصيغة التقنية
-                          </summary>
-                          <div className="mt-2 flex items-center gap-2" dir="ltr">
-                            <code className="min-w-0 flex-1 overflow-x-auto rounded bg-white px-2 py-1.5 text-[11px] text-slate-700">
-                              {serializedPreview || "—"}
-                            </code>
-                            <CopyButton
-                              value={serializedPreview}
-                              ariaLabel="نسخ الصيغة التقنية"
-                              className="h-8 w-8 rounded-md"
-                            />
-                          </div>
-                        </details>
+                        {showTechnicalPreview ? (
+                          <details className="rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-900">
+                            <summary className="cursor-pointer font-semibold">
+                              معاينة تقنية — وضع التطوير
+                            </summary>
+                            <div className="mt-2 flex items-center gap-2" dir="ltr">
+                              <code className="min-w-0 flex-1 overflow-x-auto rounded bg-white px-2 py-1.5 text-[11px] text-slate-700">
+                                {serializedPreview || "—"}
+                              </code>
+                              <CopyButton
+                                value={serializedPreview}
+                                ariaLabel="نسخ الصيغة التقنية"
+                                className="h-8 w-8 rounded-md"
+                              />
+                            </div>
+                          </details>
+                        ) : null}
                       </div>
                     </div>
                   );
                 })}
+
                 <div className="pt-2 text-center sm:text-start">
                   <button
                     type="button"
