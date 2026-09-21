@@ -53,7 +53,7 @@ jobs:
           backend/tests/test_draft_equations.py
       - name: MCP equation tests
         run: >-
-          PYTHONPATH=mcp_server/src pytest -q
+          PYTHONPATH=mcp_server/src:mcp_server pytest -q
           mcp_server/tests/test_draft_command_schema.py
           mcp_server/tests/test_equation_tools.py
           mcp_server/tests/test_article_tools.py
