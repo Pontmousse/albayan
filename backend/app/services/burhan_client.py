@@ -70,7 +70,6 @@ def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
                 raise _error(422, "invalid_math_latex", "محتوى المعادلة فارغ.")
             return value, opening, inner, closing
 
-    # Reject obvious unmatched top-level delimiters instead of nesting them.
     if value.startswith(("$", r"\(", r"\[", r"\begin{")):
         raise _error(422, "invalid_math_latex", "محددات LaTeX للمعادلة غير مكتملة.")
 
@@ -125,7 +124,6 @@ def _arabic_char_expr(expr: str, mappings: Mapping[str, str]) -> str:
     if parts:
         return "".join(mappings[part] for part in reversed(parts))
 
-    # Non-Latin values are already safe to preserve in the editor-shaped tree.
     if not re.search(r"[A-Za-z]", expr):
         return expr
     raise _error(
@@ -163,6 +161,9 @@ def _editor_math_object(
                 walk(child)
 
     walk(tree)
+    # Burhan's BaseNode includes root script placeholders; BuTeX MathObject does not.
+    tree.pop("superscript", None)
+    tree.pop("subscript", None)
     tree["source_side"] = "arabic"
     tree["source_owner"] = "editor"
     if display and label is not None and label.strip():
