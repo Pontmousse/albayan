@@ -23,9 +23,11 @@ on:
       - "backend/tests/test_equation_mapping_service.py"
       - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
       - "mcp_server/src/albayan_mcp/server.py"
+      - "mcp_server/src/albayan_mcp/tools/block_projection.py"
       - "mcp_server/src/albayan_mcp/tools/drafts.py"
       - "mcp_server/src/albayan_mcp/tools/equations.py"
       - "mcp_server/tests/test_article_tools.py"
+      - "mcp_server/tests/test_draft_block_projection.py"
       - "mcp_server/tests/test_draft_command_schema.py"
       - "mcp_server/tests/test_equation_tools.py"
 
@@ -51,9 +53,10 @@ jobs:
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_draft_equations.py
-      - name: MCP equation tests
+      - name: MCP equation and compact block tests
         run: >-
           PYTHONPATH=mcp_server/src:mcp_server pytest -q
           mcp_server/tests/test_draft_command_schema.py
           mcp_server/tests/test_equation_tools.py
+          mcp_server/tests/test_draft_block_projection.py
           mcp_server/tests/test_article_tools.py
