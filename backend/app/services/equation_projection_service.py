@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from app.services import burhan_client, equation_mapping_service
+from app.services import burhan_reverse_client, equation_mapping_service
 
 _ARABIC_RE = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]")
 _INLINE_MATH_MODES = {"$", r"\("}
@@ -249,7 +249,7 @@ def project_document_equations(
             continue
 
         warnings = _mapping_warnings(raw_object, reverse_mapping, ambiguous_values)
-        latex, conversion_warnings = burhan_client.convert_math_object_to_english(
+        latex, conversion_warnings = burhan_reverse_client.convert_math_object_to_english(
             raw_object,
             variable_mapping=reverse_mapping,
         )
