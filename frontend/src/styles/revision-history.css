@@ -1,0 +1,57 @@
+[role="dialog"][aria-labelledby="draft-history-title"] {
+  z-index: 80;
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] > div[tabindex="-1"] {
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.2);
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] aside,
+[role="dialog"][aria-labelledby="draft-history-title"] section {
+  scrollbar-color: var(--journal-accent) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] aside::-webkit-scrollbar,
+[role="dialog"][aria-labelledby="draft-history-title"] section::-webkit-scrollbar {
+  height: 9px;
+  width: 9px;
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] aside::-webkit-scrollbar-track,
+[role="dialog"][aria-labelledby="draft-history-title"] section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] aside::-webkit-scrollbar-thumb,
+[role="dialog"][aria-labelledby="draft-history-title"] section::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--journal-accent) 58%, transparent);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+[role="dialog"][aria-labelledby="draft-history-title"] aside::-webkit-scrollbar-thumb:hover,
+[role="dialog"][aria-labelledby="draft-history-title"] section::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--journal-accent-strong) 72%, transparent);
+  background-clip: padding-box;
+}
+
+@media (min-width: 768px) {
+  [role="dialog"][aria-labelledby="draft-history-title"] > div[tabindex="-1"] {
+    height: min(88dvh, 56rem) !important;
+    max-height: calc(100dvh - 7rem) !important;
+    width: min(94vw, 96rem) !important;
+  }
+
+  [role="dialog"][aria-labelledby="draft-history-title"] > div[tabindex="-1"] > header {
+    background: color-mix(in srgb, var(--journal-paper) 96%, white);
+  }
+
+  /* The explanatory note is useful on mobile, but on desktop it was crowding
+     the modal header and making the close action feel hidden behind page chrome. */
+  [role="dialog"][aria-labelledby="draft-history-title"] > div[tabindex="-1"] > header + div {
+    display: none;
+  }
+}
