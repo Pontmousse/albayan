@@ -607,6 +607,9 @@ export default function TahrirPage() {
         onClose={() => setHistoryOpen(false)}
         onRestore={handleRestoreHistory}
         latestChangesUnsaved={dirty || saveFailed}
+        currentDocument={
+          dirty || saveFailed ? null : latestDocumentJson.current
+        }
       />
 
       {showDevJson ? (

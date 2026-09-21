@@ -29,16 +29,28 @@ describe("focused article editor chrome", () => {
 
   it("keeps article tools, workspace navigation, and save state reachable", () => {
     const header = readLocal("./article-editor-header.tsx");
+    const navigation = readLocal("../albayan-navigation-content.tsx");
+    const mainNav = readLocal("../main-nav.tsx");
 
     expect(header).toContain("رموز المعادلات");
     expect(header).toContain("سجل النسخ");
     expect(header).toContain("صور المقال وملفاته");
     expect(header).toContain("تقديم المقال");
-    expect(header).toContain("مكتبي");
-    expect(header).toContain("مقالاتي");
-    expect(header).toContain("الإشعارات");
-    expect(header).toContain("إعدادات الحساب");
+    expect(header).toContain("تفاصيل المقال");
     expect(header).toContain("SaveStatus");
     expect(header).toContain("MobileSheet");
+    expect(header).toContain('title="القائمة"');
+    expect(header).toContain("أدوات المقال");
+    expect(header).toContain("مجلة البيان");
+    expect(header).toContain("AlBayanNavigationContent");
+
+    for (const label of ["مكتبي", "مقالاتي", "الإشعارات", "إعدادات الحساب"]) {
+      expect(readLocal("../../lib/nav-config.ts")).toContain(label);
+    }
+    expect(navigation).toContain("workspaceNavLinks");
+    expect(navigation).toContain("journalNavLinks");
+    expect(navigation).toContain("isMcpEnabled()");
+    expect(navigation).toContain("AdminNavLink");
+    expect(mainNav).toContain("AlBayanNavigationContent");
   });
 });

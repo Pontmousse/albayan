@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MAPPING_FONTS,
+  mappingFontLabel,
   parseMappingTarget,
   serializeMappingTarget,
 } from "@/lib/mapping-fonts";
 
 describe("mapping font codec", () => {
+  it("labels default and raw modes distinctly for authors", () => {
+    expect(mappingFontLabel("default")).toBe("الافتراضي — نص عربي");
+    expect(mappingFontLabel("none")).toBe("كما كُتبت (متقدم)");
+    expect(mappingFontLabel("custom")).toBe("تنسيق محفوظ");
+    expect(MAPPING_FONTS.find((font) => font.id === "none")?.mode).toBe(
+      "raw",
+    );
+  });
+
   it("serializes all supported BuTeX mapping styles canonically", () => {
     expect(serializeMappingTarget("السرعة", "default")).toBe(
       "\\text{السرعة}",

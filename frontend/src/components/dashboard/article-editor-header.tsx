@@ -3,40 +3,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Bell,
   Bug,
   FileText,
   History,
-  Home,
   ImageIcon,
-  LayoutDashboard,
   Menu,
   Send,
-  Settings,
   Sigma,
 } from "lucide-react";
 import {
   forwardRef,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { AlBayanNavigationContent } from "@/components/albayan-navigation-content";
 import {
   MobileSheet,
   mobileSheetOptionClassName,
 } from "@/components/mobile-sheet";
-import { NumeralToggle } from "@/components/numeral-toggle";
 import { useMdUp } from "@/hooks/use-md-up";
-import {
-  contactNavLink,
-  navGroups,
-  primaryNavLink,
-  supportNavLink,
-} from "@/lib/nav-config";
 
 type ArticleEditorHeaderProps = {
   articleTitle: string | null | undefined;
@@ -91,27 +80,6 @@ function MenuAction({
       </span>
       <span>{label}</span>
     </button>
-  );
-}
-
-function MenuLink({
-  href,
-  label,
-  icon,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  icon: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <Link href={href} onClick={onClick} className={menuOptionClassName}>
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[var(--journal-accent)] shadow-sm ring-1 ring-[var(--journal-border)] md:h-7 md:w-7">
-        {icon}
-      </span>
-      <span>{label}</span>
-    </Link>
   );
 }
 
@@ -192,20 +160,13 @@ export const ArticleEditorHeader = forwardRef<
 ) {
   const mdUp = useMdUp();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileMenuTab, setMobileMenuTab] = useState<"article" | "journal">(
+    "article",
+  );
   const menuRootRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
-  const journalLinks = useMemo(
-    () => [
-      primaryNavLink,
-      ...navGroups.flatMap((group) => group.items),
-      contactNavLink,
-      supportNavLink,
-    ],
-    [],
-  );
-
   useEffect(() => {
     if (!menuOpen || !mdUp) return;
 
@@ -230,7 +191,7 @@ export const ArticleEditorHeader = forwardRef<
     };
   }, [closeMenu, mdUp, menuOpen]);
 
-  const menuContents = (
+  const articleToolsContents = (
     <div className="pb-4 md:pb-2">
       <SectionTitle>أدوات المقال</SectionTitle>
       <div className="space-y-0.5 md:px-1">
@@ -284,75 +245,14 @@ export const ArticleEditorHeader = forwardRef<
             onSubmit();
           }}
         />
-      </div>
-
-      <div className="mt-2 border-t border-[var(--journal-border)]">
-        <SectionTitle>مساحة العمل</SectionTitle>
-        <div className="space-y-0.5 md:px-1">
-          <button
-            type="button"
-            onClick={() => {
-              closeMenu();
-              onBack();
-            }}
-            className={menuOptionClassName}
-          >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[var(--journal-accent)] shadow-sm ring-1 ring-[var(--journal-border)] md:h-7 md:w-7">
-              <FileText className="h-4 w-4" aria-hidden />
-            </span>
-            <span>تفاصيل المقال</span>
-          </button>
-          <MenuLink
-            href="/maktabi"
-            label="مكتبي"
-            icon={<LayoutDashboard className="h-4 w-4" aria-hidden />}
-            onClick={closeMenu}
-          />
-          <MenuLink
-            href="/maktabi/maqalati"
-            label="مقالاتي"
-            icon={<FileText className="h-4 w-4" aria-hidden />}
-            onClick={closeMenu}
-          />
-          <MenuLink
-            href="/maktabi/isharat"
-            label="الإشعارات"
-            icon={<Bell className="h-4 w-4" aria-hidden />}
-            onClick={closeMenu}
-          />
-          <MenuLink
-            href="/al-idayat"
-            label="إعدادات الحساب"
-            icon={<Settings className="h-4 w-4" aria-hidden />}
-            onClick={closeMenu}
-          />
-        </div>
-      </div>
-
-      <div className="mt-2 border-t border-[var(--journal-border)]">
-        <SectionTitle>مجلة البيان</SectionTitle>
-        <div className="space-y-0.5 md:px-1">
-          {journalLinks.map((item) => (
-            <MenuLink
-              key={item.href}
-              href={item.href}
-              label={item.label}
-              icon={<Home className="h-4 w-4" aria-hidden />}
-              onClick={closeMenu}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-2 border-t border-[var(--journal-border)]">
-        {mdUp ? (
-          <div className="flex items-center justify-between gap-3 px-3 py-3">
-            <span className="text-xs font-semibold text-slate-600">شكل الأرقام</span>
-            <NumeralToggle />
-          </div>
-        ) : (
-          <NumeralToggle mobile />
-        )}
+        <MenuAction
+          icon={<FileText className="h-4 w-4" aria-hidden />}
+          label="تفاصيل المقال"
+          onClick={() => {
+            closeMenu();
+            onBack();
+          }}
+        />
       </div>
     </div>
   );
@@ -430,17 +330,24 @@ export const ArticleEditorHeader = forwardRef<
           <button
             ref={menuButtonRef}
             type="button"
-            aria-label="قائمة محرر المقال"
+            aria-label="القائمة"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            onClick={() => setMenuOpen((value) => !value)}
-            className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-md border transition ${
+            onClick={() =>
+              setMenuOpen((value) => {
+                const next = !value;
+                if (next && !mdUp) setMobileMenuTab("article");
+                return next;
+              })
+            }
+            className={`inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md border px-2.5 transition md:min-w-10 md:px-0 ${
               menuOpen
                 ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]"
                 : "border-[var(--journal-border)] bg-white text-slate-700 hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
             }`}
           >
             <Menu className="h-5 w-5" aria-hidden />
+            <span className="text-xs font-semibold md:hidden">القائمة</span>
           </button>
 
           <div
@@ -452,7 +359,10 @@ export const ArticleEditorHeader = forwardRef<
                 : "pointer-events-none -translate-y-1 opacity-0"
             }`}
           >
-            {menuContents}
+            {articleToolsContents}
+            <div className="border-t border-[var(--journal-border)]">
+              <AlBayanNavigationContent onNavigate={closeMenu} compact />
+            </div>
           </div>
         </div>
       </div>
@@ -461,9 +371,47 @@ export const ArticleEditorHeader = forwardRef<
         <MobileSheet
           open={menuOpen && !mdUp}
           onClose={closeMenu}
-          title="قائمة محرر المقال"
+          title="القائمة"
         >
-          {menuContents}
+          <div
+            className="grid grid-cols-2 gap-1 border-b border-[var(--journal-border)] bg-white/70 p-2"
+            role="tablist"
+            aria-label="أقسام القائمة"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileMenuTab === "article"}
+              onClick={() => setMobileMenuTab("article")}
+              className={`min-h-11 rounded-lg px-3 text-sm font-semibold transition ${
+                mobileMenuTab === "article"
+                  ? "bg-[var(--journal-accent-strong)] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-[var(--journal-accent-soft)]"
+              }`}
+            >
+              أدوات المقال
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileMenuTab === "journal"}
+              onClick={() => setMobileMenuTab("journal")}
+              className={`min-h-11 rounded-lg px-3 text-sm font-semibold transition ${
+                mobileMenuTab === "journal"
+                  ? "bg-[var(--journal-accent-strong)] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-[var(--journal-accent-soft)]"
+              }`}
+            >
+              مجلة البيان
+            </button>
+          </div>
+          <div role="tabpanel">
+            {mobileMenuTab === "article" ? (
+              articleToolsContents
+            ) : (
+              <AlBayanNavigationContent onNavigate={closeMenu} />
+            )}
+          </div>
         </MobileSheet>
       </div>
     </div>

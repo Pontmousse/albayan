@@ -58,6 +58,19 @@ export const supportNavLink: NavLink = {
   description: "المساهمة في استمرار المجلة وخدماتها العلمية المفتوحة",
 };
 
+export const workspaceNavLinks: NavLink[] = [
+  { href: "/maktabi", label: "مكتبي" },
+  { href: "/maktabi/maqalati", label: "مقالاتي" },
+  { href: "/maktabi/isharat", label: "الإشعارات" },
+  { href: "/al-idayat", label: "إعدادات الحساب" },
+];
+
+export const journalNavLinks: NavLink[] = [
+  primaryNavLink,
+  ...navGroups.flatMap((group) => group.items),
+  contactNavLink,
+];
+
 export const footerLinks = {
   authors: [
     { href: "/irshadat-al-mualifin", label: "إرشادات المؤلفين" },

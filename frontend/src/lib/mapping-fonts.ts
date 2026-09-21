@@ -27,43 +27,43 @@ export type MappingFontConfig = {
 export const MAPPING_FONTS: readonly MappingFontConfig[] = [
   {
     id: "default",
-    labelAr: "الافتراضي",
-    descriptionAr: "نص عربي عادي داخل المعادلة.",
+    labelAr: "الافتراضي — نص عربي",
+    descriptionAr: "الخيار المعتاد للنص العربي داخل المعادلة.",
     latexCommand: null,
     mode: "text",
   },
   {
     id: "takween",
     labelAr: "تكوين",
-    descriptionAr: "خط KFGQPC Takween المدعوم في BuTeX.",
+    descriptionAr: "صياغة عربية بخط تكوين.",
     latexCommand: "butextakween",
     mode: "command",
   },
   {
     id: "diwani",
     labelAr: "ديواني",
-    descriptionAr: "الخط الديواني المدعوم في BuTeX.",
+    descriptionAr: "صياغة عربية بالخط الديواني.",
     latexCommand: "butexdiwani",
     mode: "command",
   },
   {
     id: "diwaniOutline",
     labelAr: "ديواني مزخرف",
-    descriptionAr: "ديواني بإطار محاط، كما يعرّفه BuTeX.",
+    descriptionAr: "صياغة ديوانية مزخرفة بإطار.",
     latexCommand: "butexdiwanioutline",
     mode: "command",
   },
   {
     id: "maghribi",
     labelAr: "مغربي",
-    descriptionAr: "الخط المغربي المدعوم في BuTeX.",
+    descriptionAr: "صياغة عربية بالخط المغربي.",
     latexCommand: "butexmaghribi",
     mode: "command",
   },
   {
     id: "none",
-    labelAr: "بدون تنسيق",
-    descriptionAr: "يحفظ القيمة كما هي من دون تغليف نصي.",
+    labelAr: "كما كُتبت (متقدم)",
+    descriptionAr: "يبقي القيمة كما كُتبت من دون تطبيق نمط النص العربي المعتاد.",
     latexCommand: null,
     mode: "raw",
   },
@@ -207,6 +207,6 @@ export function parseMappingTarget(serialized: string): ParsedMappingTarget {
 }
 
 export function mappingFontLabel(fontId: EditableMappingFontId): string {
-  if (fontId === "custom") return "تنسيق مخصص محفوظ";
+  if (fontId === "custom") return "تنسيق محفوظ";
   return MAPPING_FONTS.find((font) => font.id === fontId)?.labelAr ?? fontId;
 }

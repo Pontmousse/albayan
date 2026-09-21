@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type ReactNode,
 } from "react";
 import {
   MobileSheet,
@@ -18,6 +19,7 @@ export type ResponsiveSelectOption<T extends string> = {
   value: T;
   label: string;
   description?: string;
+  separatorBefore?: boolean;
 };
 
 type OpenMode = "desktop" | "mobile" | null;
@@ -28,12 +30,19 @@ export function ResponsiveSelect<T extends string>({
   options,
   onChange,
   disabled = false,
+  renderSelected,
+  renderOption,
 }: {
   label: string;
   value: T;
   options: readonly ResponsiveSelectOption<T>[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  renderSelected?: (option: ResponsiveSelectOption<T>) => ReactNode;
+  renderOption?: (
+    option: ResponsiveSelectOption<T>,
+    state: { mobile: boolean; selected: boolean },
+  ) => ReactNode;
 }) {
   const labelId = useId();
   const listId = useId();
@@ -156,7 +165,15 @@ export function ResponsiveSelect<T extends string>({
         ? openMode === "mobile"
         : openMode === "desktop";
       return (
-        <li key={option.value} role="none">
+        <li
+          key={option.value}
+          role="none"
+          className={
+            option.separatorBefore
+              ? "mt-1 border-t border-[var(--journal-border)] pt-1"
+              : undefined
+          }
+        >
           <button
             ref={(element) => {
               const ownsRefs =
@@ -183,28 +200,34 @@ export function ResponsiveSelect<T extends string>({
                 : "text-slate-800 hover:bg-[var(--journal-accent-soft)]"
             }`}
           >
-            <span className="min-w-0 flex-1">
-              <span
-                className={`block ${
-                  mobile
-                    ? "text-base font-semibold leading-7"
-                    : "text-sm font-medium"
-                }`}
-              >
-                {option.label}
+            {renderOption ? (
+              <span className="min-w-0 flex-1">
+                {renderOption(option, { mobile, selected: isSelected })}
               </span>
-              {option.description ? (
+            ) : (
+              <span className="min-w-0 flex-1">
                 <span
-                  className={`block text-slate-500 ${
+                  className={`block ${
                     mobile
-                      ? "mt-1 text-sm leading-6"
-                      : "mt-0.5 text-xs leading-relaxed"
+                      ? "text-base font-semibold leading-7"
+                      : "text-sm font-medium"
                   }`}
                 >
-                  {option.description}
+                  {option.label}
                 </span>
-              ) : null}
-            </span>
+                {option.description ? (
+                  <span
+                    className={`block text-slate-500 ${
+                      mobile
+                        ? "mt-1 text-sm leading-6"
+                        : "mt-0.5 text-xs leading-relaxed"
+                    }`}
+                  >
+                    {option.description}
+                  </span>
+                ) : null}
+              </span>
+            )}
             <Check
               aria-hidden
               className={`${mobile ? "h-5 w-5" : "h-4 w-4"} shrink-0 ${
@@ -241,7 +264,11 @@ export function ResponsiveSelect<T extends string>({
             : "border-[var(--journal-border)] text-slate-900 hover:border-[var(--journal-accent)] focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]"
         }`}
       >
-        <span className="min-w-0 truncate">{selected?.label}</span>
+        <span className="min-w-0 flex-1 truncate">
+          {selected
+            ? renderSelected?.(selected) ?? selected.label
+            : null}
+        </span>
         <ChevronDown
           aria-hidden
           className={`h-5 w-5 shrink-0 text-slate-500 transition-transform duration-200 md:h-4 md:w-4 ${

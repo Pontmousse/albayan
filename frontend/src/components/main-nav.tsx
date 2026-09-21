@@ -20,12 +20,9 @@ import {
 import { isMcpEnabled } from "@/lib/mcp-enabled";
 import { readClerkRole } from "@/lib/clerk-role";
 import { AgentsNavLink } from "@/components/agents-nav-link";
+import { AlBayanNavigationContent } from "@/components/albayan-navigation-content";
 import { AdminNavLink } from "@/components/admin-nav-link";
-import {
-  MobileSheet,
-  mobileSheetOptionClassName,
-} from "@/components/mobile-sheet";
-import { NumeralToggle } from "@/components/numeral-toggle";
+import { MobileSheet } from "@/components/mobile-sheet";
 import { ReportsNavLink } from "@/components/reports-nav-link";
 
 function ChevronIcon({ open }: { open: boolean }) {
@@ -184,19 +181,11 @@ function SupportNavLink({
 
 /** قائمة موحّدة للشاشات الصغيرة */
 function MobileNav() {
-  const { user } = useUser();
-  const isAdmin = readClerkRole(user?.publicMetadata) === "admin";
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useMenuDismiss(open, close, rootRef);
-
-  const flatLinks = [
-    primaryNavLink,
-    ...navGroups.flatMap((g) => g.items),
-    contactNavLink,
-  ];
 
   return (
     <div ref={rootRef} className="relative md:hidden">
@@ -216,32 +205,8 @@ function MobileNav() {
         <ChevronIcon open={open} />
       </button>
       <MobileSheet open={open} onClose={close} title="القائمة">
-        <div id={panelId} className="flex flex-col">
-          <div className="border-b border-[var(--journal-border)]">
-            <NumeralToggle mobile />
-          </div>
-          <div className="flex gap-2 border-b border-[var(--journal-border)] bg-[var(--journal-accent-soft)]/35 px-4 py-3">
-            <ReportsNavLink inMenu onClick={close} />
-            {isAdmin ? <AdminNavLink inMenu onClick={close} /> : null}
-            {isMcpEnabled() ? <AgentsNavLink inMenu onClick={close} /> : null}
-          </div>
-          <div className="border-b border-[var(--journal-border)] px-4 py-3">
-            <SupportNavLink mobile onClick={close} />
-          </div>
-          <ul className="py-1">
-            {flatLinks.map((item) => (
-              <li key={item.href} role="none">
-                <Link
-                  href={item.href}
-                  role="menuitem"
-                  onClick={close}
-                  className={`${mobileSheetOptionClassName} text-slate-700 active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)]`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <div id={panelId}>
+          <AlBayanNavigationContent onNavigate={close} />
         </div>
       </MobileSheet>
     </div>
