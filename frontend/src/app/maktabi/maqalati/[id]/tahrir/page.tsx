@@ -10,6 +10,7 @@ import {
   ArticleAssetsPanel,
   type ArticleAssetsPanelMode,
 } from "@/components/dashboard/article-assets-panel";
+import { ArticleEditorHeader } from "@/components/dashboard/article-editor-header";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { DraftHistoryDialog } from "@/components/dashboard/draft-history-dialog";
 import { EquationMappingsPanel } from "@/components/dashboard/equation-mappings-panel";
@@ -28,9 +29,7 @@ import {
   type DraftRevisionHistoryItem,
 } from "@/lib/api/articles";
 import { ApiError } from "@/lib/api";
-import {
-  DraftAutosaveController,
-} from "@/lib/draft-autosave";
+import { DraftAutosaveController } from "@/lib/draft-autosave";
 import { createButexImageAssetListCache } from "@/lib/butex-image-assets";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
@@ -102,45 +101,58 @@ export default function TahrirPage() {
   const syncVisibleMetadata = useCallback((doc: Document2Json) => {
     const meta = doc.meta;
     if (!meta || typeof meta.title !== "string") return;
-    setArticle((current) => current ? {
-      ...current,
-      title: meta.title,
-      abstract: typeof meta.abstract === "string" ? meta.abstract || null : current.abstract,
-    } : current);
+    setArticle((current) =>
+      current
+        ? {
+            ...current,
+            title: meta.title,
+            abstract:
+              typeof meta.abstract === "string"
+                ? meta.abstract || null
+                : current.abstract,
+          }
+        : current,
+    );
   }, []);
 
-  const applyRevisionToEditor = useCallback((revision: DraftRevision) => {
-    latestDocumentJson.current = revision.document;
-    syncVisibleMetadata(revision.document);
-    setInitialDocument(revision.document);
-    setEditorKey((key) => key + 1);
-    setDocumentValid(isButexDocumentValid(revision.document));
-    if (isDevMode()) setLiveDocument(revision.document);
-    prefetchFromDocument(revision.document);
-  }, [prefetchFromDocument, syncVisibleMetadata]);
+  const applyRevisionToEditor = useCallback(
+    (revision: DraftRevision) => {
+      latestDocumentJson.current = revision.document;
+      syncVisibleMetadata(revision.document);
+      setInitialDocument(revision.document);
+      setEditorKey((key) => key + 1);
+      setDocumentValid(isButexDocumentValid(revision.document));
+      if (isDevMode()) setLiveDocument(revision.document);
+      prefetchFromDocument(revision.document);
+    },
+    [prefetchFromDocument, syncVisibleMetadata],
+  );
 
-  const installAutosaveController = useCallback((initial: DraftRevision) => {
-    autosaveController.current?.dispose();
-    autosaveController.current = new DraftAutosaveController({
-      initial,
-      save: (document, baseRevision) =>
-        putArticleDraft(getToken, articleId, document, baseRevision),
-      reload: () => getArticleDraft(getToken, articleId),
-      onState: (state) => {
-        setDirty(state.dirty);
-        setSaveFailed(state.kind === "failed");
-        if (state.kind === "saving") setSaveMessage("جارٍ الحفظ التلقائي…");
-        else if (state.kind === "saved") setSaveMessage("تم الحفظ تلقائياً.");
-        else if (state.kind === "failed") setSaveMessage(state.message);
-        else if (state.kind === "conflict") {
-          setSaveMessage(null);
-          setConflictNotice(state.message);
-        } else setSaveMessage(null);
-      },
-      onConflict: applyRevisionToEditor,
-      onCanonical: applyRevisionToEditor,
-    });
-  }, [applyRevisionToEditor, articleId, getToken]);
+  const installAutosaveController = useCallback(
+    (initial: DraftRevision) => {
+      autosaveController.current?.dispose();
+      autosaveController.current = new DraftAutosaveController({
+        initial,
+        save: (document, baseRevision) =>
+          putArticleDraft(getToken, articleId, document, baseRevision),
+        reload: () => getArticleDraft(getToken, articleId),
+        onState: (state) => {
+          setDirty(state.dirty);
+          setSaveFailed(state.kind === "failed");
+          if (state.kind === "saving") setSaveMessage("جارٍ الحفظ التلقائي…");
+          else if (state.kind === "saved") setSaveMessage("تم الحفظ تلقائياً.");
+          else if (state.kind === "failed") setSaveMessage(state.message);
+          else if (state.kind === "conflict") {
+            setSaveMessage(null);
+            setConflictNotice(state.message);
+          } else setSaveMessage(null);
+        },
+        onConflict: applyRevisionToEditor,
+        onCanonical: applyRevisionToEditor,
+      });
+    },
+    [applyRevisionToEditor, articleId, getToken],
+  );
 
   const imageAssetListCache = useMemo(
     () =>
@@ -161,7 +173,9 @@ export default function TahrirPage() {
       setAssetListError(null);
       return assets;
     } catch (err) {
-      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
+      setAssetListError(
+        userFacingErrorMessage(err, "تعذّر تحميل صور المقال."),
+      );
       throw err;
     }
   }, [assetListRevision, imageAssetListCache]);
@@ -183,7 +197,9 @@ export default function TahrirPage() {
       setAssetListError(null);
       setAssetListRevision((revision) => revision + 1);
     } catch (err) {
-      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
+      setAssetListError(
+        userFacingErrorMessage(err, "تعذّر تحميل صور المقال."),
+      );
     } finally {
       setAssetListRetrying(false);
     }
@@ -298,29 +314,23 @@ export default function TahrirPage() {
   useEffect(() => {
     const root = editorRootRef.current;
     const actionBar = actionBarRef.current;
-    const siteHeader = document.querySelector<HTMLElement>("[data-site-header]");
     if (!root || !actionBar) return;
 
-    const updateStickyOffsets = () => {
-      root.style.setProperty(
-        "--article-editor-site-header-height",
-        `${siteHeader?.getBoundingClientRect().height ?? 0}px`,
-      );
+    const updateStickyOffset = () => {
       root.style.setProperty(
         "--article-editor-actions-height",
         `${actionBar.getBoundingClientRect().height}px`,
       );
     };
 
-    updateStickyOffsets();
-    const observer = new ResizeObserver(updateStickyOffsets);
+    updateStickyOffset();
+    const observer = new ResizeObserver(updateStickyOffset);
     observer.observe(actionBar);
-    if (siteHeader) observer.observe(siteHeader);
-    window.addEventListener("resize", updateStickyOffsets);
+    window.addEventListener("resize", updateStickyOffset);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", updateStickyOffsets);
+      window.removeEventListener("resize", updateStickyOffset);
     };
   }, []);
 
@@ -345,10 +355,16 @@ export default function TahrirPage() {
         event.shiftKey ||
         event.altKey ||
         !autosaveController.current?.isUnsafeToLeave()
-      ) return;
+      )
+        return;
       const target = event.target;
-      const anchor = target instanceof Element ? target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank" || anchor.download) {
+      const anchor =
+        target instanceof Element ? target.closest("a[href]") : null;
+      if (
+        !(anchor instanceof HTMLAnchorElement) ||
+        anchor.target === "_blank" ||
+        anchor.download
+      ) {
         return;
       }
       const destination = new URL(anchor.href, window.location.href);
@@ -356,19 +372,26 @@ export default function TahrirPage() {
         destination.pathname === window.location.pathname &&
         destination.search === window.location.search &&
         destination.hash
-      ) return;
+      )
+        return;
 
       event.preventDefault();
       void (async () => {
         const saved = await autosaveController.current?.flush();
-        const stillUnsafe = autosaveController.current?.isUnsafeToLeave() ?? false;
+        const stillUnsafe =
+          autosaveController.current?.isUnsafeToLeave() ?? false;
         if (
           saved === false &&
           stillUnsafe &&
-          !window.confirm("تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟")
-        ) return;
+          !window.confirm(
+            "تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟",
+          )
+        )
+          return;
         if (destination.origin === window.location.origin) {
-          router.push(`${destination.pathname}${destination.search}${destination.hash}`);
+          router.push(
+            `${destination.pathname}${destination.search}${destination.hash}`,
+          );
         } else {
           window.location.assign(destination.href);
         }
@@ -397,7 +420,9 @@ export default function TahrirPage() {
     try {
       const saved = await autosaveController.current?.flush();
       if (saved === false) {
-        setError("تعذّر حفظ أحدث التغييرات؛ لن يتم تقديم المقال حتى ينجح الحفظ.");
+        setError(
+          "تعذّر حفظ أحدث التغييرات؛ لن يتم تقديم المقال حتى ينجح الحفظ.",
+        );
         setSubmitting(false);
         setDialogOpen(false);
         return;
@@ -416,8 +441,11 @@ export default function TahrirPage() {
     const saved = await autosaveController.current?.flush();
     if (
       saved === false &&
-      !window.confirm("تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟")
-    ) return;
+      !window.confirm(
+        "تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟",
+      )
+    )
+      return;
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
@@ -428,10 +456,14 @@ export default function TahrirPage() {
 
   async function handleRestoreHistory(revision: DraftRevisionHistoryItem) {
     const controller = autosaveController.current;
-    if (!controller) throw new ApiError("تعذّر تهيئة استعادة النسخة.", 409);
+    if (!controller)
+      throw new ApiError("تعذّر تهيئة استعادة النسخة.", 409);
     const saved = await controller.flush();
     if (saved === false && controller.isUnsafeToLeave()) {
-      throw new ApiError("تعذّر حفظ أحدث التغييرات؛ لن تبدأ الاستعادة.", 409);
+      throw new ApiError(
+        "تعذّر حفظ أحدث التغييرات؛ لن تبدأ الاستعادة.",
+        409,
+      );
     }
     try {
       const restored = await restoreDraftRevision(
@@ -442,11 +474,15 @@ export default function TahrirPage() {
       );
       applyRevisionToEditor(restored);
       installAutosaveController(restored);
-      setArticle((current) => current ? {
-        ...current,
-        current_draft_revision_id: restored.revision_id,
-        draft_revision_number: restored.revision_number,
-      } : current);
+      setArticle((current) =>
+        current
+          ? {
+              ...current,
+              current_draft_revision_id: restored.revision_id,
+              draft_revision_number: restored.revision_number,
+            }
+          : current,
+      );
       setHistoryOpen(false);
       setConflictNotice(
         `تمت استعادة النسخة ${formatDigits(String(revision.revision_number))} كنسخة حالية جديدة ${formatDigits(String(restored.revision_number))}. يبدأ التراجع والإعادة في جلسة التحرير من هذه الحالة من جديد، وتبقى الحالة التي كانت حالية قبل الاستعادة متاحة من سجل النسخ ما دامت ضمن النسخ المحفوظة.`,
@@ -460,7 +496,10 @@ export default function TahrirPage() {
         setConflictNotice(
           "وصلت تعديلات أحدث من مصدر آخر؛ حُمّلت أحدث مسودة وأُلغيت الاستعادة.",
         );
-        throw new ApiError("تغيّرت المسودة؛ حُدّث سجل النسخ وأُلغيت الاستعادة.", 409);
+        throw new ApiError(
+          "تغيّرت المسودة؛ حُدّث سجل النسخ وأُلغيت الاستعادة.",
+          409,
+        );
       }
       throw err;
     }
@@ -469,100 +508,31 @@ export default function TahrirPage() {
   return (
     <div
       ref={editorRootRef}
-      className="article-editor flex flex-1 flex-col bg-[var(--journal-paper)]"
+      className="article-editor flex min-h-screen flex-1 flex-col bg-[var(--journal-paper)]"
     >
-      <div
+      <ArticleEditorHeader
         ref={actionBarRef}
-        className="article-editor__actions sticky z-30 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm"
-      >
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void handleBack()}
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
-            >
-              → رجوع
-            </button>
-            <h1
-              className="min-w-0 truncate text-base font-bold text-slate-900"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              {article?.title ?? "المحرر"}
-            </h1>
-          </div>
-          <div className="nav-scroll -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:pb-0">
-            {saveMessage ? (
-              <span
-                className={`text-xs ${saveFailed ? "text-red-700" : "text-emerald-700"}`}
-                role="status"
-              >
-                {saveMessage}
-              </span>
-            ) : dirty ? (
-              <span className="text-xs text-[var(--journal-gold)]">
-                تغييرات غير محفوظة
-              </span>
-            ) : null}
-            {showDevJson ? (
-              <button
-                type="button"
-                onClick={() => setJsonDialogOpen(true)}
-                disabled={phase !== "ready"}
-                className="min-h-9 rounded-md border border-amber-400 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                عرض JSON
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setEquationMappingsOpen(true)}
-              disabled={phase !== "ready"}
-              title="ضبط رموز المعادلات لهذا المقال"
-              className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span
-                aria-hidden
-                className="inline-flex h-5 min-w-8 items-center justify-center rounded-full bg-[var(--journal-accent-soft)] px-1.5 font-mono text-[10px] text-[var(--journal-accent-strong)]"
-              >
-                x↔س
-              </span>
-              رموز المعادلات
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenHistory}
-              disabled={phase !== "ready"}
-              title="سجل النسخ المحفوظة عبر الجلسات. التراجع والإعادة يخصان جلسة التحرير الحالية فقط."
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              سجل النسخ
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                assetsPanelReturnFocusRef.current = event.currentTarget;
-                setPickerCurrentAssetId(null);
-                setAssetsPanelMode("manage");
-              }}
-              disabled={assetsUploading || phase !== "ready"}
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {assetsUploading ? "جارٍ الرفع…" : "صور المقال"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              disabled={phase !== "ready"}
-              className="min-h-9 rounded-md border border-[var(--journal-gold)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {article?.status === "revision_requested" ? "إعادة تقديم" : "تقديم"}
-            </button>
-          </div>
-        </div>
-      </div>
+        articleTitle={article?.title}
+        ready={phase === "ready"}
+        saveMessage={saveMessage}
+        saveFailed={saveFailed}
+        dirty={dirty}
+        assetsUploading={assetsUploading}
+        resubmission={article?.status === "revision_requested"}
+        showDevJson={showDevJson}
+        onBack={() => void handleBack()}
+        onOpenAssets={(returnFocus) => {
+          assetsPanelReturnFocusRef.current = returnFocus;
+          setPickerCurrentAssetId(null);
+          setAssetsPanelMode("manage");
+        }}
+        onOpenEquationMappings={() => setEquationMappingsOpen(true)}
+        onOpenHistory={handleOpenHistory}
+        onOpenJson={() => setJsonDialogOpen(true)}
+        onSubmit={() => setDialogOpen(true)}
+      />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-6 sm:py-6">
         {conflictNotice ? (
           <div
             className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
@@ -606,8 +576,8 @@ export default function TahrirPage() {
             role="alert"
           >
             <p>
-              تعذّر تحميل مخزون صور المقال. قد تكون الصور موجودة؛
-              لكن تعذّر جلبها: {assetListError}
+              تعذّر تحميل مخزون صور المقال. قد تكون الصور موجودة؛ لكن تعذّر
+              جلبها: {assetListError}
             </p>
             <button
               type="button"
@@ -615,7 +585,9 @@ export default function TahrirPage() {
               disabled={assetListRetrying}
               className="min-h-9 rounded-md border border-red-300 bg-white px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {assetListRetrying ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
+              {assetListRetrying
+                ? "جارٍ إعادة المحاولة…"
+                : "إعادة المحاولة"}
             </button>
           </div>
         ) : null}
@@ -625,8 +597,8 @@ export default function TahrirPage() {
             className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
             role="status"
           >
-            توجد مشكلة في المحرر. راجع الحقول المعلّمة كي ينجح
-            الحفظ التلقائي ويمكنك إنشاء ملفّ المعاينة.
+            توجد مشكلة في المحرر. راجع الحقول المعلّمة كي ينجح الحفظ التلقائي
+            ويمكنك إنشاء ملفّ المعاينة.
           </p>
         ) : null}
 
