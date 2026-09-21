@@ -2,12 +2,14 @@
 
 import {
   ArrowLeftRight,
+  ArrowUpLeft,
   Plus,
   Sigma,
   Sparkles,
   Trash2,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useNumerals } from "@/components/numeral-provider";
@@ -169,7 +171,8 @@ export function EquationMappingsPanel({
             <div>
               <h3 className="font-bold text-slate-900">اصطلاحات واضحة</h3>
               <p className="mt-1 text-sm leading-6 text-slate-600">
-                عيّن لكل رمز أصلي المقابل العربي الذي تعتمده.
+                عيّن لكل رمز أصلي مقابله العربي؛ لتساعد نماذج الذكاء
+                الاصطناعي على فهم معادلاتك العربية بدقة أكبر.
               </p>
             </div>
           </div>
@@ -181,8 +184,8 @@ export function EquationMappingsPanel({
                 className="mt-1 h-4 w-4 shrink-0 text-emerald-700"
               />
               <p>
-                كل اختيار تضيفه يسهم، بإذن الله، في خدمة مجتمع الباحثين والعلماء
-                الناطقين بالعربية.
+                مساهمتك اليوم تساعد، بإذن الله، على بناء نماذج مستقبلية أفضل فهماً
+                للمعادلات العربية، خدمةً لمجتمع الباحثين والعلماء الناطقين بالعربية.
               </p>
             </div>
           </div>
@@ -190,6 +193,14 @@ export function EquationMappingsPanel({
           <p className="mt-3 text-xs leading-5 text-slate-500">
             تسري التغييرات على التحويلات القادمة فقط؛ وتبقى المعادلات الحالية كما هي.
           </p>
+
+          <Link
+            href="/wukala"
+            className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-[var(--journal-border)] bg-white px-3.5 py-3 text-sm font-semibold text-[var(--journal-accent-strong)] shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--journal-accent)] hover:shadow-md"
+          >
+            <span>تعرّف إلى وكلاء البيان</span>
+            <ArrowUpLeft aria-hidden className="h-4 w-4 shrink-0" />
+          </Link>
 
           <div className="mt-5 hidden border-t border-[var(--journal-border)] pt-4 lg:block">
             <p className="text-xs font-semibold text-slate-500">عدد الرموز</p>
