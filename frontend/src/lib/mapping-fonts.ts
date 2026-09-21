@@ -8,6 +8,7 @@ export type MappingFontConfig = {
   labelAr: string;
   descriptionAr: string;
   latexCommand: string | null;
+  mode: "text" | "command" | "raw";
 };
 
 export const MAPPING_FONTS: readonly MappingFontConfig[] = [
@@ -16,18 +17,21 @@ export const MAPPING_FONTS: readonly MappingFontConfig[] = [
     labelAr: "النص الافتراضي",
     descriptionAr: "يُحفظ كنص عربي داخل المعادلة.",
     latexCommand: null,
+    mode: "text",
   },
   {
     id: "diwani",
     labelAr: "الديواني",
     descriptionAr: "يستخدم تنسيق الديواني المدعوم في BuTeX.",
     latexCommand: "diwani",
+    mode: "command",
   },
   {
     id: "none",
     labelAr: "بدون تنسيق",
     descriptionAr: "يحفظ القيمة كما هي من دون تغليف نصي.",
     latexCommand: null,
+    mode: "raw",
   },
 ] as const;
 
@@ -38,7 +42,6 @@ export type ParsedMappingTarget = {
 };
 
 const TEXT_PREFIX = "\\text{";
-const DIWANI_PREFIX = "\\text{\\diwani{";
 
 function hasOuterWrapper(value: string, prefix: string, suffix: string) {
   return value.startsWith(prefix) && value.endsWith(suffix);
@@ -52,7 +55,7 @@ function looksLikeUnsupportedLatex(value: string) {
  * Convert the author-facing target + style into the mapping value persisted by
  * the existing article equation-mappings API.
  *
- * The contract mirrors the currently supported Jissr/BuTeX forms:
+ * Current verified Jissr/BuTeX contract:
  * - default -> \\text{...}
  * - diwani  -> \\text{\\diwani{...}}
  * - none    -> raw value
@@ -67,11 +70,16 @@ export function serializeMappingTarget(
   if (fontId === "custom") {
     return legacySerialized ?? normalizedTarget;
   }
-  if (fontId === "none") {
+
+  const font = MAPPING_FONTS.find((candidate) => candidate.id === fontId);
+  if (!font || font.mode === "text") {
+    return `\\text{${normalizedTarget}}`;
+  }
+  if (font.mode === "raw") {
     return normalizedTarget;
   }
-  if (fontId === "diwani") {
-    return `\\text{\\diwani{${normalizedTarget}}}`;
+  if (font.latexCommand) {
+    return `\\text{\\${font.latexCommand}{${normalizedTarget}}}`;
   }
   return `\\text{${normalizedTarget}}`;
 }
@@ -83,11 +91,15 @@ export function serializeMappingTarget(
 export function parseMappingTarget(serialized: string): ParsedMappingTarget {
   const normalized = serialized.trim();
 
-  if (hasOuterWrapper(normalized, DIWANI_PREFIX, "}}")) {
-    return {
-      target: normalized.slice(DIWANI_PREFIX.length, -2),
-      fontId: "diwani",
-    };
+  for (const font of MAPPING_FONTS) {
+    if (font.mode !== "command" || !font.latexCommand) continue;
+    const prefix = `\\text{\\${font.latexCommand}{`;
+    if (hasOuterWrapper(normalized, prefix, "}}")) {
+      return {
+        target: normalized.slice(prefix.length, -2),
+        fontId: font.id,
+      };
+    }
   }
 
   if (hasOuterWrapper(normalized, TEXT_PREFIX, "}")) {
