@@ -1,8 +1,15 @@
 import { UserFacingError } from "@/lib/user-facing-errors";
+import {
+  parseMappingTarget,
+  serializeMappingTarget,
+  type EditableMappingFontId,
+} from "@/lib/mapping-fonts";
 
 export type EquationMappingRow = {
   english: string;
   arabic: string;
+  fontId: EditableMappingFontId;
+  legacySerialized?: string;
 };
 
 const MAX_MAPPING_LENGTH = 128;
@@ -11,7 +18,15 @@ const MAX_MAPPING_COUNT = 256;
 export function equationMappingRows(
   mappings: Record<string, string>,
 ): EquationMappingRow[] {
-  return Object.entries(mappings).map(([english, arabic]) => ({ english, arabic }));
+  return Object.entries(mappings).map(([english, serialized]) => {
+    const parsed = parseMappingTarget(serialized);
+    return {
+      english,
+      arabic: parsed.target,
+      fontId: parsed.fontId,
+      legacySerialized: parsed.legacySerialized,
+    };
+  });
 }
 
 export function equationMappingsFromRows(
@@ -40,7 +55,12 @@ export function equationMappingsFromRows(
     if (Object.prototype.hasOwnProperty.call(mappings, english)) {
       throw new UserFacingError(`الرمز الأصلي «${english}» مكرر.`);
     }
-    mappings[english] = arabic;
+
+    mappings[english] = serializeMappingTarget(
+      arabic,
+      row.fontId,
+      row.legacySerialized,
+    );
   }
   return mappings;
 }
