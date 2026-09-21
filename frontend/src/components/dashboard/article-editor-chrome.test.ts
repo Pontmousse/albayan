@@ -9,8 +9,8 @@ describe("focused article editor chrome", () => {
   it("keeps the tahrir route out of the global site header/footer shell", () => {
     const chrome = readLocal("../app-chrome.tsx");
 
-    expect(chrome).toContain("isEditorChromePath");
-    expect(chrome).toContain("/maktabi\\/maqalati\\/[^/]+\\/tahrir");
+    expect(chrome).toContain("function isEditorChromePath");
+    expect(chrome).toContain("tahrir\\/?$/.test(pathname)");
     expect(chrome).toContain(
       "isMinimalChromePath(pathname) || isEditorChromePath(pathname)",
     );
