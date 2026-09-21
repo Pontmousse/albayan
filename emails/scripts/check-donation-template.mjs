@@ -22,4 +22,13 @@ assert.ok(!/\b(?:Stripe|Resend|FastAPI|Next\.js)\b/i.test(html));
 assert.match(html, /خدمات مجلة البيان العلمية متاحة دون مقابل/);
 assert.match(html, /ليست إيصالًا ضريبيًا/);
 
+// Full-width email tables must not also carry horizontal margins: several
+// clients count the table's width before its margins and visibly shift/clamp
+// the donation cards. The shell owns spacing; the inner card stays at 100%.
+assert.ok(!html.includes("margin:10px 34px 18px"));
+assert.ok(!html.includes("margin:10px 34px 18px;"));
+assert.match(html, /donation-card-shell/);
+assert.match(html, /donation-card/);
+assert.match(html, /white-space:nowrap/);
+
 console.log("Donation email template passed export checks.");
