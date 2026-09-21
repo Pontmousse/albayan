@@ -29,7 +29,9 @@ import {
   type DraftRevisionHistoryItem,
 } from "@/lib/api/articles";
 import { ApiError } from "@/lib/api";
-import { DraftAutosaveController } from "@/lib/draft-autosave";
+import {
+  DraftAutosaveController,
+} from "@/lib/draft-autosave";
 import { createButexImageAssetListCache } from "@/lib/butex-image-assets";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
@@ -101,58 +103,45 @@ export default function TahrirPage() {
   const syncVisibleMetadata = useCallback((doc: Document2Json) => {
     const meta = doc.meta;
     if (!meta || typeof meta.title !== "string") return;
-    setArticle((current) =>
-      current
-        ? {
-            ...current,
-            title: meta.title,
-            abstract:
-              typeof meta.abstract === "string"
-                ? meta.abstract || null
-                : current.abstract,
-          }
-        : current,
-    );
+    setArticle((current) => current ? {
+      ...current,
+      title: meta.title,
+      abstract: typeof meta.abstract === "string" ? meta.abstract || null : current.abstract,
+    } : current);
   }, []);
 
-  const applyRevisionToEditor = useCallback(
-    (revision: DraftRevision) => {
-      latestDocumentJson.current = revision.document;
-      syncVisibleMetadata(revision.document);
-      setInitialDocument(revision.document);
-      setEditorKey((key) => key + 1);
-      setDocumentValid(isButexDocumentValid(revision.document));
-      if (isDevMode()) setLiveDocument(revision.document);
-      prefetchFromDocument(revision.document);
-    },
-    [prefetchFromDocument, syncVisibleMetadata],
-  );
+  const applyRevisionToEditor = useCallback((revision: DraftRevision) => {
+    latestDocumentJson.current = revision.document;
+    syncVisibleMetadata(revision.document);
+    setInitialDocument(revision.document);
+    setEditorKey((key) => key + 1);
+    setDocumentValid(isButexDocumentValid(revision.document));
+    if (isDevMode()) setLiveDocument(revision.document);
+    prefetchFromDocument(revision.document);
+  }, [prefetchFromDocument, syncVisibleMetadata]);
 
-  const installAutosaveController = useCallback(
-    (initial: DraftRevision) => {
-      autosaveController.current?.dispose();
-      autosaveController.current = new DraftAutosaveController({
-        initial,
-        save: (document, baseRevision) =>
-          putArticleDraft(getToken, articleId, document, baseRevision),
-        reload: () => getArticleDraft(getToken, articleId),
-        onState: (state) => {
-          setDirty(state.dirty);
-          setSaveFailed(state.kind === "failed");
-          if (state.kind === "saving") setSaveMessage("جارٍ الحفظ التلقائي…");
-          else if (state.kind === "saved") setSaveMessage("تم الحفظ تلقائياً.");
-          else if (state.kind === "failed") setSaveMessage(state.message);
-          else if (state.kind === "conflict") {
-            setSaveMessage(null);
-            setConflictNotice(state.message);
-          } else setSaveMessage(null);
-        },
-        onConflict: applyRevisionToEditor,
-        onCanonical: applyRevisionToEditor,
-      });
-    },
-    [applyRevisionToEditor, articleId, getToken],
-  );
+  const installAutosaveController = useCallback((initial: DraftRevision) => {
+    autosaveController.current?.dispose();
+    autosaveController.current = new DraftAutosaveController({
+      initial,
+      save: (document, baseRevision) =>
+        putArticleDraft(getToken, articleId, document, baseRevision),
+      reload: () => getArticleDraft(getToken, articleId),
+      onState: (state) => {
+        setDirty(state.dirty);
+        setSaveFailed(state.kind === "failed");
+        if (state.kind === "saving") setSaveMessage("جارٍ الحفظ التلقائي…");
+        else if (state.kind === "saved") setSaveMessage("تم الحفظ تلقائياً.");
+        else if (state.kind === "failed") setSaveMessage(state.message);
+        else if (state.kind === "conflict") {
+          setSaveMessage(null);
+          setConflictNotice(state.message);
+        } else setSaveMessage(null);
+      },
+      onConflict: applyRevisionToEditor,
+      onCanonical: applyRevisionToEditor,
+    });
+  }, [applyRevisionToEditor, articleId, getToken]);
 
   const imageAssetListCache = useMemo(
     () =>
@@ -173,9 +162,7 @@ export default function TahrirPage() {
       setAssetListError(null);
       return assets;
     } catch (err) {
-      setAssetListError(
-        userFacingErrorMessage(err, "تعذّر تحميل صور المقال."),
-      );
+      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
       throw err;
     }
   }, [assetListRevision, imageAssetListCache]);
@@ -197,9 +184,7 @@ export default function TahrirPage() {
       setAssetListError(null);
       setAssetListRevision((revision) => revision + 1);
     } catch (err) {
-      setAssetListError(
-        userFacingErrorMessage(err, "تعذّر تحميل صور المقال."),
-      );
+      setAssetListError(userFacingErrorMessage(err, "تعذّر تحميل صور المقال."));
     } finally {
       setAssetListRetrying(false);
     }
@@ -355,16 +340,10 @@ export default function TahrirPage() {
         event.shiftKey ||
         event.altKey ||
         !autosaveController.current?.isUnsafeToLeave()
-      )
-        return;
+      ) return;
       const target = event.target;
-      const anchor =
-        target instanceof Element ? target.closest("a[href]") : null;
-      if (
-        !(anchor instanceof HTMLAnchorElement) ||
-        anchor.target === "_blank" ||
-        anchor.download
-      ) {
+      const anchor = target instanceof Element ? target.closest("a[href]") : null;
+      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank" || anchor.download) {
         return;
       }
       const destination = new URL(anchor.href, window.location.href);
@@ -372,26 +351,19 @@ export default function TahrirPage() {
         destination.pathname === window.location.pathname &&
         destination.search === window.location.search &&
         destination.hash
-      )
-        return;
+      ) return;
 
       event.preventDefault();
       void (async () => {
         const saved = await autosaveController.current?.flush();
-        const stillUnsafe =
-          autosaveController.current?.isUnsafeToLeave() ?? false;
+        const stillUnsafe = autosaveController.current?.isUnsafeToLeave() ?? false;
         if (
           saved === false &&
           stillUnsafe &&
-          !window.confirm(
-            "تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟",
-          )
-        )
-          return;
+          !window.confirm("تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟")
+        ) return;
         if (destination.origin === window.location.origin) {
-          router.push(
-            `${destination.pathname}${destination.search}${destination.hash}`,
-          );
+          router.push(`${destination.pathname}${destination.search}${destination.hash}`);
         } else {
           window.location.assign(destination.href);
         }
@@ -420,9 +392,7 @@ export default function TahrirPage() {
     try {
       const saved = await autosaveController.current?.flush();
       if (saved === false) {
-        setError(
-          "تعذّر حفظ أحدث التغييرات؛ لن يتم تقديم المقال حتى ينجح الحفظ.",
-        );
+        setError("تعذّر حفظ أحدث التغييرات؛ لن يتم تقديم المقال حتى ينجح الحفظ.");
         setSubmitting(false);
         setDialogOpen(false);
         return;
@@ -441,11 +411,8 @@ export default function TahrirPage() {
     const saved = await autosaveController.current?.flush();
     if (
       saved === false &&
-      !window.confirm(
-        "تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟",
-      )
-    )
-      return;
+      !window.confirm("تعذّر حفظ أحدث التغييرات. هل تريد المغادرة وفقدانها؟")
+    ) return;
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
@@ -456,14 +423,10 @@ export default function TahrirPage() {
 
   async function handleRestoreHistory(revision: DraftRevisionHistoryItem) {
     const controller = autosaveController.current;
-    if (!controller)
-      throw new ApiError("تعذّر تهيئة استعادة النسخة.", 409);
+    if (!controller) throw new ApiError("تعذّر تهيئة استعادة النسخة.", 409);
     const saved = await controller.flush();
     if (saved === false && controller.isUnsafeToLeave()) {
-      throw new ApiError(
-        "تعذّر حفظ أحدث التغييرات؛ لن تبدأ الاستعادة.",
-        409,
-      );
+      throw new ApiError("تعذّر حفظ أحدث التغييرات؛ لن تبدأ الاستعادة.", 409);
     }
     try {
       const restored = await restoreDraftRevision(
@@ -474,15 +437,11 @@ export default function TahrirPage() {
       );
       applyRevisionToEditor(restored);
       installAutosaveController(restored);
-      setArticle((current) =>
-        current
-          ? {
-              ...current,
-              current_draft_revision_id: restored.revision_id,
-              draft_revision_number: restored.revision_number,
-            }
-          : current,
-      );
+      setArticle((current) => current ? {
+        ...current,
+        current_draft_revision_id: restored.revision_id,
+        draft_revision_number: restored.revision_number,
+      } : current);
       setHistoryOpen(false);
       setConflictNotice(
         `تمت استعادة النسخة ${formatDigits(String(revision.revision_number))} كنسخة حالية جديدة ${formatDigits(String(restored.revision_number))}. يبدأ التراجع والإعادة في جلسة التحرير من هذه الحالة من جديد، وتبقى الحالة التي كانت حالية قبل الاستعادة متاحة من سجل النسخ ما دامت ضمن النسخ المحفوظة.`,
@@ -496,10 +455,7 @@ export default function TahrirPage() {
         setConflictNotice(
           "وصلت تعديلات أحدث من مصدر آخر؛ حُمّلت أحدث مسودة وأُلغيت الاستعادة.",
         );
-        throw new ApiError(
-          "تغيّرت المسودة؛ حُدّث سجل النسخ وأُلغيت الاستعادة.",
-          409,
-        );
+        throw new ApiError("تغيّرت المسودة؛ حُدّث سجل النسخ وأُلغيت الاستعادة.", 409);
       }
       throw err;
     }
@@ -508,7 +464,7 @@ export default function TahrirPage() {
   return (
     <div
       ref={editorRootRef}
-      className="article-editor flex min-h-screen flex-1 flex-col bg-[var(--journal-paper)]"
+      className="article-editor flex flex-1 flex-col bg-[var(--journal-paper)]"
     >
       <ArticleEditorHeader
         ref={actionBarRef}
@@ -532,7 +488,7 @@ export default function TahrirPage() {
         onSubmit={() => setDialogOpen(true)}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-6 sm:py-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         {conflictNotice ? (
           <div
             className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
@@ -576,8 +532,8 @@ export default function TahrirPage() {
             role="alert"
           >
             <p>
-              تعذّر تحميل مخزون صور المقال. قد تكون الصور موجودة؛ لكن تعذّر
-              جلبها: {assetListError}
+              تعذّر تحميل مخزون صور المقال. قد تكون الصور موجودة؛
+              لكن تعذّر جلبها: {assetListError}
             </p>
             <button
               type="button"
@@ -585,9 +541,7 @@ export default function TahrirPage() {
               disabled={assetListRetrying}
               className="min-h-9 rounded-md border border-red-300 bg-white px-3 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {assetListRetrying
-                ? "جارٍ إعادة المحاولة…"
-                : "إعادة المحاولة"}
+              {assetListRetrying ? "جارٍ إعادة المحاولة…" : "إعادة المحاولة"}
             </button>
           </div>
         ) : null}
@@ -597,8 +551,8 @@ export default function TahrirPage() {
             className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900"
             role="status"
           >
-            توجد مشكلة في المحرر. راجع الحقول المعلّمة كي ينجح الحفظ التلقائي
-            ويمكنك إنشاء ملفّ المعاينة.
+            توجد مشكلة في المحرر. راجع الحقول المعلّمة كي ينجح
+            الحفظ التلقائي ويمكنك إنشاء ملفّ المعاينة.
           </p>
         ) : null}
 
