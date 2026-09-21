@@ -9,9 +9,11 @@ on:
       - "backend/app/core/config.py"
       - "backend/app/main.py"
       - "backend/app/routers/draft_equations.py"
+      - "backend/app/routers/equation_mappings.py"
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/draft_command.py"
       - "backend/app/schemas/draft_equation.py"
+      - "backend/app/schemas/equation_mapping.py"
       - "backend/app/services/article_draft_service.py"
       - "backend/app/services/burhan_client.py"
       - "backend/app/services/burhan_reverse_client.py"
@@ -20,7 +22,14 @@ on:
       - "backend/app/services/equation_projection_service.py"
       - "backend/tests/test_burhan_math_commands.py"
       - "backend/tests/test_draft_equations.py"
+      - "backend/tests/test_equation_mapping_api.py"
       - "backend/tests/test_equation_mapping_service.py"
+      - "frontend/src/app/maktabi/layout.tsx"
+      - "frontend/src/components/dashboard/equation-mappings-editor-launcher.tsx"
+      - "frontend/src/components/dashboard/equation-mappings-panel.tsx"
+      - "frontend/src/lib/api/equation-mappings.ts"
+      - "frontend/src/lib/equation-mappings.ts"
+      - "frontend/src/lib/equation-mappings.test.ts"
       - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
       - "mcp_server/src/albayan_mcp/server.py"
       - "mcp_server/src/albayan_mcp/tools/block_projection.py"
@@ -36,6 +45,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -51,6 +62,7 @@ jobs:
         run: >-
           PYTHONPATH=backend pytest -q
           backend/tests/test_equation_mapping_service.py
+          backend/tests/test_equation_mapping_api.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_draft_equations.py
       - name: MCP equation and compact block tests
@@ -60,3 +72,30 @@ jobs:
           mcp_server/tests/test_equation_tools.py
           mcp_server/tests/test_draft_block_projection.py
           mcp_server/tests/test_article_tools.py
+      - name: Detect frontend equation changes
+        id: frontend_changes
+        shell: bash
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -q '^frontend/'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.frontend_changes.outputs.run == 'true'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        if: steps.frontend_changes.outputs.run == 'true'
+        working-directory: frontend
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Frontend equation mapping tests
+        if: steps.frontend_changes.outputs.run == 'true'
+        working-directory: frontend
+        run: npx vitest run src/lib/equation-mappings.test.ts
+      - name: Frontend typecheck
+        if: steps.frontend_changes.outputs.run == 'true'
+        working-directory: frontend
+        run: npx tsc --noEmit
