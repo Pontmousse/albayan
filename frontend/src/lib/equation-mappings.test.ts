@@ -6,17 +6,25 @@ import {
 } from "@/lib/equation-mappings";
 
 describe("equation mapping form helpers", () => {
-  it("loads raw and wrapped mappings into editable rows", () => {
+  it("loads raw, canonical, and legacy wrapped mappings into editable rows", () => {
     expect(
       equationMappingRows({
         x: "س",
         y: "\\text{ص}",
-        z: "\\text{\\diwani{ع}}",
+        z: "\\butexdiwani{ع}",
+        t: "\\butextakween{ق}",
+        o: "\\butexdiwanioutline{ف}",
+        m: "\\butexmaghribi{م}",
+        legacy: "\\text{\\diwani{د}}",
       }),
     ).toEqual([
       { english: "x", arabic: "س", fontId: "none" },
       { english: "y", arabic: "ص", fontId: "default" },
       { english: "z", arabic: "ع", fontId: "diwani" },
+      { english: "t", arabic: "ق", fontId: "takween" },
+      { english: "o", arabic: "ف", fontId: "diwaniOutline" },
+      { english: "m", arabic: "م", fontId: "maghribi" },
+      { english: "legacy", arabic: "د", fontId: "diwani" },
     ]);
   });
 
@@ -24,12 +32,18 @@ describe("equation mapping form helpers", () => {
     expect(
       equationMappingsFromRows([
         { english: " x ", arabic: " س ", fontId: "default" },
+        { english: "t", arabic: "ق", fontId: "takween" },
         { english: "y", arabic: "ص", fontId: "diwani" },
+        { english: "o", arabic: "ف", fontId: "diwaniOutline" },
+        { english: "m", arabic: "م", fontId: "maghribi" },
         { english: "z", arabic: "ع", fontId: "none" },
       ]),
     ).toEqual({
       x: "\\text{س}",
-      y: "\\text{\\diwani{ص}}",
+      t: "\\butextakween{ق}",
+      y: "\\butexdiwani{ص}",
+      o: "\\butexdiwanioutline{ف}",
+      m: "\\butexmaghribi{م}",
       z: "ع",
     });
   });
