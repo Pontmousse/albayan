@@ -1,6 +1,12 @@
-import pytest
+import uuid
 
-from app.models.article import Article
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+from app.models.article import Article, ArticleDraftRevision, ArticleVersion
+from app.models.base import Base
+from app.models.user import User
 from app.services.equation_mapping_service import (
     EquationMappingConflict,
     get_equation_mappings,
@@ -20,6 +26,54 @@ def test_missing_mapping_state_behaves_as_empty_dict() -> None:
     article = _article(None)
 
     assert get_equation_mappings(article) == {}
+
+
+def test_equation_mappings_default_and_persist_across_commit() -> None:
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(
+        engine,
+        tables=[
+            User.__table__,
+            Article.__table__,
+            ArticleDraftRevision.__table__,
+            ArticleVersion.__table__,
+        ],
+    )
+    db = Session(engine)
+    try:
+        user = User(
+            id=uuid.uuid4(),
+            clerk_id="equation-mapping-user",
+            email="equation-mapping@example.com",
+            full_name="Equation Mapping User",
+            gender=None,
+            affiliation=None,
+            bio=None,
+        )
+        article_id = uuid.uuid4()
+        article = Article(
+            id=article_id,
+            submitted_by=user.id,
+            title="عنوان",
+            abstract=None,
+        )
+        db.add_all([user, article])
+        db.commit()
+        db.expire_all()
+
+        loaded = db.get(Article, article_id)
+        assert loaded is not None
+        assert loaded.equation_mappings == {}
+
+        replace_equation_mappings(loaded, {"x": "س"})
+        db.commit()
+        db.expire_all()
+
+        reloaded = db.get(Article, article_id)
+        assert reloaded is not None
+        assert get_equation_mappings(reloaded) == {"x": "س"}
+    finally:
+        db.close()
 
 
 def test_replace_mappings_stores_defensive_copy() -> None:
