@@ -10,6 +10,7 @@ import {
   ArticleAssetsPanel,
   type ArticleAssetsPanelMode,
 } from "@/components/dashboard/article-assets-panel";
+import { ArticleEditorHeader } from "@/components/dashboard/article-editor-header";
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { DraftHistoryDialog } from "@/components/dashboard/draft-history-dialog";
 import { EquationMappingsPanel } from "@/components/dashboard/equation-mappings-panel";
@@ -298,29 +299,23 @@ export default function TahrirPage() {
   useEffect(() => {
     const root = editorRootRef.current;
     const actionBar = actionBarRef.current;
-    const siteHeader = document.querySelector<HTMLElement>("[data-site-header]");
     if (!root || !actionBar) return;
 
-    const updateStickyOffsets = () => {
-      root.style.setProperty(
-        "--article-editor-site-header-height",
-        `${siteHeader?.getBoundingClientRect().height ?? 0}px`,
-      );
+    const updateStickyOffset = () => {
       root.style.setProperty(
         "--article-editor-actions-height",
         `${actionBar.getBoundingClientRect().height}px`,
       );
     };
 
-    updateStickyOffsets();
-    const observer = new ResizeObserver(updateStickyOffsets);
+    updateStickyOffset();
+    const observer = new ResizeObserver(updateStickyOffset);
     observer.observe(actionBar);
-    if (siteHeader) observer.observe(siteHeader);
-    window.addEventListener("resize", updateStickyOffsets);
+    window.addEventListener("resize", updateStickyOffset);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", updateStickyOffsets);
+      window.removeEventListener("resize", updateStickyOffset);
     };
   }, []);
 
@@ -471,96 +466,27 @@ export default function TahrirPage() {
       ref={editorRootRef}
       className="article-editor flex flex-1 flex-col bg-[var(--journal-paper)]"
     >
-      <div
+      <ArticleEditorHeader
         ref={actionBarRef}
-        className="article-editor__actions sticky z-30 border-b border-[var(--journal-border)] bg-[var(--journal-paper)]/95 backdrop-blur-sm"
-      >
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void handleBack()}
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
-            >
-              → رجوع
-            </button>
-            <h1
-              className="min-w-0 truncate text-base font-bold text-slate-900"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              {article?.title ?? "المحرر"}
-            </h1>
-          </div>
-          <div className="nav-scroll -mx-1 flex w-[calc(100%+0.5rem)] items-center gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:pb-0">
-            {saveMessage ? (
-              <span
-                className={`text-xs ${saveFailed ? "text-red-700" : "text-emerald-700"}`}
-                role="status"
-              >
-                {saveMessage}
-              </span>
-            ) : dirty ? (
-              <span className="text-xs text-[var(--journal-gold)]">
-                تغييرات غير محفوظة
-              </span>
-            ) : null}
-            {showDevJson ? (
-              <button
-                type="button"
-                onClick={() => setJsonDialogOpen(true)}
-                disabled={phase !== "ready"}
-                className="min-h-9 rounded-md border border-amber-400 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                عرض JSON
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => setEquationMappingsOpen(true)}
-              disabled={phase !== "ready"}
-              title="ضبط رموز المعادلات لهذا المقال"
-              className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-md border border-[var(--journal-border)] bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <span
-                aria-hidden
-                className="inline-flex h-5 min-w-8 items-center justify-center rounded-full bg-[var(--journal-accent-soft)] px-1.5 font-mono text-[10px] text-[var(--journal-accent-strong)]"
-              >
-                x↔س
-              </span>
-              رموز المعادلات
-            </button>
-            <button
-              type="button"
-              onClick={handleOpenHistory}
-              disabled={phase !== "ready"}
-              title="سجل النسخ المحفوظة عبر الجلسات. التراجع والإعادة يخصان جلسة التحرير الحالية فقط."
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              سجل النسخ
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                assetsPanelReturnFocusRef.current = event.currentTarget;
-                setPickerCurrentAssetId(null);
-                setAssetsPanelMode("manage");
-              }}
-              disabled={assetsUploading || phase !== "ready"}
-              className="min-h-9 rounded-md border border-[var(--journal-border)] bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {assetsUploading ? "جارٍ الرفع…" : "صور المقال"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDialogOpen(true)}
-              disabled={phase !== "ready"}
-              className="min-h-9 rounded-md border border-[var(--journal-gold)] bg-white px-4 py-1.5 text-xs font-semibold text-[var(--journal-gold)] transition hover:bg-[var(--journal-accent-soft)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {article?.status === "revision_requested" ? "إعادة تقديم" : "تقديم"}
-            </button>
-          </div>
-        </div>
-      </div>
+        articleTitle={article?.title}
+        ready={phase === "ready"}
+        saveMessage={saveMessage}
+        saveFailed={saveFailed}
+        dirty={dirty}
+        assetsUploading={assetsUploading}
+        resubmission={article?.status === "revision_requested"}
+        showDevJson={showDevJson}
+        onBack={() => void handleBack()}
+        onOpenAssets={(returnFocus) => {
+          assetsPanelReturnFocusRef.current = returnFocus;
+          setPickerCurrentAssetId(null);
+          setAssetsPanelMode("manage");
+        }}
+        onOpenEquationMappings={() => setEquationMappingsOpen(true)}
+        onOpenHistory={handleOpenHistory}
+        onOpenJson={() => setJsonDialogOpen(true)}
+        onSubmit={() => setDialogOpen(true)}
+      />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         {conflictNotice ? (
