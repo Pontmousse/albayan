@@ -7,16 +7,27 @@ on:
     paths:
       - ".github/workflows/equation-integration-ci.yml"
       - "backend/app/core/config.py"
+      - "backend/app/main.py"
+      - "backend/app/routers/draft_equations.py"
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/draft_command.py"
+      - "backend/app/schemas/draft_equation.py"
       - "backend/app/services/article_draft_service.py"
       - "backend/app/services/burhan_client.py"
+      - "backend/app/services/burhan_reverse_client.py"
+      - "backend/app/services/draft_equation_service.py"
       - "backend/app/services/equation_mapping_service.py"
+      - "backend/app/services/equation_projection_service.py"
       - "backend/tests/test_burhan_math_commands.py"
+      - "backend/tests/test_draft_equations.py"
       - "backend/tests/test_equation_mapping_service.py"
       - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
+      - "mcp_server/src/albayan_mcp/server.py"
       - "mcp_server/src/albayan_mcp/tools/drafts.py"
+      - "mcp_server/src/albayan_mcp/tools/equations.py"
+      - "mcp_server/tests/test_article_tools.py"
       - "mcp_server/tests/test_draft_command_schema.py"
+      - "mcp_server/tests/test_equation_tools.py"
 
 jobs:
   equation-integration:
@@ -32,7 +43,17 @@ jobs:
             mcp_server/pyproject.toml
       - run: pip install -r backend/requirements.txt pytest
       - run: pip install -e mcp_server
+      - name: Import backend application
+        run: PYTHONPATH=backend python -c "import app.main"
       - name: Backend equation tests
-        run: PYTHONPATH=backend pytest -q backend/tests/test_equation_mapping_service.py backend/tests/test_burhan_math_commands.py
-      - name: MCP equation schema tests
-        run: PYTHONPATH=mcp_server/src pytest -q mcp_server/tests/test_draft_command_schema.py
+        run: >-
+          PYTHONPATH=backend pytest -q
+          backend/tests/test_equation_mapping_service.py
+          backend/tests/test_burhan_math_commands.py
+          backend/tests/test_draft_equations.py
+      - name: MCP equation tests
+        run: >-
+          PYTHONPATH=mcp_server/src:mcp_server pytest -q
+          mcp_server/tests/test_draft_command_schema.py
+          mcp_server/tests/test_equation_tools.py
+          mcp_server/tests/test_article_tools.py

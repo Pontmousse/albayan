@@ -8,6 +8,7 @@ from app.routers import (
     agent_tokens,
     articles,
     donations,
+    draft_equations,
     draft_references,
     editor,
     invitations,
@@ -42,6 +43,7 @@ app.include_router(users.router)
 app.include_router(webhooks.router)
 app.include_router(agent_tokens.router)
 app.include_router(articles.router)
+app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
 app.include_router(revision_summaries.router)
 app.include_router(admin.router)

@@ -55,6 +55,7 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "get_draft_blocks",
                 "get_draft_references",
                 "get_draft_reference_index",
+                "get_draft_equations",
                 "apply_draft_command",
                 "compile_draft",
                 "get_compile_status",
