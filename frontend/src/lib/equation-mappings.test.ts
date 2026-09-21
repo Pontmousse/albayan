@@ -18,8 +18,13 @@ describe("equation mapping form helpers", () => {
         legacy: "\\text{\\diwani{د}}",
       }),
     ).toEqual([
-      { english: "x", arabic: "س", fontId: "none" },
-      { english: "y", arabic: "ص", fontId: "default" },
+      { english: "x", arabic: "س", fontId: "default" },
+      {
+        english: "y",
+        arabic: "ص",
+        fontId: "default",
+        legacySerialized: "\\text{ص}",
+      },
       { english: "z", arabic: "ع", fontId: "diwani" },
       { english: "t", arabic: "ق", fontId: "takween" },
       { english: "o", arabic: "ف", fontId: "diwaniOutline" },
@@ -28,7 +33,7 @@ describe("equation mapping form helpers", () => {
     ]);
   });
 
-  it("serializes plain author input according to the selected font", () => {
+  it("serializes default input plainly and applies only explicitly selected fonts", () => {
     expect(
       equationMappingsFromRows([
         { english: " x ", arabic: " س ", fontId: "default" },
@@ -36,16 +41,25 @@ describe("equation mapping form helpers", () => {
         { english: "y", arabic: "ص", fontId: "diwani" },
         { english: "o", arabic: "ف", fontId: "diwaniOutline" },
         { english: "m", arabic: "م", fontId: "maghribi" },
-        { english: "z", arabic: "ع", fontId: "none" },
       ]),
     ).toEqual({
-      x: "\\text{س}",
+      x: "س",
       t: "\\butextakween{ق}",
       y: "\\butexdiwani{ص}",
       o: "\\butexdiwanioutline{ف}",
       m: "\\butexmaghribi{م}",
-      z: "ع",
     });
+  });
+
+  it("preserves an untouched older default wrapper but normalizes after editing", () => {
+    const [row] = equationMappingRows({ x: "\\text{س}" });
+    expect(equationMappingsFromRows([row])).toEqual({ x: "\\text{س}" });
+
+    expect(
+      equationMappingsFromRows([
+        { ...row, arabic: "ص", legacySerialized: undefined },
+      ]),
+    ).toEqual({ x: "ص" });
   });
 
   it("allows reset to an empty mapping dictionary", () => {
