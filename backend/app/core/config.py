@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     compiler_url: str = ""
     butex_worker_url: str = ""
     butex_worker_token: str = ""
+    burhan_url: str = ""
+    burhan_model_tier: str = "cheap"
 
     # Stripe donations. Supplying either secret opts into the full Stripe group.
     stripe_secret_key: SecretStr = SecretStr("")
@@ -75,6 +77,14 @@ class Settings(BaseSettings):
     @classmethod
     def validate_bool_flags(cls, value: Any) -> bool:
         return _parse_bool_flag(value)
+
+    @field_validator("burhan_model_tier")
+    @classmethod
+    def validate_burhan_model_tier(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"heuristic", "free", "cheap", "medium", "frontier"}:
+            raise ValueError("BURHAN_MODEL_TIER is not supported")
+        return normalized
 
     @model_validator(mode="after")
     def validate_email_configuration(self) -> "Settings":

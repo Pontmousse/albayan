@@ -32,7 +32,12 @@ from app.models.enums import (
 from app.models.user import User
 from app.schemas.article import ArticleUpdate, DocumentCommandPayload
 from app.schemas.document2 import BLOCK_INSERTION_OPERATIONS
-from app.services import butex_worker_client, compile_service
+from app.services import (
+    burhan_client,
+    butex_worker_client,
+    compile_service,
+    equation_mapping_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -289,8 +294,6 @@ def asset_is_referenced_by_history(
             if asset_id in revision.referenced_asset_ids:
                 return True
             continue
-        # Phase 1 rows predate the cached reference list. Fail closed if their
-        # immutable snapshot cannot be read or exported.
         document = read_document(revision)
         _, raw_asset_ids = butex_worker_client.export_document(document)
         if asset_id in compile_service.validate_asset_keys(raw_asset_ids):
@@ -352,6 +355,16 @@ def _conflict(current_revision: int) -> HTTPException:
     )
 
 
+def _mapping_conflict() -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": "equation_mapping_conflict",
+            "message": "تغيّرت اصطلاحات رموز المعادلات؛ أعد المحاولة على الحالة الأحدث.",
+        },
+    )
+
+
 def _receipt_result(
     db: Session,
     receipt: DraftCommandReceipt,
@@ -398,6 +411,8 @@ def create_revision(
     restored_from_id: uuid.UUID | None = None,
     restored_from_revision_number: int | None = None,
     force_revision: bool = False,
+    expected_equation_mappings: dict[str, str] | None = None,
+    equation_mappings: dict[str, str] | None = None,
 ) -> tuple[ArticleDraftRevision, dict[str, Any], list[str]]:
     """Create N+1 exactly once, or return N for a canonical hash no-op."""
     article = assert_editable_author(db, article_id, actor)
@@ -447,6 +462,15 @@ def create_revision(
     if locked_article.draft_revision_number != base_revision:
         raise _conflict(locked_article.draft_revision_number)
 
+    if expected_equation_mappings is not None:
+        locked_mappings = equation_mapping_service.get_equation_mappings(locked_article)
+        if locked_mappings != expected_equation_mappings:
+            raise _mapping_conflict()
+        if equation_mappings is not None:
+            equation_mapping_service.replace_equation_mappings(
+                locked_article, equation_mappings
+            )
+
     affected = list(affected_block_ids or [])
     if document_hash == locked_current.document_hash and not force_revision:
         result = locked_current
@@ -494,8 +518,6 @@ def create_revision(
         db.commit()
     except IntegrityError:
         db.rollback()
-        # Command IDs are global. Two commands for different articles do not
-        # share an article lock, so the receipt PK is the final arbiter.
         if command_id is not None:
             existing = db.get(DraftCommandReceipt, command_id)
             if existing is not None:
@@ -575,11 +597,13 @@ def _affected_block_ids(
         if isinstance(target, str):
             return [target]
     before_ids = {
-        block.get("id") for block in before.get("blocks", [])
+        block.get("id")
+        for block in before.get("blocks", [])
         if isinstance(block, dict) and isinstance(block.get("id"), str)
     }
     return [
-        block["id"] for block in after.get("blocks", [])
+        block["id"]
+        for block in after.get("blocks", [])
         if isinstance(block, dict)
         and isinstance(block.get("id"), str)
         and block["id"] not in before_ids
@@ -611,6 +635,27 @@ def apply_command(
         raise _conflict(current.revision_number)
     before = read_document(current)
     command = deepcopy(command_body)
+    expected_equation_mappings: dict[str, str] | None = None
+    next_equation_mappings: dict[str, str] | None = None
+
+    if command.get("op") in {"insert_inline_token", "replace_inline_token"}:
+        token = command.get("token")
+        if isinstance(token, dict) and token.get("kind") == "math" and "latex" in token:
+            expected_equation_mappings = equation_mapping_service.get_equation_mappings(article)
+            strict_token, resolved_mappings = burhan_client.convert_latex_to_math_token(
+                token["latex"],
+                display=bool(token.get("display", False)),
+                label=token.get("label"),
+                mappings=expected_equation_mappings,
+            )
+            try:
+                next_equation_mappings = equation_mapping_service.merged_equation_mappings(
+                    expected_equation_mappings, resolved_mappings
+                )
+            except equation_mapping_service.EquationMappingConflict as exc:
+                raise _mapping_conflict() from exc
+            command["token"] = strict_token
+
     if command.get("op") in BLOCK_INSERTION_OPERATIONS:
         command["metadata"] = {
             "source": "agent" if actor.auth_method == "agent" else "user"
@@ -630,6 +675,8 @@ def apply_command(
         command_id=payload.command_id,
         command_request_hash=body_hash,
         affected_block_ids=affected,
+        expected_equation_mappings=expected_equation_mappings,
+        equation_mappings=next_equation_mappings,
     )
     return {
         "ok": True,

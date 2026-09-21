@@ -12,7 +12,7 @@ from app.models.enums import (
     SourceType,
     ReviewRecommendation,
 )
-from app.schemas.document2 import DocumentCommand
+from app.schemas.draft_command import DocumentCommand
 
 
 class ArticleCreate(BaseModel):

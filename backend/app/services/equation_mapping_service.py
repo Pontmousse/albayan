@@ -45,19 +45,24 @@ def replace_equation_mappings(
     return dict(next_mappings)
 
 
+def merged_equation_mappings(
+    current: Mapping[str, str], discovered: Mapping[str, str]
+) -> dict[str, str]:
+    """Return a merged dictionary while keeping existing assignments stable."""
+    existing_mappings = _validated_copy(current)
+    incoming = _validated_copy(discovered)
+    for english, arabic in incoming.items():
+        existing = existing_mappings.get(english)
+        if existing is not None and existing != arabic:
+            raise EquationMappingConflict(english, existing, arabic)
+    return {**existing_mappings, **incoming}
+
+
 def merge_equation_mappings(
     article: Article, discovered: Mapping[str, str]
 ) -> dict[str, str]:
     """Add newly discovered mappings while keeping existing assignments stable."""
-    current = get_equation_mappings(article)
-    incoming = _validated_copy(discovered)
-
-    for english, arabic in incoming.items():
-        existing = current.get(english)
-        if existing is not None and existing != arabic:
-            raise EquationMappingConflict(english, existing, arabic)
-
-    merged = {**current, **incoming}
+    merged = merged_equation_mappings(get_equation_mappings(article), discovered)
     article.equation_mappings = merged
     return dict(merged)
 
