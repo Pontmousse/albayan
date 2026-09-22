@@ -10,6 +10,7 @@ const page = read("src/app/daam-al-bayan/page.tsx");
 const checkout = read("src/components/donations/donation-checkout.tsx");
 const status = read("src/components/donations/donation-status.tsx");
 const nav = read("src/components/main-nav.tsx");
+const mobileNav = read("src/components/mobile-navigation-content.tsx");
 const navConfig = read("src/lib/nav-config.ts");
 const quranicOpening = read("src/components/journal/quranic-opening.tsx");
 const api = read("src/lib/donations.ts");
@@ -26,7 +27,8 @@ test("donation page keeps the free-services and editorial-independence promise",
 test("donation support is prominent in desktop and mobile navigation", () => {
   assert.match(navConfig, /href: "\/daam-al-bayan"/);
   assert.match(navConfig, /label: "دعم البيان"/);
-  assert.match(nav, /<SupportNavLink mobile onClick=\{close\} \/>/);
+  assert.match(mobileNav, /href=\{supportNavLink\.href\}/);
+  assert.match(mobileNav, /aria-label="دعم مجلة البيان"/);
   assert.match(nav, /<SupportNavLink \/>/);
 });
 
