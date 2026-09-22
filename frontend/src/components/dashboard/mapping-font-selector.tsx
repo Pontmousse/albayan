@@ -1,5 +1,6 @@
 "use client";
 
+import { injectBuTeXStyles } from "@drghaliasri/butex";
 import { Check, ChevronDown } from "lucide-react";
 import {
   useEffect,
@@ -53,6 +54,10 @@ export function MappingFontSelector({
   const selectedPreviewClass = previewClassName(value);
   const selectedIndex = Math.max(0, optionIds.indexOf(value));
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
+
+  useEffect(() => {
+    injectBuTeXStyles();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
