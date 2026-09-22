@@ -25,6 +25,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
+import { MobileNavigationContent } from "@/components/mobile-navigation-content";
 import {
   MobileSheet,
   mobileSheetOptionClassName,
@@ -64,6 +65,7 @@ type MenuActionProps = {
 };
 
 const menuOptionClassName = `${mobileSheetOptionClassName} border-0 bg-transparent text-slate-700 transition-colors hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50 md:min-h-10 md:gap-2.5 md:px-3 md:py-2 md:text-sm md:font-medium md:leading-5`;
+const mobileContextOptionClassName = `${mobileSheetOptionClassName} text-slate-700 transition-colors active:bg-[var(--journal-accent-soft)] hover:bg-[var(--journal-accent-soft)] hover:text-[var(--journal-accent-strong)] disabled:cursor-not-allowed disabled:opacity-50`;
 
 function MenuAction({
   icon,
@@ -120,6 +122,49 @@ function SectionTitle({ children }: { children: ReactNode }) {
     <p className="px-5 pb-1 pt-4 text-xs font-bold uppercase tracking-wide text-slate-500 md:px-3 md:pb-1 md:pt-3">
       {children}
     </p>
+  );
+}
+
+function MobileContextAction({
+  icon,
+  label,
+  onClick,
+  disabled = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={mobileContextOptionClassName}
+    >
+      <span className="text-[var(--journal-accent)]">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function MobileContextLink({
+  href,
+  label,
+  icon,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Link href={href} onClick={onClick} className={mobileContextOptionClassName}>
+      <span className="text-[var(--journal-accent)]">{icon}</span>
+      <span>{label}</span>
+    </Link>
   );
 }
 
@@ -230,10 +275,10 @@ export const ArticleEditorHeader = forwardRef<
     };
   }, [closeMenu, mdUp, menuOpen]);
 
-  const menuContents = (
-    <div className="pb-4 md:pb-2">
+  const desktopMenuContents = (
+    <div className="pb-2">
       <SectionTitle>أدوات المقال</SectionTitle>
-      <div className="space-y-0.5 md:px-1">
+      <div className="space-y-0.5 px-1">
         <MenuAction
           icon={<ImageIcon className="h-4 w-4" aria-hidden />}
           label={assetsUploading ? "جارٍ رفع الصور…" : "صور المقال وملفاته"}
@@ -288,7 +333,7 @@ export const ArticleEditorHeader = forwardRef<
 
       <div className="mt-2 border-t border-[var(--journal-border)]">
         <SectionTitle>مساحة العمل</SectionTitle>
-        <div className="space-y-0.5 md:px-1">
+        <div className="space-y-0.5 px-1">
           <button
             type="button"
             onClick={() => {
@@ -297,7 +342,7 @@ export const ArticleEditorHeader = forwardRef<
             }}
             className={menuOptionClassName}
           >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-[var(--journal-accent)] shadow-sm ring-1 ring-[var(--journal-border)] md:h-7 md:w-7">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white text-[var(--journal-accent)] shadow-sm ring-1 ring-[var(--journal-border)]">
               <FileText className="h-4 w-4" aria-hidden />
             </span>
             <span>تفاصيل المقال</span>
@@ -331,7 +376,7 @@ export const ArticleEditorHeader = forwardRef<
 
       <div className="mt-2 border-t border-[var(--journal-border)]">
         <SectionTitle>مجلة البيان</SectionTitle>
-        <div className="space-y-0.5 md:px-1">
+        <div className="space-y-0.5 px-1">
           {journalLinks.map((item) => (
             <MenuLink
               key={item.href}
@@ -344,16 +389,100 @@ export const ArticleEditorHeader = forwardRef<
         </div>
       </div>
 
-      <div className="mt-2 border-t border-[var(--journal-border)]">
-        {mdUp ? (
-          <div className="flex items-center justify-between gap-3 px-3 py-3">
-            <span className="text-xs font-semibold text-slate-600">شكل الأرقام</span>
-            <NumeralToggle />
-          </div>
-        ) : (
-          <NumeralToggle mobile />
-        )}
+      <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--journal-border)] px-3 py-3">
+        <span className="text-xs font-semibold text-slate-600">شكل الأرقام</span>
+        <NumeralToggle />
       </div>
+    </div>
+  );
+
+  const mobileArticleContext = (
+    <div className="py-1">
+      <p className="px-5 pb-1 pt-3 text-xs font-bold text-slate-500">أدوات المقال</p>
+      <MobileContextAction
+        icon={<ImageIcon className="h-5 w-5" aria-hidden />}
+        label={assetsUploading ? "جارٍ رفع الصور…" : "صور المقال وملفاته"}
+        disabled={assetsUploading || !ready}
+        onClick={() => {
+          const returnFocus = menuButtonRef.current;
+          closeMenu();
+          onOpenAssets(returnFocus);
+        }}
+      />
+      <MobileContextAction
+        icon={<Sigma className="h-5 w-5" aria-hidden />}
+        label="رموز المعادلات"
+        disabled={!ready}
+        onClick={() => {
+          closeMenu();
+          onOpenEquationMappings();
+        }}
+      />
+      <MobileContextAction
+        icon={<History className="h-5 w-5" aria-hidden />}
+        label="سجل النسخ"
+        disabled={!ready}
+        onClick={() => {
+          closeMenu();
+          onOpenHistory();
+        }}
+      />
+      {showDevJson ? (
+        <MobileContextAction
+          icon={<Bug className="h-5 w-5" aria-hidden />}
+          label="عرض JSON"
+          disabled={!ready}
+          onClick={() => {
+            closeMenu();
+            onOpenJson();
+          }}
+        />
+      ) : null}
+      <MobileContextAction
+        icon={<Send className="h-5 w-5" aria-hidden />}
+        label={resubmission ? "إعادة تقديم المقال" : "تقديم المقال"}
+        disabled={!ready}
+        onClick={() => {
+          closeMenu();
+          onSubmit();
+        }}
+      />
+
+      <p className="border-t border-[var(--journal-border)] px-5 pb-1 pt-3 text-xs font-bold text-slate-500">
+        مساحة العمل
+      </p>
+      <MobileContextAction
+        icon={<FileText className="h-5 w-5" aria-hidden />}
+        label="تفاصيل المقال"
+        onClick={() => {
+          closeMenu();
+          onBack();
+        }}
+      />
+      <MobileContextLink
+        href="/maktabi"
+        label="مكتبي"
+        icon={<LayoutDashboard className="h-5 w-5" aria-hidden />}
+        onClick={closeMenu}
+      />
+      <MobileContextLink
+        href="/maktabi/maqalati"
+        label="مقالاتي"
+        icon={<FileText className="h-5 w-5" aria-hidden />}
+        onClick={closeMenu}
+      />
+      <MobileContextLink
+        href="/maktabi/isharat"
+        label="الإشعارات"
+        icon={<Bell className="h-5 w-5" aria-hidden />}
+        onClick={closeMenu}
+      />
+      <MobileContextLink
+        href="/al-idayat"
+        label="إعدادات الحساب"
+        icon={<Settings className="h-5 w-5" aria-hidden />}
+        onClick={closeMenu}
+      />
     </div>
   );
 
@@ -452,7 +581,7 @@ export const ArticleEditorHeader = forwardRef<
                 : "pointer-events-none -translate-y-1 opacity-0"
             }`}
           >
-            {menuContents}
+            {desktopMenuContents}
           </div>
         </div>
       </div>
@@ -461,9 +590,12 @@ export const ArticleEditorHeader = forwardRef<
         <MobileSheet
           open={menuOpen && !mdUp}
           onClose={closeMenu}
-          title="قائمة محرر المقال"
+          title="القائمة"
         >
-          {menuContents}
+          <MobileNavigationContent
+            onNavigate={closeMenu}
+            contextualContent={mobileArticleContext}
+          />
         </MobileSheet>
       </div>
     </div>
