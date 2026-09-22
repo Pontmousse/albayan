@@ -3,6 +3,7 @@
 import type { Document2Json } from "@drghaliasri/butex/document2";
 import {
   ArrowLeftRight,
+  ChevronRight,
   Eye,
   EyeOff,
   FileText,
@@ -20,6 +21,7 @@ import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-pr
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { useNumerals } from "@/components/numeral-provider";
 import { AnimatedOverlay } from "@/components/ui/animated-overlay";
+import { useMdUp } from "@/hooks/use-md-up";
 import {
   getDraftRevision,
   listDraftRevisions,
@@ -189,6 +191,7 @@ export function DraftHistoryDialog({
   currentDocument?: Document2Json | null;
 }) {
   const { formatDateTime, formatDigits } = useNumerals();
+  const mdUp = useMdUp();
   const [revisions, setRevisions] = useState<DraftRevisionHistoryItem[]>([]);
   const [selected, setSelected] = useState<DraftRevisionHistoryItem | null>(null);
   const [summary, setSummary] = useState<RevisionChangeSummaryV1 | null>(null);
@@ -202,7 +205,10 @@ export function DraftHistoryDialog({
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
   const previewRequestRef = useRef(0);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const mobileListScrollTopRef = useRef(0);
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -226,6 +232,8 @@ export function DraftHistoryDialog({
 
   useEffect(() => {
     if (!open) return;
+    setMobileDetailOpen(false);
+    mobileListScrollTopRef.current = 0;
     setPreviewOpen(false);
     setPreviewDocument(null);
     setPreviewError(null);
@@ -275,6 +283,22 @@ export function DraftHistoryDialog({
       cancelled = true;
     };
   }, [articleId, getToken, open, selected]);
+
+  function selectRevision(revision: DraftRevisionHistoryItem) {
+    setSelected(revision);
+    if (mdUp) return;
+
+    mobileListScrollTopRef.current = mobileScrollRef.current?.scrollTop ?? 0;
+    setMobileDetailOpen(true);
+    requestAnimationFrame(() => mobileScrollRef.current?.scrollTo({ top: 0 }));
+  }
+
+  function showMobileRevisionList() {
+    setMobileDetailOpen(false);
+    requestAnimationFrame(() =>
+      mobileScrollRef.current?.scrollTo({ top: mobileListScrollTopRef.current }),
+    );
+  }
 
   async function togglePreview() {
     if (!selected) return;
@@ -358,15 +382,20 @@ export function DraftHistoryDialog({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:flex md:flex-col md:overflow-hidden">
-          <details className="mx-4 mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:hidden">
+        <div
+          ref={mobileScrollRef}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:flex md:flex-col md:overflow-hidden"
+        >
+          <details
+            className={`${mobileDetailOpen ? "hidden" : "block"} mx-4 mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:hidden`}
+          >
             <summary className="cursor-pointer font-semibold">حول سجل النسخ</summary>
             <p className="mt-1.5">
               التراجع والإعادة يخصان جلسة التحرير الحالية فقط. سجل النسخ يحفظ حالات مستقلة على الخادم ويمكن استعادة أي نسخة محفوظة دون حذف الأحدث.
             </p>
           </details>
 
-          <div className="mx-4 mt-3 hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:block md:mx-6">
+          <div className="mx-4 mt-3 hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:mx-6 md:block">
             التراجع والإعادة يخصان جلسة التحرير الحالية فقط. سجل النسخ يحفظ حالات مستقلة على الخادم، ويمكن استعادة أي نسخة محفوظة من دون حذف النسخ الأحدث.
           </div>
 
@@ -396,7 +425,9 @@ export function DraftHistoryDialog({
           ) : null}
 
           <div className="md:grid md:min-h-0 md:flex-1 md:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside className="border-b border-[var(--journal-border)] bg-white/60 p-3 md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-e">
+            <aside
+              className={`${mobileDetailOpen ? "hidden" : "block"} border-b border-[var(--journal-border)] bg-white/60 p-3 md:block md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-e`}
+            >
               {loadingList ? (
                 <div className="space-y-2">
                   <SkeletonBlock className="h-20" />
@@ -411,7 +442,7 @@ export function DraftHistoryDialog({
                     <li key={revision.revision_id}>
                       <button
                         type="button"
-                        onClick={() => setSelected(revision)}
+                        onClick={() => selectRevision(revision)}
                         className={`w-full rounded-lg border p-3 text-start transition ${
                           selected?.revision_id === revision.revision_id
                             ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)]"
@@ -446,9 +477,20 @@ export function DraftHistoryDialog({
               )}
             </aside>
 
-            <section className="p-4 sm:p-6 md:min-h-0 md:overflow-y-auto lg:p-8">
+            <section
+              className={`${mobileDetailOpen ? "block" : "hidden"} p-4 sm:p-6 md:block md:min-h-0 md:overflow-y-auto lg:p-8`}
+            >
               {selected ? (
                 <div className="mx-auto w-full max-w-5xl">
+                  <button
+                    type="button"
+                    onClick={showMobileRevisionList}
+                    className="mb-4 inline-flex min-h-10 items-center gap-1.5 rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] md:hidden"
+                  >
+                    <ChevronRight className="size-4" aria-hidden="true" />
+                    كل النسخ
+                  </button>
+
                   <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-slate-900">
