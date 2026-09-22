@@ -25,11 +25,21 @@ on:
       - "backend/tests/test_equation_mapping_api.py"
       - "backend/tests/test_equation_mapping_service.py"
       - "frontend/src/app/maktabi/layout.tsx"
+      - "frontend/src/components/dashboard/article-editor-chrome.test.ts"
+      - "frontend/src/components/dashboard/article-editor-header.tsx"
+      - "frontend/src/components/dashboard/authoring-ux-followup.test.ts"
+      - "frontend/src/components/dashboard/draft-history-dialog.tsx"
       - "frontend/src/components/dashboard/equation-mappings-editor-launcher.tsx"
       - "frontend/src/components/dashboard/equation-mappings-panel.tsx"
+      - "frontend/src/components/dashboard/mapping-font-selector.module.css"
+      - "frontend/src/components/dashboard/mapping-font-selector.tsx"
+      - "frontend/src/components/main-nav.tsx"
+      - "frontend/src/components/mobile-navigation-content.tsx"
       - "frontend/src/lib/api/equation-mappings.ts"
       - "frontend/src/lib/equation-mappings.ts"
       - "frontend/src/lib/equation-mappings.test.ts"
+      - "frontend/src/lib/mapping-fonts.ts"
+      - "frontend/src/lib/mapping-fonts.test.ts"
       - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
       - "mcp_server/src/albayan_mcp/server.py"
       - "mcp_server/src/albayan_mcp/tools/block_projection.py"
@@ -91,10 +101,15 @@ jobs:
         if: steps.frontend_changes.outputs.run == 'true'
         working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Frontend equation mapping tests
+      - name: Frontend authoring and equation tests
         if: steps.frontend_changes.outputs.run == 'true'
         working-directory: frontend
-        run: npx vitest run src/lib/equation-mappings.test.ts
+        run: >-
+          npx vitest run
+          src/lib/equation-mappings.test.ts
+          src/lib/mapping-fonts.test.ts
+          src/components/dashboard/article-editor-chrome.test.ts
+          src/components/dashboard/authoring-ux-followup.test.ts
       - name: Frontend typecheck
         if: steps.frontend_changes.outputs.run == 'true'
         working-directory: frontend
