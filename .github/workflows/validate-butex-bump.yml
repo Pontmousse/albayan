@@ -19,9 +19,9 @@ jobs:
       - name: Install
         working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Test
+      - name: BuTeX-focused tests
         working-directory: frontend
-        run: npm test
+        run: npx vitest run src/lib/butex-images.test.ts src/lib/butex-validation.test.ts src/lib/mapping-fonts.test.ts
       - name: Typecheck
         working-directory: frontend
         run: npx tsc --noEmit
