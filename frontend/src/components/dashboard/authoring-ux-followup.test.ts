@@ -6,7 +6,7 @@ function readLocal(path: string): string {
 }
 
 describe("issue 142 authoring UX follow-up", () => {
-  it("uses an owned accessible visual mapping picker", () => {
+  it("uses an owned accessible visual mapping picker above scroll containers", () => {
     const selector = readLocal("./mapping-font-selector.tsx");
     const fonts = readLocal("../../lib/mapping-fonts.ts");
 
@@ -14,6 +14,9 @@ describe("issue 142 authoring UX follow-up", () => {
     expect(selector).toContain('aria-haspopup="listbox"');
     expect(selector).toContain('role="listbox"');
     expect(selector).toContain('role="option"');
+    expect(selector).toContain("createPortal");
+    expect(selector).toContain('className="fixed z-[100]');
+    expect(selector).toContain("data-mapping-font={value}");
     expect(selector).toContain("ArrowDown");
     expect(selector).toContain("Escape");
     expect(selector).toContain("متقدم");
@@ -24,6 +27,17 @@ describe("issue 142 authoring UX follow-up", () => {
     expect(fonts).toContain('latexCommand: "butexmaghribi"');
     expect(fonts).toContain('id: "none"');
     expect(fonts).toContain("للحالات المتقدمة");
+  });
+
+  it("shows the selected font directly on the Arabic target field", () => {
+    const selectorCss = readLocal("./mapping-font-selector.module.css");
+
+    expect(selectorCss).toContain('data-mapping-font="takween"');
+    expect(selectorCss).toContain('data-mapping-font="diwani"');
+    expect(selectorCss).toContain('data-mapping-font="diwaniOutline"');
+    expect(selectorCss).toContain('data-mapping-font="maghribi"');
+    expect(selectorCss).toContain('input[aria-label^="القيمة العربية"]');
+    expect(selectorCss).toContain('font-family: "Almaghribi Warsh Quran"');
   });
 
   it("keeps technical mapping serialization in DEV mode only", () => {
@@ -40,17 +54,21 @@ describe("issue 142 authoring UX follow-up", () => {
     expect(panel).toContain('fontId: "default"');
   });
 
-  it("uses a mobile list to revision-detail drill-down without eager preview", () => {
+  it("keeps mobile history drill-down separate from an always-rendered desktop split view", () => {
     const history = readLocal("./draft-history-dialog.tsx");
 
     expect(history).toContain("mobileDetailOpen");
     expect(history).toContain("mobileListScrollTopRef");
     expect(history).toContain("showMobileRevisionList");
     expect(history).toContain("كل النسخ");
+    expect(history).toContain('className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:hidden"');
+    expect(history).toContain('className="hidden min-h-0 flex-1 md:grid md:grid-cols-[20rem_minmax(0,1fr)]"');
+    expect(history).toContain("النسخ المحفوظة");
+    expect(history).toContain("revisionDetail(false)");
     expect(history).toContain("togglePreview");
     expect(history).toContain("getDraftRevisionChangeSummary");
     expect(history).toContain("getDraftRevision(getToken");
-    expect(history).not.toContain("selectRevision = async");
+    expect(history).not.toContain("useMdUp");
   });
 
   it("shares the learned mobile navigation model with the article editor", () => {

@@ -3,12 +3,15 @@
 import { injectBuTeXStyles } from "@drghaliasri/butex";
 import { Check, ChevronDown } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
   MAPPING_FONTS,
@@ -26,6 +29,14 @@ function previewClassName(fontId: EditableMappingFontId): string | undefined {
   return undefined;
 }
 
+type ListboxPosition = {
+  left: number;
+  width: number;
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+};
+
 export function MappingFontSelector({
   id,
   value,
@@ -40,8 +51,10 @@ export function MappingFontSelector({
   const listboxId = `${id}-listbox`;
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<ListboxPosition | null>(null);
 
   const optionIds = useMemo<EditableMappingFontId[]>(
     () => [
@@ -55,20 +68,55 @@ export function MappingFontSelector({
   const selectedIndex = Math.max(0, optionIds.indexOf(value));
   const [activeIndex, setActiveIndex] = useState(selectedIndex);
 
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const gutter = 8;
+    const gap = 6;
+    const spaceBelow = window.innerHeight - rect.bottom - gutter - gap;
+    const spaceAbove = rect.top - gutter - gap;
+    const openUpward = spaceBelow < 220 && spaceAbove > spaceBelow;
+    const available = Math.max(160, openUpward ? spaceAbove : spaceBelow);
+
+    setPosition({
+      left: Math.max(gutter, Math.min(rect.left, window.innerWidth - rect.width - gutter)),
+      width: Math.min(rect.width, window.innerWidth - gutter * 2),
+      maxHeight: Math.min(320, available),
+      ...(openUpward
+        ? { bottom: window.innerHeight - rect.top + gap }
+        : { top: rect.bottom + gap }),
+    });
+  }, []);
+
   useEffect(() => {
     injectBuTeXStyles();
   }, []);
 
   useEffect(() => {
     if (!open) return;
+    updatePosition();
 
     function onPointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !listboxRef.current?.contains(target)
+      ) {
+        setOpen(false);
+      }
     }
 
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
 
   useEffect(() => {
     if (!open) return;
@@ -76,9 +124,9 @@ export function MappingFontSelector({
   }, [open, selectedIndex]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !position) return;
     optionRefs.current[activeIndex]?.focus();
-  }, [activeIndex, open]);
+  }, [activeIndex, open, position]);
 
   function closeAndRestoreFocus() {
     setOpen(false);
@@ -132,8 +180,85 @@ export function MappingFontSelector({
     }
   }
 
+  const listbox =
+    open && position
+      ? createPortal(
+          <div
+            ref={listboxRef}
+            id={listboxId}
+            role="listbox"
+            aria-label={ariaLabel}
+            className="fixed z-[100] overflow-y-auto rounded-xl border border-[var(--journal-border)] bg-white p-1.5 shadow-2xl"
+            style={position as CSSProperties}
+          >
+            {optionIds.map((fontId, index) => {
+              const font = MAPPING_FONTS.find((candidate) => candidate.id === fontId);
+              const isCustom = fontId === "custom";
+              const isRaw = fontId === "none";
+              const optionPreviewClass = previewClassName(fontId);
+              const label = isCustom ? "تنسيق مخصص محفوظ" : font?.labelAr ?? fontId;
+              const description = isCustom
+                ? "صيغة قديمة أو مخصصة محفوظة كما هي."
+                : font?.descriptionAr;
+
+              return (
+                <button
+                  key={fontId}
+                  ref={(node) => {
+                    optionRefs.current[index] = node;
+                  }}
+                  type="button"
+                  role="option"
+                  aria-selected={value === fontId}
+                  tabIndex={activeIndex === index ? 0 : -1}
+                  onClick={() => choose(fontId)}
+                  onKeyDown={(event) => handleOptionKeyDown(event, index)}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start outline-none transition hover:bg-[var(--journal-accent-soft)] focus:bg-[var(--journal-accent-soft)] focus:ring-2 focus:ring-inset focus:ring-[var(--journal-accent)] ${
+                    isRaw ? "mt-1.5 border-t border-[var(--journal-border)] pt-3.5" : ""
+                  }`}
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-800">{label}</span>
+                      {isRaw ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          متقدم
+                        </span>
+                      ) : null}
+                    </span>
+                    {description ? (
+                      <span className="mt-0.5 block text-xs leading-5 text-slate-500">
+                        {description}
+                      </span>
+                    ) : null}
+                  </span>
+
+                  {!isCustom && !isRaw ? (
+                    <span
+                      aria-hidden
+                      className={`shrink-0 rounded-md border border-[var(--journal-border)] bg-white px-2 py-1 text-lg leading-none text-slate-800 ${optionPreviewClass ?? ""}`}
+                    >
+                      أبجد هوز
+                    </span>
+                  ) : null}
+
+                  <span className="grid h-5 w-5 shrink-0 place-items-center text-[var(--journal-accent-strong)]">
+                    {value === fontId ? <Check aria-hidden className="h-4 w-4" /> : null}
+                  </span>
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div ref={rootRef} className="relative min-w-0">
+    <div
+      ref={rootRef}
+      className="relative min-w-0"
+      data-mapping-font={value}
+    >
       <button
         ref={triggerRef}
         id={id}
@@ -164,72 +289,7 @@ export function MappingFontSelector({
         />
       </button>
 
-      {open ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          aria-label={ariaLabel}
-          className="absolute inset-x-0 top-full z-30 mt-1.5 max-h-80 overflow-y-auto rounded-xl border border-[var(--journal-border)] bg-white p-1.5 shadow-xl"
-        >
-          {optionIds.map((fontId, index) => {
-            const font = MAPPING_FONTS.find((candidate) => candidate.id === fontId);
-            const isCustom = fontId === "custom";
-            const isRaw = fontId === "none";
-            const optionPreviewClass = previewClassName(fontId);
-            const label = isCustom ? "تنسيق مخصص محفوظ" : font?.labelAr ?? fontId;
-            const description = isCustom
-              ? "صيغة قديمة أو مخصصة محفوظة كما هي."
-              : font?.descriptionAr;
-
-            return (
-              <button
-                key={fontId}
-                ref={(node) => {
-                  optionRefs.current[index] = node;
-                }}
-                type="button"
-                role="option"
-                aria-selected={value === fontId}
-                tabIndex={activeIndex === index ? 0 : -1}
-                onClick={() => choose(fontId)}
-                onKeyDown={(event) => handleOptionKeyDown(event, index)}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start outline-none transition hover:bg-[var(--journal-accent-soft)] focus:bg-[var(--journal-accent-soft)] focus:ring-2 focus:ring-inset focus:ring-[var(--journal-accent)] ${
-                  isRaw ? "mt-1.5 border-t border-[var(--journal-border)] pt-3.5" : ""
-                }`}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-800">{label}</span>
-                    {isRaw ? (
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                        متقدم
-                      </span>
-                    ) : null}
-                  </span>
-                  {description ? (
-                    <span className="mt-0.5 block text-xs leading-5 text-slate-500">
-                      {description}
-                    </span>
-                  ) : null}
-                </span>
-
-                {!isCustom && !isRaw ? (
-                  <span
-                    aria-hidden
-                    className={`shrink-0 rounded-md border border-[var(--journal-border)] bg-white px-2 py-1 text-lg leading-none text-slate-800 ${optionPreviewClass ?? ""}`}
-                  >
-                    أبجد هوز
-                  </span>
-                ) : null}
-
-                <span className="grid h-5 w-5 shrink-0 place-items-center text-[var(--journal-accent-strong)]">
-                  {value === fontId ? <Check aria-hidden className="h-4 w-4" /> : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {listbox}
 
       {value === "custom" ? (
         <p className="mt-1.5 text-xs leading-5 text-amber-700">
