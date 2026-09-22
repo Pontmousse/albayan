@@ -281,7 +281,7 @@ export const ArticleEditorHeader = forwardRef<
       <div className="space-y-0.5 px-1">
         <MenuAction
           icon={<ImageIcon className="h-4 w-4" aria-hidden />}
-          label={assetsUploading ? "جارٍ رفع الصور…" : "صور المقال وملفاته"}
+          label={assetsUploading ? "جارٍ رفع الصور…" : "صور"}
           disabled={assetsUploading || !ready}
           onClick={() => {
             const returnFocus = menuButtonRef.current;
@@ -401,7 +401,7 @@ export const ArticleEditorHeader = forwardRef<
       <p className="px-5 pb-1 pt-3 text-xs font-bold text-slate-500">أدوات المقال</p>
       <MobileContextAction
         icon={<ImageIcon className="h-5 w-5" aria-hidden />}
-        label={assetsUploading ? "جارٍ رفع الصور…" : "صور المقال وملفاته"}
+        label={assetsUploading ? "جارٍ رفع الصور…" : "صور"}
         disabled={assetsUploading || !ready}
         onClick={() => {
           const returnFocus = menuButtonRef.current;
