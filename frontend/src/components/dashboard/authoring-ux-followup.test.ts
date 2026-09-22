@@ -29,13 +29,14 @@ describe("issue 142 authoring UX follow-up", () => {
     expect(fonts).toContain("للحالات المتقدمة");
   });
 
-  it("shows the selected font directly on the Arabic target field", () => {
+  it("shows the selected font directly on the Arabic target field with pure CSS-module selectors", () => {
     const selectorCss = readLocal("./mapping-font-selector.module.css");
 
-    expect(selectorCss).toContain('data-mapping-font="takween"');
-    expect(selectorCss).toContain('data-mapping-font="diwani"');
-    expect(selectorCss).toContain('data-mapping-font="diwaniOutline"');
-    expect(selectorCss).toContain('data-mapping-font="maghribi"');
+    expect(selectorCss).toContain(":has(.takween)");
+    expect(selectorCss).toContain(":has(.diwani)");
+    expect(selectorCss).toContain(":has(.diwaniOutline)");
+    expect(selectorCss).toContain(":has(.maghribi)");
+    expect(selectorCss).not.toContain(":has([data-mapping-font=");
     expect(selectorCss).toContain('input[aria-label^="القيمة العربية"]');
     expect(selectorCss).toContain('font-family: "Almaghribi Warsh Quran"');
   });
