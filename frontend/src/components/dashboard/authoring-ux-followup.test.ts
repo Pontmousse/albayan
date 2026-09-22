@@ -21,6 +21,9 @@ describe("issue 142 authoring UX follow-up", () => {
     expect(selector).toContain("Escape");
     expect(selector).toContain("متقدم");
     expect(selector).toContain("أبجد هوز");
+    expect(selector).toContain('import { isDevMode } from "@/lib/dev-mode"');
+    expect(selector).toContain("const showAdvancedOptions = isDevMode()");
+    expect(selector).toContain('showAdvancedOptions || font.id !== "none"');
     expect(fonts).toContain('latexCommand: "butextakween"');
     expect(fonts).toContain('latexCommand: "butexdiwani"');
     expect(fonts).toContain('latexCommand: "butexdiwanioutline"');

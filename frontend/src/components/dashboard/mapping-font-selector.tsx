@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 
+import { isDevMode } from "@/lib/dev-mode";
 import {
   MAPPING_FONTS,
   mappingFontLabel,
@@ -55,13 +56,16 @@ export function MappingFontSelector({
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<ListboxPosition | null>(null);
+  const showAdvancedOptions = isDevMode();
 
   const optionIds = useMemo<EditableMappingFontId[]>(
     () => [
       ...(value === "custom" ? (["custom"] as const) : []),
-      ...MAPPING_FONTS.map((font) => font.id),
+      ...MAPPING_FONTS.filter(
+        (font) => showAdvancedOptions || font.id !== "none",
+      ).map((font) => font.id),
     ],
-    [value],
+    [showAdvancedOptions, value],
   );
   const selected = MAPPING_FONTS.find((font) => font.id === value);
   const selectedPreviewClass = previewClassName(value);
