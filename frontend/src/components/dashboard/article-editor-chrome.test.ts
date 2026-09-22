@@ -32,7 +32,8 @@ describe("focused article editor chrome", () => {
 
     expect(header).toContain("رموز المعادلات");
     expect(header).toContain("سجل النسخ");
-    expect(header).toContain("صور المقال وملفاته");
+    expect(header).toContain('"صور"');
+    expect(header).not.toContain("صور المقال وملفاته");
     expect(header).toContain("تقديم المقال");
     expect(header).toContain("مكتبي");
     expect(header).toContain("مقالاتي");
