@@ -16,12 +16,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { DocumentFrozenPreview } from "@/components/dashboard/document-frozen-preview";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { useNumerals } from "@/components/numeral-provider";
 import { AnimatedOverlay } from "@/components/ui/animated-overlay";
-import { useMdUp } from "@/hooks/use-md-up";
 import {
   getDraftRevision,
   listDraftRevisions,
@@ -118,7 +118,7 @@ function ChangeSummary({
   unavailable: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--journal-border)] bg-white/70 p-4 sm:p-5">
+    <div className="rounded-xl border border-[var(--journal-border)] bg-white/80 p-4 sm:p-5">
       <div className="mb-4 flex items-center gap-2">
         <span className="flex size-8 items-center justify-center rounded-full bg-[var(--journal-accent-soft)] text-[var(--journal-accent-strong)]">
           <Sparkles className="size-4" aria-hidden="true" />
@@ -187,11 +187,9 @@ export function DraftHistoryDialog({
   onClose: () => void;
   onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;
   latestChangesUnsaved?: boolean;
-  /** Optional #101 fast path for the already-loaded persisted current revision. */
   currentDocument?: Document2Json | null;
 }) {
   const { formatDateTime, formatDigits } = useNumerals();
-  const mdUp = useMdUp();
   const [revisions, setRevisions] = useState<DraftRevisionHistoryItem[]>([]);
   const [selected, setSelected] = useState<DraftRevisionHistoryItem | null>(null);
   const [summary, setSummary] = useState<RevisionChangeSummaryV1 | null>(null);
@@ -284,11 +282,9 @@ export function DraftHistoryDialog({
     };
   }, [articleId, getToken, open, selected]);
 
-  function selectRevision(revision: DraftRevisionHistoryItem) {
-    setSelected(revision);
-    if (mdUp) return;
-
+  function selectMobileRevision(revision: DraftRevisionHistoryItem) {
     mobileListScrollTopRef.current = mobileScrollRef.current?.scrollTop ?? 0;
+    setSelected(revision);
     setMobileDetailOpen(true);
     requestAnimationFrame(() => mobileScrollRef.current?.scrollTo({ top: 0 }));
   }
@@ -350,6 +346,205 @@ export function DraftHistoryDialog({
     }
   }
 
+  function revisionList(mobile: boolean) {
+    if (loadingList) {
+      return (
+        <div className="space-y-2 p-1">
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
+          <SkeletonBlock className="h-20" />
+        </div>
+      );
+    }
+
+    if (revisions.length === 0) {
+      return (
+        <p className="p-6 text-center text-sm text-slate-500">لا توجد نسخ محفوظة.</p>
+      );
+    }
+
+    return (
+      <ol className="space-y-2">
+        {revisions.map((revision) => (
+          <li key={revision.revision_id}>
+            <button
+              type="button"
+              onClick={() =>
+                mobile ? selectMobileRevision(revision) : setSelected(revision)
+              }
+              className={`w-full rounded-xl border p-3 text-start transition ${
+                selected?.revision_id === revision.revision_id
+                  ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)] shadow-sm"
+                  : "border-[var(--journal-border)] bg-white hover:border-[var(--journal-accent)] hover:shadow-sm"
+              }`}
+            >
+              <span className="flex items-center justify-between gap-2">
+                <strong className="text-sm text-slate-900">
+                  النسخة {formatDigits(String(revision.revision_number))}
+                </strong>
+                {revision.is_current ? (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                    الحالية
+                  </span>
+                ) : null}
+              </span>
+              <span className="mt-1 block text-xs text-slate-600">
+                {REASON_LABELS[revision.reason]} · {ACTOR_LABELS[revision.actor_type]}
+              </span>
+              <span className="mt-1 block text-xs text-slate-500">
+                {creatorLabel(revision)} · {formatDateTime(new Date(revision.created_at))}
+              </span>
+              {revision.restored_from_revision_number ? (
+                <span className="mt-1 block text-xs font-medium text-amber-800">
+                  مستعادة من النسخة {formatDigits(String(revision.restored_from_revision_number))}
+                </span>
+              ) : null}
+            </button>
+          </li>
+        ))}
+      </ol>
+    );
+  }
+
+  function revisionDetail(mobile: boolean) {
+    if (!selected) {
+      if (loadingList) {
+        return (
+          <div className="space-y-3">
+            <SkeletonBlock className="h-8 w-1/3" />
+            <SkeletonBlock className="h-52" />
+          </div>
+        );
+      }
+      return (
+        <p className="py-12 text-center text-sm text-slate-500">
+          اختر نسخة لعرض التغييرات فيها.
+        </p>
+      );
+    }
+
+    return (
+      <div className="mx-auto w-full max-w-5xl">
+        {mobile ? (
+          <button
+            type="button"
+            onClick={showMobileRevisionList}
+            className="mb-4 inline-flex min-h-10 items-center gap-1.5 rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)]"
+          >
+            <ChevronRight className="size-4" aria-hidden="true" />
+            كل النسخ
+          </button>
+        ) : null}
+
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold text-[var(--journal-accent-strong)]">
+              تفاصيل النسخة
+            </p>
+            <h3 className="mt-1 text-xl font-bold text-slate-900">
+              النسخة {formatDigits(String(selected.revision_number))}
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              {formatDateTime(new Date(selected.created_at))} · {REASON_LABELS[selected.reason]}
+            </p>
+          </div>
+          <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
+            {!selected.is_current ? (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="min-h-10 rounded-md bg-[var(--journal-accent-strong)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                استعادة هذه النسخة
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void togglePreview()}
+              disabled={loadingPreview}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:cursor-wait disabled:opacity-60"
+            >
+              {previewOpen ? (
+                <EyeOff className="size-4" aria-hidden="true" />
+              ) : (
+                <Eye className="size-4" aria-hidden="true" />
+              )}
+              {loadingPreview
+                ? "جارٍ تحميل المعاينة…"
+                : previewOpen
+                  ? "إخفاء المعاينة"
+                  : "عرض المراجعة كاملة"}
+            </button>
+          </div>
+        </div>
+
+        <ChangeSummary
+          summary={summary}
+          loading={loadingSummary}
+          unavailable={summaryUnavailable}
+        />
+
+        {previewError ? (
+          <p
+            className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            role="alert"
+          >
+            {previewError}
+          </p>
+        ) : null}
+
+        {loadingPreview ? (
+          <div className="mt-5 space-y-3" aria-label="جارٍ تحميل المعاينة">
+            <SkeletonBlock className="h-8 w-1/3" />
+            <SkeletonBlock className="h-80" />
+          </div>
+        ) : null}
+
+        {previewOpen && previewDocument ? (
+          <div className="mt-5">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <Eye className="size-4" aria-hidden="true" />
+              المعاينة الكاملة للنسخة
+            </div>
+            <DocumentFrozenPreview
+              documentJson={previewDocument}
+              articleId={articleId}
+              getToken={getToken}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const warningBanners = (
+    <>
+      {latestChangesUnsaved ? (
+        <div
+          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900"
+          role="status"
+        >
+          أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك قراءة سجل النسخ الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.
+        </div>
+      ) : null}
+      {error ? (
+        <div
+          className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          role="alert"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void loadList()}
+            className="shrink-0 font-semibold underline"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <>
       <AnimatedOverlay
@@ -359,7 +554,7 @@ export function DraftHistoryDialog({
         mobileFullscreen
         panelClassName="flex h-dvh max-h-dvh flex-col overflow-hidden !p-0 md:h-[94dvh] md:max-h-[94dvh] md:w-[96vw] md:max-w-[96rem]"
       >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--journal-border)] bg-white/85 px-4 py-3 sm:px-5 md:px-6 md:py-4">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--journal-border)] bg-white/90 px-4 py-3 sm:px-5 md:px-6 md:py-4">
           <div className="min-w-0">
             <h2
               id="draft-history-title"
@@ -369,7 +564,7 @@ export function DraftHistoryDialog({
               سجل النسخ
             </h2>
             <p className="mt-1 hidden text-xs text-slate-500 sm:block">
-              اعرف ما تغيّر أولاً، وافتح المعاينة الكاملة عند الحاجة
+              اختر نسخة من القائمة، راجع ملخص تغييراتها، وافتح المعاينة الكاملة عند الحاجة
             </p>
           </div>
           <button
@@ -384,195 +579,47 @@ export function DraftHistoryDialog({
 
         <div
           ref={mobileScrollRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:flex md:flex-col md:overflow-hidden"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:hidden"
         >
-          <details
-            className={`${mobileDetailOpen ? "hidden" : "block"} mx-4 mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:hidden`}
-          >
-            <summary className="cursor-pointer font-semibold">حول سجل النسخ</summary>
-            <p className="mt-1.5">
-              التراجع والإعادة يخصان جلسة التحرير الحالية فقط. سجل النسخ يحفظ حالات مستقلة على الخادم ويمكن استعادة أي نسخة محفوظة دون حذف الأحدث.
-            </p>
-          </details>
-
-          <div className="mx-4 mt-3 hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900 md:mx-6 md:block">
-            التراجع والإعادة يخصان جلسة التحرير الحالية فقط. سجل النسخ يحفظ حالات مستقلة على الخادم، ويمكن استعادة أي نسخة محفوظة من دون حذف النسخ الأحدث.
-          </div>
-
-          {latestChangesUnsaved ? (
-            <div
-              className="mx-4 mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-900 md:mx-6"
-              role="status"
-            >
-              أحدث تغييرات جلسة التحرير لم تُحفظ بعد. يمكنك قراءة سجل النسخ الآن، لكن الاستعادة لن تبدأ حتى ينجح حفظ هذه التغييرات.
-            </div>
-          ) : null}
-
-          {error ? (
-            <div
-              className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 md:mx-6"
-              role="alert"
-            >
-              <span>{error}</span>
-              <button
-                type="button"
-                onClick={() => void loadList()}
-                className="shrink-0 font-semibold underline"
-              >
-                إعادة المحاولة
-              </button>
-            </div>
-          ) : null}
-
-          <div className="md:grid md:min-h-0 md:flex-1 md:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside
-              className={`${mobileDetailOpen ? "hidden" : "block"} border-b border-[var(--journal-border)] bg-white/60 p-3 md:block md:min-h-0 md:overflow-y-auto md:border-b-0 md:border-e`}
-            >
-              {loadingList ? (
-                <div className="space-y-2">
-                  <SkeletonBlock className="h-20" />
-                  <SkeletonBlock className="h-20" />
-                  <SkeletonBlock className="h-20" />
-                </div>
-              ) : revisions.length === 0 ? (
-                <p className="p-4 text-center text-sm text-slate-500">لا توجد نسخ محفوظة.</p>
-              ) : (
-                <ol className="space-y-2">
-                  {revisions.map((revision) => (
-                    <li key={revision.revision_id}>
-                      <button
-                        type="button"
-                        onClick={() => selectRevision(revision)}
-                        className={`w-full rounded-lg border p-3 text-start transition ${
-                          selected?.revision_id === revision.revision_id
-                            ? "border-[var(--journal-accent)] bg-[var(--journal-accent-soft)]"
-                            : "border-[var(--journal-border)] bg-white hover:border-[var(--journal-accent)]"
-                        }`}
-                      >
-                        <span className="flex items-center justify-between gap-2">
-                          <strong className="text-sm text-slate-900">
-                            النسخة {formatDigits(String(revision.revision_number))}
-                          </strong>
-                          {revision.is_current ? (
-                            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
-                              الحالية
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="mt-1 block text-xs text-slate-600">
-                          {REASON_LABELS[revision.reason]} · {ACTOR_LABELS[revision.actor_type]}
-                        </span>
-                        <span className="mt-1 block text-xs text-slate-500">
-                          {creatorLabel(revision)} · {formatDateTime(new Date(revision.created_at))}
-                        </span>
-                        {revision.restored_from_revision_number ? (
-                          <span className="mt-1 block text-xs font-medium text-amber-800">
-                            مستعادة من النسخة {formatDigits(String(revision.restored_from_revision_number))}
-                          </span>
-                        ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </aside>
-
-            <section
-              className={`${mobileDetailOpen ? "block" : "hidden"} p-4 sm:p-6 md:block md:min-h-0 md:overflow-y-auto lg:p-8`}
-            >
-              {selected ? (
-                <div className="mx-auto w-full max-w-5xl">
-                  <button
-                    type="button"
-                    onClick={showMobileRevisionList}
-                    className="mb-4 inline-flex min-h-10 items-center gap-1.5 rounded-md border border-[var(--journal-border)] bg-white px-3 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] hover:text-[var(--journal-accent-strong)] md:hidden"
-                  >
-                    <ChevronRight className="size-4" aria-hidden="true" />
-                    كل النسخ
-                  </button>
-
-                  <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900">
-                        النسخة {formatDigits(String(selected.revision_number))}
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatDateTime(new Date(selected.created_at))} · {REASON_LABELS[selected.reason]}
-                      </p>
-                    </div>
-                    <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-                      {!selected.is_current ? (
-                        <button
-                          type="button"
-                          onClick={() => setConfirming(true)}
-                          className="min-h-10 rounded-md bg-[var(--journal-accent-strong)] px-4 text-sm font-semibold text-white transition hover:opacity-90"
-                        >
-                          استعادة هذه النسخة
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => void togglePreview()}
-                        disabled={loadingPreview}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-[var(--journal-border)] bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-[var(--journal-accent)] disabled:cursor-wait disabled:opacity-60"
-                      >
-                        {previewOpen ? (
-                          <EyeOff className="size-4" aria-hidden="true" />
-                        ) : (
-                          <Eye className="size-4" aria-hidden="true" />
-                        )}
-                        {loadingPreview
-                          ? "جارٍ تحميل المعاينة…"
-                          : previewOpen
-                            ? "إخفاء المعاينة"
-                            : "عرض المراجعة كاملة"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <ChangeSummary
-                    summary={summary}
-                    loading={loadingSummary}
-                    unavailable={summaryUnavailable}
-                  />
-
-                  {previewError ? (
-                    <p
-                      className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-                      role="alert"
-                    >
-                      {previewError}
-                    </p>
-                  ) : null}
-
-                  {loadingPreview ? (
-                    <div className="mt-5 space-y-3" aria-label="جارٍ تحميل المعاينة">
-                      <SkeletonBlock className="h-8 w-1/3" />
-                      <SkeletonBlock className="h-80" />
-                    </div>
-                  ) : null}
-
-                  {previewOpen && previewDocument ? (
-                    <div className="mt-5">
-                      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <Eye className="size-4" aria-hidden="true" />
-                        المعاينة الكاملة للنسخة
-                      </div>
-                      <DocumentFrozenPreview
-                        documentJson={previewDocument}
-                        articleId={articleId}
-                        getToken={getToken}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ) : !loadingList ? (
-                <p className="py-12 text-center text-sm text-slate-500">
-                  اختر نسخة لعرض التغييرات فيها.
+          {!mobileDetailOpen ? (
+            <div className="space-y-3 px-4 pt-3">
+              <details className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-6 text-sky-900">
+                <summary className="cursor-pointer font-semibold">حول سجل النسخ</summary>
+                <p className="mt-1.5">
+                  التراجع والإعادة يخصان جلسة التحرير الحالية فقط. سجل النسخ يحفظ حالات مستقلة على الخادم ويمكن استعادة أي نسخة محفوظة دون حذف الأحدث.
                 </p>
-              ) : null}
-            </section>
+              </details>
+              {warningBanners}
+            </div>
+          ) : null}
+
+          <div className="p-4 sm:p-6">
+            {mobileDetailOpen ? revisionDetail(true) : revisionList(true)}
           </div>
+        </div>
+
+        <div className="hidden min-h-0 flex-1 md:grid md:grid-cols-[20rem_minmax(0,1fr)]">
+          <aside className="min-h-0 overflow-y-auto border-e border-[var(--journal-border)] bg-slate-50/65 p-4 lg:p-5">
+            <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs leading-6 text-sky-900">
+              سجل النسخ يحفظ حالات مستقلة على الخادم؛ اختيار نسخة هنا لا يغيّر المسودة الحالية حتى تضغط الاستعادة.
+            </div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">النسخ المحفوظة</h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {loadingList
+                    ? "جارٍ التحميل…"
+                    : `${formatDigits(String(revisions.length))} ${revisions.length === 1 ? "نسخة" : "نسخ"}`}
+                </p>
+              </div>
+            </div>
+            <div className="mb-3 space-y-2">{warningBanners}</div>
+            {revisionList(false)}
+          </aside>
+
+          <section className="min-h-0 overflow-y-auto bg-white/45 p-6 lg:p-8 xl:p-10">
+            {revisionDetail(false)}
+          </section>
         </div>
       </AnimatedOverlay>
 
