@@ -14,3 +14,20 @@
 .maghribi {
   font-family: "Almaghribi Warsh Quran", Amiri, "Noto Serif Arabic", serif;
 }
+
+:global(.mapping-row-enter:has([data-mapping-font="takween"]) input[aria-label^="القيمة العربية"]) {
+  font-family: "BuTeX Takween", Amiri, "Noto Serif Arabic", serif;
+}
+
+:global(.mapping-row-enter:has([data-mapping-font="diwani"]) input[aria-label^="القيمة العربية"]) {
+  font-family: "Diwani Letter", Amiri, "Noto Serif Arabic", serif;
+}
+
+:global(.mapping-row-enter:has([data-mapping-font="diwaniOutline"]) input[aria-label^="القيمة العربية"]) {
+  font-family: "BuTeX Diwani Outline", "Diwani Letter", Amiri,
+    "Noto Serif Arabic", serif;
+}
+
+:global(.mapping-row-enter:has([data-mapping-font="maghribi"]) input[aria-label^="القيمة العربية"]) {
+  font-family: "Almaghribi Warsh Quran", Amiri, "Noto Serif Arabic", serif;
+}
