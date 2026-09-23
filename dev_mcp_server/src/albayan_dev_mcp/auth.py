@@ -38,7 +38,7 @@ class DeveloperRoleTokenVerifier:
         try:
             state = self._clerk.authenticate_request(
                 _BearerRequest(token),
-                AuthenticateRequestOptions(),
+                AuthenticateRequestOptions(accepts_token=["oauth_token"]),
             )
         except Exception:
             return None
