@@ -15,16 +15,73 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
         register_equation_tools(self.server)
         self.article_id = uuid.uuid4()
 
-    def test_tool_is_read_only_and_accepts_only_article_id(self) -> None:
-        self.assertEqual(set(self.server.tools), {"get_draft_equations"})
+    def test_tools_are_read_only_with_expected_inputs(self) -> None:
+        self.assertEqual(
+            set(self.server.tools),
+            {"get_math_authoring_capabilities", "get_draft_equations"},
+        )
+        self.assertEqual(
+            list(
+                inspect.signature(
+                    self.server.tools["get_math_authoring_capabilities"]
+                ).parameters
+            ),
+            [],
+        )
         self.assertEqual(
             list(inspect.signature(self.server.tools["get_draft_equations"]).parameters),
             ["article_id"],
         )
-        description = self.server.tool_options["get_draft_equations"]["description"]
-        self.assertIn("Arabic", description)
-        self.assertIn("canonical English", description)
-        self.assertIn("pure read", description)
+
+        capability_description = self.server.tool_options[
+            "get_math_authoring_capabilities"
+        ]["description"]
+        self.assertIn("before generating", capability_description)
+        self.assertIn("round_trip_safe", capability_description)
+        self.assertIn("Never emit", capability_description)
+        self.assertIn("pure-read", capability_description)
+
+        equation_description = self.server.tool_options["get_draft_equations"]["description"]
+        self.assertIn("Arabic", equation_description)
+        self.assertIn("canonical English", equation_description)
+        self.assertIn("pure read", equation_description)
+
+    async def test_get_math_authoring_capabilities_returns_canonical_contract(self) -> None:
+        response = {
+            "contract_version": 1,
+            "canonical_input": True,
+            "representation": "canonical_english_latex",
+            "instruction": "Use only round_trip_safe.",
+            "preferred_submission": {"latex": "body only"},
+            "source_snapshot": {
+                "burhan": {"commit": "burhan-sha"},
+                "butex": {"commit": "butex-sha"},
+            },
+            "round_trip_safe": {
+                "commands": {"structures": [{"command": "\\frac"}]}
+            },
+            "accepted_but_not_round_trip_safe": {"commands": ["\\partial"]},
+            "unsupported_or_forbidden": {
+                "internal_output_macro_examples": ["\\arsum"]
+            },
+            "normalization_aliases": [],
+            "constraints": ["Use exact arity."],
+            "examples": [{"latex": "\\frac{x}{y}", "display": False}],
+        }
+        with patch(
+            "albayan_mcp.tools.equations.api_get_object",
+            new=AsyncMock(return_value=response),
+        ) as get:
+            result = await self.server.tools["get_math_authoring_capabilities"]()
+
+        get.assert_awaited_once_with("/api/v1/math/authoring-capabilities")
+        self.assertTrue(result.canonical_input)
+        self.assertEqual(result.representation, "canonical_english_latex")
+        self.assertIn("commands", result.round_trip_safe)
+        self.assertEqual(
+            result.unsupported_or_forbidden["internal_output_macro_examples"],
+            ["\\arsum"],
+        )
 
     async def test_get_draft_equations_preserves_compact_context_and_targets(self) -> None:
         response = {
@@ -83,17 +140,27 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result.equations, [])
 
-    async def test_real_discovery_has_typed_output_schema(self) -> None:
+    async def test_real_discovery_has_typed_output_schemas(self) -> None:
         server = MCPServer("equation-schema-test")
         register_equation_tools(server)
         published = {tool.name: tool for tool in await server.list_tools()}
 
-        self.assertEqual(set(published), {"get_draft_equations"})
-        tool = published["get_draft_equations"]
-        self.assertEqual(set(tool.input_schema["properties"]), {"article_id"})
-        self.assertIsNotNone(tool.output_schema)
-        self.assertIn("variable_mappings", tool.output_schema["properties"])
-        self.assertIn("equations", tool.output_schema["properties"])
+        self.assertEqual(
+            set(published),
+            {"get_math_authoring_capabilities", "get_draft_equations"},
+        )
+
+        capability = published["get_math_authoring_capabilities"]
+        self.assertEqual(capability.input_schema["properties"], {})
+        self.assertIsNotNone(capability.output_schema)
+        self.assertIn("round_trip_safe", capability.output_schema["properties"])
+        self.assertIn("source_snapshot", capability.output_schema["properties"])
+
+        equations = published["get_draft_equations"]
+        self.assertEqual(set(equations.input_schema["properties"]), {"article_id"})
+        self.assertIsNotNone(equations.output_schema)
+        self.assertIn("variable_mappings", equations.output_schema["properties"])
+        self.assertIn("equations", equations.output_schema["properties"])
 
 
 if __name__ == "__main__":
