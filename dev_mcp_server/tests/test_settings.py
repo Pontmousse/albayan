@@ -20,3 +20,23 @@ def test_service_origin_rejects_path_prefix() -> None:
     settings = Settings(_env_file=None, butex_dev_url="https://example.com/internal")
     with pytest.raises(ValueError, match="without a path prefix"):
         settings.service("butex")
+
+
+def test_remote_http_auth_configuration_fails_closed_when_incomplete() -> None:
+    settings = Settings(_env_file=None, clerk_issuer_url="https://clerk.example")
+
+    assert settings.remote_auth_configured is False
+    with pytest.raises(RuntimeError, match="CLERK_SECRET_KEY, DEV_MCP_RESOURCE_URL"):
+        settings.require_remote_auth_configuration()
+
+
+def test_remote_http_auth_configuration_is_complete() -> None:
+    settings = Settings(
+        _env_file=None,
+        clerk_issuer_url="https://clerk.example",
+        clerk_secret_key="sk_test_example",
+        dev_mcp_resource_url="https://dev-mcp.example/mcp",
+    )
+
+    assert settings.remote_auth_configured is True
+    settings.require_remote_auth_configuration()
