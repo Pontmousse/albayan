@@ -20,6 +20,7 @@ from typing import Any
 
 BURHAN_COMMIT = "7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159"
 BUTEX_COMMIT = "7f55227b4cf368efb26b937c1729ba2e89eee865"
+ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
     "burhan": {
@@ -185,18 +186,18 @@ ACCENTS = [
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
-    {"name": "matrix", "columns": "inferred", "rows": "separate with \\\"},
-    {"name": "pmatrix", "columns": "inferred", "rows": "separate with \\\"},
-    {"name": "bmatrix", "columns": "inferred", "rows": "separate with \\\"},
-    {"name": "Bmatrix", "columns": "inferred", "rows": "separate with \\\"},
-    {"name": "vmatrix", "columns": "inferred", "rows": "separate with \\\"},
-    {"name": "Vmatrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "matrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
+    {"name": "pmatrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
+    {"name": "bmatrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
+    {"name": "Bmatrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
+    {"name": "vmatrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
+    {"name": "Vmatrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
     {
         "name": "array",
         "columns": "required column spec using only l, c, r",
-        "rows": "separate with \\\",
+        "rows": "use environment_syntax.row_separator",
     },
-    {"name": "aligned", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "aligned", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
 ]
 
 SAFE_DELIMITERS = [
@@ -338,7 +339,7 @@ CAPABILITIES: dict[str, Any] = {
         "internal_environments": SAFE_INTERNAL_ENVIRONMENTS,
         "environment_syntax": {
             "cell_separator": "&",
-            "row_separator": "\\\\",
+            "row_separator": ROW_SEPARATOR,
             "nesting": "Different supported environments may be nested; avoid nesting the same environment name inside itself.",
         },
     },
@@ -364,7 +365,7 @@ CAPABILITIES: dict[str, Any] = {
         "\\frac, \\overset, and \\underset take exactly two mandatory arguments.",
         "\\sqrt takes exactly one mandatory radicand and at most one optional root index.",
         "For array, use only l/c/r column alignment letters.",
-        "Do not use a top-level \\\\ line break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
+        "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
     "examples": [
