@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import uuid
 from collections.abc import Mapping
@@ -39,6 +40,14 @@ _UNCONFIGURED = HTTPException(
 
 def _error(status_code: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
+
+
+def _burhan_headers() -> dict[str, str]:
+    """Return the optional shared-secret header used by the Burhan HTTP API."""
+    api_key = os.getenv("BURHAN_API_KEY", "").strip()
+    if not api_key:
+        return {}
+    return {"Authorization": f"Bearer {api_key}"}
 
 
 def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
@@ -204,7 +213,11 @@ def convert_latex_to_math_token(
     }
 
     try:
-        with httpx.Client(base_url=base, timeout=_TIMEOUT_SECONDS) as client:
+        with httpx.Client(
+            base_url=base,
+            timeout=_TIMEOUT_SECONDS,
+            headers=_burhan_headers(),
+        ) as client:
             response = client.post("/convert", json=payload)
     except httpx.TimeoutException as exc:
         logger.warning("Burhan equation conversion timed out")
