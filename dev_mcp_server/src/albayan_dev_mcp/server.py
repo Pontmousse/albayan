@@ -14,6 +14,8 @@ def create_server(settings: Settings | None = None) -> MCPServer:
     auth = None
     token_verifier = None
 
+    # Local stdio can run without OAuth. Remote Streamable HTTP is fail-closed
+    # by __main__.py unless this complete auth configuration is present.
     if runtime_settings.remote_auth_configured:
         from mcp.server.auth.settings import AuthSettings
 
