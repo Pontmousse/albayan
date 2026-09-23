@@ -3,7 +3,7 @@ from __future__ import annotations
 from mcp.server.mcpserver import MCPServer
 from pydantic import AnyHttpUrl
 
-from albayan_dev_mcp.auth import DeveloperRoleTokenVerifier
+from albayan_dev_mcp.auth import DeveloperMetadataTokenVerifier
 from albayan_dev_mcp.settings import Settings
 from albayan_dev_mcp.tools.health import register_health_tool
 from albayan_dev_mcp.tools.http import register_http_tool
@@ -24,7 +24,7 @@ def create_server(settings: Settings | None = None) -> MCPServer:
             resource_server_url=AnyHttpUrl(runtime_settings.dev_mcp_resource_url.strip()),
             required_scopes=["openid", "profile", "email"],
         )
-        token_verifier = DeveloperRoleTokenVerifier(
+        token_verifier = DeveloperMetadataTokenVerifier(
             clerk_secret_key=runtime_settings.clerk_secret_key.strip()
         )
 
@@ -34,7 +34,7 @@ def create_server(settings: Settings | None = None) -> MCPServer:
         instructions=(
             "Developer-only diagnostic MCP for trusted Al-Bayan coding agents. "
             "Remote access requires Clerk authentication and a Clerk user whose "
-            "public_metadata.role is exactly 'developer'. "
+            "public_metadata.developer is exactly true. "
             "Prefer specialized read-only diagnostic tools. Never infer unavailable runtime facts. "
             "When a tool returns blocked=true, surface its reason and human_action to the human developer. "
             "Do not request production credentials as a workaround for missing development access."
