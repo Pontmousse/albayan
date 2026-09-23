@@ -23,7 +23,12 @@ class _BearerRequest:
 
 
 class DeveloperRoleTokenVerifier:
-    """Authenticate a Clerk OAuth token and require public_metadata.role=developer."""
+    """Authenticate Clerk OAuth and authorize only role=developer users.
+
+    Any authentication failure, Clerk lookup failure, missing metadata, or role
+    mismatch returns None so the MCP auth layer rejects the request without
+    leaking account details.
+    """
 
     def __init__(self, *, clerk_secret_key: str) -> None:
         self._clerk = Clerk(bearer_auth=clerk_secret_key)
