@@ -20,8 +20,9 @@ class _FakeClerk:
         self.users = _FakeUsers(role)
         self.signed_in = signed_in
 
-    def authenticate_request(self, request, _options):
+    def authenticate_request(self, request, options):
         assert request.headers["Authorization"] == "Bearer token"
+        assert options.accepts_token == ["oauth_token"]
         return SimpleNamespace(
             is_signed_in=self.signed_in,
             payload={"sub": "user_dev", "azp": "chatgpt"} if self.signed_in else None,
