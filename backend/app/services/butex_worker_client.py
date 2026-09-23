@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
+from time import perf_counter
 from typing import Any
 
 import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.core.tracing import TRACE_HEADER, current_trace_id, emit_trace_event
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +29,9 @@ _UNCONFIGURED = HTTPException(
 
 
 def _request_id() -> str:
-    # A stable host request ID can be threaded in later; for now avoid leaking payloads.
-    return "albayan-backend"
+    # Reuse the correlation ID when a request context exists without making it
+    # an authorization primitive. Keep the historical fallback for offline calls.
+    return current_trace_id() or "albayan-backend"
 
 
 def _invalid_response() -> HTTPException:
@@ -207,24 +210,59 @@ def _post(path: str, payload: dict[str, Any]) -> Any:
             detail="حجم طلب المستند يتجاوز الحد المسموح.",
         )
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "X-Request-ID": _request_id(),
+    }
+    trace_id = current_trace_id()
+    if trace_id:
+        headers[TRACE_HEADER] = trace_id
+
+    started = perf_counter()
+    emit_trace_event(
+        service="albayan-backend",
+        stage="butex_worker.request",
+        status="started",
+        path=path,
+    )
     try:
         with httpx.Client(base_url=base, timeout=_TIMEOUT_SECONDS) as client:
             response = client.post(
                 path,
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json",
-                    "X-Request-ID": _request_id(),
-                },
+                headers=headers,
             )
     except httpx.TimeoutException as exc:
+        emit_trace_event(
+            service="albayan-backend",
+            stage="butex_worker.request",
+            status="timeout",
+            duration_ms=(perf_counter() - started) * 1000,
+            path=path,
+        )
         logger.warning("BuTeX worker request timed out: %s", path)
         raise HTTPException(status_code=504, detail="انتهت مهلة عامل BuTeX.") from exc
     except httpx.HTTPError as exc:
+        emit_trace_event(
+            service="albayan-backend",
+            stage="butex_worker.request",
+            status="unreachable",
+            duration_ms=(perf_counter() - started) * 1000,
+            path=path,
+            error_type=type(exc).__name__,
+        )
         logger.warning("BuTeX worker request failed: %s", path)
         raise HTTPException(status_code=502, detail="تعذّر الاتصال بعامل BuTeX.") from exc
 
+    emit_trace_event(
+        service="albayan-backend",
+        stage="butex_worker.request",
+        status="ok" if response.status_code == 200 else "error",
+        duration_ms=(perf_counter() - started) * 1000,
+        path=path,
+        status_code=response.status_code,
+    )
     if response.status_code != 200:
         raise _worker_error(response)
 
