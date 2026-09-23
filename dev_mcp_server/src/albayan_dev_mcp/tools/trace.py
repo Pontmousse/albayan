@@ -94,7 +94,7 @@ def register_trace_tools(server: MCPServer, *, trace_source: TraceSource) -> Non
     def dev_list_recent_traces(
         limit: Annotated[
             int,
-            Field(default=20, ge=1, le=100, description="Maximum trace summaries to return."),
+            Field(ge=1, le=100, description="Maximum trace summaries to return."),
         ] = 20,
     ) -> dict[str, Any]:
         return {
