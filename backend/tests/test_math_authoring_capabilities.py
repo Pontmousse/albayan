@@ -5,10 +5,13 @@ import os
 import httpx
 import pytest
 
+from app.schemas.math_authoring import MathAuthoringCapabilitiesRead
 from app.services import burhan_client
 from app.services.math_authoring_capabilities import (
     INTERNAL_OUTPUT_MACRO_EXAMPLES,
     PARSE_BUILD_ONLY_COMMANDS,
+    RAW_OPERATORS,
+    SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
     advertised_round_trip_commands,
     burhan_verification_cases,
@@ -16,11 +19,12 @@ from app.services.math_authoring_capabilities import (
 )
 
 
-def test_math_authoring_contract_is_deterministic_and_isolated() -> None:
+def test_math_authoring_contract_is_deterministic_schema_valid_and_isolated() -> None:
     first = get_math_authoring_capabilities()
     second = get_math_authoring_capabilities()
 
     assert first == second
+    MathAuthoringCapabilitiesRead.model_validate(second)
     first["round_trip_safe"]["raw_operators"].append("@")
     assert "@" not in second["round_trip_safe"]["raw_operators"]
     assert second["canonical_input"] is True
@@ -32,19 +36,25 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
     assert len(advertised) == len(set(advertised))
 
     labels = [label for _, _, label in burhan_verification_cases()]
-    command_labels = [label for label in labels if not label.startswith("environment:")]
-    assert set(command_labels) == set(advertised)
-    assert len(command_labels) == len(advertised)
+    assert set(advertised).issubset(labels)
+    for command in advertised:
+        assert labels.count(command) == 1
 
 
-def test_every_advertised_environment_has_a_burhan_verification_case() -> None:
-    expected = {f"environment:{item['name']}" for item in SAFE_INTERNAL_ENVIRONMENTS}
-    actual = {
-        label
-        for _, _, label in burhan_verification_cases()
-        if label.startswith("environment:")
+def test_every_advertised_environment_delimiter_operator_and_script_has_a_case() -> None:
+    labels = {label for _, _, label in burhan_verification_cases()}
+
+    expected_environments = {
+        f"environment:{item['name']}" for item in SAFE_INTERNAL_ENVIRONMENTS
     }
-    assert actual == expected
+    assert expected_environments.issubset(labels)
+
+    expected_delimiters = {f"delimiter:{index}" for index in range(len(SAFE_DELIMITERS))}
+    assert expected_delimiters.issubset(labels)
+
+    expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
+    assert expected_raw_operators.issubset(labels)
+    assert "scripts:^_" in labels
 
 
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
@@ -69,6 +79,14 @@ def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None
         r"x@",
         r"\left(x",
         r"\begin{document}x\end{document}",
+    ]
+    assert contract["accepted_but_not_round_trip_safe"]["delimiters"] == [
+        {
+            "left": r"\left.",
+            "right": r"\right.",
+            "form": r"\left. ... \right.",
+            "reason": "Burhan supports the invisible delimiter, but the current BuTeX editor delimiter renderer does not recognize '.'.",
+        }
     ]
 
 
