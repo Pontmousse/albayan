@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     # Remote developer MCP authentication. Streamable HTTP is fail-closed unless
     # all three values are configured. Clerk authenticates the caller; the dev
-    # MCP additionally requires user.public_metadata.role == "developer".
+    # MCP additionally requires user.public_metadata.developer is True.
     clerk_issuer_url: str = ""
     clerk_secret_key: str = ""
     dev_mcp_resource_url: str = ""
