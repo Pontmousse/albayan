@@ -1,7 +1,7 @@
 """Deterministic AI-facing canonical LaTeX authoring contract.
 
 Burhan deliberately preserves unknown command tokens, so parser acceptance alone is
-not a useful authoring contract.  This snapshot is the conservative intersection of:
+not a useful authoring contract. This snapshot is the conservative intersection of:
 
 * Burhan canonical-English parsing/conversion at BURHAN_COMMIT;
 * Albayan's strict Document2 MathObject bridge; and
@@ -185,18 +185,18 @@ ACCENTS = [
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
-    {"name": "matrix", "columns": "inferred", "rows": r"separate with \\"},
-    {"name": "pmatrix", "columns": "inferred", "rows": r"separate with \\"},
-    {"name": "bmatrix", "columns": "inferred", "rows": r"separate with \\"},
-    {"name": "Bmatrix", "columns": "inferred", "rows": r"separate with \\"},
-    {"name": "vmatrix", "columns": "inferred", "rows": r"separate with \\"},
-    {"name": "Vmatrix", "columns": "inferred", "rows": r"separate with \\"},
+    {"name": "matrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "pmatrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "bmatrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "Bmatrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "vmatrix", "columns": "inferred", "rows": "separate with \\\"},
+    {"name": "Vmatrix", "columns": "inferred", "rows": "separate with \\\"},
     {
         "name": "array",
         "columns": "required column spec using only l, c, r",
-        "rows": r"separate with \\" ,
+        "rows": "separate with \\\",
     },
-    {"name": "aligned", "columns": "inferred", "rows": r"separate with \\"},
+    {"name": "aligned", "columns": "inferred", "rows": "separate with \\\"},
 ]
 
 SAFE_DELIMITERS = [
@@ -338,7 +338,7 @@ CAPABILITIES: dict[str, Any] = {
         "internal_environments": SAFE_INTERNAL_ENVIRONMENTS,
         "environment_syntax": {
             "cell_separator": "&",
-            "row_separator": r"\\",
+            "row_separator": "\\\\",
             "nesting": "Different supported environments may be nested; avoid nesting the same environment name inside itself.",
         },
     },
@@ -370,7 +370,7 @@ CAPABILITIES: dict[str, Any] = {
     "examples": [
         {"latex": r"\frac{x_1}{\sqrt{1+x^2}}", "display": False},
         {"latex": r"\sum_{i=1}^{n} i^2", "display": True},
-        {"latex": r"\int_0^1 x^2\,dx", "display": True},
+        {"latex": r"\int_0^1 x^2\;dx", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
         {"latex": r"\arg\min_x f(x)", "display": True},
