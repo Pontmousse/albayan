@@ -6,18 +6,27 @@ from albayan_dev_mcp.auth import DeveloperRoleTokenVerifier
 
 
 class _FakeUsers:
-    def __init__(self, role: str | None) -> None:
+    def __init__(self, role: str | None, *, fail: bool = False) -> None:
         self.role = role
+        self.fail = fail
 
     def get(self, *, user_id: str):
         assert user_id == "user_dev"
+        if self.fail:
+            raise RuntimeError("Clerk unavailable")
         metadata = {} if self.role is None else {"role": self.role}
         return SimpleNamespace(public_metadata=metadata)
 
 
 class _FakeClerk:
-    def __init__(self, role: str | None, *, signed_in: bool = True) -> None:
-        self.users = _FakeUsers(role)
+    def __init__(
+        self,
+        role: str | None,
+        *,
+        signed_in: bool = True,
+        user_lookup_fails: bool = False,
+    ) -> None:
+        self.users = _FakeUsers(role, fail=user_lookup_fails)
         self.signed_in = signed_in
 
     def authenticate_request(self, request, options):
@@ -29,9 +38,18 @@ class _FakeClerk:
         )
 
 
-def _verifier(role: str | None, *, signed_in: bool = True) -> DeveloperRoleTokenVerifier:
+def _verifier(
+    role: str | None,
+    *,
+    signed_in: bool = True,
+    user_lookup_fails: bool = False,
+) -> DeveloperRoleTokenVerifier:
     verifier = object.__new__(DeveloperRoleTokenVerifier)
-    verifier._clerk = _FakeClerk(role, signed_in=signed_in)
+    verifier._clerk = _FakeClerk(
+        role,
+        signed_in=signed_in,
+        user_lookup_fails=user_lookup_fails,
+    )
     return verifier
 
 
@@ -49,6 +67,10 @@ async def test_non_developer_role_is_rejected() -> None:
     assert await _verifier(None).verify_token("token") is None
 
 
-async def test_unsigned_or_empty_token_is_rejected() -> None:
+async def test_unsigned_empty_or_unverifiable_user_is_rejected() -> None:
     assert await _verifier("developer", signed_in=False).verify_token("token") is None
     assert await _verifier("developer").verify_token("   ") is None
+    assert (
+        await _verifier("developer", user_lookup_fails=True).verify_token("token")
+        is None
+    )
