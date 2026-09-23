@@ -1,0 +1,26 @@
+name: Developer MCP CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/dev-mcp-ci.yml"
+      - "dev_mcp_server/**"
+
+jobs:
+  dev-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: dev_mcp_server/pyproject.toml
+      - name: Install developer MCP
+        run: pip install -e 'dev_mcp_server[test]'
+      - name: Import developer MCP server
+        run: python -c "from albayan_dev_mcp.server import create_server; create_server()"
+      - name: Run developer MCP tests
+        run: pytest -q dev_mcp_server/tests
