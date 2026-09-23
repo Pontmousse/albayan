@@ -23,6 +23,7 @@ on:
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
       - "backend/app/services/math_authoring_capabilities.py"
+      - "backend/tests/test_burhan_api_key.py"
       - "backend/tests/test_burhan_math_commands.py"
       - "backend/tests/test_draft_equations.py"
       - "backend/tests/test_equation_mapping_api.py"
@@ -73,10 +74,14 @@ jobs:
       - name: Import backend application
         run: PYTHONPATH=backend python -c "import app.main"
       - name: Backend equation tests
+        env:
+          BURHAN_URL: ${{ secrets.BURHAN_URL }}
+          BURHAN_API_KEY: ${{ secrets.BURHAN_API_KEY }}
         run: >-
           PYTHONPATH=backend pytest -q
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_equation_mapping_api.py
+          backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_draft_equations.py
           backend/tests/test_math_authoring_capabilities.py
