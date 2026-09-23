@@ -45,8 +45,10 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/atomicCommands.ts",
             "src/editor/atomicCommandsOperators.ts",
             "src/editor/accentCommands.ts",
+            "src/editor/display/delimiter.ts",
             "src/document2/mathBridge.ts",
             "src/document2-cli/execute.ts",
+            "test/vertical_delimiter_import.test.ts",
         ],
     },
 }
@@ -184,6 +186,7 @@ ACCENTS = [
 ]
 
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
+RAW_OPERATORS = ["+", "-", "=", "*", "/", "<", ">"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
     {"name": "matrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
@@ -201,25 +204,22 @@ SAFE_INTERNAL_ENVIRONMENTS = [
 ]
 
 SAFE_DELIMITERS = [
-    "(...) and [...]",
-    r"\left( ... \right)",
-    r"\left[ ... \right]",
-    r"\left\{ ... \right\}",
-    r"\left\langle ... \right\rangle",
-    r"\left| ... \right|",
-    r"\left\vert ... \right\vert",
-    r"\left\lvert ... \right\rvert",
-    r"\left\| ... \right\|",
-    r"\left\Vert ... \right\Vert",
-    r"\left\lVert ... \right\rVert",
-    r"\left. ... \right.",
-    r"\left\lfloor ... \right\rfloor",
-    r"\left\lceil ... \right\rceil",
+    {"left": "(", "right": ")", "form": "(...)"},
+    {"left": "[", "right": "]", "form": "[...]"},
+    {"left": r"\left(", "right": r"\right)", "form": r"\left( ... \right)"},
+    {"left": r"\left[", "right": r"\right]", "form": r"\left[ ... \right]"},
+    {"left": r"\left\{", "right": r"\right\}", "form": r"\left\{ ... \right\}"},
+    {"left": r"\left\langle", "right": r"\right\rangle", "form": r"\left\langle ... \right\rangle"},
+    {"left": r"\left|", "right": r"\right|", "form": r"\left| ... \right|"},
+    {"left": r"\left\vert", "right": r"\right\vert", "form": r"\left\vert ... \right\vert"},
+    {"left": r"\left\lvert", "right": r"\right\rvert", "form": r"\left\lvert ... \right\rvert"},
+    {"left": r"\left\|", "right": r"\right\|", "form": r"\left\| ... \right\|"},
+    {"left": r"\left\Vert", "right": r"\right\Vert", "form": r"\left\Vert ... \right\Vert"},
+    {"left": r"\left\lVert", "right": r"\right\rVert", "form": r"\left\lVert ... \right\rVert"},
+    {"left": r"\left\lfloor", "right": r"\right\rfloor", "form": r"\left\lfloor ... \right\rfloor"},
+    {"left": r"\left\lceil", "right": r"\right\rceil", "form": r"\left\lceil ... \right\rceil"},
 ]
 
-# Explicit Burhan input features that are parse/build-capable but are not part of
-# the safe AI authoring whitelist because current BuTeX re-import/editing does not
-# preserve them reliably.
 PARSE_BUILD_ONLY_COMMANDS = [
     r"\theta",
     r"\alpha",
@@ -268,6 +268,14 @@ PARSE_BUILD_ONLY_COMMANDS = [
 ]
 
 PARSE_BUILD_ONLY_ENVIRONMENTS = ["smallmatrix", "cases", "alignedat", "split"]
+PARSE_BUILD_ONLY_DELIMITERS = [
+    {
+        "left": r"\left.",
+        "right": r"\right.",
+        "form": r"\left. ... \right.",
+        "reason": "Burhan supports the invisible delimiter, but the current BuTeX editor delimiter renderer does not recognize '.'.",
+    }
+]
 TOP_LEVEL_ENVIRONMENTS = [
     "align",
     "align*",
@@ -330,7 +338,7 @@ CAPABILITIES: dict[str, Any] = {
             "accents": ACCENTS,
             "spacing": SPACING,
         },
-        "raw_operators": ["+", "-", "=", "*", "/", "<", ">"],
+        "raw_operators": RAW_OPERATORS,
         "scripts": [
             "Use ^ and _ with one atom or a braced group, e.g. x^2, x_{i+1}.",
             "Scripts may contain other round_trip_safe constructs.",
@@ -347,6 +355,7 @@ CAPABILITIES: dict[str, Any] = {
         "commands": PARSE_BUILD_ONLY_COMMANDS,
         "internal_environments": PARSE_BUILD_ONLY_ENVIRONMENTS,
         "top_level_environments": TOP_LEVEL_ENVIRONMENTS,
+        "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
         "notes": [
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
@@ -398,7 +407,7 @@ def advertised_round_trip_commands() -> tuple[str, ...]:
 
 
 def burhan_verification_cases() -> list[tuple[str, bool, str]]:
-    """One live Albayan->Burhan conversion case for every advertised command/env."""
+    """One live Albayan->Burhan conversion case for every advertised syntax item."""
 
     cases: list[tuple[str, bool, str]] = []
     structure_examples = {
@@ -417,6 +426,12 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         cases.append((f"{command}{{x}}", False, command))
     for command in SPACING:
         cases.append((f"x{command}y", False, command))
+    for operator in RAW_OPERATORS:
+        cases.append((f"x{operator}y", False, f"raw_operator:{operator}"))
+    cases.append((r"x_{i+1}^2", False, "scripts:^_"))
+
+    for index, delimiter in enumerate(SAFE_DELIMITERS):
+        cases.append((delimiter["form"].replace("...", "x"), False, f"delimiter:{index}"))
 
     env_examples = {
         "matrix": r"\begin{matrix}a&b\\c&d\end{matrix}",
