@@ -1,0 +1,36 @@
+[project]
+name = "albayan-dev-mcp"
+version = "0.1.0"
+description = "Developer-only MCP diagnostics for Al-Bayan"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=2,<3",
+    "httpx>=0.27,<1",
+    "pydantic>=2,<3",
+    "pydantic-settings>=2,<3",
+    "clerk-backend-api>=5,<7",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.24,<1",
+]
+
+[project.scripts]
+albayan-dev-mcp = "albayan_dev_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/albayan_dev_mcp"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/albayan_dev_mcp", "README.md", "AGENTS.md", ".env.example"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
