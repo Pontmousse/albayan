@@ -11,6 +11,6 @@ When using or extending these tools:
 5. Ask the human to add the smallest missing development capability; do not request production credentials as a workaround.
 6. Keep tools read-only/non-destructive by default. New mutation/deployment/shell capabilities require separate review and narrow authorization.
 7. Never echo tokens, cookies, authorization headers, `.env` contents, or other secrets in diagnostic output.
-8. Remote Streamable HTTP access must remain fail-closed behind Clerk OAuth and the server-side authorization check `public_metadata.role == "developer"`. Do not replace that boundary with URL secrecy, a client-supplied role, or a downstream service token.
+8. For remote access, authorize only Clerk users whose server-fetched public metadata contains the boolean flag `developer: true`; do not infer developer access from `role`, email, client identity, or any caller-supplied field.
 
 A useful blocked result is part of the product: the human should know exactly what access, configuration, or instrumentation must be added for the agent to continue.
