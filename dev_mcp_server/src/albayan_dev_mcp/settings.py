@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     burhan_dev_token: str | None = None
     butex_dev_token: str | None = None
 
+    # Remote developer MCP authentication. Streamable HTTP is fail-closed unless
+    # all three values are configured. Clerk authenticates the caller; the dev
+    # MCP additionally requires user.public_metadata.role == "developer".
+    clerk_issuer_url: str = ""
+    clerk_secret_key: str = ""
+    dev_mcp_resource_url: str = ""
+
     dev_mcp_host: str = "127.0.0.1"
     dev_mcp_port: int = 8083
     dev_mcp_request_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
@@ -72,6 +79,30 @@ class Settings(BaseSettings):
             url_env=url_env,
             token_env=token_env,
         )
+
+    @property
+    def remote_auth_configured(self) -> bool:
+        return bool(
+            self.clerk_issuer_url.strip()
+            and self.clerk_secret_key.strip()
+            and self.dev_mcp_resource_url.strip()
+        )
+
+    def require_remote_auth_configuration(self) -> None:
+        missing = [
+            name
+            for name, value in (
+                ("CLERK_ISSUER_URL", self.clerk_issuer_url),
+                ("CLERK_SECRET_KEY", self.clerk_secret_key),
+                ("DEV_MCP_RESOURCE_URL", self.dev_mcp_resource_url),
+            )
+            if not value.strip()
+        ]
+        if missing:
+            raise RuntimeError(
+                "Streamable HTTP developer MCP requires Clerk developer authentication; "
+                f"missing: {', '.join(missing)}"
+            )
 
 
 def _normalize_origin(value: str, *, env_name: str) -> str:
