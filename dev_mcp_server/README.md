@@ -31,10 +31,10 @@ This server is for trusted development use only.
 Remote Streamable HTTP access is authenticated with Clerk OAuth and then independently authorized by Clerk user metadata. A valid Clerk user is admitted only when:
 
 ```text
-public_metadata.role == "developer"
+public_metadata.developer == true
 ```
 
-The role is read server-side from the Clerk Users API after the bearer token is authenticated. It is not trusted from an unverified request field or from client-supplied MCP arguments. Ordinary Al-Bayan users therefore cannot use the developer MCP merely because they can sign in to Al-Bayan.
+The developer flag is read server-side from the Clerk Users API after the bearer token is authenticated. It is not trusted from an unverified request field or from client-supplied MCP arguments. Ordinary Al-Bayan users therefore cannot use the developer MCP merely because they can sign in to Al-Bayan. Other metadata such as `role: "admin"` can remain independent.
 
 Streamable HTTP fails closed when `CLERK_ISSUER_URL`, `CLERK_SECRET_KEY`, or `DEV_MCP_RESOURCE_URL` is missing. Local stdio remains available without remote OAuth because it is a local process boundary.
 
@@ -84,7 +84,16 @@ albayan-dev-mcp --transport streamable-http --host 0.0.0.0 --port 8083
 Before starting Streamable HTTP, configure Clerk authentication and set the connecting developer's Clerk user public metadata to:
 
 ```json
-{"role": "developer"}
+{"developer": true}
+```
+
+This can coexist with other metadata, for example:
+
+```json
+{
+  "role": "admin",
+  "developer": true
+}
 ```
 
 ## Configuration
@@ -146,7 +155,7 @@ When a missing capability prevents investigation, return the smallest actionable
 
 - `Configure BURHAN_DEV_URL`;
 - `Provide a development-only Burhan credential capable of the requested model tier`;
-- `Set public_metadata.role=developer on the authorized Clerk developer account`;
+- `Set public_metadata.developer=true on the authorized Clerk developer account`;
 - `Expose a BuTeX headless editor-import diagnostic`;
 - `Configure the development trace backend`.
 
