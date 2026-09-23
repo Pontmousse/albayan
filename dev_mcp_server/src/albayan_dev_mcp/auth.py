@@ -8,8 +8,6 @@ from clerk_backend_api import Clerk
 from clerk_backend_api.security.types import AuthenticateRequestOptions
 from mcp.server.auth.provider import AccessToken
 
-_DEVELOPER_ROLE = "developer"
-
 
 @dataclass(frozen=True)
 class _BearerRequest:
@@ -22,12 +20,12 @@ class _BearerRequest:
         return {"Authorization": f"Bearer {self.token}"}
 
 
-class DeveloperRoleTokenVerifier:
-    """Authenticate Clerk OAuth and authorize only role=developer users.
+class DeveloperMetadataTokenVerifier:
+    """Authenticate Clerk OAuth and authorize only developer=true users.
 
-    Any authentication failure, Clerk lookup failure, missing metadata, or role
-    mismatch returns None so the MCP auth layer rejects the request without
-    leaking account details.
+    Any authentication failure, Clerk lookup failure, missing metadata, or a
+    value other than the boolean True returns None so the MCP auth layer rejects
+    the request without leaking account details.
     """
 
     def __init__(self, *, clerk_secret_key: str) -> None:
@@ -62,8 +60,8 @@ class DeveloperRoleTokenVerifier:
             return None
 
         metadata = getattr(user, "public_metadata", None)
-        role = metadata.get("role") if isinstance(metadata, dict) else None
-        if role != _DEVELOPER_ROLE:
+        developer = metadata.get("developer") if isinstance(metadata, dict) else None
+        if developer is not True:
             return None
 
         client_id: Any = payload.get("azp")
