@@ -24,6 +24,9 @@ def main() -> None:
     parser.add_argument("--streamable-http-path", default="/mcp")
     args = parser.parse_args()
 
+    if args.transport == "streamable-http":
+        settings.require_remote_auth_configuration()
+
     server = create_server(settings)
     if args.transport == "stdio":
         server.run("stdio")
