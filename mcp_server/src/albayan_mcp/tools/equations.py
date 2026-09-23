@@ -1,9 +1,9 @@
-"""Compact equation reads for the current authoritative draft."""
+"""Compact equation reads and canonical math-authoring capability discovery."""
 
 from __future__ import annotations
 
 import uuid
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, ConfigDict, Field
@@ -47,7 +47,40 @@ class DraftEquationsResult(EquationResultModel):
     equations: list[DraftEquationResult]
 
 
+class MathAuthoringCapabilitiesResult(EquationResultModel):
+    contract_version: Literal[1]
+    canonical_input: Literal[True]
+    representation: Literal["canonical_english_latex"]
+    instruction: str
+    preferred_submission: dict[str, Any]
+    source_snapshot: dict[str, Any]
+    round_trip_safe: dict[str, Any]
+    accepted_but_not_round_trip_safe: dict[str, Any]
+    unsupported_or_forbidden: dict[str, Any]
+    normalization_aliases: list[dict[str, str]]
+    constraints: list[str]
+    examples: list[dict[str, Any]]
+
+
 def register_equation_tools(server: MCPServer) -> None:
+    @server.tool(
+        name="get_math_authoring_capabilities",
+        title="Canonical equation LaTeX authoring capabilities",
+        description=(
+            "Call this pure-read tool before generating new equation LaTeX. It returns the "
+            "canonical ordinary English-LaTeX whitelist that the current Albayan -> Burhan -> "
+            "Document2 path can author safely, plus syntax that Burhan can parse/build but that "
+            "is not reliable for editor round-trip. Restrict newly generated math to "
+            "round_trip_safe. Never emit Arabic-side/internal Burhan or BuTeX macros such as "
+            "\\ad, \\arsum, \\arprod, \\arlim, \\boldarabic, or \\butextakween. This tool "
+            "does not read or mutate an article and needs no article ID."
+        ),
+    )
+    async def get_math_authoring_capabilities() -> MathAuthoringCapabilitiesResult:
+        return MathAuthoringCapabilitiesResult(
+            **await api_get_object("/api/v1/math/authoring-capabilities")
+        )
+
     @server.tool(
         name="get_draft_equations",
         title="Article draft equations",
