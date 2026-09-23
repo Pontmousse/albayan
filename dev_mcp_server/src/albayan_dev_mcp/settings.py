@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     dev_mcp_port: int = 8083
     dev_mcp_request_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     dev_mcp_max_response_bytes: int = Field(default=262_144, ge=1024, le=2_097_152)
+    dev_mcp_trace_max_traces: int = Field(default=200, ge=10, le=10_000)
+    dev_mcp_trace_max_events_per_trace: int = Field(default=50, ge=5, le=1_000)
 
     def service(self, name: ServiceName) -> ServiceConfig:
         mapping: dict[ServiceName, tuple[str | None, str | None, str, str]] = {
@@ -88,8 +90,8 @@ class Settings(BaseSettings):
             and self.dev_mcp_resource_url.strip()
         )
 
-    def require_remote_auth_configuration(self) -> None:
-        missing = [
+    def missing_remote_auth_settings(self) -> list[str]:
+        return [
             name
             for name, value in (
                 ("CLERK_ISSUER_URL", self.clerk_issuer_url),
@@ -98,6 +100,9 @@ class Settings(BaseSettings):
             )
             if not value.strip()
         ]
+
+    def require_remote_auth_configuration(self) -> None:
+        missing = self.missing_remote_auth_settings()
         if missing:
             raise RuntimeError(
                 "Streamable HTTP developer MCP requires Clerk developer authentication; "
