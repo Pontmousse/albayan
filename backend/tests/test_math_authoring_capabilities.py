@@ -124,7 +124,11 @@ def test_representative_unsupported_forms_are_rejected_by_live_burhan_parser() -
     rejected = get_math_authoring_capabilities()["unsupported_or_forbidden"]
     examples = rejected["explicit_parser_rejection_examples"]
 
-    with httpx.Client(base_url=base, timeout=15.0) as client:
+    with httpx.Client(
+        base_url=base,
+        timeout=15.0,
+        headers=burhan_client._burhan_headers(),
+    ) as client:
         for latex in examples:
             response = client.post(
                 "/parse-equation",
