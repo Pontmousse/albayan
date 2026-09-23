@@ -22,21 +22,20 @@ def test_service_origin_rejects_path_prefix() -> None:
         settings.service("butex")
 
 
-def test_remote_http_auth_configuration_fails_closed_when_incomplete() -> None:
-    settings = Settings(_env_file=None, clerk_issuer_url="https://clerk.example")
-
+def test_remote_auth_configuration_requires_all_clerk_values() -> None:
+    settings = Settings(_env_file=None)
     assert settings.remote_auth_configured is False
-    with pytest.raises(RuntimeError, match="CLERK_SECRET_KEY, DEV_MCP_RESOURCE_URL"):
-        settings.require_remote_auth_configuration()
+    assert settings.missing_remote_auth_settings() == [
+        "CLERK_ISSUER_URL",
+        "CLERK_SECRET_KEY",
+        "DEV_MCP_RESOURCE_URL",
+    ]
 
-
-def test_remote_http_auth_configuration_is_complete() -> None:
     settings = Settings(
         _env_file=None,
         clerk_issuer_url="https://clerk.example",
-        clerk_secret_key="sk_test_example",
+        clerk_secret_key="sk_test_secret",
         dev_mcp_resource_url="https://dev-mcp.example/mcp",
     )
-
     assert settings.remote_auth_configured is True
-    settings.require_remote_auth_configuration()
+    assert settings.missing_remote_auth_settings() == []
