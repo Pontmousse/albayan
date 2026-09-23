@@ -28,6 +28,16 @@ The agent should surface that information to the human rather than guessing or a
 
 This server is for trusted development use only.
 
+Remote Streamable HTTP access is authenticated with Clerk OAuth and then independently authorized by Clerk user metadata. A valid Clerk user is admitted only when:
+
+```text
+public_metadata.role == "developer"
+```
+
+The role is read server-side from the Clerk Users API after the bearer token is authenticated. It is not trusted from an unverified request field or from client-supplied MCP arguments. Ordinary Al-Bayan users therefore cannot use the developer MCP merely because they can sign in to Al-Bayan.
+
+Streamable HTTP fails closed when `CLERK_ISSUER_URL`, `CLERK_SECRET_KEY`, or `DEV_MCP_RESOURCE_URL` is missing. Local stdio remains available without remote OAuth because it is a local process boundary.
+
 Phase 1 intentionally does **not** provide:
 
 - shell execution;
@@ -39,6 +49,8 @@ Phase 1 intentionally does **not** provide:
 - unrestricted POST requests.
 
 The generic HTTP tool can target only the explicitly configured Albayan, Burhan, and BuTeX development origins, does not follow redirects, accepts only `GET`, `HEAD`, and `OPTIONS`, bounds response size, and redacts common secret fields.
+
+Downstream service credentials such as `BURHAN_DEV_TOKEN` and `BUTEX_DEV_TOKEN` remain server-side environment variables on the developer MCP. The remote ChatGPT/MCP client never needs to know them.
 
 Specialized later-phase tools may perform controlled POST requests internally when that is necessary to run a diagnostic (for example Burhan conversion), but those operations should remain narrow and purpose-specific.
 
@@ -63,13 +75,17 @@ stdio (recommended for a local coding agent):
 albayan-dev-mcp --transport stdio
 ```
 
-Streamable HTTP:
+Remote/Streamable HTTP:
 
 ```bash
-albayan-dev-mcp --transport streamable-http --host 127.0.0.1 --port 8083
+albayan-dev-mcp --transport streamable-http --host 0.0.0.0 --port 8083
 ```
 
-Do not expose the streamable HTTP listener publicly without adding an explicit trusted-developer authentication layer.
+Before starting Streamable HTTP, configure Clerk authentication and set the connecting developer's Clerk user public metadata to:
+
+```json
+{"role": "developer"}
+```
 
 ## Configuration
 
@@ -78,14 +94,17 @@ Do not expose the streamable HTTP listener publicly without adding an explicit t
 | `ALBAYAN_DEV_URL` | Explicit Albayan development service origin |
 | `BURHAN_DEV_URL` | Explicit Burhan development service origin |
 | `BUTEX_DEV_URL` | Explicit BuTeX development service origin, if one exists |
-| `*_DEV_TOKEN` | Optional bearer token for the matching service |
+| `*_DEV_TOKEN` | Optional server-side bearer token for the matching service |
+| `CLERK_ISSUER_URL` | Clerk OAuth issuer used for remote MCP discovery/authentication |
+| `CLERK_SECRET_KEY` | Server-only Clerk key used to authenticate the bearer and read user public metadata |
+| `DEV_MCP_RESOURCE_URL` | Public resource URL of this developer MCP, e.g. `https://dev-mcp.example/mcp` |
 | `DEV_MCP_REQUEST_TIMEOUT_SECONDS` | Request timeout, default 10 seconds |
 | `DEV_MCP_MAX_RESPONSE_BYTES` | Maximum returned response body, default 256 KiB |
 | `DEV_MCP_HOST` / `DEV_MCP_PORT` | HTTP transport bind settings |
 
 Service URLs must be HTTP(S) **origins** only, with no embedded credentials, path prefix, query, or fragment.
 
-A missing service URL does not prevent startup. `dev_health` reports it as a blocker so the human can configure only the capabilities needed for the investigation.
+A missing downstream service URL does not prevent startup. `dev_health` reports it as a blocker so the human can configure only the capabilities needed for the investigation. In contrast, missing Clerk settings prevent remote Streamable HTTP startup because remote access must never fall back to anonymous mode.
 
 ## Phase 1 tools
 
@@ -127,6 +146,7 @@ When a missing capability prevents investigation, return the smallest actionable
 
 - `Configure BURHAN_DEV_URL`;
 - `Provide a development-only Burhan credential capable of the requested model tier`;
+- `Set public_metadata.role=developer on the authorized Clerk developer account`;
 - `Expose a BuTeX headless editor-import diagnostic`;
 - `Configure the development trace backend`.
 
@@ -149,4 +169,4 @@ Tests are designed to run without live development or production services. Live 
 
 ## Adding future diagnostics
 
-Keep the server general. New domains should reuse the same configuration, redaction, blocker, and tracing conventions rather than exposing raw internals ad hoc. Future tool families may include `dev.document.*`, `dev.compile.*`, `dev.assets.*`, and `dev.performance.*`.
+Keep the server general. New domains should reuse the same configuration, redaction, blocker, authentication, and tracing conventions rather than exposing raw internals ad hoc. Future tool families may include `dev.document.*`, `dev.compile.*`, `dev.assets.*`, and `dev.performance.*`.
