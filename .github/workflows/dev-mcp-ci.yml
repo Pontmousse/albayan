@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - develop
     paths:
       - ".github/workflows/dev-mcp-ci.yml"
       - "dev_mcp_server/**"
