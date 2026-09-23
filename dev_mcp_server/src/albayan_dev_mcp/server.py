@@ -7,10 +7,20 @@ from albayan_dev_mcp.auth import DeveloperMetadataTokenVerifier
 from albayan_dev_mcp.settings import Settings
 from albayan_dev_mcp.tools.health import register_health_tool
 from albayan_dev_mcp.tools.http import register_http_tool
+from albayan_dev_mcp.tools.trace import register_trace_tools
+from albayan_dev_mcp.trace import InMemoryTraceSource, TraceSource
 
 
-def create_server(settings: Settings | None = None) -> MCPServer:
+def create_server(
+    settings: Settings | None = None,
+    *,
+    trace_source: TraceSource | None = None,
+) -> MCPServer:
     runtime_settings = settings or Settings()
+    runtime_trace_source = trace_source or InMemoryTraceSource(
+        max_traces=runtime_settings.dev_mcp_trace_max_traces,
+        max_events_per_trace=runtime_settings.dev_mcp_trace_max_events_per_trace,
+    )
     auth = None
     token_verifier = None
 
@@ -35,13 +45,19 @@ def create_server(settings: Settings | None = None) -> MCPServer:
             "Developer-only diagnostic MCP for trusted Al-Bayan coding agents. "
             "Remote access requires Clerk authentication and a Clerk user whose "
             "public_metadata.developer is exactly true. "
-            "Prefer specialized read-only diagnostic tools. Never infer unavailable runtime facts. "
-            "When a tool returns blocked=true, surface its reason and human_action to the human developer. "
+            "Prefer specialized read-only diagnostic tools. Correlate operations with trace_id when available. "
+            "Never infer unavailable runtime facts. When a tool returns blocked=true or partial=true, "
+            "surface its reason, missing stages, and human_action to the human developer. "
             "Do not request production credentials as a workaround for missing development access."
         ),
         auth=auth,
         token_verifier=token_verifier,
     )
     register_health_tool(server, settings=runtime_settings)
-    register_http_tool(server, settings=runtime_settings)
+    register_http_tool(
+        server,
+        settings=runtime_settings,
+        trace_source=runtime_trace_source,
+    )
+    register_trace_tools(server, trace_source=runtime_trace_source)
     return server
