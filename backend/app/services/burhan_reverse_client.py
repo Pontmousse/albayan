@@ -13,6 +13,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.services.burhan_client import _burhan_headers
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,11 @@ def convert_math_object_to_english(
     }
 
     try:
-        with httpx.Client(base_url=base, timeout=_TIMEOUT_SECONDS) as client:
+        with httpx.Client(
+            base_url=base,
+            timeout=_TIMEOUT_SECONDS,
+            headers=_burhan_headers(),
+        ) as client:
             response = client.post("/convert-to-english", json=payload)
     except httpx.TimeoutException as exc:
         logger.warning("Burhan English equation projection timed out")

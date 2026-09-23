@@ -10,20 +10,25 @@ on:
       - "backend/app/main.py"
       - "backend/app/routers/draft_equations.py"
       - "backend/app/routers/equation_mappings.py"
+      - "backend/app/routers/math_authoring.py"
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/draft_command.py"
       - "backend/app/schemas/draft_equation.py"
       - "backend/app/schemas/equation_mapping.py"
+      - "backend/app/schemas/math_authoring.py"
       - "backend/app/services/article_draft_service.py"
       - "backend/app/services/burhan_client.py"
       - "backend/app/services/burhan_reverse_client.py"
       - "backend/app/services/draft_equation_service.py"
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
+      - "backend/app/services/math_authoring_capabilities.py"
+      - "backend/tests/test_burhan_api_key.py"
       - "backend/tests/test_burhan_math_commands.py"
       - "backend/tests/test_draft_equations.py"
       - "backend/tests/test_equation_mapping_api.py"
       - "backend/tests/test_equation_mapping_service.py"
+      - "backend/tests/test_math_authoring_capabilities.py"
       - "frontend/src/app/maktabi/layout.tsx"
       - "frontend/src/components/dashboard/article-editor-chrome.test.ts"
       - "frontend/src/components/dashboard/article-editor-header.tsx"
@@ -69,12 +74,17 @@ jobs:
       - name: Import backend application
         run: PYTHONPATH=backend python -c "import app.main"
       - name: Backend equation tests
+        env:
+          BURHAN_URL: ${{ secrets.BURHAN_URL }}
+          BURHAN_API_KEY: ${{ secrets.BURHAN_API_KEY }}
         run: >-
           PYTHONPATH=backend pytest -q
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_equation_mapping_api.py
+          backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_draft_equations.py
+          backend/tests/test_math_authoring_capabilities.py
       - name: MCP equation and compact block tests
         run: >-
           PYTHONPATH=mcp_server/src:mcp_server pytest -q

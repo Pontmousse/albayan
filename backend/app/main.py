@@ -14,6 +14,7 @@ from app.routers import (
     equation_mappings,
     invitations,
     issues,
+    math_authoring,
     mcp_logs,
     notifications,
     public,
@@ -47,6 +48,7 @@ app.include_router(articles.router)
 app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
 app.include_router(equation_mappings.router)
+app.include_router(math_authoring.router)
 app.include_router(revision_summaries.router)
 app.include_router(admin.router)
 app.include_router(admin_mcp.router)
