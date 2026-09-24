@@ -8,12 +8,14 @@ import os
 import re
 import uuid
 from collections.abc import Mapping
+from time import perf_counter
 from typing import Any
 
 import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.core.tracing import emit_trace_event, trace_headers
 from app.schemas.document2 import DocumentMathObjectJson
 
 logger = logging.getLogger(__name__)
@@ -43,11 +45,12 @@ def _error(status_code: int, code: str, message: str) -> HTTPException:
 
 
 def _burhan_headers() -> dict[str, str]:
-    """Return the optional shared-secret header used by the Burhan HTTP API."""
+    """Return trusted machine headers plus the current diagnostic correlation ID."""
+    headers = trace_headers()
     api_key = os.getenv("BURHAN_API_KEY", "").strip()
-    if not api_key:
-        return {}
-    return {"Authorization": f"Bearer {api_key}"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
 
 
 def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
@@ -212,6 +215,13 @@ def convert_latex_to_math_token(
         "prescanning": True,
     }
 
+    started = perf_counter()
+    emit_trace_event(
+        service="albayan-backend",
+        stage="burhan.convert",
+        status="started",
+        model_tier=settings.burhan_model_tier,
+    )
     try:
         with httpx.Client(
             base_url=base,
@@ -220,12 +230,32 @@ def convert_latex_to_math_token(
         ) as client:
             response = client.post("/convert", json=payload)
     except httpx.TimeoutException as exc:
+        emit_trace_event(
+            service="albayan-backend",
+            stage="burhan.convert",
+            status="timeout",
+            duration_ms=(perf_counter() - started) * 1000,
+        )
         logger.warning("Burhan equation conversion timed out")
         raise _error(504, "burhan_timeout", "انتهت مهلة تحويل المعادلة.") from exc
     except httpx.HTTPError as exc:
+        emit_trace_event(
+            service="albayan-backend",
+            stage="burhan.convert",
+            status="unreachable",
+            duration_ms=(perf_counter() - started) * 1000,
+            error_type=type(exc).__name__,
+        )
         logger.warning("Burhan equation conversion request failed")
         raise _error(502, "burhan_unavailable", "تعذّر الاتصال بخدمة تحويل المعادلات.") from exc
 
+    emit_trace_event(
+        service="albayan-backend",
+        stage="burhan.convert",
+        status="ok" if response.status_code == 200 else "error",
+        duration_ms=(perf_counter() - started) * 1000,
+        status_code=response.status_code,
+    )
     if response.status_code == 422:
         raise _error(422, "invalid_math_latex", "تعذّر فهم صيغة LaTeX للمعادلة.")
     if response.status_code != 200:
