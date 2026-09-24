@@ -32,7 +32,10 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = ""
     s3_access_key: str = ""
     s3_secret_key: str = ""
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://albayan-journal.org"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "https://albayan-journal.org,https://dev.albayan-journal.org"
+    )
     resend_api_key: SecretStr = SecretStr("")
     email_from: str = ""
     email_reply_to: str = ""
