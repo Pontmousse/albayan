@@ -8,6 +8,7 @@ from albayan_dev_mcp.settings import Settings
 from albayan_dev_mcp.tools.equation import register_equation_tools
 from albayan_dev_mcp.tools.health import register_health_tool
 from albayan_dev_mcp.tools.http import register_http_tool
+from albayan_dev_mcp.tools.investigation import register_investigation_tools
 from albayan_dev_mcp.tools.trace import register_trace_tools
 from albayan_dev_mcp.trace import InMemoryTraceSource, TraceSource
 
@@ -45,12 +46,13 @@ def create_server(
         instructions=(
             "Developer-only diagnostic MCP for trusted Al-Bayan coding agents. "
             "Remote access requires Clerk authentication and a Clerk user whose "
-            "public_metadata.developer is exactly true. "
-            "Prefer specialized read-only diagnostic tools. For equation bugs, use the equation inspection/fixture tools "
-            "before the generic HTTP escape hatch and distinguish deterministic headless BuTeX evidence from browser evidence. "
-            "Correlate operations with trace_id when available. Never infer unavailable runtime facts. "
-            "When a tool returns blocked=true or partial=true, surface its reason, missing stages, and human_action "
-            "to the human developer. Do not request production credentials as a workaround for missing development access."
+            "public_metadata.developer is exactly true. Inspect dev_capabilities before assuming live access, "
+            "then prefer the smallest named regression suite or specialized diagnostic over generic HTTP. "
+            "For equation bugs, distinguish deterministic/headless BuTeX evidence from browser evidence and use "
+            "Playwright separately only when the conclusion depends on deployed UI/render behavior. "
+            "Correlate operations with trace_id when available and gather observable evidence before assigning ownership. "
+            "Never infer unavailable runtime facts. When a tool returns blocked=true or partial=true, surface its reason, "
+            "missing stages, and human actions to the developer. Do not request production credentials as a workaround."
         ),
         auth=auth,
         token_verifier=token_verifier,
@@ -63,6 +65,11 @@ def create_server(
     )
     register_trace_tools(server, trace_source=runtime_trace_source)
     register_equation_tools(
+        server,
+        settings=runtime_settings,
+        trace_source=runtime_trace_source,
+    )
+    register_investigation_tools(
         server,
         settings=runtime_settings,
         trace_source=runtime_trace_source,
