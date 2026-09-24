@@ -122,7 +122,7 @@ def test_capabilities_reports_configuration_without_exposing_tokens() -> None:
     assert result["schema_version"] == REPORT_SCHEMA_VERSION
     assert result["features"]["equation_inspection"] is True
     assert result["features"]["browser_observation"] is True
-    assert result["services"]["albayan"]["token_configured"] is True
+    assert result["services"]["albayan"]["token_configured"] == "[REDACTED]"
     assert "super-secret-token" not in repr(result)
 
 
