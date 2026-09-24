@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     dev_mcp_trace_max_traces: int = Field(default=200, ge=10, le=10_000)
     dev_mcp_trace_max_events_per_trace: int = Field(default=50, ge=5, le=1_000)
 
+    # Phase 4 investigation/reporting bounds. Browser observation remains external
+    # (for example a separate Playwright MCP); this flag is only a capability hint.
+    dev_mcp_report_max_rows: int = Field(default=50, ge=1, le=200)
+    dev_mcp_browser_observation_available: bool = False
+
     def service(self, name: ServiceName) -> ServiceConfig:
         mapping: dict[ServiceName, tuple[str | None, str | None, str, str]] = {
             "albayan": (
