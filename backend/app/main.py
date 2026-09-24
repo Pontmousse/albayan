@@ -8,6 +8,7 @@ from app.routers import (
     admin_mcp,
     agent_tokens,
     articles,
+    dev_diagnostics,
     donations,
     draft_equations,
     draft_references,
@@ -53,6 +54,7 @@ app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
 app.include_router(equation_mappings.router)
 app.include_router(math_authoring.router)
+app.include_router(dev_diagnostics.router)
 app.include_router(revision_summaries.router)
 app.include_router(admin.router)
 app.include_router(admin_mcp.router)
