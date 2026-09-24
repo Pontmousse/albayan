@@ -10,10 +10,12 @@ on:
       - "backend/app/core/config.py"
       - "backend/app/core/tracing.py"
       - "backend/app/main.py"
+      - "backend/app/routers/dev_diagnostics.py"
       - "backend/app/routers/draft_equations.py"
       - "backend/app/routers/equation_mappings.py"
       - "backend/app/routers/math_authoring.py"
       - "backend/app/schemas/article.py"
+      - "backend/app/schemas/dev_diagnostics.py"
       - "backend/app/schemas/draft_command.py"
       - "backend/app/schemas/draft_equation.py"
       - "backend/app/schemas/equation_mapping.py"
@@ -21,8 +23,10 @@ on:
       - "backend/app/services/article_draft_service.py"
       - "backend/app/services/burhan_client.py"
       - "backend/app/services/burhan_reverse_client.py"
+      - "backend/app/services/butex_diagnostic_client.py"
       - "backend/app/services/butex_worker_client.py"
       - "backend/app/services/draft_equation_service.py"
+      - "backend/app/services/equation_diagnostic_service.py"
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
       - "backend/app/services/math_authoring_capabilities.py"
@@ -30,6 +34,7 @@ on:
       - "backend/tests/test_burhan_math_commands.py"
       - "backend/tests/test_butex_worker_client.py"
       - "backend/tests/test_draft_equations.py"
+      - "backend/tests/test_equation_diagnostics.py"
       - "backend/tests/test_equation_mapping_api.py"
       - "backend/tests/test_equation_mapping_service.py"
       - "backend/tests/test_math_authoring_capabilities.py"
@@ -90,6 +95,7 @@ jobs:
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_butex_worker_client.py
           backend/tests/test_draft_equations.py
+          backend/tests/test_equation_diagnostics.py
           backend/tests/test_math_authoring_capabilities.py
           backend/tests/test_tracing.py
       - name: MCP equation and compact block tests

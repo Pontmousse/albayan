@@ -21,6 +21,7 @@ from app.schemas.document2 import DocumentMathObjectJson
 logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 45.0
+_SUPPORTED_MODEL_TIERS = {"heuristic", "free", "cheap", "medium", "frontier"}
 _SUPPORTED_ENVIRONMENTS = (
     "align",
     "align*",
@@ -51,6 +52,13 @@ def _burhan_headers() -> dict[str, str]:
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     return headers
+
+
+def _resolve_model_tier(model_tier: str | None) -> str:
+    value = (model_tier or settings.burhan_model_tier).strip().lower()
+    if value not in _SUPPORTED_MODEL_TIERS:
+        raise _error(422, "invalid_model_tier", "مستوى نموذج Burhan غير مدعوم.")
+    return value
 
 
 def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
@@ -188,18 +196,54 @@ def _editor_math_object(
         raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير متوافقة.") from exc
 
 
+def _decode_json_stage(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value[:20_000]
+
+
+def _bounded_warnings(value: Any) -> list[Any]:
+    if not isinstance(value, list):
+        return []
+    compact: list[Any] = []
+    for item in value[:50]:
+        if isinstance(item, str):
+            compact.append(item[:1000])
+        elif isinstance(item, dict):
+            compact.append(
+                {
+                    key: raw[:1000] if isinstance(raw, str) else raw
+                    for key, raw in item.items()
+                    if key in {"code", "message", "stage"}
+                    and isinstance(raw, (str, int, float, bool, type(None)))
+                }
+            )
+    return compact
+
+
 def convert_latex_to_math_token(
     latex: str,
     *,
     display: bool,
     label: str | None,
     mappings: Mapping[str, str],
+    model_tier: str | None = None,
+    diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Convert normal English LaTeX into the strict editor-shaped Document2 math token."""
+    """Convert normal English LaTeX into the strict editor-shaped Document2 math token.
+
+    ``diagnostics`` is an optional dev-only sink populated with bounded,
+    non-secret stages from the same real Burhan request. Product callers do not
+    need it and keep the historical two-value return contract.
+    """
     base = settings.burhan_url.rstrip("/")
     if not base:
         raise _UNCONFIGURED
 
+    tier = _resolve_model_tier(model_tier)
     full_match, opening, inner_content, closing = _split_latex(latex, display=display)
     payload = {
         "run_id": str(uuid.uuid4()),
@@ -211,16 +255,36 @@ def convert_latex_to_math_token(
         "mappings": dict(mappings),
         "mapping_instructions": None,
         "digits_mapping": "digits",
-        "model_tier": settings.burhan_model_tier,
+        "model_tier": tier,
         "prescanning": True,
     }
+
+    if diagnostics is not None:
+        diagnostics.update(
+            {
+                "canonical_input": {
+                    "latex": latex,
+                    "full_match": full_match,
+                    "opening": opening,
+                    "inner_content": inner_content,
+                    "closing": closing,
+                    "display": display,
+                },
+                "burhan_request": {
+                    "model_tier": tier,
+                    "digits_mapping": "digits",
+                    "prescanning": True,
+                    "mapping_count": len(mappings),
+                },
+            }
+        )
 
     started = perf_counter()
     emit_trace_event(
         service="albayan-backend",
         stage="burhan.convert",
         status="started",
-        model_tier=settings.burhan_model_tier,
+        model_tier=tier,
     )
     try:
         with httpx.Client(
@@ -249,11 +313,12 @@ def convert_latex_to_math_token(
         logger.warning("Burhan equation conversion request failed")
         raise _error(502, "burhan_unavailable", "تعذّر الاتصال بخدمة تحويل المعادلات.") from exc
 
+    duration_ms = (perf_counter() - started) * 1000
     emit_trace_event(
         service="albayan-backend",
         stage="burhan.convert",
         status="ok" if response.status_code == 200 else "error",
-        duration_ms=(perf_counter() - started) * 1000,
+        duration_ms=duration_ms,
         status_code=response.status_code,
     )
     if response.status_code == 422:
@@ -279,6 +344,21 @@ def convert_latex_to_math_token(
         display=display,
         label=label,
     )
+    if diagnostics is not None:
+        diagnostics.update(
+            {
+                "duration_ms": round(duration_ms, 3),
+                "english_json": _decode_json_stage(english_json),
+                "arabic_json": _decode_json_stage(body.get("arabic_json")),
+                "arabic_latex": arabic_source,
+                "mappings": dict(resolved_mappings),
+                "warnings": _bounded_warnings(body.get("warnings")),
+                "resolved_model": body.get("resolved_model")
+                if isinstance(body.get("resolved_model"), str)
+                else None,
+                "editor_math_object": math_object,
+            }
+        )
     return {
         "kind": "math",
         "source": arabic_source,
