@@ -54,7 +54,11 @@ app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
 app.include_router(equation_mappings.router)
 app.include_router(math_authoring.router)
-app.include_router(dev_diagnostics.router)
+if settings.dev_mode:
+    # Keep the diagnostic surface absent from production routing/OpenAPI, not
+    # merely guarded inside the handler. The router itself repeats the gate as
+    # defense in depth for direct/unit invocation.
+    app.include_router(dev_diagnostics.router)
 app.include_router(revision_summaries.router)
 app.include_router(admin.router)
 app.include_router(admin_mcp.router)
