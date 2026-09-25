@@ -22,7 +22,7 @@ export const DEV_MCP_SERVERS = [
       "مساعد البيان لاختبار تجربة الاستخدام عبر Playwright؛ يتصفح الصفحات، ويتفاعل مع عناصرها، ويلتقط صور الشاشة للتحقق من الواجهات ورصد مشكلات العرض.",
     url:
       process.env.NEXT_PUBLIC_PLAYWRIGHT_MCP_SERVER_URL?.trim() ||
-      "https://playwright.dev.albayan-journal.org/mcp",
+      "https://playwright-mcp.dev.albayan-journal.org/mcp",
     iconPath: "/wukala/albayan-mcp-playwright-icon.png",
     filename: "albayan-mcp-playwright-icon.png",
     authHint: "اختر «بلا مصادقة» لهذا الموصل؛ تسجيل دخول الموقع داخل المتصفح خطوة مستقلة.",
