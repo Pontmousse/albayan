@@ -28,4 +28,16 @@ export const DEV_MCP_SERVERS = [
     authHint: "اختر «بلا مصادقة» لهذا الموصل؛ تسجيل دخول الموقع داخل المتصفح خطوة مستقلة.",
     theme: "border-violet-200 bg-gradient-to-b from-violet-50/80 to-white",
   },
+  {
+    id: "authoring-dev",
+    name: "مجلة البيان",
+    label: "الربط العادي · بيئة التطوير",
+    description:
+      "مساعد مجلة البيان للبحث والكتابة والمراجعة والتحرير، يسهّل العمل على المقالات والاستفادة من أدوات المجلة مباشرة من مساعدك الذكي.",
+    url: "https://mcp.dev.albayan-journal.org/mcp",
+    iconPath: "/connector_icon.png",
+    filename: "albayan-connector-icon.png",
+    authHint: "اختر OAuth، ثم سجّل الدخول بحسابك في مجلة البيان.",
+    theme: "border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white",
+  },
 ] as const;
