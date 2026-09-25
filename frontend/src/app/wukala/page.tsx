@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { McpClientCarousel } from "@/components/wukala/mcp-client-carousel";
+import { DevMcpServerCarousel } from "@/components/wukala/dev-mcp-server-carousel";
 
 export const metadata: Metadata = {
   title: "الوكلاء | البيان",
@@ -37,6 +38,7 @@ export default function WukalaPage() {
         </div>
 
         <McpClientCarousel />
+        <DevMcpServerCarousel />
 
         <section
           className="stagger-item mt-10 rounded-2xl border border-[var(--journal-border)] bg-white/80 p-6 shadow-sm"
