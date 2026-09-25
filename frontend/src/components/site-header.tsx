@@ -4,8 +4,11 @@ import { AuthHeader } from "@/components/auth-header";
 import { MainNav } from "@/components/main-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NumeralToggle } from "@/components/numeral-toggle";
+import { isDevMode } from "@/lib/dev-mode";
 
 export function SiteHeader() {
+  const devMode = isDevMode();
+
   return (
     <header
       data-site-header
@@ -27,11 +30,22 @@ export function SiteHeader() {
             />
           </span>
           <span className="min-w-0">
-            <span
-              className="block text-xl font-bold leading-tight tracking-tight text-[var(--journal-accent)] transition-colors duration-200 group-hover:text-[var(--journal-accent-strong)] sm:text-3xl"
-              style={{ fontFamily: "var(--font-display-ar), serif" }}
-            >
-              مجلة البيان
+            <span className="flex items-center gap-2">
+              <span
+                className="block text-xl font-bold leading-tight tracking-tight text-[var(--journal-accent)] transition-colors duration-200 group-hover:text-[var(--journal-accent-strong)] sm:text-3xl"
+                style={{ fontFamily: "var(--font-display-ar), serif" }}
+              >
+                مجلة البيان
+              </span>
+              {devMode ? (
+                <span
+                  className="inline-flex shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-amber-800 sm:px-2 sm:text-xs"
+                  title="بيئة التطوير"
+                  aria-label="بيئة التطوير"
+                >
+                  DEV
+                </span>
+              ) : null}
             </span>
             <span className="mt-0.5 hidden text-xs font-medium text-slate-500 sm:block">
               مجلة علمية محكّمة

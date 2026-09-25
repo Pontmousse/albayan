@@ -13,7 +13,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
-from app.services.burhan_client import _burhan_headers
+from app.services.burhan_client import _burhan_headers, _resolve_model_tier
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,8 @@ def _compact_warnings(value: Any) -> list[str]:
             elif isinstance(message, str) and message.strip():
                 text = message.strip()
         if text is not None and text not in compact:
-            compact.append(text)
-    return compact
+            compact.append(text[:1000])
+    return compact[:50]
 
 
 def _strip_outer_math_delimiters(latex: str) -> str:
@@ -67,6 +67,7 @@ def convert_math_object_to_english(
     math_object: Mapping[str, Any],
     *,
     variable_mapping: Mapping[str, str],
+    model_tier: str | None = None,
 ) -> tuple[str, list[str]]:
     """Project one canonical Document2 MathObject to normal English LaTeX."""
     base = settings.burhan_url.rstrip("/")
@@ -83,7 +84,7 @@ def convert_math_object_to_english(
         "run_id": str(uuid.uuid4()),
         "english_json": json.dumps(tree, ensure_ascii=False),
         "variable_mapping": dict(variable_mapping),
-        "model_tier": settings.burhan_model_tier,
+        "model_tier": _resolve_model_tier(model_tier),
     }
 
     try:

@@ -62,6 +62,20 @@
 
 لتجميع ملفّ المعاينة عيّن `COMPILER_URL` (مثال `http://localhost:8082`) في بيئة الخلفية وشغّل المترجم المشترك. تصدير LaTeX يتم في الواجهة عبر BuTeX؛ الخلفية Python فقط وتستقبل نص TeX + مفاتيح الصور.
 
+## بروتوكول Developer MCP للوكلاء
+
+عند استخدام `dev_mcp_server/` للتحقيق في عطل أو انحدار:
+
+1. ابدأ بـ `dev_capabilities` ولا تفترض أن خدمة أو طبقة رصد متاحة.
+2. استخدم أصغر أداة متخصصة أو أصغر regression suite مناسبة قبل `dev_http_request` العام.
+3. اجمع `trace_id` والأدلة المرحلية قبل إسناد العطل إلى خدمة بعينها؛ `likely_owning_service` إشارة تشخيصية من أول حدّ فشل مرصود وليست إثباتًا لسبب الجذر.
+4. استخدم Playwright MCP منفصلًا فقط عندما تكون النتيجة المطلوبة مرتبطة بالمتصفح/DOM/MathJax/واجهة المستخدم؛ لا تفترض نجاح المتصفح من نجاح headless.
+5. بعد أي تعديل أعد تشغيل suite المناسبة ثم أنشئ `dev_investigation_report` بدل الاكتفاء بانطباع يدوي.
+6. عند `blocked` أو `partial` ارفع للإنسان السبب والـmissing observations والـhuman actions كما هي، ولا تطلب production credentials كحل بديل.
+7. لا تضف shell أو deployment أو database أو repository-write capabilities إلى Dev MCP من دون مراجعة أمنية مستقلة وصريحة.
+
+التفاصيل الكاملة: `dev_mcp_server/AGENTS.md` و`docs/dev-mcp-investigation-workflows.md`.
+
 ## CORS
 
 الخلفية تسمح حاليًا بأصل التطوير `http://localhost:3000`. عند النشر، حدّث القائمة في `backend/app/main.py` أو استخدم متغيرات بيئة.

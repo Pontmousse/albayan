@@ -32,26 +32,33 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = ""
     s3_access_key: str = ""
     s3_secret_key: str = ""
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000,https://albayan-journal.org"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "https://albayan-journal.org,https://dev.albayan-journal.org"
+    )
     resend_api_key: SecretStr = SecretStr("")
     email_from: str = ""
     email_reply_to: str = ""
-    resend_welcome_template: str = ""
-    resend_app_invitation_template: str = ""
-    resend_auth_verification_template: str = ""
-    resend_password_reset_template: str = ""
-    resend_submission_received_template: str = ""
-    resend_new_submission_alert_template: str = ""
-    resend_editor_assigned_template: str = ""
-    resend_review_invitation_template: str = ""
-    resend_reviewer_assigned_template: str = ""
-    resend_review_reminder_template: str = ""
-    resend_review_submitted_template: str = ""
-    resend_decision_template: str = ""
-    resend_article_published_template: str = ""
-    resend_unread_notifications_digest_template: str = ""
-    # Optional: if omitted, donation confirmations fall back to safe inline Arabic HTML.
-    resend_donation_received_template: str = ""
+
+    # Resend template aliases are application constants, not deployment secrets.
+    # They can still be overridden explicitly for local/testing purposes, but
+    # normal Railway deployments only need the API key and mailbox settings.
+    resend_welcome_template: str = "welcome-ar"
+    resend_app_invitation_template: str = "app-invitation-ar"
+    resend_auth_verification_template: str = "auth-verification-code-ar"
+    resend_password_reset_template: str = "password-reset-ar"
+    resend_submission_received_template: str = "submission-received-ar"
+    resend_new_submission_alert_template: str = "new-submission-alert-ar"
+    resend_editor_assigned_template: str = "editor-assigned-ar"
+    resend_review_invitation_template: str = "review-invitation-ar"
+    resend_reviewer_assigned_template: str = "reviewer-assigned-ar"
+    resend_review_reminder_template: str = "review-reminder-ar"
+    resend_review_submitted_template: str = "review-submitted-ar"
+    resend_decision_template: str = "decision-ar"
+    resend_article_published_template: str = "article-published-ar"
+    resend_unread_notifications_digest_template: str = "unread-notifications-digest-ar"
+    resend_donation_received_template: str = "donation-received-ar"
+
     frontend_base_url: str = "http://localhost:3000"
     compiler_url: str = ""
     butex_worker_url: str = ""
@@ -96,16 +103,10 @@ class Settings(BaseSettings):
             "EMAIL_REPLY_TO": self.email_reply_to,
             "RESEND_WELCOME_TEMPLATE": self.resend_welcome_template,
             "RESEND_APP_INVITATION_TEMPLATE": self.resend_app_invitation_template,
-            "RESEND_AUTH_VERIFICATION_TEMPLATE": (
-                self.resend_auth_verification_template
-            ),
+            "RESEND_AUTH_VERIFICATION_TEMPLATE": self.resend_auth_verification_template,
             "RESEND_PASSWORD_RESET_TEMPLATE": self.resend_password_reset_template,
-            "RESEND_SUBMISSION_RECEIVED_TEMPLATE": (
-                self.resend_submission_received_template
-            ),
-            "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE": (
-                self.resend_new_submission_alert_template
-            ),
+            "RESEND_SUBMISSION_RECEIVED_TEMPLATE": self.resend_submission_received_template,
+            "RESEND_NEW_SUBMISSION_ALERT_TEMPLATE": self.resend_new_submission_alert_template,
             "RESEND_EDITOR_ASSIGNED_TEMPLATE": self.resend_editor_assigned_template,
             "RESEND_REVIEW_INVITATION_TEMPLATE": self.resend_review_invitation_template,
             "RESEND_REVIEWER_ASSIGNED_TEMPLATE": self.resend_reviewer_assigned_template,
@@ -113,17 +114,15 @@ class Settings(BaseSettings):
             "RESEND_REVIEW_SUBMITTED_TEMPLATE": self.resend_review_submitted_template,
             "RESEND_DECISION_TEMPLATE": self.resend_decision_template,
             "RESEND_ARTICLE_PUBLISHED_TEMPLATE": self.resend_article_published_template,
-            "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": (
-                self.resend_unread_notifications_digest_template
-            ),
+            "RESEND_UNREAD_NOTIFICATIONS_DIGEST_TEMPLATE": self.resend_unread_notifications_digest_template,
         }
 
-        # An entirely empty group disables email locally. Supplying any member
-        # opts into email delivery and requires a complete, coherent group.
-        if not any(value.strip() for value in email_settings.values()):
-            self.resend_donation_received_template = (
-                self.resend_donation_received_template.strip()
-            )
+        # Template aliases have built-in defaults. Email is disabled only when
+        # none of the environment-specific delivery settings are supplied.
+        if not any(
+            value.strip()
+            for value in (api_key, self.email_from, self.email_reply_to)
+        ):
             return self
 
         required = {
@@ -138,46 +137,22 @@ class Settings(BaseSettings):
             raise ValueError("RESEND_API_KEY must be a Resend API key")
 
         self.email_from = _validate_mailbox(self.email_from, "EMAIL_FROM")
-        self.email_reply_to = _validate_mailbox(
-            self.email_reply_to, "EMAIL_REPLY_TO"
-        )
+        self.email_reply_to = _validate_mailbox(self.email_reply_to, "EMAIL_REPLY_TO")
         self.resend_welcome_template = self.resend_welcome_template.strip()
-        self.resend_app_invitation_template = (
-            self.resend_app_invitation_template.strip()
-        )
-        self.resend_auth_verification_template = (
-            self.resend_auth_verification_template.strip()
-        )
+        self.resend_app_invitation_template = self.resend_app_invitation_template.strip()
+        self.resend_auth_verification_template = self.resend_auth_verification_template.strip()
         self.resend_password_reset_template = self.resend_password_reset_template.strip()
-        self.resend_submission_received_template = (
-            self.resend_submission_received_template.strip()
-        )
-        self.resend_new_submission_alert_template = (
-            self.resend_new_submission_alert_template.strip()
-        )
+        self.resend_submission_received_template = self.resend_submission_received_template.strip()
+        self.resend_new_submission_alert_template = self.resend_new_submission_alert_template.strip()
         self.resend_editor_assigned_template = self.resend_editor_assigned_template.strip()
-        self.resend_review_invitation_template = (
-            self.resend_review_invitation_template.strip()
-        )
-        self.resend_reviewer_assigned_template = (
-            self.resend_reviewer_assigned_template.strip()
-        )
-        self.resend_review_reminder_template = (
-            self.resend_review_reminder_template.strip()
-        )
-        self.resend_review_submitted_template = (
-            self.resend_review_submitted_template.strip()
-        )
+        self.resend_review_invitation_template = self.resend_review_invitation_template.strip()
+        self.resend_reviewer_assigned_template = self.resend_reviewer_assigned_template.strip()
+        self.resend_review_reminder_template = self.resend_review_reminder_template.strip()
+        self.resend_review_submitted_template = self.resend_review_submitted_template.strip()
         self.resend_decision_template = self.resend_decision_template.strip()
-        self.resend_article_published_template = (
-            self.resend_article_published_template.strip()
-        )
-        self.resend_unread_notifications_digest_template = (
-            self.resend_unread_notifications_digest_template.strip()
-        )
-        self.resend_donation_received_template = (
-            self.resend_donation_received_template.strip()
-        )
+        self.resend_article_published_template = self.resend_article_published_template.strip()
+        self.resend_unread_notifications_digest_template = self.resend_unread_notifications_digest_template.strip()
+        self.resend_donation_received_template = self.resend_donation_received_template.strip()
         self.frontend_base_url = _validate_email_url(
             self.frontend_base_url, "FRONTEND_BASE_URL", self.dev_mode
         )
