@@ -46,11 +46,13 @@ def _token_shape(token: str) -> str:
 
 
 class DeveloperMetadataTokenVerifier:
-    """Authenticate Clerk OAuth and authorize only developer=true users.
+    """Authenticate Clerk tokens and authorize only developer=true users.
 
-    Any authentication failure, Clerk lookup failure, missing metadata, or a
-    value other than the boolean True returns None so the MCP auth layer rejects
-    the request without leaking account details.
+    ChatGPT may present either an opaque Clerk OAuth access token or a Clerk
+    session JWT after the OAuth flow, so both token types are accepted for
+    Clerk verification. Any authentication failure, Clerk lookup failure,
+    missing metadata, or a value other than the boolean True returns None so
+    the MCP auth layer rejects the request without leaking account details.
 
     Rejections are logged with coarse stage/reason/type labels only. Bearer
     tokens, Clerk user IDs, emails, metadata values, and raw exception messages
@@ -71,7 +73,9 @@ class DeveloperMetadataTokenVerifier:
         try:
             state = self._clerk.authenticate_request(
                 _BearerRequest(token),
-                AuthenticateRequestOptions(accepts_token=["oauth_token"]),
+                AuthenticateRequestOptions(
+                    accepts_token=["oauth_token", "session_token"]
+                ),
             )
         except Exception as exc:
             logger.warning(
