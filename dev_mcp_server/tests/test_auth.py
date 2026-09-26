@@ -43,7 +43,7 @@ class _FakeClerk:
 
     def authenticate_request(self, request, options):
         assert request.headers["Authorization"].startswith("Bearer ")
-        assert options.accepts_token == ["oauth_token"]
+        assert options.accepts_token == ["oauth_token", "session_token"]
         if self.auth_fails:
             raise RuntimeError("OAuth token invalid: do-not-log-details")
         return SimpleNamespace(
@@ -78,6 +78,16 @@ async def test_developer_true_is_authorized() -> None:
     assert access.token == "token"
     assert access.client_id == "chatgpt"
     assert "openid" in access.scopes
+
+
+async def test_chatgpt_session_jwt_shape_is_allowed_through_clerk_verification() -> None:
+    token = "header.payload.signature"
+
+    access = await _verifier(True).verify_token(token)
+
+    assert access is not None
+    assert access.token == token
+    assert access.client_id == "chatgpt"
 
 
 async def test_non_developer_values_are_rejected() -> None:
