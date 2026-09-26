@@ -24,6 +24,27 @@ class _BearerRequest:
         return {"Authorization": f"Bearer {self.token}"}
 
 
+def _safe_enum_name(value: object) -> str:
+    """Return a non-sensitive enum/type label suitable for diagnostics."""
+
+    name = getattr(value, "name", None)
+    if isinstance(name, str) and name:
+        return name
+    if value is None:
+        return "none"
+    return type(value).__name__
+
+
+def _token_shape(token: str) -> str:
+    """Classify token format without logging any token material."""
+
+    if token.startswith("oat_"):
+        return "oauth_opaque"
+    if token.count(".") == 2:
+        return "jwt_like"
+    return "other"
+
+
 class DeveloperMetadataTokenVerifier:
     """Authenticate Clerk OAuth and authorize only developer=true users.
 
@@ -31,9 +52,9 @@ class DeveloperMetadataTokenVerifier:
     value other than the boolean True returns None so the MCP auth layer rejects
     the request without leaking account details.
 
-    Rejections are logged with a coarse stage and exception/value *type* only.
-    Bearer tokens, Clerk user IDs, emails, metadata values, and raw exception
-    messages are deliberately never written to logs.
+    Rejections are logged with coarse stage/reason/type labels only. Bearer
+    tokens, Clerk user IDs, emails, metadata values, and raw exception messages
+    are deliberately never written to logs.
     """
 
     def __init__(self, *, clerk_secret_key: str) -> None:
@@ -54,13 +75,19 @@ class DeveloperMetadataTokenVerifier:
             )
         except Exception as exc:
             logger.warning(
-                "dev_mcp_auth rejected stage=authenticate_request exception_type=%s",
+                "dev_mcp_auth rejected stage=authenticate_request exception_type=%s token_shape=%s",
                 type(exc).__name__,
+                _token_shape(token),
             )
             return None
 
         if not state.is_signed_in:
-            logger.warning("dev_mcp_auth rejected stage=not_signed_in")
+            logger.warning(
+                "dev_mcp_auth rejected stage=not_signed_in reason=%s status=%s token_shape=%s",
+                _safe_enum_name(getattr(state, "reason", None)),
+                _safe_enum_name(getattr(state, "status", None)),
+                _token_shape(token),
+            )
             return None
 
         payload = state.payload

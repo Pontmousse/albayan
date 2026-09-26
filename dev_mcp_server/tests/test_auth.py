@@ -1,9 +1,18 @@
 from __future__ import annotations
 
 import logging
+from enum import Enum
 from types import SimpleNamespace
 
 from albayan_dev_mcp.auth import DeveloperMetadataTokenVerifier
+
+
+class _FakeReason(Enum):
+    TOKEN_INVALID = "token-invalid"
+
+
+class _FakeStatus(Enum):
+    SIGNED_OUT = "signed-out"
 
 
 class _FakeUsers:
@@ -40,6 +49,8 @@ class _FakeClerk:
         return SimpleNamespace(
             is_signed_in=self.signed_in,
             payload={"sub": "user_dev", "azp": "chatgpt"} if self.signed_in else None,
+            reason=None if self.signed_in else _FakeReason.TOKEN_INVALID,
+            status=None if self.signed_in else _FakeStatus.SIGNED_OUT,
         )
 
 
@@ -93,8 +104,22 @@ async def test_auth_failure_logs_stage_without_token_or_exception_message(caplog
 
     assert "stage=authenticate_request" in caplog.text
     assert "exception_type=RuntimeError" in caplog.text
+    assert "token_shape=other" in caplog.text
     assert secret_token not in caplog.text
     assert "do-not-log-details" not in caplog.text
+
+
+async def test_signed_out_logs_safe_clerk_reason_and_token_shape(caplog) -> None:
+    caplog.set_level(logging.WARNING, logger="albayan_dev_mcp.auth")
+    secret_token = "oat_super-secret-token"
+
+    assert await _verifier(True, signed_in=False).verify_token(secret_token) is None
+
+    assert "stage=not_signed_in" in caplog.text
+    assert "reason=TOKEN_INVALID" in caplog.text
+    assert "status=SIGNED_OUT" in caplog.text
+    assert "token_shape=oauth_opaque" in caplog.text
+    assert secret_token not in caplog.text
 
 
 async def test_user_lookup_failure_logs_stage_without_account_identifiers(caplog) -> None:
