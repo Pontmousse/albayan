@@ -156,6 +156,15 @@ def _require_success_export(payload: Any) -> tuple[str, list[str]]:
     return latex, asset_ids
 
 
+def _require_success_english_math_object(payload: Any) -> dict[str, Any]:
+    if not isinstance(payload, dict) or payload.get("ok") is not True:
+        raise _invalid_response()
+    math_object = payload.get("english_math_object")
+    if not isinstance(math_object, dict) or math_object.get("node_type") != "MathObject":
+        raise _invalid_response()
+    return math_object
+
+
 def _require_success_diff(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise _invalid_response()
@@ -299,6 +308,15 @@ def reference_index_document(document: dict[str, Any]) -> dict[str, Any]:
 def export_document(document: dict[str, Any]) -> tuple[str, list[str]]:
     return _require_success_export(
         _post("/v1/document2/export", {"document": document})
+    )
+
+
+def project_math_object_to_english(math_object: dict[str, Any]) -> dict[str, Any]:
+    return _require_success_english_math_object(
+        _post(
+            "/v1/document2/math-object/english",
+            {"math_object": math_object},
+        )
     )
 
 
