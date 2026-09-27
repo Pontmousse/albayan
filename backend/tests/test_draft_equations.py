@@ -59,17 +59,27 @@ def _convert_by_expr(math_object, *, variable_mapping):
     return expr, []
 
 
+def _project_identity(math_object):
+    return math_object
+
+
 def test_no_equations_returns_empty_projection() -> None:
     mappings = {"x": "س"}
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english"
-    ) as convert:
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english"
+        ) as project,
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english"
+        ) as convert,
+    ):
         result = equation_projection_service.project_document_equations(
             {"node_type": "DocumentObject", "blocks": []}, mappings
         )
 
     assert result == []
     assert mappings == {"x": "س"}
+    project.assert_not_called()
     convert.assert_not_called()
 
 
@@ -115,9 +125,15 @@ def test_projects_paragraph_heading_list_and_nested_content() -> None:
         ]
     }
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english",
-        side_effect=_convert_by_expr,
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            side_effect=_convert_by_expr,
+        ),
     ):
         result = equation_projection_service.project_document_equations(document, {})
 
@@ -169,9 +185,15 @@ def test_table_math_uses_row_major_sidecar_order_and_caption_math() -> None:
         ]
     }
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english",
-        side_effect=_convert_by_expr,
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            side_effect=_convert_by_expr,
+        ),
     ):
         result = equation_projection_service.project_document_equations(document, {})
 
@@ -205,9 +227,15 @@ def test_figure_caption_math_is_discovered() -> None:
         ]
     }
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english",
-        side_effect=_convert_by_expr,
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            side_effect=_convert_by_expr,
+        ),
     ):
         result = equation_projection_service.project_document_equations(document, {})
 
@@ -216,7 +244,7 @@ def test_figure_caption_math_is_discovered() -> None:
     assert result[0]["token_id"] == "math-fig"
 
 
-def test_raw_math_is_explicit_and_never_sent_to_burhan() -> None:
+def test_raw_math_is_explicit_and_never_sent_to_butex_or_burhan() -> None:
     document = {
         "blocks": [
             {
@@ -235,9 +263,14 @@ def test_raw_math_is_explicit_and_never_sent_to_burhan() -> None:
         ]
     }
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english"
-    ) as convert:
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english"
+        ) as project,
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english"
+        ) as convert,
+    ):
         result = equation_projection_service.project_document_equations(document, {})
 
     assert result == [
@@ -253,7 +286,45 @@ def test_raw_math_is_explicit_and_never_sent_to_burhan() -> None:
             "warnings": ["unstructured_math"],
         }
     ]
+    project.assert_not_called()
     convert.assert_not_called()
+
+
+def test_structured_math_is_projected_through_butex_before_burhan() -> None:
+    raw = _math(r"\text{س}")
+    english_side = _math("س")
+    english_side.pop("source_side")
+    english_side.pop("source_owner")
+    document = {
+        "blocks": [
+            {
+                "id": "paragraph-1",
+                "command": r"\paragraph",
+                "value": r"$\text{س}$",
+                "inline_ids": _ids("field-1", "math-1", r"$\text{س}$"),
+                "math_objects": [raw],
+            }
+        ]
+    }
+
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            return_value=english_side,
+        ) as project,
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            return_value=("x", []),
+        ) as convert,
+    ):
+        result = equation_projection_service.project_document_equations(
+            document, {"x": r"\text{س}"}
+        )
+
+    assert result[0]["latex"] == "x"
+    project.assert_called_once_with(raw)
+    assert convert.call_args.args[0] == english_side
+    assert convert.call_args.kwargs["variable_mapping"] == {r"\text{س}": "x"}
 
 
 def test_reverse_mapping_omits_ambiguous_values_and_returns_compact_warnings() -> None:
@@ -275,9 +346,15 @@ def test_reverse_mapping_omits_ambiguous_values_and_returns_compact_warnings() -
         captured["mapping"] = variable_mapping
         return "x", ["burhan_fallback"]
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english",
-        side_effect=convert,
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            side_effect=convert,
+        ),
     ):
         result = equation_projection_service.project_document_equations(document, mappings)
 
@@ -302,10 +379,16 @@ def test_mapping_mismatch_warns_but_still_projects_equation() -> None:
         ]
     }
 
-    with patch(
-        "app.services.burhan_reverse_client.convert_math_object_to_english",
-        return_value=("q", []),
-    ) as convert:
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            return_value=("q", []),
+        ) as convert,
+    ):
         result = equation_projection_service.project_document_equations(
             document, {"x": "س"}
         )
