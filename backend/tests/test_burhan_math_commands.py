@@ -48,6 +48,62 @@ def _english_math(expr: str = "x", opening: str = "$", closing: str = "$") -> st
     )
 
 
+def _arabic_math(
+    expr: str = r"\text{س}", opening: str = "$", closing: str = "$"
+) -> str:
+    return json.dumps(
+        {
+            "node_type": "MathObject",
+            "math_mode": opening,
+            "closing": closing,
+            "superscript": None,
+            "subscript": None,
+            "lines": [
+                {
+                    "node_type": "ChainClass",
+                    "chain": [
+                        {
+                            "node_type": "CharObject",
+                            "expr": expr,
+                            "superscript": None,
+                            "subscript": None,
+                        }
+                    ],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
+def _arabic_command_math(name: str, opening: str = "$", closing: str = "$") -> str:
+    return json.dumps(
+        {
+            "node_type": "MathObject",
+            "math_mode": opening,
+            "closing": closing,
+            "superscript": None,
+            "subscript": None,
+            "lines": [
+                {
+                    "node_type": "ChainClass",
+                    "chain": [
+                        {
+                            "node_type": "CommandObject",
+                            "name": name,
+                            "optional_args": [],
+                            "mandatory_args": [],
+                            "superscript": None,
+                            "subscript": None,
+                        }
+                    ],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+
 def test_compact_math_command_schema_accepts_normal_latex() -> None:
     payload = DocumentCommandPayload.model_validate(
         {
@@ -93,30 +149,30 @@ def test_inline_label_is_rejected() -> None:
         )
 
 
-def test_editor_tree_replaces_multi_variable_run_in_rtl_order() -> None:
-    tree = burhan_client._editor_math_object(
-        _english_math("mc"),
-        {"m": "م", "c": "س"},
+def test_arabic_math_object_preserves_burhan_command_structure() -> None:
+    tree = burhan_client._arabic_math_object(
+        _arabic_command_math(r"\ad"),
         display=False,
         label=None,
     )
 
-    char = tree["lines"][0]["chain"][0]
-    assert char["expr"] == "سم"
+    node = tree["lines"][0]["chain"][0]
+    assert node["node_type"] == "CommandObject"
+    assert node["name"] == r"\ad"
     assert tree["source_side"] == "arabic"
     assert tree["source_owner"] == "editor"
     assert "superscript" not in tree
     assert "subscript" not in tree
 
 
-def test_display_label_is_attached_to_editor_tree() -> None:
-    tree = burhan_client._editor_math_object(
-        _english_math("x", r"\[", r"\]"),
-        {"x": "س"},
+def test_display_label_is_attached_without_rewriting_arabic_tree() -> None:
+    tree = burhan_client._arabic_math_object(
+        _arabic_math(r"\text{س}", r"\[", r"\]"),
         display=True,
         label="eq:one",
     )
 
+    assert tree["lines"][0]["chain"][0]["expr"] == r"\text{س}"
     assert tree["label_enabled"] is True
     assert tree["label"] == "eq:one"
 
@@ -129,7 +185,7 @@ def test_delimiter_display_mismatch_is_rejected() -> None:
     assert raised.value.detail["code"] == "math_display_mismatch"
 
 
-def test_convert_calls_burhan_and_returns_strict_editor_token(monkeypatch) -> None:
+def test_convert_calls_burhan_and_uses_returned_arabic_json(monkeypatch) -> None:
     captured = {}
 
     class FakeClient:
@@ -148,6 +204,52 @@ def test_convert_calls_burhan_and_returns_strict_editor_token(monkeypatch) -> No
             return httpx.Response(
                 200,
                 json={
+                    "arabic": r"$\ad$",
+                    "mappings": {"d": r"\ad"},
+                    "english_json": _english_math("d"),
+                    "arabic_json": _arabic_command_math(r"\ad"),
+                    "status": "ok",
+                    "warnings": [],
+                },
+            )
+
+    monkeypatch.setattr(burhan_client.settings, "burhan_url", "http://burhan")
+    monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
+    monkeypatch.setattr(burhan_client.httpx, "Client", FakeClient)
+
+    token, mappings = burhan_client.convert_latex_to_math_token(
+        "d",
+        display=False,
+        label=None,
+        mappings={},
+    )
+
+    assert captured["path"] == "/convert"
+    assert captured["payload"]["opening"] == "$"
+    assert captured["payload"]["inner_content"] == "d"
+    assert captured["payload"]["model_tier"] == "heuristic"
+    assert token["source"] == r"$\ad$"
+    node = token["math_object"]["lines"][0]["chain"][0]
+    assert node["node_type"] == "CommandObject"
+    assert node["name"] == r"\ad"
+    assert mappings == {"d": r"\ad"}
+
+
+def test_convert_rejects_missing_arabic_json(monkeypatch) -> None:
+    class FakeClient:
+        def __init__(self, **_kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def post(self, _path, json):
+            return httpx.Response(
+                200,
+                json={
                     "arabic": "$س$",
                     "mappings": {"x": "س"},
                     "english_json": _english_math("x"),
@@ -160,20 +262,13 @@ def test_convert_calls_burhan_and_returns_strict_editor_token(monkeypatch) -> No
     monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
     monkeypatch.setattr(burhan_client.httpx, "Client", FakeClient)
 
-    token, mappings = burhan_client.convert_latex_to_math_token(
-        "x",
-        display=False,
-        label=None,
-        mappings={},
-    )
+    with pytest.raises(HTTPException) as raised:
+        burhan_client.convert_latex_to_math_token(
+            "x", display=False, label=None, mappings={}
+        )
 
-    assert captured["path"] == "/convert"
-    assert captured["payload"]["opening"] == "$"
-    assert captured["payload"]["inner_content"] == "x"
-    assert captured["payload"]["model_tier"] == "heuristic"
-    assert token["source"] == "$س$"
-    assert token["math_object"]["lines"][0]["chain"][0]["expr"] == "س"
-    assert mappings == {"x": "س"}
+    assert raised.value.status_code == 502
+    assert raised.value.detail["code"] == "invalid_burhan_response"
 
 
 @pytest.fixture()
@@ -228,10 +323,10 @@ def _actor(user: User) -> Actor:
     )
 
 
-def _strict_token() -> dict:
+def _strict_token(expr: str = "س") -> dict:
     return {
         "kind": "math",
-        "source": "$س$",
+        "source": f"${expr}$",
         "math_object": {
             "node_type": "MathObject",
             "math_mode": "$",
@@ -241,11 +336,26 @@ def _strict_token() -> dict:
             "lines": [
                 {
                     "node_type": "ChainClass",
-                    "chain": [{"node_type": "CharObject", "expr": "س"}],
+                    "chain": [{"node_type": "CharObject", "expr": expr}],
                 }
             ],
         },
     }
+
+
+def _insert_payload(base_revision: int, latex: str) -> DocumentCommandPayload:
+    return DocumentCommandPayload.model_validate(
+        {
+            "command_id": str(uuid.uuid4()),
+            "base_revision": base_revision,
+            "command": {
+                "op": "insert_inline_token",
+                "field_id": "field_1",
+                "anchor": {"end": True},
+                "token": {"kind": "math", "latex": latex, "display": False},
+            },
+        }
+    )
 
 
 def test_apply_math_command_commits_mapping_and_replay_skips_burhan(db_and_storage) -> None:
@@ -292,21 +402,56 @@ def test_apply_math_command_commits_mapping_and_replay_skips_burhan(db_and_stora
     assert captured["command"]["token"]["math_object"]["source_owner"] == "editor"
 
 
+def test_consecutive_equations_reuse_and_accumulate_article_mappings(db_and_storage) -> None:
+    db, user = db_and_storage
+    article = article_service.create_article(db, user.id, "عنوان", None)
+    seen_mappings = []
+    conversion_results = [
+        (_strict_token("س"), {"x": "س"}),
+        (_strict_token("ص"), {"x": "س", "y": "ص"}),
+    ]
+
+    def convert(_latex, *, display, label, mappings, **_kwargs):
+        assert display is False
+        assert label is None
+        seen_mappings.append(dict(mappings))
+        return conversion_results[len(seen_mappings) - 1]
+
+    counter = 0
+
+    def apply_worker(document, _command):
+        nonlocal counter
+        counter += 1
+        return {**document, "blocks": [{"id": f"block_math_{counter}"}]}
+
+    with (
+        patch(
+            "app.services.burhan_client.convert_latex_to_math_token",
+            side_effect=convert,
+        ),
+        patch(
+            "app.services.butex_worker_client.apply_document_command",
+            side_effect=apply_worker,
+        ),
+    ):
+        first = article_draft_service.apply_command(
+            db, article.id, _actor(user), _insert_payload(1, "x")
+        )
+        second = article_draft_service.apply_command(
+            db, article.id, _actor(user), _insert_payload(2, "y")
+        )
+
+    db.refresh(article)
+    assert first["revision_number"] == 2
+    assert second["revision_number"] == 3
+    assert seen_mappings == [{}, {"x": "س"}]
+    assert article.equation_mappings == {"x": "س", "y": "ص"}
+
+
 def test_failed_worker_does_not_persist_new_mapping(db_and_storage) -> None:
     db, user = db_and_storage
     article = article_service.create_article(db, user.id, "عنوان", None)
-    payload = DocumentCommandPayload.model_validate(
-        {
-            "command_id": str(uuid.uuid4()),
-            "base_revision": 1,
-            "command": {
-                "op": "insert_inline_token",
-                "field_id": "field_1",
-                "anchor": {"end": True},
-                "token": {"kind": "math", "latex": "x", "display": False},
-            },
-        }
-    )
+    payload = _insert_payload(1, "x")
 
     with (
         patch(
