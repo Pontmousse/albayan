@@ -1,0 +1,28 @@
+name: PR base guard
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce pull request base policy
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "Checking PR branch policy: ${HEAD_REF} -> ${BASE_REF}"
+
+          if [ "${BASE_REF}" = "main" ]; then
+            case "${HEAD_REF}" in
+              develop|release/*|hotfix/*)
+                echo "Intentional main-targeting promotion/hotfix path accepted."
+                ;;
+              *)
+                echo "::error::Normal work must target develop. PRs to main are only allowed from develop, release/*, or hotfix/* with explicit human intent. Retarget this PR to develop."
+                exit 1
+                ;;
+            esac
+          fi
