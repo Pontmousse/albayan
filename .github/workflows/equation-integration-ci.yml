@@ -32,6 +32,7 @@ on:
       - "backend/app/services/math_authoring_capabilities.py"
       - "backend/tests/test_burhan_api_key.py"
       - "backend/tests/test_burhan_math_commands.py"
+      - "backend/tests/test_butex_math_projection_client.py"
       - "backend/tests/test_butex_worker_client.py"
       - "backend/tests/test_draft_equations.py"
       - "backend/tests/test_equation_diagnostics.py"
@@ -93,6 +94,7 @@ jobs:
           backend/tests/test_equation_mapping_api.py
           backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
+          backend/tests/test_butex_math_projection_client.py
           backend/tests/test_butex_worker_client.py
           backend/tests/test_draft_equations.py
           backend/tests/test_equation_diagnostics.py
