@@ -1,206 +1,223 @@
 # AI Equation Architecture Reference
 
-Status: design reference
+Status: target architecture reference
 
-This document summarizes the target equation architecture agreed across the five Al Bayan issues below. It is a reference for implementation work; the issue acceptance criteria remain authoritative for task-level details.
+This document records the intended end-to-end contract for AI-authored equations. It is deliberately cross-repository: Al-Bayan orchestrates and persists, Burhan translates, and BuTeX imports/edits/renders/reconstructs structured mathematics.
 
-- [#99 — `get_draft_equations` compact Arabic-journal projection](https://github.com/Pontmousse/albayan/issues/99)
-- [#109 — persist article-level Burhan variable mappings](https://github.com/Pontmousse/albayan/issues/109)
-- [#110 — author math through existing inline-token commands](https://github.com/Pontmousse/albayan/issues/110)
-- [#111 — Arabic mathematical-notation / variable-mappings editor UI](https://github.com/Pontmousse/albayan/issues/111)
-- [#112 — slim `get_draft_blocks` and omit recursive equation JSON](https://github.com/Pontmousse/albayan/issues/112)
+Relevant work:
 
-The reverse-conversion dependency lives in Burhan: [`burhan3.0#1`](https://gitlab.com/drghaliasri/burhan3.0/-/work_items/1).
+- Al-Bayan #170 — store Burhan Arabic MathObject directly in Document2
+- BuTeX #19 — verify Arabic MathObject import -> English export round trip
+- BuTeX #20 — graceful support for imported standard LaTeX commands
+- Burhan #3 — emit Arabic LaTeX macros as structured command nodes
+- Burhan #4 — reverse command-valued mappings such as `d -> \\ad`
 
 ## Product principle
 
-Al Bayan is an Arabic journal. The author-facing mathematical experience remains Arabic-first, including notation and rendered equations.
+Al-Bayan is an Arabic journal. The author-facing mathematical experience is Arabic-first.
 
-Canonical English LaTeX is used only as an interoperability representation for today's general-purpose AI models. It is not the journal's user-facing mathematical language and it is not a second source of truth.
+Canonical English LaTeX exists as the interoperability language between a general-purpose AI and the journal. It is not a second stored equation representation and it is not the authoring language exposed by the BuTeX toolbar.
 
 ## Sources of truth
 
-There are two deliberately small, distinct kinds of state:
+There are only two durable sources of mathematical state:
 
-1. **The current immutable Document2 draft** is authoritative for actual document content and equations. Equations remain normal Document2 math tokens inside inline fields; there is no separate equation block or equation persistence model.
-2. **The article-level variable-mapping dictionary** is authoritative for the article's current Latin-to-Arabic notation choices, for example `m -> م` or `E -> ط`.
+1. **The current Document2 draft**. Each equation is stored as the normal structured math token inside the article's existing Document2 `document.json` in S3. There is no separate equation store and no duplicate English equation JSON.
+2. **The article-level variable-mapping dictionary** in the Al-Bayan database. It stores mappings such as `x -> س` and is reused for both forward and reverse conversion.
 
-Do not persist duplicate English equation JSON, original AI LaTeX, per-equation provenance, or a second equation store.
+Al-Bayan should not become a mathematical AST transformation layer. It should orchestrate services, validate the normal Document2 contract, persist the Document2 result, and persist mappings consistently with the successful draft mutation.
 
-## Read path for AI
+## AI write path
 
-The MCP read surface is intentionally split by purpose.
+The AI never constructs recursive MathObject JSON.
+
+It discovers the supported authoring contract through the normal MCP math-capabilities surface and produces canonical/interoperable English LaTeX. It then uses the existing `apply_draft_command` flow with the normal inline-token operations (`insert_inline_token` or `replace_inline_token`).
+
+Conceptually:
+
+```text
+AI
+  |
+  | canonical English LaTeX
+  v
+normal Al-Bayan MCP
+  |
+  | apply_draft_command / inline math token
+  v
+Al-Bayan backend
+  |
+  | load current article variable mappings (possibly {})
+  v
+Burhan /convert
+  |
+  | canonical English LaTeX + current mappings
+  v
+Burhan structured conversion
+  |
+  | arabic_json + resolved/new mappings
+  v
+Al-Bayan backend
+  |
+  | use Burhan arabic_json as the equation MathObject
+  | no local English->Arabic AST projection/rewrite
+  v
+normal Document2 command / schema checks
+  |
+  v
+article Document2 document.json in S3
+  |
+  v
+BuTeX
+  |
+  v
+Arabic article/editor rendering
+```
+
+### Forward-conversion rules
+
+1. Al-Bayan loads the article's current mapping dictionary and sends it to Burhan with the canonical English LaTeX.
+2. Burhan owns mathematical parsing and translation. Its returned `arabic_json` must already be structurally correct (for example `\\ad` is a command node, not text hidden inside a CharObject).
+3. Al-Bayan feeds that returned Arabic MathObject into the normal Document2 path **as is**, apart from the ordinary Document2/token metadata and schema checks required by the document system.
+4. Al-Bayan must not rebuild the Arabic tree by starting from `english_json` and substituting mapped strings into CharObjects. The historical `_editor_math_object()` projection is not part of the target architecture.
+5. Newly discovered mappings are merged into the article mapping dictionary only if the corresponding draft mutation succeeds.
+6. The equation is persisted only once: as its normal MathObject inside the article's Document2 `document.json`.
+
+If Burhan cannot return a valid structured MathObject at all, the mutation should fail cleanly rather than inventing another representation. Graceful fallback applies to valid imported standard commands inside a structured equation; it is not a license to persist arbitrary malformed output.
+
+## BuTeX import/render behavior
+
+BuTeX receives the stored Arabic MathObject and uses its existing Arabic structured import path (`fromMathObjectJson(..., "arabic")`) to construct the editor tree and render/edit the equation.
+
+The preferred result is fully Arabic mathematical notation. However, a valid structured equation may occasionally still contain standard LaTeX commands because Burhan passed one through or because an older/imported equation contains them.
+
+Those commands should be treated as **compatibility fallback content**:
+
+- import them instead of rejecting the entire equation;
+- render them normally (`α`, `γ`, `∂`, etc.);
+- preserve scripts/structure and save/reopen behavior;
+- keep them selectable/deletable/replacable;
+- preserve/export them if the user leaves them untouched;
+- show a non-blocking warning that standard/non-Arabic notation remains and should be reviewed/replaced with the Arabic-oriented equivalent when appropriate.
+
+This warning is intentionally **not** a hard editor error.
+
+Standard-command compatibility must also remain separate from authoring affordances. The Arabic-oriented toolbar must **not** gain buttons, palette entries, or insertion actions for Greek/standard-English LaTeX merely because those commands are accepted on import.
+
+```text
+import/render/save compatibility: YES
+toolbar authoring of fallback commands: NO
+```
+
+The user can delete a fallback command and replace it using the existing Arabic-oriented BuTeX controls.
+
+## AI read path (`get_draft_equations`)
+
+`get_draft_equations` live-projects equations from the current Document2 draft. It must not read a duplicated equation store.
+
+The reverse path is:
+
+```text
+article Document2 document.json
+  |
+  | stored Arabic MathObject
+  v
+BuTeX structured import
+  |
+  | reconstruct/export English-side structured MathObject
+  v
+Al-Bayan backend
+  |
+  | English-side MathObject + article variable mappings
+  v
+Burhan /convert-to-english
+  |
+  | reverse mapped Arabic values/macros and canonicalize
+  v
+canonical English LaTeX
+  |
+  v
+get_draft_equations
+  |
+  v
+AI
+```
+
+### Reverse-conversion rules
+
+1. The current stored Document2 equation is authoritative.
+2. BuTeX owns the structural reconstruction from the stored Arabic editor representation to its English/canonical-side structured MathObject. Al-Bayan should not reproduce BuTeX's editor semantics in Python.
+3. Al-Bayan sends that English-side MathObject plus the article's mapping dictionary to Burhan `/convert-to-english`.
+4. Burhan performs the final cleanup/canonicalization. This includes reversing mapped values even when the Arabic-side value is itself a command with no Arabic Unicode, for example `d -> \\ad`.
+5. `get_draft_equations` returns canonical English interoperability LaTeX to the AI together with targeting identity and the article mappings; it does not expose internal Arabic/BuTeX macros as the canonical AI representation.
+6. Because this projection is live, human edits in BuTeX are naturally reflected the next time the AI fetches equations.
+
+## MCP read surfaces
 
 ### `get_draft_outline`
 
-Use for lightweight navigation through the document.
+Lightweight navigation.
 
 ### `get_draft_blocks`
 
-Use for prose, document structure, and stable targeting identities.
-
-The AI-facing projection must preserve the information needed to understand and target blocks, fields, lists, tables, captions, and inline tokens, but it must omit recursive equation AST payloads such as `math_objects`, `caption_math_objects`, and equivalent nested structured-math collections.
-
-The canonical Document2 draft is not changed or weakened. The context reduction happens at the AI/MCP read boundary.
+Prose, document structure, and stable targeting identities. It should not duplicate recursive equation AST payloads.
 
 ### `get_draft_equations`
 
-Use for equation-specific inspection and targeting.
+Equation-specific inspection and targeting. Its compact response should include current revision identity, Arabic-document context, article mappings, stable block/field/token IDs, canonical English LaTeX, inline/display state, label, and relevant warnings/editability state.
 
-The tool live-projects the **current** Document2 math tokens rather than reading a duplicated equation store. Its compact response includes:
-
-- current revision identity;
-- explicit Arabic-document context;
-- an indication that surfaced LaTeX is canonical English interoperability LaTeX;
-- the article-wide variable mappings once at the top level;
-- stable `block_id`, `field_id`, and `token_id` identities;
-- minimal container/location data when needed;
-- canonical English LaTeX;
-- inline/display state, label, and structured/editable state when relevant.
-
-It does not return recursive Arabic or English `MathObject` JSON.
-
-For an Arabic structured equation, Albayan calls Burhan's reverse projection with the current article mappings to derive canonical English MathObject/LaTeX. For an English-side structured equation, it renders canonical English LaTeX directly. Raw/unstructured math remains explicit and must not be presented as losslessly reversible structured math.
-
-Because this is a live projection, a human edit to the current equation naturally appears on the next read.
-
-## Write path for AI
-
-Do not add equation-specific MCP CRUD tools.
-
-The AI continues to use the existing `apply_draft_command` path and the generic Document2 inline-token operations:
-
-- `insert_inline_token`
-- `replace_inline_token`
-- `remove_inline_token`
-
-For a math insertion or replacement, the AI-facing command supplies ordinary LaTeX rather than recursive `MathObject` JSON. Conceptually:
-
-```json
-{
-  "op": "replace_inline_token",
-  "field_id": "field_8",
-  "token_id": "math_17",
-  "token": {
-    "kind": "math",
-    "latex": "\\frac{d}{dx}f(x)=3x^2",
-    "display": true
-  }
-}
-```
-
-Albayan then:
-
-1. loads the article's current variable mappings;
-2. normalizes and validates the requested math form;
-3. calls the trusted Burhan parsing/conversion path instead of asking the model to construct an AST;
-4. builds a complete delimited source plus the matching structured BuTeX MathObject;
-5. validates that token against the strict Document2 schema;
-6. passes the expanded existing inline-token command through the normal draft-command/worker flow;
-7. persists any newly discovered mappings only with the successful draft mutation.
-
-The lower-level Document2 worker contract remains strict. Revision conflicts, `base_revision`, command idempotency, target validation, and canonical draft validation stay in the existing draft-command flow.
-
-Removal remains the ordinary `remove_inline_token` operation and does not require Burhan conversion.
+Recursive Arabic/English MathObject JSON is an internal service boundary, not the normal AI-facing payload.
 
 ## Article-level variable mappings
 
-Persist one small mapping dictionary on the existing article model, preferably a JSON column such as `equation_mappings`, defaulting to `{}`.
-
-The mapping dictionary is:
-
-- scoped to the article, not to individual equations;
-- reused for forward and reverse Burhan operations;
-- stable as new variables are introduced;
-- explicitly editable by the human author;
-- surfaced only where it is useful: `get_draft_equations` and the notation UI.
-
-Do not create a new table unless a concrete later requirement makes the single-column design unsafe.
-
-When an AI equation mutation discovers new mappings, mapping persistence and the draft mutation must be consistent: a failed equation mutation must not leave new mappings committed.
-
-## Author-facing Arabic notation UI
-
-The article editor should expose a compact Arabic-first mathematical-notation panel where an author can inspect and edit the article's current variable mappings.
-
-A mapping-only edit changes the notation dictionary, **not** the existing Document2 equations. There is deliberately no automatic bulk-propagation engine.
-
-If an author changes a preference after equations already exist, those equations may temporarily contain the older Arabic symbol. The author can ask the AI to revise the affected equations explicitly through the normal inline-token workflow.
-
-`get_draft_equations` and Burhan reverse projection must therefore tolerate a temporary mapping/equation mismatch with explicit warning/fallback behavior. They must not crash and must not fabricate an exact reverse mapping.
-
-## End-to-end flow
+Mappings are scoped to the article and stored once in the existing Al-Bayan database model. The same dictionary participates in both directions:
 
 ```text
-Human author / general-purpose AI
-            |
-            | Arabic prose + simple equation intent
-            v
-        Al Bayan MCP
-            |
-   +--------+-------------------------+
-   |                                  |
-read                                  write
-   |                                  |
-get_draft_blocks                apply_draft_command
-(prose/structure/IDs)                 |
-   |                           inline-token command
-   |                           with ordinary LaTeX
-   |
-get_draft_equations                    |
-(equations + mappings)                 v
-   |                              Albayan backend
-   |                                  |
-   |                         load article mappings
-   |                                  |
-   |                                  v
-   +----------------------------->   Burhan
-                                      |
-                          parse / forward convert
-                          reverse project on reads
-                                      |
-                                      v
-                            strict MathObject token
-                                      |
-                                      v
-                            Document2 draft worker
-                                      |
-                                      v
-                        immutable current revision
-                                      |
-                                      v
-                                  BuTeX render
-                                      |
-                                      v
-                               Arabic article UI
+AI English LaTeX + mappings -> Burhan /convert -> Arabic MathObject
+Arabic document -> BuTeX English reconstruction + mappings -> Burhan /convert-to-english -> AI English LaTeX
 ```
+
+A mapping-only edit does not automatically rewrite existing Document2 equations. Temporary mapping/equation mismatches must therefore produce explicit warnings/fallback behavior rather than crashes or fabricated exact mappings.
+
+## Responsibility boundaries
+
+| Component | Responsibility |
+| --- | --- |
+| AI / normal MCP | discover allowed math syntax; author canonical English LaTeX; receive canonical English LaTeX on reads |
+| Al-Bayan | orchestration, article mapping persistence, normal Document2 persistence/validation, MCP projection |
+| Burhan `/convert` | canonical English LaTeX -> structurally correct Arabic MathObject JSON + mappings |
+| BuTeX | import/edit/render stored Arabic structured math; reconstruct/export English-side structured math |
+| Burhan `/convert-to-english` | final reverse mapping and canonical English LaTeX cleanup |
+| Document2 | the single document/equation persistence model |
 
 ## Important boundaries
 
-Keep the design small:
+Keep the architecture small:
 
 - no `EquationBlock`;
-- no equation-specific add/replace/remove MCP tools;
-- no recursive equation JSON in AI read responses;
+- no equation-specific MCP CRUD API;
 - no AI construction of recursive MathObjects;
 - no duplicate English equation store;
-- no per-equation provenance or source-history system;
-- no automatic rewrite of existing equations after a mapping-only edit;
-- no weakening of canonical Document2 storage or worker validation.
+- no separate Arabic equation store;
+- no Al-Bayan-specific mathematical AST rewrite layer;
+- no per-equation provenance/source-history system unless a later product requirement explicitly needs one;
+- no automatic rewrite of all equations after a mapping-only edit;
+- no weakening of normal Document2 validation;
+- no standard/English fallback-command buttons in the Arabic BuTeX toolbar.
 
-## Dependency and implementation order
+## Verification requirement
 
-A practical order is:
+A change is not complete merely because an internal converter test passes. Verify the complete development path:
 
-1. **#109** — article-level mapping persistence and service helpers;
-2. **Burhan reverse projection** — Arabic MathObject + mappings to canonical English MathObject/LaTeX;
-3. **#99** — compact `get_draft_equations` read projection;
-4. **#110** — simple-LaTeX normalization into the existing inline-token mutation path;
-5. **#111** — author-facing notation/mapping panel;
-6. **#112** — slim `get_draft_blocks` so equation-heavy drafts no longer duplicate recursive equation context to the model.
+```text
+normal MCP canonical LaTeX insertion
+-> Al-Bayan backend
+-> Burhan Arabic JSON
+-> Document2 storage
+-> BuTeX browser render/edit
+-> BuTeX English reconstruction
+-> Burhan reverse conversion
+-> normal MCP get_draft_equations
+-> canonical English LaTeX
+```
 
-#99 and #112 should ultimately be treated as a paired MCP read-contract change: equations belong in the dedicated compact equation projection, while block reads remain focused on prose, structure, and stable targeting.
-
-## Long-term compatibility
-
-This design intentionally does not make English LaTeX part of the product identity. It keeps English LaTeX as a replaceable AI interoperability layer while preserving structured Arabic math, author-controlled notation, and BuTeX rendering as the durable system boundaries. That leaves room for a future Arabic-native mathematical model or Arabic alias language without requiring a new document model.
+The final user-facing verification must use the normal Al-Bayan MCP; Dev MCP and browser diagnostics are supporting evidence, not substitutes for the product path.
