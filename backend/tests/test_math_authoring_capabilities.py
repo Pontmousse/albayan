@@ -8,11 +8,14 @@ import pytest
 from app.schemas.math_authoring import MathAuthoringCapabilitiesRead
 from app.services import burhan_client
 from app.services.math_authoring_capabilities import (
+    BURHAN_COMMIT,
+    BUTEX_COMMIT,
     INTERNAL_OUTPUT_MACRO_EXAMPLES,
     PARSE_BUILD_ONLY_COMMANDS,
     RAW_OPERATORS,
     SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
+    STANDARD_SYMBOL_COMMANDS,
     advertised_round_trip_commands,
     burhan_verification_cases,
     get_math_authoring_capabilities,
@@ -41,6 +44,36 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
+def test_common_standard_symbols_are_advertised_as_one_general_capability_group() -> None:
+    contract = get_math_authoring_capabilities()
+    advertised_symbols = contract["round_trip_safe"]["commands"]["standard_symbols"]
+
+    assert advertised_symbols == STANDARD_SYMBOL_COMMANDS
+    assert set(STANDARD_SYMBOL_COMMANDS) == {
+        r"\alpha",
+        r"\beta",
+        r"\gamma",
+        r"\delta",
+        r"\epsilon",
+        r"\eta",
+        r"\theta",
+        r"\lambda",
+        r"\mu",
+        r"\rho",
+        r"\sigma",
+        r"\tau",
+        r"\phi",
+        r"\chi",
+        r"\psi",
+        r"\omega",
+        r"\zeta",
+        r"\nabla",
+        r"\Delta",
+        r"\partial",
+    }
+    assert set(STANDARD_SYMBOL_COMMANDS).isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
+
+
 def test_every_advertised_environment_delimiter_operator_and_script_has_a_case() -> None:
     labels = {label for _, _, label in burhan_verification_cases()}
 
@@ -62,19 +95,21 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 
     assert advertised.isdisjoint(INTERNAL_OUTPUT_MACRO_EXAMPLES)
     assert advertised.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
-    for representative in (r"\foo", r"\partial", r"\text", r"\arsum", r"\butextakween"):
+    for representative in (r"\foo", r"\text", r"\arsum", r"\butextakween"):
         assert representative not in advertised
 
 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert contract["source_snapshot"]["burhan"]["commit"] == (
-        "7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159"
-    )
-    assert contract["source_snapshot"]["butex"]["commit"] == (
-        "7f55227b4cf368efb26b937c1729ba2e89eee865"
-    )
+    assert BURHAN_COMMIT == "db27bdd64102b03d3bb1ab86063b042958bfd94a"
+    assert BUTEX_COMMIT == "9287812c93fa0e34f7d269887edee60b0fe7ff1d"
+    assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
+    assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
+    assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_reverse_command_mappings.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert contract["unsupported_or_forbidden"]["explicit_parser_rejection_examples"] == [
         r"x@",
         r"\left(x",
