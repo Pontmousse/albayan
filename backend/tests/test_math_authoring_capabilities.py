@@ -103,6 +103,11 @@ def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
 
     for latex, display, label in burhan_verification_cases():
+        # Burhan's matrix/array/aligned family are math-only environments, not
+        # top-level MathObject wrappers. Exercise them inside display math.
+        if label.startswith("environment:"):
+            latex = rf"\[{latex}\]"
+
         token, mappings = burhan_client.convert_latex_to_math_token(
             latex,
             display=display,
