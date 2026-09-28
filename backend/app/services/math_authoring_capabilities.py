@@ -166,6 +166,15 @@ ATOMIC_OPERATORS = [
     r"\oiiint",
 ]
 
+SAFE_SPECIAL_SYMBOLS = [
+    # Verified after the structured Arabic MathObject projection fix:
+    # \frac{d\alpha}{d\beta} now reaches Burhan, Albayan, Document2, and
+    # headless BuTeX editor import as structured commands rather than malformed
+    # CharObject text containing escaped backslashes.
+    r"\alpha",
+    r"\beta",
+]
+
 ACCENTS = [
     r"\vec",
     r"\hat",
@@ -222,8 +231,6 @@ SAFE_DELIMITERS = [
 
 PARSE_BUILD_ONLY_COMMANDS = [
     r"\theta",
-    r"\alpha",
-    r"\beta",
     r"\gamma",
     r"\delta",
     r"\epsilon",
@@ -335,6 +342,7 @@ CAPABILITIES: dict[str, Any] = {
             "structures": STRUCTURAL_COMMANDS,
             "functions_and_limits": ATOMIC_FUNCTIONS,
             "operators_relations_sets_arrows_integrals": ATOMIC_OPERATORS,
+            "special_symbols": SAFE_SPECIAL_SYMBOLS,
             "accents": ACCENTS,
             "spacing": SPACING,
         },
@@ -383,6 +391,7 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"\int_0^1 x^2\;dx", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
+        {"latex": r"\frac{d\alpha}{d\beta}", "display": False},
         {"latex": r"\arg\min_x f(x)", "display": True},
     ],
 }
@@ -401,6 +410,7 @@ def advertised_round_trip_commands() -> tuple[str, ...]:
     values.extend(item["command"] for item in STRUCTURAL_COMMANDS)
     values.extend(ATOMIC_FUNCTIONS)
     values.extend(ATOMIC_OPERATORS)
+    values.extend(SAFE_SPECIAL_SYMBOLS)
     values.extend(ACCENTS)
     values.extend(SPACING)
     return tuple(values)
@@ -422,6 +432,8 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         cases.append((f"{command} x", False, command))
     for command in ATOMIC_OPERATORS:
         cases.append((f"x {command} y", False, command))
+    for command in SAFE_SPECIAL_SYMBOLS:
+        cases.append((command, False, command))
     for command in ACCENTS:
         cases.append((f"{command}{{x}}", False, command))
     for command in SPACING:
