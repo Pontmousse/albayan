@@ -12,7 +12,7 @@ from app.services import (
     equation_mapping_service,
 )
 
-_ARABIC_RE = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]")
+_ARABIC_RE = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]+")
 _INLINE_MATH_MODES = {"$", r"\("}
 
 
@@ -205,17 +205,32 @@ def _arabic_char_values(value: Any) -> list[str]:
     return found
 
 
+def _mapping_aliases(value: str) -> set[str]:
+    """Return a mapping value plus Arabic payloads nested inside TeX wrappers."""
+
+    return {value, *_ARABIC_RE.findall(value)}
+
+
 def _mapping_warnings(
     math_object: Mapping[str, Any],
     reverse_mapping: Mapping[str, str],
     ambiguous_values: set[str],
 ) -> list[str]:
+    ambiguous_aliases: set[str] = set()
+    for value in ambiguous_values:
+        ambiguous_aliases.update(_mapping_aliases(value))
+
+    mapped_alias_counts: dict[str, int] = {}
+    for value in reverse_mapping:
+        for alias in _mapping_aliases(value):
+            mapped_alias_counts[alias] = mapped_alias_counts.get(alias, 0) + 1
+
     warnings: list[str] = []
     seen: set[str] = set()
     for expr in _arabic_char_values(math_object):
-        if expr in ambiguous_values:
+        if expr in ambiguous_aliases or mapped_alias_counts.get(expr, 0) > 1:
             warning = f"ambiguous_reverse_mapping:{expr}"
-        elif expr not in reverse_mapping:
+        elif mapped_alias_counts.get(expr, 0) == 0:
             warning = f"unmapped_arabic_variable:{expr}"
         else:
             continue
