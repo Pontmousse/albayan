@@ -18,8 +18,10 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-BURHAN_COMMIT = "7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159"
-BUTEX_COMMIT = "7f55227b4cf368efb26b937c1729ba2e89eee865"
+# Reviewed develop revisions. These include Burhan's generic font-wrapper reverse
+# normalization and BuTeX 7.2.x standard-command fallback support.
+BURHAN_COMMIT = "db27bdd64102b03d3bb1ab86063b042958bfd94a"
+BUTEX_COMMIT = "9287812c93fa0e34f7d269887edee60b0fe7ff1d"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -32,9 +34,12 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "arabic_latex_parser/nodes.py",
             "arabic_latex_parser/base_node.py",
             "arabic_latex_parser/equation_processor.py",
+            "arabic_latex_parser/arabic_json_normalizer.py",
             "arabic_latex_parser/english_converter.py",
             "tests/api/test_parse_equation.py",
+            "tests/api/test_reverse_command_mappings.py",
             "tests/parser/test_delimiter_coverage.py",
+            "tests/parser/test_structured_arabic_commands.py",
         ],
     },
     "butex": {
@@ -45,9 +50,11 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/atomicCommands.ts",
             "src/editor/atomicCommandsOperators.ts",
             "src/editor/accentCommands.ts",
+            "src/editor/standardCommands.ts",
             "src/editor/display/delimiter.ts",
             "src/document2/mathBridge.ts",
             "src/document2-cli/execute.ts",
+            "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
         ],
     },
@@ -81,108 +88,57 @@ STRUCTURAL_COMMANDS = [
 ]
 
 ATOMIC_FUNCTIONS = [
-    r"\sin",
-    r"\cos",
-    r"\tan",
-    r"\cot",
-    r"\sec",
-    r"\csc",
-    r"\arcsin",
-    r"\arccos",
-    r"\arctan",
-    r"\arccot",
-    r"\arcsec",
-    r"\arccsc",
-    r"\sinh",
-    r"\cosh",
-    r"\tanh",
-    r"\coth",
-    r"\sum",
-    r"\prod",
-    r"\lim",
-    r"\arg",
-    r"\max",
-    r"\min",
-    r"\sup",
-    r"\inf",
-    r"\pi",
-    r"\exp",
-    r"\ln",
-    r"\log",
-    r"\det",
+    r"\sin", r"\cos", r"\tan", r"\cot", r"\sec", r"\csc",
+    r"\arcsin", r"\arccos", r"\arctan", r"\arccot", r"\arcsec", r"\arccsc",
+    r"\sinh", r"\cosh", r"\tanh", r"\coth",
+    r"\sum", r"\prod", r"\lim", r"\arg", r"\max", r"\min", r"\sup", r"\inf",
+    r"\pi", r"\exp", r"\ln", r"\log", r"\det",
 ]
 
 ATOMIC_OPERATORS = [
-    r"\infty",
-    r"\times",
-    r"\div",
-    r"\pm",
-    r"\mp",
-    r"\neq",
-    r"\approx",
-    r"\sim",
-    r"\mid",
-    r"\leq",
-    r"\geq",
-    r"\coloneqq",
-    r"\eqqcolon",
-    r"\propto",
-    r"\in",
-    r"\notin",
-    r"\subset",
-    r"\supset",
-    r"\subseteq",
-    r"\supseteq",
-    r"\cap",
-    r"\cup",
-    r"\emptyset",
-    r"\ldots",
-    r"\cdot",
-    r"\cdots",
-    r"\vdots",
-    r"\ddots",
-    r"\Leftrightarrow",
-    r"\implies",
-    r"\impliedby",
-    r"\iff",
-    r"\Longrightarrow",
-    r"\Longleftarrow",
-    r"\to",
-    r"\rightleftharpoons",
-    r"\leftarrow",
-    r"\rightarrow",
-    r"\Leftarrow",
-    r"\Rightarrow",
-    r"\leftharpoonup",
-    r"\rightharpoonup",
-    r"\leftharpoondown",
-    r"\rightharpoondown",
-    r"\int",
-    r"\iint",
-    r"\iiint",
-    r"\iiiint",
-    r"\oint",
-    r"\oiint",
-    r"\oiiint",
+    r"\infty", r"\times", r"\div", r"\pm", r"\mp", r"\neq", r"\approx",
+    r"\sim", r"\mid", r"\leq", r"\geq", r"\coloneqq", r"\eqqcolon",
+    r"\propto", r"\in", r"\notin", r"\subset", r"\supset", r"\subseteq",
+    r"\supseteq", r"\cap", r"\cup", r"\emptyset", r"\ldots", r"\cdot",
+    r"\cdots", r"\vdots", r"\ddots", r"\Leftrightarrow", r"\implies",
+    r"\impliedby", r"\iff", r"\Longrightarrow", r"\Longleftarrow", r"\to",
+    r"\rightleftharpoons", r"\leftarrow", r"\rightarrow", r"\Leftarrow",
+    r"\Rightarrow", r"\leftharpoonup", r"\rightharpoonup",
+    r"\leftharpoondown", r"\rightharpoondown", r"\int", r"\iint",
+    r"\iiint", r"\iiiint", r"\oint", r"\oiint", r"\oiiint",
+]
+
+# General standard-symbol set supported by BOTH:
+# - Burhan GREEK_SYMBOL_COMMANDS; and
+# - BuTeX 7.2.x STANDARD_COMMANDS editable fallback.
+# Keep this as a capability group, not per-symbol special cases.
+STANDARD_SYMBOL_COMMANDS = [
+    r"\alpha",
+    r"\beta",
+    r"\gamma",
+    r"\delta",
+    r"\epsilon",
+    r"\eta",
+    r"\theta",
+    r"\lambda",
+    r"\mu",
+    r"\rho",
+    r"\sigma",
+    r"\tau",
+    r"\phi",
+    r"\chi",
+    r"\psi",
+    r"\omega",
+    r"\zeta",
+    r"\nabla",
+    r"\Delta",
+    r"\partial",
 ]
 
 ACCENTS = [
-    r"\vec",
-    r"\hat",
-    r"\tilde",
-    r"\dot",
-    r"\ddot",
-    r"\dddot",
-    r"\bar",
-    r"\check",
-    r"\breve",
-    r"\acute",
-    r"\grave",
-    r"\overline",
-    r"\underline",
-    r"\overleftarrow",
-    r"\overrightarrow",
-    r"\overleftrightarrow",
+    r"\vec", r"\hat", r"\tilde", r"\dot", r"\ddot", r"\dddot", r"\bar",
+    r"\check", r"\breve", r"\acute", r"\grave", r"\overline", r"\underline",
+    r"\overleftarrow", r"\overrightarrow", r"\overleftrightarrow",
 ]
 
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
@@ -221,26 +177,6 @@ SAFE_DELIMITERS = [
 ]
 
 PARSE_BUILD_ONLY_COMMANDS = [
-    r"\theta",
-    r"\alpha",
-    r"\beta",
-    r"\gamma",
-    r"\delta",
-    r"\epsilon",
-    r"\lambda",
-    r"\mu",
-    r"\rho",
-    r"\sigma",
-    r"\tau",
-    r"\phi",
-    r"\psi",
-    r"\omega",
-    r"\eta",
-    r"\zeta",
-    r"\chi",
-    r"\nabla",
-    r"\Delta",
-    r"\partial",
     r"\not",
     r"\backslash",
     r"\Longleftrightarrow",
@@ -277,33 +213,14 @@ PARSE_BUILD_ONLY_DELIMITERS = [
     }
 ]
 TOP_LEVEL_ENVIRONMENTS = [
-    "align",
-    "align*",
-    "gather",
-    "gather*",
-    "multline",
-    "multline*",
-    "eqnarray",
-    "eqnarray*",
-    "equation",
-    "equation*",
+    "align", "align*", "gather", "gather*", "multline", "multline*",
+    "eqnarray", "eqnarray*", "equation", "equation*",
 ]
 
 INTERNAL_OUTPUT_MACRO_EXAMPLES = [
-    r"\ad",
-    r"\arsum",
-    r"\arprod",
-    r"\arlim",
-    r"\arsqrt",
-    r"\boldarabic",
-    r"\arabvec",
-    r"\butextakween",
-    r"\butexdiwani",
-    r"\butexdiwanioutline",
-    r"\butexmaghribi",
-    r"\unit",
-    r"\idx",
-    r"\prescript",
+    r"\ad", r"\arsum", r"\arprod", r"\arlim", r"\arsqrt", r"\boldarabic",
+    r"\arabvec", r"\butextakween", r"\butexdiwani", r"\butexdiwanioutline",
+    r"\butexmaghribi", r"\unit", r"\idx", r"\prescript",
 ]
 
 NORMALIZED_ALIASES = [
@@ -335,6 +252,7 @@ CAPABILITIES: dict[str, Any] = {
             "structures": STRUCTURAL_COMMANDS,
             "functions_and_limits": ATOMIC_FUNCTIONS,
             "operators_relations_sets_arrows_integrals": ATOMIC_OPERATORS,
+            "standard_symbols": STANDARD_SYMBOL_COMMANDS,
             "accents": ACCENTS,
             "spacing": SPACING,
         },
@@ -358,8 +276,9 @@ CAPABILITIES: dict[str, Any] = {
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
         "notes": [
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
+            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.2.x imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
-            "Burhan also preserves unknown alphabetic commands such as \\foo; that generic passthrough is intentionally not advertised as supported authoring.",
+            r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
         ],
     },
     "unsupported_or_forbidden": {
@@ -370,9 +289,10 @@ CAPABILITIES: dict[str, Any] = {
     "normalization_aliases": NORMALIZED_ALIASES,
     "constraints": [
         "Atomic functions/operators/spacing commands take no brace arguments; place operands as following expression nodes.",
+        "Standard-symbol commands take no brace arguments; scripts may be attached normally.",
         "Accents take exactly one mandatory argument and no optional argument.",
-        "\\frac, \\overset, and \\underset take exactly two mandatory arguments.",
-        "\\sqrt takes exactly one mandatory radicand and at most one optional root index.",
+        r"\frac, \overset, and \underset take exactly two mandatory arguments.",
+        r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
@@ -381,6 +301,7 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"\frac{x_1}{\sqrt{1+x^2}}", "display": False},
         {"latex": r"\sum_{i=1}^{n} i^2", "display": True},
         {"latex": r"\int_0^1 x^2\;dx", "display": True},
+        {"latex": r"\frac{d\alpha}{d\beta}", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
         {"latex": r"\arg\min_x f(x)", "display": True},
@@ -401,6 +322,7 @@ def advertised_round_trip_commands() -> tuple[str, ...]:
     values.extend(item["command"] for item in STRUCTURAL_COMMANDS)
     values.extend(ATOMIC_FUNCTIONS)
     values.extend(ATOMIC_OPERATORS)
+    values.extend(STANDARD_SYMBOL_COMMANDS)
     values.extend(ACCENTS)
     values.extend(SPACING)
     return tuple(values)
@@ -422,6 +344,8 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         cases.append((f"{command} x", False, command))
     for command in ATOMIC_OPERATORS:
         cases.append((f"x {command} y", False, command))
+    for command in STANDARD_SYMBOL_COMMANDS:
+        cases.append((command, False, command))
     for command in ACCENTS:
         cases.append((f"{command}{{x}}", False, command))
     for command in SPACING:

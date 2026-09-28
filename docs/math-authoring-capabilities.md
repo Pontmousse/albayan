@@ -28,25 +28,48 @@ The Albayan contract is therefore a conservative snapshot of the intersection of
 
 The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_safe` rather than pretending all parser-pass-through syntax is supported.
 
+## Common Greek and standard symbols
+
+The contract now exposes a general `round_trip_safe.commands.standard_symbols` group. It is not an `\alpha` / `\beta` special case.
+
+The advertised set is the reviewed intersection of Burhan's `GREEK_SYMBOL_COMMANDS` mapping registry and BuTeX 7.2.x's tested `STANDARD_COMMANDS` editable fallback registry:
+
+```text
+\alpha  \beta  \gamma  \delta  \epsilon  \eta  \theta
+\lambda \mu    \rho    \sigma  \tau      \phi  \chi
+\psi    \omega \zeta   \nabla  \Delta    \partial
+```
+
+Recent upstream changes are what make this possible:
+
+- Burhan structures resolved Arabic LaTeX mapping fragments as real `CommandObject` nodes instead of embedding command strings in `CharObject.expr`.
+- Burhan's reverse converter handles command-valued mappings and normalizes equivalent Arabic font wrappers generically; it does not special-case Greek letters.
+- BuTeX 7.2.x imports every command in its standard-command compatibility registry as an editable `standardCommand` node, preserves scripts, rendering, save/reopen, and structured export, while still rejecting genuinely unknown commands.
+
+These standard fallback symbols are intentionally separate from BuTeX's Arabic authoring toolbar/custom macro registries. The editor may show a non-blocking warning for a standard fallback command; that warning does not make the MathObject non-editable.
+
 ## Reviewed source revisions
 
-The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to:
+The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
 
-- Burhan `drghaliasri/burhan3.0` commit `7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159`;
-- BuTeX `drghaliasri/butex` commit `7f55227b4cf368efb26b937c1729ba2e89eee865`.
+- Burhan `drghaliasri/burhan3.0` commit `db27bdd64102b03d3bb1ab86063b042958bfd94a`;
+- BuTeX `drghaliasri/butex` commit `9287812c93fa0e34f7d269887edee60b0fe7ff1d`.
 
-The source file list is returned in the capability response itself. The key Burhan definitions are `latex_parser.py` (`parse_command`, `parse_atom`, `parse_delimiter`, `parse_math_environment`, `fill_chain`), `commands.py` (canonical command mappings), `nodes.py` (`CommandObject`, `EnvObject`, `MathObject` and math modes), `base_node.py` (`reverse_delimiter`), and `equation_processor.py` (the `/convert` normalization/build path).
+The Burhan revision includes the structured Arabic mapping work, command-valued reverse mapping, and equivalent font-wrapper normalization. The key reviewed files include `commands.py`, `arabic_json_normalizer.py`, `english_converter.py`, and their regression tests.
 
-The important BuTeX round-trip boundary is `src/document/mathEditorAdapter.ts`, backed by the atomic command/operator/accent registries and the Document2 worker.
+The BuTeX revision includes the 7.2.x standard-command fallback and font-wrapper import normalization. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/standardCommands.ts` is the compatibility registry and `test/standard_commands.test.ts` exercises every registered command.
+
+Before promoting this Albayan snapshot to an environment that uses different Burhan/BuTeX revisions, align or re-review the pinned upstream service versions.
 
 ## Updating the contract
 
 When Burhan or BuTeX math support changes:
 
-1. review the pinned source files rather than documentation alone;
+1. review the pinned source files and recent relevant merge requests rather than documentation alone;
 2. update the whitelist conservatively and bump the pinned commit(s);
-3. ensure every advertised command and environment still has a case in `burhan_verification_cases()`;
-4. run `backend/tests/test_math_authoring_capabilities.py` with `BURHAN_URL` pointing at the Burhan build being promoted;
-5. only move a form into `round_trip_safe` when the real Albayan -> Burhan conversion returns a strict MathObject that current BuTeX can re-import safely.
+3. for a command family, derive the advertised set from the actual supported upstream registries rather than adding one-off exceptions;
+4. ensure every advertised command and environment still has a case in `burhan_verification_cases()`;
+5. run `backend/tests/test_math_authoring_capabilities.py` with `BURHAN_URL` pointing at the Burhan build being promoted;
+6. only move a form into `round_trip_safe` when the real Albayan -> Burhan conversion returns a strict MathObject that current BuTeX can re-import safely.
 
 The ordinary unit tests also assert that internal/output macros and representative parse/build-only commands are not accidentally advertised.
