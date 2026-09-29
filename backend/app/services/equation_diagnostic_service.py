@@ -13,6 +13,7 @@ from app.services import (
     burhan_reverse_client,
     butex_diagnostic_client,
     butex_worker_client,
+    equation_mapping_service,
 )
 
 
@@ -255,9 +256,17 @@ def inspect_equation(
     reverse_ok = False
     reverse_started = perf_counter()
     try:
+        # Mirror the real AI-facing read path used by get_draft_equations:
+        # 1) invert persisted English->Arabic mappings while omitting collisions;
+        # 2) ask BuTeX to project the stored editor MathObject to its English-side tree;
+        # 3) send that tree plus Arabic->English mappings to Burhan reverse conversion.
+        reverse_mapping, ambiguous_values = equation_mapping_service.invert_unique_equation_mappings(
+            mappings
+        )
+        english_math_object = butex_worker_client.project_math_object_to_english(math_object)
         reverse_latex, reverse_warnings = burhan_reverse_client.convert_math_object_to_english(
-            math_object,
-            variable_mapping=mappings,
+            english_math_object,
+            variable_mapping=reverse_mapping,
             model_tier=model_tier,
         )
         stages["reverse_conversion"] = _stage(
@@ -268,6 +277,9 @@ def inspect_equation(
                 "canonical_latex": reverse_latex,
                 "warnings": reverse_warnings,
                 "duration_ms": round((perf_counter() - reverse_started) * 1000, 3),
+                "reverse_mapping": reverse_mapping,
+                "ambiguous_mapping_values": sorted(ambiguous_values),
+                "projected_math_object": english_math_object,
             },
         )
         reverse_ok = True
