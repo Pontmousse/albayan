@@ -85,6 +85,20 @@ def _install_successful_pipeline(monkeypatch) -> None:
             "blocks": [{"id": "block_1", "value": "$س$"}],
         }
 
+    def fake_project_math_object(math):
+        assert math == _math_object()
+        projected = _math_object()
+        projected.pop("source_side")
+        projected.pop("source_owner")
+        return projected
+
+    def fake_reverse(math, *, variable_mapping, model_tier=None):
+        assert "source_side" not in math
+        assert "source_owner" not in math
+        assert variable_mapping == {"س": "x"}
+        assert model_tier == "heuristic"
+        return "x", []
+
     monkeypatch.setattr(
         equation_diagnostic_service.burhan_client,
         "convert_latex_to_math_token",
@@ -101,6 +115,11 @@ def _install_successful_pipeline(monkeypatch) -> None:
         fake_apply,
     )
     monkeypatch.setattr(
+        equation_diagnostic_service.butex_worker_client,
+        "project_math_object_to_english",
+        fake_project_math_object,
+    )
+    monkeypatch.setattr(
         equation_diagnostic_service.butex_diagnostic_client,
         "diagnose_math_object",
         lambda math: {
@@ -114,7 +133,7 @@ def _install_successful_pipeline(monkeypatch) -> None:
     monkeypatch.setattr(
         equation_diagnostic_service.burhan_reverse_client,
         "convert_math_object_to_english",
-        lambda math, *, variable_mapping, model_tier=None: ("x", []),
+        fake_reverse,
     )
 
 
@@ -135,7 +154,12 @@ def test_inspect_equation_reports_each_real_pipeline_stage(monkeypatch) -> None:
     assert report["stages"]["albayan_projection"]["data"]["editor_math_object"] == _math_object()
     assert report["stages"]["document2_command"]["ok"] is True
     assert report["stages"]["headless_butex_validation"]["data"]["editable"] is True
-    assert report["stages"]["reverse_conversion"]["data"]["canonical_latex"] == "x"
+    reverse_data = report["stages"]["reverse_conversion"]["data"]
+    assert reverse_data["canonical_latex"] == "x"
+    assert reverse_data["reverse_mapping"] == {"س": "x"}
+    assert reverse_data["ambiguous_mapping_values"] == []
+    assert "source_side" not in reverse_data["projected_math_object"]
+    assert "source_owner" not in reverse_data["projected_math_object"]
     assert report["stages"]["browser_validation"]["available"] is False
 
 
