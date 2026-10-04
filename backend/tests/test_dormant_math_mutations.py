@@ -61,7 +61,7 @@ def test_compact_profile_fails_before_conversion_mapping_worker_or_persistence(b
 def test_revision_conflict_precedes_dormant_guard(boundary):
     db, actor, spies = boundary
     with patch.object(drafts, "reject_dormant_math_authoring") as guard, pytest.raises(HTTPException) as error:
-        drafts.apply_command(db, uuid.uuid4(), actor, payload(base_revision=0))
+        drafts.apply_command(db, uuid.uuid4(), actor, payload(base_revision=2))
     assert error.value.status_code == 409
     guard.assert_not_called()
     for spy in spies.values():
