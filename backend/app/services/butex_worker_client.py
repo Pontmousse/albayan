@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 from fastapi import HTTPException
+from app.services.math_authoring_guard import reject_dormant_math_authoring
 
 from app.core.config import settings
 from app.core.tracing import TRACE_HEADER, current_trace_id, emit_trace_event
@@ -282,6 +283,7 @@ def _post(path: str, payload: dict[str, Any]) -> Any:
 
 
 def normalize_document(document: dict[str, Any]) -> dict[str, Any]:
+    reject_dormant_math_authoring(document)
     return _require_success_document(
         _post("/v1/document2/normalize", {"document": document})
     )
@@ -332,6 +334,8 @@ def apply_document_command(
     document: dict[str, Any],
     command: dict[str, Any],
 ) -> dict[str, Any]:
+    reject_dormant_math_authoring(document)
+    reject_dormant_math_authoring(command)
     return _require_success_document(
         _post(
             "/v1/document2/commands",

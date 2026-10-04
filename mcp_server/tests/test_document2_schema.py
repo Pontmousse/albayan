@@ -108,6 +108,11 @@ class Document2McpSchemaTests(unittest.TestCase):
         command_schema = edit_schema["properties"]["command"]
         self.assertEqual(command_schema["discriminator"]["propertyName"], "op")
         self.assertEqual(len(command_schema["oneOf"]), 29)
+        definitions = edit_schema["$defs"]
+        for model_name in ["DocumentMathAuthoringInlineToken", "DocumentMathObjectJson"]:
+            self.assertIn("authoring_profile", definitions[model_name]["properties"])
+        self.assertIn("canonical_atom", definitions["DocumentMathNodeJson"]["properties"])
+        self.assertIn("canonical_command", definitions["DocumentMathNodeJson"]["properties"])
         for name, tool in published.items():
             if name == "get_article_pdf":
                 self.assertIsNone(tool.output_schema)

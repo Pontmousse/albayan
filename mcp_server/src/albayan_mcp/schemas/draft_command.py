@@ -5,6 +5,7 @@ from typing import Annotated, ClassVar, Literal
 from pydantic import Field, model_validator
 
 from albayan_mcp.schemas.document2 import (
+    CanonicalAuthoringProfile,
     Document2ContractModel,
     DocumentCitationInlineToken,
     DocumentInlineAnchor,
@@ -47,6 +48,7 @@ class DocumentMathAuthoringInlineToken(Document2ContractModel):
 
     kind: Literal["math"]
     latex: Annotated[NonBlankString, Field(max_length=8000)]
+    authoring_profile: CanonicalAuthoringProfile | None = None
     display: bool = False
     label: Annotated[str, Field(max_length=500)] | None = None
 

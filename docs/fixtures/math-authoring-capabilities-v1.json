@@ -1,0 +1,490 @@
+{
+  "contract_version": 1,
+  "canonical_input": true,
+  "representation": "canonical_english_latex",
+  "instruction": "Before authoring new equations, use only round_trip_safe syntax below. Send ordinary canonical LaTeX through the compact Document2 math token. Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not advertised in round_trip_safe is outside the AI authoring contract, even if Burhan's permissive parser happens to tokenize it.",
+  "preferred_submission": {
+    "latex": "Prefer the equation body without outer math delimiters.",
+    "display": "Use the compact math token display boolean to select inline/display math.",
+    "wrappers_accepted_by_albayan": [
+      "$...$",
+      "\\(...\\)",
+      "$$...$$",
+      "\\[...\\]"
+    ]
+  },
+  "source_snapshot": {
+    "burhan": {
+      "repository": "drghaliasri/burhan3.0",
+      "commit": "db27bdd64102b03d3bb1ab86063b042958bfd94a",
+      "files": [
+        "arabic_latex_parser/latex_parser.py",
+        "arabic_latex_parser/commands.py",
+        "arabic_latex_parser/nodes.py",
+        "arabic_latex_parser/base_node.py",
+        "arabic_latex_parser/equation_processor.py",
+        "arabic_latex_parser/arabic_json_normalizer.py",
+        "arabic_latex_parser/english_converter.py",
+        "tests/api/test_parse_equation.py",
+        "tests/api/test_reverse_command_mappings.py",
+        "tests/parser/test_delimiter_coverage.py",
+        "tests/parser/test_structured_arabic_commands.py"
+      ]
+    },
+    "butex": {
+      "repository": "drghaliasri/butex",
+      "commit": "9287812c93fa0e34f7d269887edee60b0fe7ff1d",
+      "files": [
+        "src/document/mathEditorAdapter.ts",
+        "src/editor/atomicCommands.ts",
+        "src/editor/atomicCommandsOperators.ts",
+        "src/editor/accentCommands.ts",
+        "src/editor/standardCommands.ts",
+        "src/editor/display/delimiter.ts",
+        "src/document2/mathBridge.ts",
+        "src/document2-cli/execute.ts",
+        "test/standard_commands.test.ts",
+        "test/vertical_delimiter_import.test.ts"
+      ]
+    }
+  },
+  "round_trip_safe": {
+    "commands": {
+      "structures": [
+        {
+          "command": "\\frac",
+          "mandatory_args": 2,
+          "optional_args": 0,
+          "form": "\\frac{numerator}{denominator}"
+        },
+        {
+          "command": "\\sqrt",
+          "mandatory_args": 1,
+          "optional_args": "0_or_1",
+          "form": "\\sqrt{radicand} or \\sqrt[index]{radicand}"
+        },
+        {
+          "command": "\\overset",
+          "mandatory_args": 2,
+          "optional_args": 0,
+          "form": "\\overset{annotation}{base}"
+        },
+        {
+          "command": "\\underset",
+          "mandatory_args": 2,
+          "optional_args": 0,
+          "form": "\\underset{annotation}{base}"
+        }
+      ],
+      "functions_and_limits": [
+        "\\sin",
+        "\\cos",
+        "\\tan",
+        "\\cot",
+        "\\sec",
+        "\\csc",
+        "\\arcsin",
+        "\\arccos",
+        "\\arctan",
+        "\\arccot",
+        "\\arcsec",
+        "\\arccsc",
+        "\\sinh",
+        "\\cosh",
+        "\\tanh",
+        "\\coth",
+        "\\sum",
+        "\\prod",
+        "\\lim",
+        "\\arg",
+        "\\max",
+        "\\min",
+        "\\sup",
+        "\\inf",
+        "\\pi",
+        "\\exp",
+        "\\ln",
+        "\\log",
+        "\\det"
+      ],
+      "operators_relations_sets_arrows_integrals": [
+        "\\infty",
+        "\\times",
+        "\\div",
+        "\\pm",
+        "\\mp",
+        "\\neq",
+        "\\approx",
+        "\\sim",
+        "\\mid",
+        "\\leq",
+        "\\geq",
+        "\\coloneqq",
+        "\\eqqcolon",
+        "\\propto",
+        "\\in",
+        "\\notin",
+        "\\subset",
+        "\\supset",
+        "\\subseteq",
+        "\\supseteq",
+        "\\cap",
+        "\\cup",
+        "\\emptyset",
+        "\\ldots",
+        "\\cdot",
+        "\\cdots",
+        "\\vdots",
+        "\\ddots",
+        "\\Leftrightarrow",
+        "\\implies",
+        "\\impliedby",
+        "\\iff",
+        "\\Longrightarrow",
+        "\\Longleftarrow",
+        "\\to",
+        "\\rightleftharpoons",
+        "\\leftarrow",
+        "\\rightarrow",
+        "\\Leftarrow",
+        "\\Rightarrow",
+        "\\leftharpoonup",
+        "\\rightharpoonup",
+        "\\leftharpoondown",
+        "\\rightharpoondown",
+        "\\int",
+        "\\iint",
+        "\\iiint",
+        "\\iiiint",
+        "\\oint",
+        "\\oiint",
+        "\\oiiint"
+      ],
+      "standard_symbols": [
+        "\\alpha",
+        "\\beta",
+        "\\gamma",
+        "\\delta",
+        "\\epsilon",
+        "\\eta",
+        "\\theta",
+        "\\lambda",
+        "\\mu",
+        "\\rho",
+        "\\sigma",
+        "\\tau",
+        "\\phi",
+        "\\chi",
+        "\\psi",
+        "\\omega",
+        "\\zeta",
+        "\\nabla",
+        "\\Delta",
+        "\\partial"
+      ],
+      "accents": [
+        "\\vec",
+        "\\hat",
+        "\\tilde",
+        "\\dot",
+        "\\ddot",
+        "\\dddot",
+        "\\bar",
+        "\\check",
+        "\\breve",
+        "\\acute",
+        "\\grave",
+        "\\overline",
+        "\\underline",
+        "\\overleftarrow",
+        "\\overrightarrow",
+        "\\overleftrightarrow"
+      ],
+      "spacing": [
+        "\\!",
+        "\\:",
+        "\\;",
+        "\\quad",
+        "\\qquad"
+      ]
+    },
+    "raw_operators": [
+      "+",
+      "-",
+      "=",
+      "*",
+      "/",
+      "<",
+      ">"
+    ],
+    "scripts": [
+      "Use ^ and _ with one atom or a braced group, e.g. x^2, x_{i+1}.",
+      "Scripts may contain other round_trip_safe constructs."
+    ],
+    "delimiters": [
+      {
+        "left": "(",
+        "right": ")",
+        "form": "(...)"
+      },
+      {
+        "left": "[",
+        "right": "]",
+        "form": "[...]"
+      },
+      {
+        "left": "\\left(",
+        "right": "\\right)",
+        "form": "\\left( ... \\right)"
+      },
+      {
+        "left": "\\left[",
+        "right": "\\right]",
+        "form": "\\left[ ... \\right]"
+      },
+      {
+        "left": "\\left\\{",
+        "right": "\\right\\}",
+        "form": "\\left\\{ ... \\right\\}"
+      },
+      {
+        "left": "\\left\\langle",
+        "right": "\\right\\rangle",
+        "form": "\\left\\langle ... \\right\\rangle"
+      },
+      {
+        "left": "\\left|",
+        "right": "\\right|",
+        "form": "\\left| ... \\right|"
+      },
+      {
+        "left": "\\left\\vert",
+        "right": "\\right\\vert",
+        "form": "\\left\\vert ... \\right\\vert"
+      },
+      {
+        "left": "\\left\\lvert",
+        "right": "\\right\\rvert",
+        "form": "\\left\\lvert ... \\right\\rvert"
+      },
+      {
+        "left": "\\left\\|",
+        "right": "\\right\\|",
+        "form": "\\left\\| ... \\right\\|"
+      },
+      {
+        "left": "\\left\\Vert",
+        "right": "\\right\\Vert",
+        "form": "\\left\\Vert ... \\right\\Vert"
+      },
+      {
+        "left": "\\left\\lVert",
+        "right": "\\right\\rVert",
+        "form": "\\left\\lVert ... \\right\\rVert"
+      },
+      {
+        "left": "\\left\\lfloor",
+        "right": "\\right\\rfloor",
+        "form": "\\left\\lfloor ... \\right\\rfloor"
+      },
+      {
+        "left": "\\left\\lceil",
+        "right": "\\right\\rceil",
+        "form": "\\left\\lceil ... \\right\\rceil"
+      }
+    ],
+    "internal_environments": [
+      {
+        "name": "matrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "pmatrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "bmatrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "Bmatrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "vmatrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "Vmatrix",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "array",
+        "columns": "required column spec using only l, c, r",
+        "rows": "use environment_syntax.row_separator"
+      },
+      {
+        "name": "aligned",
+        "columns": "inferred",
+        "rows": "use environment_syntax.row_separator"
+      }
+    ],
+    "environment_syntax": {
+      "cell_separator": "&",
+      "row_separator": "\\\\",
+      "nesting": "Different supported environments may be nested; avoid nesting the same environment name inside itself."
+    }
+  },
+  "accepted_but_not_round_trip_safe": {
+    "commands": [
+      "\\not",
+      "\\backslash",
+      "\\Longleftrightarrow",
+      "\\sech",
+      "\\csch",
+      "\\arcsinh",
+      "\\arccosh",
+      "\\arctanh",
+      "\\arccoth",
+      "\\arcsech",
+      "\\arccsch",
+      "\\binom",
+      "\\overbrace",
+      "\\underbrace",
+      "\\mathbf",
+      "\\bfseries",
+      "\\mathrm",
+      "\\mathsf",
+      "\\mathit",
+      "\\mathfrak",
+      "\\mathbb",
+      "\\mathcal",
+      "\\mathscr",
+      "\\text"
+    ],
+    "internal_environments": [
+      "smallmatrix",
+      "cases",
+      "alignedat",
+      "split"
+    ],
+    "top_level_environments": [
+      "align",
+      "align*",
+      "gather",
+      "gather*",
+      "multline",
+      "multline*",
+      "eqnarray",
+      "eqnarray*",
+      "equation",
+      "equation*"
+    ],
+    "delimiters": [
+      {
+        "left": "\\left.",
+        "right": "\\right.",
+        "form": "\\left. ... \\right.",
+        "reason": "Burhan supports the invisible delimiter, but the current BuTeX editor delimiter renderer does not recognize '.'."
+      }
+    ],
+    "notes": [
+      "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
+      "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.2.x imports them as editable standardCommand nodes.",
+      "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
+      "Burhan also preserves unknown alphabetic commands such as \\foo; that generic passthrough is intentionally not advertised as supported authoring."
+    ]
+  },
+  "unsupported_or_forbidden": {
+    "rule": "For new AI-authored math, every command must appear in round_trip_safe.commands.",
+    "internal_output_macro_examples": [
+      "\\ad",
+      "\\arsum",
+      "\\arprod",
+      "\\arlim",
+      "\\arsqrt",
+      "\\boldarabic",
+      "\\arabvec",
+      "\\butextakween",
+      "\\butexdiwani",
+      "\\butexdiwanioutline",
+      "\\butexmaghribi",
+      "\\unit",
+      "\\idx",
+      "\\prescript"
+    ],
+    "explicit_parser_rejection_examples": [
+      "x@",
+      "\\left(x",
+      "\\begin{document}x\\end{document}"
+    ]
+  },
+  "normalization_aliases": [
+    {
+      "input": "argmin",
+      "normalized": "\\arg\\min",
+      "author": "\\arg\\min"
+    },
+    {
+      "input": "\\argmin",
+      "normalized": "\\arg\\min",
+      "author": "\\arg\\min"
+    },
+    {
+      "input": "argmax",
+      "normalized": "\\arg\\max",
+      "author": "\\arg\\max"
+    },
+    {
+      "input": "\\argmax",
+      "normalized": "\\arg\\max",
+      "author": "\\arg\\max"
+    }
+  ],
+  "constraints": [
+    "Atomic functions/operators/spacing commands take no brace arguments; place operands as following expression nodes.",
+    "Standard-symbol commands take no brace arguments; scripts may be attached normally.",
+    "Accents take exactly one mandatory argument and no optional argument.",
+    "\\frac, \\overset, and \\underset take exactly two mandatory arguments.",
+    "\\sqrt takes exactly one mandatory radicand and at most one optional root index.",
+    "For array, use only l/c/r column alignment letters.",
+    "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
+    "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros."
+  ],
+  "examples": [
+    {
+      "latex": "\\frac{x_1}{\\sqrt{1+x^2}}",
+      "display": false
+    },
+    {
+      "latex": "\\sum_{i=1}^{n} i^2",
+      "display": true
+    },
+    {
+      "latex": "\\int_0^1 x^2\\;dx",
+      "display": true
+    },
+    {
+      "latex": "\\frac{d\\alpha}{d\\beta}",
+      "display": true
+    },
+    {
+      "latex": "\\left\\lVert x \\right\\rVert \\leq 1",
+      "display": false
+    },
+    {
+      "latex": "\\begin{pmatrix}a&b\\\\c&d\\end{pmatrix}",
+      "display": true
+    },
+    {
+      "latex": "\\arg\\min_x f(x)",
+      "display": true
+    }
+  ]
+}

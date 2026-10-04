@@ -73,3 +73,11 @@ When Burhan or BuTeX math support changes:
 6. only move a form into `round_trip_safe` when the real Albayan -> Burhan conversion returns a strict MathObject that current BuTeX can re-import safely.
 
 The ordinary unit tests also assert that internal/output macros and representative parse/build-only commands are not accidentally advertised.
+
+## Canonical-v2 reader preparation
+
+[The phase 1 contract](math-authoring-contract-v2.md) defines additive host/MCP
+reader fields and the cross-repository delivery gates. New-profile mutations are
+currently disabled. Live capability discovery remains v1; the existing producer
+and reverse path remain unchanged. The contract records the historical projection
+discrepancy and requires an explicit producer decision before phase 6 activation.

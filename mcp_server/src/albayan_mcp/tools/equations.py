@@ -48,7 +48,7 @@ class DraftEquationsResult(EquationResultModel):
 
 
 class MathAuthoringCapabilitiesResult(EquationResultModel):
-    contract_version: Literal[1]
+    contract_version: Literal[1, 2]
     canonical_input: Literal[True]
     representation: Literal["canonical_english_latex"]
     instruction: str

@@ -17,6 +17,7 @@ on:
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/dev_diagnostics.py"
       - "backend/app/schemas/draft_command.py"
+      - "backend/app/schemas/document2.py"
       - "backend/app/schemas/draft_equation.py"
       - "backend/app/schemas/equation_mapping.py"
       - "backend/app/schemas/math_authoring.py"
@@ -30,6 +31,12 @@ on:
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
       - "backend/app/services/math_authoring_capabilities.py"
+      - "backend/app/services/math_authoring_guard.py"
+      - "backend/tests/test_canonical_math_contract.py"
+      - "backend/tests/test_dormant_math_mutations.py"
+      - "backend/tests/test_math_authoring_guard.py"
+      - "docs/fixtures/math-authoring-*.json"
+      - "docs/math-authoring-contract-v2.md"
       - "backend/tests/test_burhan_api_key.py"
       - "backend/tests/test_burhan_math_commands.py"
       - "backend/tests/test_butex_math_projection_client.py"
@@ -57,6 +64,7 @@ on:
       - "frontend/src/lib/mapping-fonts.ts"
       - "frontend/src/lib/mapping-fonts.test.ts"
       - "mcp_server/src/albayan_mcp/schemas/draft_command.py"
+      - "mcp_server/src/albayan_mcp/schemas/document2.py"
       - "mcp_server/src/albayan_mcp/server.py"
       - "mcp_server/src/albayan_mcp/tools/block_projection.py"
       - "mcp_server/src/albayan_mcp/tools/drafts.py"
@@ -65,6 +73,8 @@ on:
       - "mcp_server/tests/test_draft_block_projection.py"
       - "mcp_server/tests/test_draft_command_schema.py"
       - "mcp_server/tests/test_equation_tools.py"
+      - "mcp_server/tests/test_canonical_math_contract.py"
+      - "mcp_server/tests/test_document2_schema.py"
 
 jobs:
   equation-integration:
@@ -99,11 +109,18 @@ jobs:
           backend/tests/test_draft_equations.py
           backend/tests/test_equation_diagnostics.py
           backend/tests/test_math_authoring_capabilities.py
+          backend/tests/test_document2_command_schemas.py
+          backend/tests/test_canonical_math_contract.py
+          backend/tests/test_math_authoring_guard.py
+          backend/tests/test_dormant_math_mutations.py
           backend/tests/test_tracing.py
       - name: MCP equation and compact block tests
         run: >-
           PYTHONPATH=mcp_server/src:mcp_server pytest -q
           mcp_server/tests/test_draft_command_schema.py
+          mcp_server/tests/test_canonical_math_contract.py
+          mcp_server/tests/test_document2_schema.py
+          mcp_server/tests/test_draft_tools.py
           mcp_server/tests/test_equation_tools.py
           mcp_server/tests/test_draft_block_projection.py
           mcp_server/tests/test_article_tools.py

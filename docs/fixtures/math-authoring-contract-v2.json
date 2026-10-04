@@ -1,0 +1,1098 @@
+{
+  "status": "Host reader contract; canonical-v2 mutations remain disabled until phase 6.",
+  "profile": "canonical-v2",
+  "symbol_names": [
+    "\\Delta",
+    "\\alpha",
+    "\\beta",
+    "\\chi",
+    "\\delta",
+    "\\epsilon",
+    "\\eta",
+    "\\gamma",
+    "\\lambda",
+    "\\mu",
+    "\\nabla",
+    "\\nu",
+    "\\omega",
+    "\\partial",
+    "\\phi",
+    "\\pi",
+    "\\psi",
+    "\\rho",
+    "\\sigma",
+    "\\tau",
+    "\\theta",
+    "\\top",
+    "\\zeta"
+  ],
+  "unit_names": [
+    "A",
+    "C",
+    "F",
+    "H",
+    "Hz",
+    "J",
+    "K",
+    "N",
+    "Pa",
+    "T",
+    "V",
+    "W",
+    "\\Omega",
+    "cm",
+    "g",
+    "h",
+    "kg",
+    "km",
+    "m",
+    "mg",
+    "min",
+    "mm",
+    "mol",
+    "ms",
+    "ohm",
+    "rad",
+    "s",
+    "sr"
+  ],
+  "unit_input_aliases": {
+    "Ω": "\\Omega"
+  },
+  "canonical_commands": [
+    "\\mathbf",
+    "\\boldsymbol",
+    "\\mathrm",
+    "\\mathit",
+    "\\mathtt",
+    "\\mathsf",
+    "\\mathbb",
+    "\\mathcal",
+    "\\mathfrak",
+    "\\mathscr"
+  ],
+  "valid_examples": [
+    {
+      "id": "legacy_unchanged",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor"
+      }
+    },
+    {
+      "id": "ordinary_variable",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "colliding_names",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "c"
+                }
+              },
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x"
+                }
+              },
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "s"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "named_variable",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\mathtt",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "سرعة"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "velocity"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "number_set",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\butexdiwanioutline",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "ح"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_atom": {
+                  "kind": "number_set",
+                  "name": "R"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "partial_lowering",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\ad",
+                "optional_args": [],
+                "mandatory_args": [],
+                "canonical_atom": {
+                  "kind": "symbol",
+                  "name": "\\partial"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "total_differential",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\ad",
+                "optional_args": [],
+                "mandatory_args": [],
+                "canonical_atom": {
+                  "kind": "differential",
+                  "name": "d"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "unit_existing_resolver",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\unit",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "ن"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_atom": {
+                  "kind": "unit",
+                  "name": "N"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "division_lowering",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\backslash",
+                "optional_args": [],
+                "mandatory_args": [],
+                "canonical_atom": {
+                  "kind": "operator",
+                  "name": "/"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "bold_legacy_presentation",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\boldarabic",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "س",
+                        "canonical_atom": {
+                          "kind": "variable",
+                          "name": "x"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "canonical_command": "\\mathbf"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "named_variable_nested_style",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\mathtt",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CommandObject",
+                        "name": "\\boldarabic",
+                        "optional_args": [],
+                        "mandatory_args": [
+                          {
+                            "node_type": "ChainClass",
+                            "chain": [
+                              {
+                                "node_type": "CharObject",
+                                "expr": "سرعة"
+                              }
+                            ]
+                          }
+                        ],
+                        "canonical_command": "\\mathbf"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "velocity"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "compound_unit_factors",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\mathsf",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "م",
+                        "canonical_atom": {
+                          "kind": "unit",
+                          "name": "m"
+                        }
+                      },
+                      {
+                        "node_type": "OperatorObject",
+                        "expr": "/"
+                      },
+                      {
+                        "node_type": "CharObject",
+                        "expr": "ث",
+                        "canonical_atom": {
+                          "kind": "unit",
+                          "name": "s"
+                        },
+                        "superscript": {
+                          "node_type": "ChainClass",
+                          "chain": [
+                            {
+                              "node_type": "NumberObject",
+                              "expr": "2"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    }
+  ],
+  "invalid_examples": [
+    {
+      "id": "invalid_profile_None",
+      "reason": "Profile may be omitted or exact canonical-v2; no null/coercion/unknown version.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": null
+      }
+    },
+    {
+      "id": "invalid_profile_legacy",
+      "reason": "Profile may be omitted or exact canonical-v2; no null/coercion/unknown version.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "legacy"
+      }
+    },
+    {
+      "id": "invalid_profile_canonical-v3",
+      "reason": "Profile may be omitted or exact canonical-v2; no null/coercion/unknown version.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v3"
+      }
+    },
+    {
+      "id": "invalid_profile_False",
+      "reason": "Profile may be omitted or exact canonical-v2; no null/coercion/unknown version.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": false
+      }
+    },
+    {
+      "id": "annotation_without_profile",
+      "reason": "Annotations require an explicit root profile.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor"
+      }
+    },
+    {
+      "id": "invalid_identity_variable_5",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x+y"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_variable_6",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_symbol_7",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "symbol",
+                  "name": "\\ad"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_symbol_8",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "symbol",
+                  "name": "\\delta+x"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_differential_9",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "differential",
+                  "name": "partial"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_number_set_10",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "number_set",
+                  "name": "D"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_unit_11",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "unit",
+                  "name": "velocity"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_unit_12",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "unit",
+                  "name": "m/s^2"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_operator_13",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "operator",
+                  "name": "//"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "invalid_identity_unknown_14",
+      "reason": "Invalid kind/name grammar or registry.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "unknown",
+                  "name": "x"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "annotation_null",
+      "reason": "Explicit null is invalid.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": null
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "annotation_extra",
+      "reason": "No arbitrary identity fields.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x",
+                  "id": "occurrence1"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "number_annotation",
+      "reason": "Canonical identity is only on the documented atomic node kinds.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "NumberObject",
+                "expr": "1",
+                "canonical_atom": {
+                  "kind": "variable",
+                  "name": "x"
+                }
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "style_on_char",
+      "reason": "Source-wrapper provenance is only on CommandObject.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CharObject",
+                "expr": "س",
+                "canonical_command": "\\mathbf"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "style_opaque_invocation",
+      "reason": "canonical_command is a bounded single command token.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\boldarabic",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "س"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_command": "\\mathbf{x}"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    },
+    {
+      "id": "style_wrong_arity",
+      "reason": "Source one-argument wrapper requires exactly one mandatory argument.",
+      "payload": {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+          {
+            "node_type": "ChainClass",
+            "chain": [
+              {
+                "node_type": "CommandObject",
+                "name": "\\boldarabic",
+                "optional_args": [],
+                "mandatory_args": [
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "س"
+                      }
+                    ]
+                  },
+                  {
+                    "node_type": "ChainClass",
+                    "chain": [
+                      {
+                        "node_type": "CharObject",
+                        "expr": "م"
+                      }
+                    ]
+                  }
+                ],
+                "canonical_command": "\\mathbf"
+              }
+            ]
+          }
+        ],
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "authoring_profile": "canonical-v2"
+      }
+    }
+  ],
+  "future_compact_request": {
+    "kind": "math",
+    "latex": "A^\\top + T",
+    "display": false,
+    "authoring_profile": "canonical-v2"
+  },
+  "phase1_mutation_policy": "Reject new-profile mutations before downstream calls; schema fixture acceptance is separate from authoring enablement.",
+  "canonical_command_presentation_names": [
+    "\\text",
+    "\\boldarabic",
+    "\\italicarabic"
+  ]
+}

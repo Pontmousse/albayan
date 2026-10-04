@@ -32,6 +32,7 @@ from app.models.enums import (
 from app.models.user import User
 from app.schemas.article import ArticleUpdate, DocumentCommandPayload
 from app.schemas.document2 import BLOCK_INSERTION_OPERATIONS
+from app.services.math_authoring_guard import reject_dormant_math_authoring
 from app.services import (
     burhan_client,
     butex_worker_client,
@@ -635,6 +636,8 @@ def apply_command(
         raise _conflict(current.revision_number)
     before = read_document(current)
     command = deepcopy(command_body)
+    reject_dormant_math_authoring(before)
+    reject_dormant_math_authoring(command)
     expected_equation_mappings: dict[str, str] | None = None
     next_equation_mappings: dict[str, str] | None = None
 

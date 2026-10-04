@@ -10,6 +10,30 @@ from tests.test_profile_tools import FakeServer
 
 
 class EquationToolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_reader_accepts_future_capability_without_activating_it(self) -> None:
+        import json
+        from pathlib import Path
+        from albayan_mcp.tools.equations import MathAuthoringCapabilitiesResult
+        from pydantic import ValidationError
+
+        fixture = Path(__file__).resolve().parents[2] / "docs/fixtures/math-authoring-capabilities-v1.json"
+        legacy = json.loads(fixture.read_text())
+        for version in [1, 2]:
+            response = {**legacy, "contract_version": version}
+            with patch("albayan_mcp.tools.equations.api_get_object", new=AsyncMock(return_value=response)):
+                result = await self.server.tools["get_math_authoring_capabilities"]()
+            self.assertEqual(result.model_dump(), response)
+        with self.assertRaises(ValidationError):
+            MathAuthoringCapabilitiesResult.model_validate({**legacy, "contract_version": 3})
+
+    def test_discovery_exposes_capability_reader_versions_one_and_two(self) -> None:
+        import asyncio
+        server = MCPServer("canonical-reader-test")
+        register_equation_tools(server)
+        tools = {tool.name: tool for tool in asyncio.run(server.list_tools())}
+        schema = tools["get_math_authoring_capabilities"].output_schema
+        self.assertEqual(schema["properties"]["contract_version"]["enum"], [1, 2])
+
     def setUp(self) -> None:
         self.server = FakeServer()
         register_equation_tools(self.server)

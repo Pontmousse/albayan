@@ -221,3 +221,11 @@ normal MCP canonical LaTeX insertion
 ```
 
 The final user-facing verification must use the normal Al-Bayan MCP; Dev MCP and browser diagnostics are supporting evidence, not substitutes for the product path.
+
+## Canonical-v2 reader preparation
+
+[The phase 1 contract](math-authoring-contract-v2.md) defines additive host/MCP
+reader fields and the cross-repository delivery gates. New-profile mutations are
+currently disabled. Live capability discovery remains v1; the existing producer
+and reverse path remain unchanged. The contract records the historical projection
+discrepancy and requires an explicit producer decision before phase 6 activation.

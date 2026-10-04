@@ -128,6 +128,119 @@ class DocumentTextStyle(Document2ContractModel):
     underline: Literal[True] | None = None
 
 
+# Source identity for the dormant canonical-v2 profile. Keep the MCP mirror identical.
+CanonicalAuthoringProfile = Literal["canonical-v2"]
+CanonicalSymbolName = Literal[
+    '\\Delta',
+    '\\alpha',
+    '\\beta',
+    '\\chi',
+    '\\delta',
+    '\\epsilon',
+    '\\eta',
+    '\\gamma',
+    '\\lambda',
+    '\\mu',
+    '\\nabla',
+    '\\nu',
+    '\\omega',
+    '\\partial',
+    '\\phi',
+    '\\pi',
+    '\\psi',
+    '\\rho',
+    '\\sigma',
+    '\\tau',
+    '\\theta',
+    '\\top',
+    '\\zeta',
+]
+
+CanonicalUnitName = Literal[
+    'A',
+    'C',
+    'F',
+    'H',
+    'Hz',
+    'J',
+    'K',
+    'N',
+    'Pa',
+    'T',
+    'V',
+    'W',
+    '\\Omega',
+    'cm',
+    'g',
+    'h',
+    'kg',
+    'km',
+    'm',
+    'mg',
+    'min',
+    'mm',
+    'mol',
+    'ms',
+    'ohm',
+    'rad',
+    's',
+    'sr',
+]
+
+CanonicalWrapperCommand = Literal[
+    '\\mathbf',
+    '\\boldsymbol',
+    '\\mathrm',
+    '\\mathit',
+    '\\mathtt',
+    '\\mathsf',
+    '\\mathbb',
+    '\\mathcal',
+    '\\mathfrak',
+    '\\mathscr',
+]
+
+class CanonicalVariableAtom(Document2ContractModel):
+    kind: Literal["variable"]
+    name: Annotated[str, Field(min_length=1, max_length=64, pattern=r"^[A-Za-z]+$")]
+
+
+class CanonicalSymbolAtom(Document2ContractModel):
+    kind: Literal["symbol"]
+    name: CanonicalSymbolName
+
+
+class CanonicalDifferentialAtom(Document2ContractModel):
+    kind: Literal["differential"]
+    name: Literal["d"]
+
+
+class CanonicalNumberSetAtom(Document2ContractModel):
+    kind: Literal["number_set"]
+    name: Literal["N", "Z", "Q", "R", "C", "H"]
+
+
+class CanonicalUnitAtom(Document2ContractModel):
+    kind: Literal["unit"]
+    name: CanonicalUnitName
+
+
+class CanonicalOperatorAtom(Document2ContractModel):
+    kind: Literal["operator"]
+    name: Literal["/", "\\backslash"]
+
+
+CanonicalAtom = Annotated[
+    CanonicalVariableAtom
+    | CanonicalSymbolAtom
+    | CanonicalDifferentialAtom
+    | CanonicalNumberSetAtom
+    | CanonicalUnitAtom
+    | CanonicalOperatorAtom,
+    Field(discriminator="kind"),
+]
+
+
 class DocumentMathNodeJson(Document2ContractModel):
     """Recursive BuTeX equation AST node carried by a structured math token."""
 
@@ -149,6 +262,29 @@ class DocumentMathNodeJson(Document2ContractModel):
     closing: str | None = None
     lines: list[DocumentMathChainJson] | None = None
 
+    canonical_atom: CanonicalAtom | None = None
+    canonical_command: CanonicalWrapperCommand | None = None
+
+    @model_validator(mode="after")
+    def _canonical_metadata_placement(self):
+        if self.canonical_atom is not None:
+            allowed = (
+                {"OperatorObject", "CommandObject"}
+                if self.canonical_atom.kind == "operator"
+                else {"CharObject", "CommandObject"}
+            )
+            if self.node_type not in allowed:
+                raise ValueError("هوية المعادلة غير صالحة في هذا الموضع.")
+        if self.canonical_command is not None:
+            if (
+                self.node_type != "CommandObject"
+                or self.name not in {r"\text", r"\boldarabic", r"\italicarabic"}
+                or len(self.mandatory_args or []) != 1
+                or self.optional_args
+            ):
+                raise ValueError("مصدر تنسيق المعادلة غير صالح.")
+        return self
+
 
 class DocumentMathChainJson(Document2ContractModel):
     node_type: Literal["ChainClass"]
@@ -167,6 +303,30 @@ class DocumentMathObjectJson(Document2ContractModel):
     source_owner: Literal["imported-structured", "editor"] | None = None
     label_enabled: bool | None = None
     label: str | None = None
+
+    authoring_profile: CanonicalAuthoringProfile | None = None
+
+    @model_validator(mode="after")
+    def _canonical_metadata_requires_profile(self):
+        # Traverse only the modeled AST, including scripts, delimiters and environments.
+        pending = list(self.lines)
+        while pending:
+            item = pending.pop()
+            if isinstance(item, DocumentMathChainJson):
+                pending.extend(item.chain)
+                continue
+            if (
+                item.canonical_atom is not None or item.canonical_command is not None
+            ) and self.authoring_profile is None:
+                raise ValueError("هوية المعادلة تتطلب تحديد صيغة التأليف.")
+            pending.extend(
+                chain for chain in (item.superscript, item.subscript, item.inner_expr)
+                if chain is not None
+            )
+            pending.extend(item.optional_args or [])
+            pending.extend(item.mandatory_args or [])
+            pending.extend(item.lines or [])
+        return self
 
 
 class DocumentTextInlineToken(Document2ContractModel):

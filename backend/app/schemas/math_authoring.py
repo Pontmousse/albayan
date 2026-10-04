@@ -10,7 +10,7 @@ class MathAuthoringCapabilitiesRead(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    contract_version: Literal[1]
+    contract_version: Literal[1, 2]
     canonical_input: Literal[True]
     representation: Literal["canonical_english_latex"]
     instruction: str
