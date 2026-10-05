@@ -40,6 +40,9 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("round_trip_safe", capability_description)
         self.assertIn("Never emit", capability_description)
         self.assertIn("pure-read", capability_description)
+        self.assertIn("semantic_conventions", capability_description)
+        for command in (r"\top", r"\mathbb", r"\mathrm{d}", r"\mathtt", r"\mathsf", r"\unit"):
+            self.assertIn(command, capability_description)
 
         equation_description = self.server.tool_options["get_draft_equations"]["description"]
         self.assertIn("Arabic", equation_description)
@@ -52,7 +55,16 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
             "canonical_input": True,
             "representation": "canonical_english_latex",
             "instruction": "Use only round_trip_safe.",
-            "preferred_submission": {"latex": "body only"},
+            "preferred_submission": {
+                "latex": "body only",
+                "semantic_conventions": {
+                    "transpose": r"Use A^\top; bare T is a variable.",
+                    "number_sets": r"Use \mathbb{R}; bare R is a variable.",
+                    "differential": r"Use \mathrm{d}; bare d is a variable.",
+                    "named_variable": r"Use \mathtt{var}.",
+                    "unit": r"Use \mathsf{m}; keep \unit.",
+                },
+            },
             "source_snapshot": {
                 "burhan": {"commit": "burhan-sha"},
                 "butex": {"commit": "butex-sha"},
@@ -78,6 +90,7 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.canonical_input)
         self.assertEqual(result.representation, "canonical_english_latex")
         self.assertIn("commands", result.round_trip_safe)
+        self.assertEqual(result.preferred_submission, response["preferred_submission"])
         self.assertEqual(
             result.unsupported_or_forbidden["internal_output_macro_examples"],
             ["\\arsum"],

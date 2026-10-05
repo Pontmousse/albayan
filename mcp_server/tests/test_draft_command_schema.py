@@ -9,7 +9,21 @@ from albayan_mcp.schemas.draft_command import DocumentCommand
 adapter = TypeAdapter(DocumentCommand)
 
 
-def test_mcp_schema_accepts_compact_math_insert() -> None:
+@pytest.mark.parametrize(
+    "latex",
+    [
+        r"E=mc^2",
+        r"A^\top + T",
+        *[rf"R+\mathbb{{{symbol}}}" for symbol in "NZQRCH"],
+        r"d+\frac{\mathrm{d}f}{\mathrm{d}x}",
+        r"\mathtt{var}_0",
+        r"\mathtt{sin}+\sin x",
+        r"m+3\mathsf{m}",
+        r"N+\mathbb{N}+3\mathsf{N}",
+        r"3\unit{m}",
+    ],
+)
+def test_mcp_schema_accepts_compact_math_insert(latex: str) -> None:
     command = adapter.validate_python(
         {
             "op": "insert_inline_token",
@@ -17,14 +31,14 @@ def test_mcp_schema_accepts_compact_math_insert() -> None:
             "anchor": {"end": True},
             "token": {
                 "kind": "math",
-                "latex": r"E=mc^2",
+                "latex": latex,
                 "display": False,
             },
         }
     )
 
     assert command.token.kind == "math"
-    assert command.token.latex == r"E=mc^2"
+    assert command.token.latex == latex
 
 
 def test_mcp_schema_keeps_existing_remove_math_path() -> None:

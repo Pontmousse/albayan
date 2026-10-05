@@ -104,7 +104,21 @@ def _arabic_command_math(name: str, opening: str = "$", closing: str = "$") -> s
     )
 
 
-def test_compact_math_command_schema_accepts_normal_latex() -> None:
+@pytest.mark.parametrize(
+    "latex",
+    [
+        r"\frac{x}{2}",
+        r"A^\top + T",
+        *[rf"R+\mathbb{{{symbol}}}" for symbol in "NZQRCH"],
+        r"d+\frac{\mathrm{d}f}{\mathrm{d}x}",
+        r"\mathtt{var}_0",
+        r"\mathtt{sin}+\sin x",
+        r"m+3\mathsf{m}",
+        r"N+\mathbb{N}+3\mathsf{N}",
+        r"3\unit{m}",
+    ],
+)
+def test_compact_math_command_schema_accepts_normal_latex(latex: str) -> None:
     payload = DocumentCommandPayload.model_validate(
         {
             "command_id": str(uuid.uuid4()),
@@ -115,7 +129,7 @@ def test_compact_math_command_schema_accepts_normal_latex() -> None:
                 "token_id": "math_1",
                 "token": {
                     "kind": "math",
-                    "latex": r"\frac{x}{2}",
+                    "latex": latex,
                     "display": True,
                     "label": "eq:test",
                 },
@@ -124,7 +138,7 @@ def test_compact_math_command_schema_accepts_normal_latex() -> None:
     )
 
     assert payload.command.token.kind == "math"
-    assert payload.command.token.latex == r"\frac{x}{2}"
+    assert payload.command.token.latex == latex
     assert payload.command.token.display is True
 
 
