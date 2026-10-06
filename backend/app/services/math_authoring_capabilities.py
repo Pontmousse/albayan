@@ -36,6 +36,7 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "arabic_latex_parser/equation_processor.py",
             "arabic_latex_parser/arabic_json_normalizer.py",
             "arabic_latex_parser/english_converter.py",
+            "arabic_latex_parser/llm_utils.py",
             "tests/api/test_parse_equation.py",
             "tests/api/test_reverse_command_mappings.py",
             "tests/parser/test_delimiter_coverage.py",
