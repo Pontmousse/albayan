@@ -28,6 +28,39 @@ The Albayan contract is therefore a conservative snapshot of the intersection of
 
 The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_safe` rather than pretending all parser-pass-through syntax is supported.
 
+## Five simple semantic conventions
+
+`preferred_submission.semantic_conventions` describes the single agreed convention:
+
+| Meaning | Authoring syntax |
+| --- | --- |
+| Transpose | `A^\top`; never `A^T` for this meaning. Bare `T` is a variable. |
+| Number systems | `\mathbb{N}`, `\mathbb{Z}`, `\mathbb{Q}`, `\mathbb{R}`, `\mathbb{C}`, `\mathbb{H}`. Bare letters are variables; `H` means quaternions here and `D` is not a number system. |
+| Differential | Exact `\mathrm{d}`; bare `d` is a variable. |
+| Multi-character variable | `\mathtt{var}`, scripts outside (`\mathtt{var}_0`). Use it for one atomic multi-character Latin variable, not a compound expression. `\mathtt{sin}` is a name; `\sin` is a function. |
+| Unit | `\mathsf{m}`, using Burhan's existing `\unit` resolver, known-unit tables and model/fallback logic. Keep existing `\unit` support. |
+
+These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
+
+This Al-Bayan change can be reviewed before [Burhan #7](https://gitlab.com/drghaliasri/burhan3.0/-/work_items/7) and [BuTeX #23](https://gitlab.com/drghaliasri/butex/-/work_items/23). The five forms are **not yet advertised as `round_trip_safe`**. The tool explicitly explains that verification is pending; clients must keep using the tested whitelist. The input schemas already accept their LaTeX unchanged. Existing storage, conversion, mappings and read-back remain in place. The strict Document2 math-node schema now accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, runtime guards, migrations or new macros. `contract_version: 1` remains response bookkeeping, not an equation version.
+
+After the upstream work lands, verify through **normal MCP**: insert with `apply_draft_command`, reload persisted Document2, edit/save/reopen in BuTeX, then read with `get_draft_equations`. English read-back must retain the intended roles, wrappers and current edited values:
+
+```latex
+A^\top + T
+R+\mathbb{R}                 % also test N, Z, Q, C, H inside mathbb
+d+\frac{\mathrm{d}f}{\mathrm{d}x}
+\mathtt{var}_0
+\mathtt{foo}
+\mathtt{sin}+\sin x
+m+3\mathsf{m}
+N+\mathbb{N}+3\mathsf{N}
+3\unit{m}
+```
+
+Use fixed variable mappings for deterministic tests; separately exercise an unmapped name with the free tier and a provider failure. Editing `var` to `foo` must read back `foo`, not a cached original name. Dev MCP diagnostics and schema acceptance alone do not prove this round trip. Once verified, update the existing whitelist and reviewed source revisions. Keep `source_latex` only as minimal node-bound provenance needed for faithful read-back; do not expose Burhan-only translation annotations as editor semantics.
+
+
 ## Common Greek and standard symbols
 
 The contract now exposes a general `round_trip_safe.commands.standard_symbols` group. It is not an `\alpha` / `\beta` special case.

@@ -44,6 +44,37 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
+def test_five_conventions_do_not_claim_unverified_round_trip_support() -> None:
+    contract = get_math_authoring_capabilities()
+    conventions = contract["preferred_submission"]["semantic_conventions"]
+    assert set(conventions) == {
+        "transpose", "number_sets", "differential", "named_variable", "unit",
+    }
+    for symbol in "NZQRCH":
+        assert rf"\mathbb{{{symbol}}}" in conventions["number_sets"]
+    assert r"\mathbb{D}" not in conventions["number_sets"]
+    assert r"\unit" in conventions["unit"]
+    assert "atomic multi-character Latin variable" in conventions["named_variable"]
+    assert "compound expressions" in conventions["named_variable"]
+    assert "full-name mapping" not in conventions["named_variable"]
+    assert "including free" not in conventions["named_variable"]
+    assert "not yet round_trip_safe" in contract["instruction"]
+    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathtt", r"\mathsf"}.isdisjoint(
+        advertised_round_trip_commands()
+    )
+    assert r"\frac{\partial f}{\partial x}" in {
+        item["latex"] for item in contract["examples"]
+    }
+    assert not any(
+        item["latex"] in {r"\int_0^1 x^2\;dx", r"\frac{d\alpha}{d\beta}"}
+        for item in contract["examples"]
+    )
+    conventions["transpose"] = "changed"
+    assert get_math_authoring_capabilities()["preferred_submission"]["semantic_conventions"][
+        "transpose"
+    ] != "changed"
+
+
 def test_common_standard_symbols_are_advertised_as_one_general_capability_group() -> None:
     contract = get_math_authoring_capabilities()
     advertised_symbols = contract["round_trip_safe"]["commands"]["standard_symbols"]

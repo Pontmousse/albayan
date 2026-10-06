@@ -71,7 +71,10 @@ def register_equation_tools(server: MCPServer) -> None:
             "canonical ordinary English-LaTeX whitelist that the current Albayan -> Burhan -> "
             "Document2 path can author safely, plus syntax that Burhan can parse/build but that "
             "is not reliable for editor round-trip. Restrict newly generated math to "
-            "round_trip_safe. Never emit Arabic-side/internal Burhan or BuTeX macros such as "
+            "round_trip_safe. Read preferred_submission.semantic_conventions for the agreed "
+            "\\top, \\mathbb, \\mathrm{d}, \\mathtt and \\mathsf meanings; these forms still "
+            "await upstream round-trip verification. Existing \\unit support is retained. "
+            "Never emit Arabic-side/internal Burhan or BuTeX macros such as "
             "\\ad, \\arsum, \\arprod, \\arlim, \\boldarabic, or \\butextakween. This tool "
             "does not read or mutate an article and needs no article ID."
         ),

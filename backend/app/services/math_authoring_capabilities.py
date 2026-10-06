@@ -239,12 +239,33 @@ CAPABILITIES: dict[str, Any] = {
         "Send ordinary canonical LaTeX through the compact Document2 math token. "
         "Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not "
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
-        "Burhan's permissive parser happens to tokenize it."
+        "Burhan's permissive parser happens to tokenize it. "
+        "preferred_submission.semantic_conventions describes the five agreed forms; "
+        "they await Burhan/BuTeX verification and are not yet round_trip_safe."
     ),
     "preferred_submission": {
         "latex": "Prefer the equation body without outer math delimiters.",
         "display": "Use the compact math token display boolean to select inline/display math.",
         "wrappers_accepted_by_albayan": ["$...$", r"\(...\)", "$$...$$", r"\[...\]"],
+        "semantic_conventions": {
+            "transpose": r"Use A^\top for transpose, never A^T; bare T is a variable.",
+            "number_sets": (
+                r"Use \mathbb{N}, \mathbb{Z}, \mathbb{Q}, \mathbb{R}, "
+                r"\mathbb{C}, \mathbb{H} for naturals, integers, rationals, reals, "
+                "complex numbers, quaternions. Bare letters are variables; D is not a number set."
+            ),
+            "differential": r"Use exact \mathrm{d}, never bare d for a differential; bare d is a variable.",
+            "named_variable": (
+                r"Use \mathtt{var} for one atomic multi-character Latin variable, with scripts outside, "
+                r"e.g. \mathtt{var}_0. Do not use it for compound expressions. "
+                r"\mathtt{sin} is a named variable, whereas \sin is the function."
+            ),
+            "unit": (
+                r"Use \mathsf{m} for a unit, through the existing \unit resolver and its "
+                r"known-unit/model/fallback behavior. Existing \unit input remains supported; "
+                r"\mathsf{N} is a unit, not \mathbb{N} or the variable N."
+            ),
+        },
     },
     "source_snapshot": SOURCE_SNAPSHOT,
     "round_trip_safe": {
@@ -300,8 +321,7 @@ CAPABILITIES: dict[str, Any] = {
     "examples": [
         {"latex": r"\frac{x_1}{\sqrt{1+x^2}}", "display": False},
         {"latex": r"\sum_{i=1}^{n} i^2", "display": True},
-        {"latex": r"\int_0^1 x^2\;dx", "display": True},
-        {"latex": r"\frac{d\alpha}{d\beta}", "display": True},
+        {"latex": r"\frac{\partial f}{\partial x}", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
         {"latex": r"\arg\min_x f(x)", "display": True},
