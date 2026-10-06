@@ -194,7 +194,17 @@ def _arabic_char_values(value: Any) -> list[str]:
                 expr = node.get("expr")
                 if isinstance(expr, str) and _ARABIC_RE.search(expr):
                     found.append(expr)
-            for child in node.values():
+
+            source_latex = node.get("source_latex")
+            semantic_payload = isinstance(source_latex, str) and source_latex.startswith(
+                (r"\\mathsf{", r"\\unit{", r"\\mathtt{", r"\\mathrm{d}")
+            )
+            for key, child in node.items():
+                # Arabic payloads inside explicit semantic-role nodes are not
+                # variable mappings. Still walk scripts and other siblings so
+                # real variables attached to the node keep warning coverage.
+                if semantic_payload and key == "mandatory_args":
+                    continue
                 if isinstance(child, (dict, list)):
                     walk(child)
         elif isinstance(node, list):
