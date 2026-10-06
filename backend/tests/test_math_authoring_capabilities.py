@@ -54,8 +54,10 @@ def test_five_conventions_do_not_claim_unverified_round_trip_support() -> None:
         assert rf"\mathbb{{{symbol}}}" in conventions["number_sets"]
     assert r"\mathbb{D}" not in conventions["number_sets"]
     assert r"\unit" in conventions["unit"]
-    assert "full-name mapping" in conventions["named_variable"]
-    assert "including free" in conventions["named_variable"]
+    assert "atomic multi-character Latin variable" in conventions["named_variable"]
+    assert "compound expressions" in conventions["named_variable"]
+    assert "full-name mapping" not in conventions["named_variable"]
+    assert "including free" not in conventions["named_variable"]
     assert "not yet round_trip_safe" in contract["instruction"]
     assert {r"\top", r"\mathbb", r"\mathrm", r"\mathtt", r"\mathsf"}.isdisjoint(
         advertised_round_trip_commands()
