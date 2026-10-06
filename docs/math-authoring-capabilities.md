@@ -37,7 +37,7 @@ The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_s
 | Transpose | `A^\top`; never `A^T` for this meaning. Bare `T` is a variable. |
 | Number systems | `\mathbb{N}`, `\mathbb{Z}`, `\mathbb{Q}`, `\mathbb{R}`, `\mathbb{C}`, `\mathbb{H}`. Bare letters are variables; `H` means quaternions here and `D` is not a number system. |
 | Differential | Exact `\mathrm{d}`; bare `d` is a variable. |
-| Multi-character variable | `\mathtt{var}`, scripts outside (`\mathtt{var}_0`). Valid full-name mapping first, otherwise the selected LLM tier including free. Heuristic/offline mode requires a supplied mapping. `\mathtt{sin}` is a name; `\sin` is a function. |
+| Multi-character variable | `\mathtt{var}`, scripts outside (`\mathtt{var}_0`). Use it for one atomic multi-character Latin variable, not a compound expression. `\mathtt{sin}` is a name; `\sin` is a function. |
 | Unit | `\mathsf{m}`, using Burhan's existing `\unit` resolver, known-unit tables and model/fallback logic. Keep existing `\unit` support. |
 
 These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
