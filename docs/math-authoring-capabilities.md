@@ -42,7 +42,7 @@ The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_s
 
 These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
 
-This Al-Bayan change can be reviewed before [Burhan #7](https://gitlab.com/drghaliasri/burhan3.0/-/work_items/7) and [BuTeX #23](https://gitlab.com/drghaliasri/butex/-/work_items/23). The five forms are **not yet advertised as `round_trip_safe`**. The tool explicitly explains that verification is pending; clients must keep using the tested whitelist. The input schemas already accept their LaTeX unchanged. Existing storage, conversion, mappings and read-back remain in place. There are no equation profiles, runtime guards, migrations or new macros. `contract_version: 1` remains response bookkeeping, not an equation version.
+This Al-Bayan change can be reviewed before [Burhan #7](https://gitlab.com/drghaliasri/burhan3.0/-/work_items/7) and [BuTeX #23](https://gitlab.com/drghaliasri/butex/-/work_items/23). The five forms are **not yet advertised as `round_trip_safe`**. The tool explicitly explains that verification is pending; clients must keep using the tested whitelist. The input schemas already accept their LaTeX unchanged. Existing storage, conversion, mappings and read-back remain in place. The strict Document2 math-node schema now accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, runtime guards, migrations or new macros. `contract_version: 1` remains response bookkeeping, not an equation version.
 
 After the upstream work lands, verify through **normal MCP**: insert with `apply_draft_command`, reload persisted Document2, edit/save/reopen in BuTeX, then read with `get_draft_equations`. English read-back must retain the intended roles, wrappers and current edited values:
 
@@ -58,7 +58,7 @@ N+\mathbb{N}+3\mathsf{N}
 3\unit{m}
 ```
 
-Use fixed variable mappings for deterministic tests; separately exercise an unmapped name with the free tier and a provider failure. Editing `var` to `foo` must read back `foo`, not a cached original name. Dev MCP diagnostics and schema acceptance alone do not prove this round trip. Once verified, update the existing whitelist and reviewed source revisions; forward any minimal upstream source identity only if the actual output requires it.
+Use fixed variable mappings for deterministic tests; separately exercise an unmapped name with the free tier and a provider failure. Editing `var` to `foo` must read back `foo`, not a cached original name. Dev MCP diagnostics and schema acceptance alone do not prove this round trip. Once verified, update the existing whitelist and reviewed source revisions. Keep `source_latex` only as minimal node-bound provenance needed for faithful read-back; do not expose Burhan-only translation annotations as editor semantics.
 
 
 ## Common Greek and standard symbols
