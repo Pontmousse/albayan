@@ -379,8 +379,8 @@ def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables
                 "chain": [
                     {
                         "node_type": "CommandObject",
-                        "name": r"\\unit",
-                        "source_latex": r"\\mathsf{m}",
+                        "name": r"\unit",
+                        "source_latex": r"\mathsf{m}",
                         "mandatory_args": [
                             {
                                 "node_type": "ChainClass",
@@ -400,9 +400,9 @@ def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables
         "blocks": [
             {
                 "id": "paragraph-1",
-                "command": r"\\paragraph",
-                "value": r"$\\unit{م}$",
-                "inline_ids": _ids("field-1", "math-1", r"$\\unit{م}$"),
+                "command": r"\paragraph",
+                "value": r"$\unit{م}$",
+                "inline_ids": _ids("field-1", "math-1", r"$\unit{م}$"),
                 "math_objects": [raw],
             }
         ]
@@ -415,14 +415,14 @@ def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables
         ),
         patch(
             "app.services.burhan_reverse_client.convert_math_object_to_english",
-            return_value=(r"\\mathsf{m}_k", []),
+            return_value=(r"\mathsf{m}_k", []),
         ),
     ):
         result = equation_projection_service.project_document_equations(
-            document, {"k": r"\\text{ك}"}
+            document, {"k": r"\text{ك}"}
         )
 
-    assert result[0]["latex"] == r"\\mathsf{m}_k"
+    assert result[0]["latex"] == r"\mathsf{m}_k"
     assert "warnings" not in result[0]
 
 
@@ -439,8 +439,8 @@ def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
                 "chain": [
                     {
                         "node_type": "CommandObject",
-                        "name": r"\\text",
-                        "source_latex": r"\\mathtt{velocity}",
+                        "name": r"\text",
+                        "source_latex": r"\mathtt{velocity}",
                         "mandatory_args": [
                             {
                                 "node_type": "ChainClass",
@@ -456,9 +456,9 @@ def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
         "blocks": [
             {
                 "id": "paragraph-1",
-                "command": r"\\paragraph",
-                "value": r"$\\text{السرعة}$",
-                "inline_ids": _ids("field-1", "math-1", r"$\\text{السرعة}$"),
+                "command": r"\paragraph",
+                "value": r"$\text{السرعة}$",
+                "inline_ids": _ids("field-1", "math-1", r"$\text{السرعة}$"),
                 "math_objects": [raw],
             }
         ]
@@ -471,12 +471,12 @@ def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
         ),
         patch(
             "app.services.burhan_reverse_client.convert_math_object_to_english",
-            return_value=(r"\\mathtt{velocity}", []),
+            return_value=(r"\mathtt{velocity}", []),
         ),
     ):
         result = equation_projection_service.project_document_equations(document, {})
 
-    assert result[0]["latex"] == r"\\mathtt{velocity}"
+    assert result[0]["latex"] == r"\mathtt{velocity}"
     assert "warnings" not in result[0]
 
 
