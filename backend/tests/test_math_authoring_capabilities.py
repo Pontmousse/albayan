@@ -13,7 +13,6 @@ from app.services.math_authoring_capabilities import (
     INTERNAL_OUTPUT_MACRO_EXAMPLES,
     PARSE_BUILD_ONLY_COMMANDS,
     RAW_OPERATORS,
-    ROUND_TRIP_UNSAFE_RAW_OPERATORS,
     SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
     SEMANTIC_ROLE_COMMANDS,
@@ -82,6 +81,7 @@ def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     assert r"d + \frac{\mathrm{d}f}{\mathrm{d}x}" in examples
     assert r"\mathtt{var}_0" not in examples
     assert r"m + 3\mathsf{m}" in examples
+    assert r"3\mathsf{m}/\mathsf{s}" in examples
     assert r"\mathtt{velocity} = 3\mathsf{m}/\mathsf{s}" not in examples
 
     conventions["transpose"] = "changed"
@@ -134,9 +134,7 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
     assert expected_raw_operators.issubset(labels)
     assert "scripts:^_" in labels
-    assert set(ROUND_TRIP_UNSAFE_RAW_OPERATORS) == {"/", "<", ">"}
-    assert set(ROUND_TRIP_UNSAFE_RAW_OPERATORS).isdisjoint(RAW_OPERATORS)
-    assert get_math_authoring_capabilities()["accepted_but_not_round_trip_safe"]["raw_operators"] == ROUND_TRIP_UNSAFE_RAW_OPERATORS
+    assert set(RAW_OPERATORS) == {"+", "-", "=", "*", "/", "<", ">"}
 
 
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
@@ -151,8 +149,8 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert BURHAN_COMMIT == "1665240dea718465f5a6208953af301d157141de"
-    assert BUTEX_COMMIT == "9694b09341deef73916383833a82ae85591fed1b"
+    assert BURHAN_COMMIT == "487b3c7b73eb8b8a81433fc90e0058d06cf7cc48"
+    assert BUTEX_COMMIT == "c751789b248db390ad621abf4d671ce19d2a47ba"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
