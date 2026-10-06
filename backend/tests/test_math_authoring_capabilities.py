@@ -71,7 +71,7 @@ def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     differential = next(item for item in semantic_roles if item["command"] == r"\mathrm")
     assert differential["allowed_args"] == ["d"]
     unit = next(item for item in semantic_roles if item["command"] == r"\mathsf")
-    assert any("raw /" in item for item in unit["constraints"])
+    assert any("safe raw operators" in item for item in unit["constraints"])
     assert not any(item["command"] == r"\mathtt" for item in semantic_roles)
 
     examples = {item["latex"] for item in contract["examples"]}
@@ -150,11 +150,12 @@ def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None
     contract = get_math_authoring_capabilities()
 
     assert BURHAN_COMMIT == "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
-    assert BUTEX_COMMIT == "c751789b248db390ad621abf4d671ce19d2a47ba"
+    assert BUTEX_COMMIT == "b509c02c3e07230efa48519f4e66fbcc44499c9d"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_reverse_command_mappings.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_convert_to_english.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_standard_math_authoring.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
