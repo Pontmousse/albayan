@@ -90,7 +90,7 @@ These standard fallback symbols are intentionally separate from BuTeX's Arabic a
 
 The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
 
-- Burhan `drghaliasri/burhan3.0` commit `487b3c7b73eb8b8a81433fc90e0058d06cf7cc48` (MR !20 head);
+- Burhan `drghaliasri/burhan3.0` commit `396d6c1c0068ad01b2f4a19d4dc411deb2f0af17` (merged MR !20 / develop);
 - BuTeX `drghaliasri/butex` commit `c751789b248db390ad621abf4d671ce19d2a47ba` (MR !43 head).
 
 The Burhan revision includes the standard semantic authoring work for `\top`, number systems, exact differential `\mathrm{d}`, atomic `\mathtt` names, and `\mathsf` units. The key reviewed files now also include `nodes.py`, `llm_utils.py`, `english_converter.py`, and `tests/api/test_standard_math_authoring.py`.
