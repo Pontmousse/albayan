@@ -22,7 +22,7 @@ from typing import Any
 # The base semantic roles were persisted/browser validated; the mirrored-operator
 # and editor-display follow-up fixes are pinned explicitly below.
 BURHAN_COMMIT = "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
-BUTEX_COMMIT = "b509c02c3e07230efa48519f4e66fbcc44499c9d"
+BUTEX_COMMIT = "de525c61fd5e231906b5c12ef67cc5fa40ac68b5"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
