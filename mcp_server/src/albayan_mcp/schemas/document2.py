@@ -100,6 +100,7 @@ class DocumentMathNodeJson(Document2ContractModel):
     node_type: str
     expr: str | None = None
     name: str | None = None
+    source_latex: Annotated[str, Field(min_length=1, max_length=4096)] | None = None
     superscript: DocumentMathChainJson | None = None
     subscript: DocumentMathChainJson | None = None
     left_delim_expr: str | None = None
