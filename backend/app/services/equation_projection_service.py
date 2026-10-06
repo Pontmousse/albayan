@@ -197,7 +197,7 @@ def _arabic_char_values(value: Any) -> list[str]:
 
             source_latex = node.get("source_latex")
             semantic_payload = isinstance(source_latex, str) and source_latex.startswith(
-                (r"\\mathsf{", r"\\unit{", r"\\mathtt{", r"\\mathrm{d}")
+                (r"\mathsf{", r"\unit{", r"\mathtt{", r"\mathrm{d}")
             )
             for key, child in node.items():
                 # Arabic payloads inside explicit semantic-role nodes are not
