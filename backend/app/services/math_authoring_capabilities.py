@@ -20,8 +20,8 @@ from typing import Any
 
 # Reviewed develop revisions used for the 2026-10-06 persisted normal-MCP +
 # browser validation of the standard semantic authoring conventions.
-BURHAN_COMMIT = "1665240dea718465f5a6208953af301d157141de"
-BUTEX_COMMIT = "9694b09341deef73916383833a82ae85591fed1b"
+BURHAN_COMMIT = "487b3c7b73eb8b8a81433fc90e0058d06cf7cc48"
+BUTEX_COMMIT = "c751789b248db390ad621abf4d671ce19d2a47ba"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -61,6 +61,12 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "test/vertical_delimiter_import.test.ts",
             "test/standard_math_roundtrip.test.ts",
             "src/editor/divideOperator.ts",
+            "src/editor/display/base.ts",
+            "src/editor/styles.ts",
+            "src/register/passthrough.ts",
+            "src/rtl-css.ts",
+            "test/register.compatMacros.test.ts",
+            "test/editor_css.test.ts",
         ],
     },
 }
@@ -179,13 +185,12 @@ SEMANTIC_ROLE_COMMANDS = [
         "argument": r"one unit token matching [A-Za-z]+, \\[A-Za-z]+, or Ω",
         "constraints": [
             "One unit atom per wrapper.",
-            r"Do not compose \mathsf unit atoms with raw / until the Arabic-side divide reverse-normalization defect is fixed.",
+            r"Compound unit expressions may combine safe unit atoms with safe raw operators, e.g. 3\mathsf{m}/\mathsf{s}.",
         ],
     },
 ]
 
-RAW_OPERATORS = ["+", "-", "=", "*"]
-ROUND_TRIP_UNSAFE_RAW_OPERATORS = ["/", "<", ">"]
+RAW_OPERATORS = ["+", "-", "=", "*", "/", "<", ">"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
     {"name": "matrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
@@ -338,7 +343,6 @@ CAPABILITIES: dict[str, Any] = {
     },
     "accepted_but_not_round_trip_safe": {
         "commands": PARSE_BUILD_ONLY_COMMANDS,
-        "raw_operators": ROUND_TRIP_UNSAFE_RAW_OPERATORS,
         "internal_environments": PARSE_BUILD_ONLY_ENVIRONMENTS,
         "top_level_environments": TOP_LEVEL_ENVIRONMENTS,
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
@@ -347,7 +351,6 @@ CAPABILITIES: dict[str, Any] = {
             "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.2.x imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
             r"\mathtt preserves atomic-name identity, but the development browser E2E kept unmapped names such as var/sin in Latin instead of producing the intended Arabic translation.",
-            r"Raw /, <, and > are temporarily not round-trip safe because Burhan mirrors them on the Arabic side while the reverse converter currently returns the Arabic-side operator spelling unchanged.",
             r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
         ],
     },
@@ -365,7 +368,6 @@ CAPABILITIES: dict[str, Any] = {
         r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
-        r"Do not use raw /, <, or > until Arabic-side mirrored operators are normalized back to canonical English operators on reverse conversion.",
         r"Do not use \mathtt for new AI-authored math yet; unmapped atomic names did not receive the intended Arabic translation in the persisted browser E2E.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
@@ -380,6 +382,7 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"N + \mathbb{N} + 3\mathsf{N}", "display": False},
         {"latex": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}", "display": False},
         {"latex": r"m + 3\mathsf{m}", "display": False},
+        {"latex": r"3\mathsf{m}/\mathsf{s}", "display": False},
     ],
 }
 
