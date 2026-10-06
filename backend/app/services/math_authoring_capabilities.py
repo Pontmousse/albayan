@@ -18,8 +18,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-# Reviewed develop revisions used for the 2026-10-06 persisted normal-MCP +
-# browser validation of the standard semantic authoring conventions.
+# Reviewed upstream revisions for the 2026-10-06 semantic-authoring contract.
+# The base semantic roles were persisted/browser validated; the mirrored-operator
+# and editor-display follow-up fixes are pinned explicitly below.
 BURHAN_COMMIT = "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
 BUTEX_COMMIT = "b509c02c3e07230efa48519f4e66fbcc44499c9d"
 ROW_SEPARATOR = chr(92) * 2
