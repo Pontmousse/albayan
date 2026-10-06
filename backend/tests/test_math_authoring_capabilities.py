@@ -15,6 +15,7 @@ from app.services.math_authoring_capabilities import (
     RAW_OPERATORS,
     SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
+    SEMANTIC_ROLE_COMMANDS,
     STANDARD_SYMBOL_COMMANDS,
     advertised_round_trip_commands,
     burhan_verification_cases,
@@ -44,7 +45,7 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
-def test_five_conventions_do_not_claim_unverified_round_trip_support() -> None:
+def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     contract = get_math_authoring_capabilities()
     conventions = contract["preferred_submission"]["semantic_conventions"]
     assert set(conventions) == {
@@ -56,19 +57,33 @@ def test_five_conventions_do_not_claim_unverified_round_trip_support() -> None:
     assert r"\unit" in conventions["unit"]
     assert "atomic multi-character Latin variable" in conventions["named_variable"]
     assert "compound expressions" in conventions["named_variable"]
-    assert "full-name mapping" not in conventions["named_variable"]
-    assert "including free" not in conventions["named_variable"]
-    assert "not yet round_trip_safe" in contract["instruction"]
-    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathtt", r"\mathsf"}.isdisjoint(
-        advertised_round_trip_commands()
-    )
-    assert r"\frac{\partial f}{\partial x}" in {
-        item["latex"] for item in contract["examples"]
-    }
-    assert not any(
-        item["latex"] in {r"\int_0^1 x^2\;dx", r"\frac{d\alpha}{d\beta}"}
-        for item in contract["examples"]
-    )
+
+    semantic_roles = contract["round_trip_safe"]["commands"]["semantic_roles"]
+    assert semantic_roles == SEMANTIC_ROLE_COMMANDS
+    advertised = set(advertised_round_trip_commands())
+    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathsf"}.issubset(advertised)
+    assert r"\mathtt" not in advertised
+    assert {r"\mathbb", r"\mathrm", r"\mathsf"}.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
+    assert r"\mathtt" in PARSE_BUILD_ONLY_COMMANDS
+
+    mathbb = next(item for item in semantic_roles if item["command"] == r"\mathbb")
+    assert mathbb["allowed_args"] == list("NZQRCH")
+    differential = next(item for item in semantic_roles if item["command"] == r"\mathrm")
+    assert differential["allowed_args"] == ["d"]
+    unit = next(item for item in semantic_roles if item["command"] == r"\mathsf")
+    assert any("safe raw operators" in item for item in unit["constraints"])
+    assert not any(item["command"] == r"\mathtt" for item in semantic_roles)
+
+    examples = {item["latex"] for item in contract["examples"]}
+    assert r"\frac{\partial f}{\partial x}" in examples
+    assert r"A^\top + T" in examples
+    assert r"N + \mathbb{N} + 3\mathsf{N}" in examples
+    assert r"d + \frac{\mathrm{d}f}{\mathrm{d}x}" in examples
+    assert r"\mathtt{var}_0" not in examples
+    assert r"m + 3\mathsf{m}" in examples
+    assert r"3\mathsf{m}/\mathsf{s}" in examples
+    assert r"\mathtt{velocity} = 3\mathsf{m}/\mathsf{s}" not in examples
+
     conventions["transpose"] = "changed"
     assert get_math_authoring_capabilities()["preferred_submission"]["semantic_conventions"][
         "transpose"
@@ -119,6 +134,7 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
     assert expected_raw_operators.issubset(labels)
     assert "scripts:^_" in labels
+    assert set(RAW_OPERATORS) == {"+", "-", "=", "*", "/", "<", ">"}
 
 
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
@@ -133,14 +149,17 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert BURHAN_COMMIT == "db27bdd64102b03d3bb1ab86063b042958bfd94a"
-    assert BUTEX_COMMIT == "9287812c93fa0e34f7d269887edee60b0fe7ff1d"
+    assert BURHAN_COMMIT == "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
+    assert BUTEX_COMMIT == "de525c61fd5e231906b5c12ef67cc5fa40ac68b5"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_reverse_command_mappings.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_convert_to_english.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_standard_math_authoring.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/standard_math_roundtrip.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert contract["unsupported_or_forbidden"]["explicit_parser_rejection_examples"] == [
         r"x@",
         r"\left(x",

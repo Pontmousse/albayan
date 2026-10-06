@@ -42,23 +42,28 @@ The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_s
 
 These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
 
-This Al-Bayan change can be reviewed before [Burhan #7](https://gitlab.com/drghaliasri/burhan3.0/-/work_items/7) and [BuTeX #23](https://gitlab.com/drghaliasri/butex/-/work_items/23). The five forms are **not yet advertised as `round_trip_safe`**. The tool explicitly explains that verification is pending; clients must keep using the tested whitelist. The input schemas already accept their LaTeX unchanged. Existing storage, conversion, mappings and read-back remain in place. The strict Document2 math-node schema now accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, runtime guards, migrations or new macros. `contract_version: 1` remains response bookkeeping, not an equation version.
+Burhan #7 and BuTeX #23 have landed. On 2026-10-06 the persisted **normal Al-Bayan MCP** path plus the development browser validated transpose, number-set roles, exact differential `\mathrm{d}`, and simple `\mathsf` unit atoms. Those scoped forms are now advertised under `round_trip_safe.commands.semantic_roles`. The `\mathtt` named-variable convention remains documented but is not yet advertised safe because the real browser path preserved unmapped names such as `var` and `sin` in Latin instead of producing the intended Arabic translation.
 
-After the upstream work lands, verify through **normal MCP**: insert with `apply_draft_command`, reload persisted Document2, edit/save/reopen in BuTeX, then read with `get_draft_equations`. English read-back must retain the intended roles, wrappers and current edited values:
+The validated forms include:
 
 ```latex
 A^\top + T
-R+\mathbb{R}                 % also test N, Z, Q, C, H inside mathbb
-d+\frac{\mathrm{d}f}{\mathrm{d}x}
-\mathtt{var}_0
-\mathtt{foo}
-\mathtt{sin}+\sin x
-m+3\mathsf{m}
-N+\mathbb{N}+3\mathsf{N}
-3\unit{m}
+R + \mathbb{R}
+N + \mathbb{N} + 3\mathsf{N}
+d + \frac{\mathrm{d}f}{\mathrm{d}x}
+m + 3\mathsf{m}
 ```
 
-Use fixed variable mappings for deterministic tests; separately exercise an unmapped name with the free tier and a provider failure. Editing `var` to `foo` must read back `foo`, not a cached original name. Dev MCP diagnostics and schema acceptance alone do not prove this round trip. Once verified, update the existing whitelist and reviewed source revisions. Keep `source_latex` only as minimal node-bound provenance needed for faithful read-back; do not expose Burhan-only translation annotations as editor semantics.
+The safe scope is deliberately narrow:
+
+- `\mathbb` is advertised only for `N, Z, Q, R, C, H`.
+- `\mathrm` is advertised only as exact `\mathrm{d}`.
+- `\mathtt` is one atomic multi-character Latin variable name, but it is **not currently in `round_trip_safe`**. The code is designed to call the selected Burhan model for an unmapped atomic name; the persisted dev browser result instead kept `var`/`sin` in Latin, so that behavior still needs to be resolved before promotion.
+- `\mathsf` is one unit atom and is round-trip safe. Compound unit expressions may combine unit atoms with safe raw operators such as `3\mathsf{m}/\mathsf{s}`.
+- Raw `/`, `<`, and `>` are again in `round_trip_safe`: Burhan's reverse converter now applies the inverse of its Arabic-side mirroring, and BuTeX normalizes the structured `\backslash` divide command into the editable divide role instead of displaying the command name literally.
+- Existing legacy `\unit{...}` input remains supported by the stack but is not the preferred AI authoring convention.
+
+The strict Document2 math-node schema accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, migrations, or new semantic macros. `contract_version: 1` remains response bookkeeping, not an equation version.
 
 
 ## Common Greek and standard symbols
@@ -85,12 +90,12 @@ These standard fallback symbols are intentionally separate from BuTeX's Arabic a
 
 The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
 
-- Burhan `drghaliasri/burhan3.0` commit `db27bdd64102b03d3bb1ab86063b042958bfd94a`;
-- BuTeX `drghaliasri/butex` commit `9287812c93fa0e34f7d269887edee60b0fe7ff1d`.
+- Burhan `drghaliasri/burhan3.0` commit `396d6c1c0068ad01b2f4a19d4dc411deb2f0af17` (merged MR !20 / develop);
+- BuTeX `drghaliasri/butex` commit `de525c61fd5e231906b5c12ef67cc5fa40ac68b5` (MR !43 head, released as 7.3.1).
 
-The Burhan revision includes the structured Arabic mapping work, command-valued reverse mapping, and equivalent font-wrapper normalization. The key reviewed files include `commands.py`, `arabic_json_normalizer.py`, `english_converter.py`, and their regression tests.
+The Burhan revision includes the standard semantic authoring work for `\top`, number systems, exact differential `\mathrm{d}`, atomic `\mathtt` names, and `\mathsf` units, plus merged inverse normalization of Arabic presentation operators during reverse conversion. The key reviewed files now also include `nodes.py`, `llm_utils.py`, `english_converter.py`, and `tests/api/test_standard_math_authoring.py`.
 
-The BuTeX revision includes the 7.2.x standard-command fallback and font-wrapper import normalization. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/standardCommands.ts` is the compatibility registry and `test/standard_commands.test.ts` exercises every registered command.
+The BuTeX revision includes the structured import/export work for the same forms plus the divide/unit browser fixes. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/divideOperator.ts` normalizes Burhan's structured `\backslash` divide spelling, while `src/register/passthrough.ts` renders units as upright MathJax text and the editor marks unit atoms visibly.
 
 Before promoting this Albayan snapshot to an environment that uses different Burhan/BuTeX revisions, align or re-review the pinned upstream service versions.
 
@@ -103,6 +108,7 @@ When Burhan or BuTeX math support changes:
 3. for a command family, derive the advertised set from the actual supported upstream registries rather than adding one-off exceptions;
 4. ensure every advertised command and environment still has a case in `burhan_verification_cases()`;
 5. run `backend/tests/test_math_authoring_capabilities.py` with `BURHAN_URL` pointing at the Burhan build being promoted;
-6. only move a form into `round_trip_safe` when the real Albayan -> Burhan conversion returns a strict MathObject that current BuTeX can re-import safely.
+6. only move a form into `round_trip_safe` when the real Albayan -> Burhan conversion returns a strict MathObject that current BuTeX can re-import safely;
+7. when a command is only safe in a semantic subset (for example exact `\mathrm{d}`), advertise the scoped form and its constraints rather than the generic wrapper.
 
 The ordinary unit tests also assert that internal/output macros and representative parse/build-only commands are not accidentally advertised.

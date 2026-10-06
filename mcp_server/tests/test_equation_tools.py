@@ -41,6 +41,9 @@ class EquationToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Never emit", capability_description)
         self.assertIn("pure-read", capability_description)
         self.assertIn("semantic_conventions", capability_description)
+        self.assertIn("semantic_roles", capability_description)
+        self.assertIn("tested scoped forms", capability_description)
+        self.assertNotIn("await upstream round-trip verification", capability_description)
         for command in (r"\top", r"\mathbb", r"\mathrm{d}", r"\mathtt", r"\mathsf", r"\unit"):
             self.assertIn(command, capability_description)
 
