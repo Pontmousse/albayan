@@ -13,6 +13,7 @@ from app.services.math_authoring_capabilities import (
     INTERNAL_OUTPUT_MACRO_EXAMPLES,
     PARSE_BUILD_ONLY_COMMANDS,
     RAW_OPERATORS,
+    ROUND_TRIP_UNSAFE_RAW_OPERATORS,
     SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
     SEMANTIC_ROLE_COMMANDS,
@@ -45,7 +46,7 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
-def test_five_conventions_are_advertised_with_validated_scoped_forms() -> None:
+def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     contract = get_math_authoring_capabilities()
     conventions = contract["preferred_submission"]["semantic_conventions"]
     assert set(conventions) == {
@@ -61,8 +62,10 @@ def test_five_conventions_are_advertised_with_validated_scoped_forms() -> None:
     semantic_roles = contract["round_trip_safe"]["commands"]["semantic_roles"]
     assert semantic_roles == SEMANTIC_ROLE_COMMANDS
     advertised = set(advertised_round_trip_commands())
-    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathtt", r"\mathsf"}.issubset(advertised)
+    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathsf"}.issubset(advertised)
+    assert r"\mathtt" not in advertised
     assert {r"\mathbb", r"\mathrm", r"\mathsf"}.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
+    assert r"\mathtt" in PARSE_BUILD_ONLY_COMMANDS
 
     mathbb = next(item for item in semantic_roles if item["command"] == r"\mathbb")
     assert mathbb["allowed_args"] == list("NZQRCH")
@@ -70,15 +73,14 @@ def test_five_conventions_are_advertised_with_validated_scoped_forms() -> None:
     assert differential["allowed_args"] == ["d"]
     unit = next(item for item in semantic_roles if item["command"] == r"\mathsf")
     assert any("raw /" in item for item in unit["constraints"])
-    named = next(item for item in semantic_roles if item["command"] == r"\mathtt")
-    assert any("model-dependent" in item for item in named["constraints"])
+    assert not any(item["command"] == r"\mathtt" for item in semantic_roles)
 
     examples = {item["latex"] for item in contract["examples"]}
     assert r"\frac{\partial f}{\partial x}" in examples
     assert r"A^\top + T" in examples
     assert r"N + \mathbb{N} + 3\mathsf{N}" in examples
     assert r"d + \frac{\mathrm{d}f}{\mathrm{d}x}" in examples
-    assert r"\mathtt{var}_0" in examples
+    assert r"\mathtt{var}_0" not in examples
     assert r"m + 3\mathsf{m}" in examples
     assert r"\mathtt{velocity} = 3\mathsf{m}/\mathsf{s}" not in examples
 
@@ -132,6 +134,9 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
     assert expected_raw_operators.issubset(labels)
     assert "scripts:^_" in labels
+    assert set(ROUND_TRIP_UNSAFE_RAW_OPERATORS) == {"/", "<", ">"}
+    assert set(ROUND_TRIP_UNSAFE_RAW_OPERATORS).isdisjoint(RAW_OPERATORS)
+    assert get_math_authoring_capabilities()["accepted_but_not_round_trip_safe"]["raw_operators"] == ROUND_TRIP_UNSAFE_RAW_OPERATORS
 
 
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
