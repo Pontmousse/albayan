@@ -179,6 +179,33 @@ def test_arabic_math_object_preserves_burhan_command_structure() -> None:
     assert "subscript" not in tree
 
 
+def test_arabic_math_object_preserves_source_latex_and_drops_burhan_unit_metadata() -> None:
+    raw = json.loads(_arabic_command_math(r"\unit"))
+    node = raw["lines"][0]["chain"][0]
+    node["mandatory_args"] = [
+        {
+            "node_type": "ChainClass",
+            "chain": [
+                {
+                    "node_type": "CharObject",
+                    "expr": "م",
+                    "superscript": None,
+                    "subscript": None,
+                }
+            ],
+        }
+    ]
+    node["source_latex"] = r"\mathsf{m}"
+    node["arabic_unit"] = r"\unit{م}"
+
+    tree = burhan_client._arabic_math_object(raw, display=False, label=None)
+
+    projected = tree["lines"][0]["chain"][0]
+    assert projected["source_latex"] == r"\mathsf{m}"
+    assert "arabic_unit" not in projected
+    assert projected["mandatory_args"][0]["chain"][0]["expr"] == "م"
+
+
 def test_display_label_is_attached_without_rewriting_arabic_tree() -> None:
     tree = burhan_client._arabic_math_object(
         _arabic_math(r"\text{س}", r"\[", r"\]"),
