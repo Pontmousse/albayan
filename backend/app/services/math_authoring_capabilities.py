@@ -256,9 +256,8 @@ CAPABILITIES: dict[str, Any] = {
             ),
             "differential": r"Use exact \mathrm{d}, never bare d for a differential; bare d is a variable.",
             "named_variable": (
-                r"Use \mathtt{var} for one multi-character Latin variable, with scripts outside, "
-                r"e.g. \mathtt{var}_0. Reuse a valid full-name mapping, otherwise the selected "
-                "LLM tier (including free); heuristic/offline mode needs a supplied mapping. "
+                r"Use \mathtt{var} for one atomic multi-character Latin variable, with scripts outside, "
+                r"e.g. \mathtt{var}_0. Do not use it for compound expressions. "
                 r"\mathtt{sin} is a named variable, whereas \sin is the function."
             ),
             "unit": (
