@@ -18,10 +18,10 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-# Reviewed develop revisions. These include Burhan's generic font-wrapper reverse
-# normalization and BuTeX 7.2.x standard-command fallback support.
-BURHAN_COMMIT = "db27bdd64102b03d3bb1ab86063b042958bfd94a"
-BUTEX_COMMIT = "9287812c93fa0e34f7d269887edee60b0fe7ff1d"
+# Reviewed develop revisions used for the 2026-10-06 persisted normal-MCP +
+# browser validation of the standard semantic authoring conventions.
+BURHAN_COMMIT = "1665240dea718465f5a6208953af301d157141de"
+BUTEX_COMMIT = "9694b09341deef73916383833a82ae85591fed1b"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -40,6 +40,8 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "tests/api/test_reverse_command_mappings.py",
             "tests/parser/test_delimiter_coverage.py",
             "tests/parser/test_structured_arabic_commands.py",
+            "tests/api/test_standard_math_authoring.py",
+            "tests/api/test_prescanning_semantic_guards.py",
         ],
     },
     "butex": {
@@ -56,6 +58,8 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/document2-cli/execute.ts",
             "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
+            "test/standard_math_roundtrip.test.ts",
+            "src/editor/divideOperator.ts",
         ],
     },
 }
@@ -142,6 +146,53 @@ ACCENTS = [
 ]
 
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
+
+# Scoped semantic forms validated through the persisted normal MCP path and the
+# development browser on 2026-10-06. These are intentionally narrower than
+# generic LaTeX font-wrapper support.
+SEMANTIC_ROLE_COMMANDS = [
+    {
+        "command": r"\top",
+        "meaning": "transpose",
+        "form": r"A^\top",
+        "constraints": ["Use as the transpose symbol in a script; bare T remains a variable."],
+    },
+    {
+        "command": r"\mathbb",
+        "meaning": "number_set",
+        "form": r"\mathbb{N}",
+        "allowed_args": ["N", "Z", "Q", "R", "C", "H"],
+        "constraints": ["Exactly one advertised number-set letter as the mandatory argument."],
+    },
+    {
+        "command": r"\mathrm",
+        "meaning": "differential",
+        "form": r"\mathrm{d}",
+        "allowed_args": ["d"],
+        "constraints": [r"Only exact \mathrm{d} is advertised by this semantic convention."],
+    },
+    {
+        "command": r"\mathtt",
+        "meaning": "atomic_named_variable",
+        "form": r"\mathtt{var}",
+        "argument": "one atomic multi-character Latin name matching [A-Za-z]{2,}",
+        "constraints": [
+            "Scripts stay outside the wrapper.",
+            "Arabic translation is model-dependent; source-preserving fallback remains round-trip safe.",
+        ],
+    },
+    {
+        "command": r"\mathsf",
+        "meaning": "unit",
+        "form": r"\mathsf{m}",
+        "argument": r"one unit token matching [A-Za-z]+, \\[A-Za-z]+, or Ω",
+        "constraints": [
+            "One unit atom per wrapper.",
+            r"Do not compose \mathsf unit atoms with raw / until the Arabic-side divide reverse-normalization defect is fixed.",
+        ],
+    },
+]
+
 RAW_OPERATORS = ["+", "-", "=", "*", "/", "<", ">"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
@@ -193,11 +244,8 @@ PARSE_BUILD_ONLY_COMMANDS = [
     r"\underbrace",
     r"\mathbf",
     r"\bfseries",
-    r"\mathrm",
-    r"\mathsf",
     r"\mathit",
     r"\mathfrak",
-    r"\mathbb",
     r"\mathcal",
     r"\mathscr",
     r"\text",
@@ -240,8 +288,9 @@ CAPABILITIES: dict[str, Any] = {
         "Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not "
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
         "Burhan's permissive parser happens to tokenize it. "
-        "preferred_submission.semantic_conventions describes the five agreed forms; "
-        "they await Burhan/BuTeX verification and are not yet round_trip_safe."
+        "preferred_submission.semantic_conventions describes the five agreed forms. "
+        "Their tested scoped forms are advertised under round_trip_safe.commands.semantic_roles; "
+        "follow the per-form constraints rather than treating the underlying font wrappers as generic safe syntax."
     ),
     "preferred_submission": {
         "latex": "Prefer the equation body without outer math delimiters.",
@@ -274,6 +323,7 @@ CAPABILITIES: dict[str, Any] = {
             "functions_and_limits": ATOMIC_FUNCTIONS,
             "operators_relations_sets_arrows_integrals": ATOMIC_OPERATORS,
             "standard_symbols": STANDARD_SYMBOL_COMMANDS,
+            "semantic_roles": SEMANTIC_ROLE_COMMANDS,
             "accents": ACCENTS,
             "spacing": SPACING,
         },
@@ -316,6 +366,7 @@ CAPABILITIES: dict[str, Any] = {
         r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
+        r"Do not compose \mathsf unit atoms with raw / until Arabic \backslash is normalized back to canonical / on reverse conversion.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
     "examples": [
@@ -325,6 +376,11 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
         {"latex": r"\arg\min_x f(x)", "display": True},
+        {"latex": r"A^\top + T", "display": False},
+        {"latex": r"N + \mathbb{N} + 3\mathsf{N}", "display": False},
+        {"latex": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}", "display": False},
+        {"latex": r"\mathtt{var}_0", "display": False},
+        {"latex": r"m + 3\mathsf{m}", "display": False},
     ],
 }
 
@@ -343,6 +399,7 @@ def advertised_round_trip_commands() -> tuple[str, ...]:
     values.extend(ATOMIC_FUNCTIONS)
     values.extend(ATOMIC_OPERATORS)
     values.extend(STANDARD_SYMBOL_COMMANDS)
+    values.extend(item["command"] for item in SEMANTIC_ROLE_COMMANDS)
     values.extend(ACCENTS)
     values.extend(SPACING)
     return tuple(values)
@@ -366,6 +423,22 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         cases.append((f"x {command} y", False, command))
     for command in STANDARD_SYMBOL_COMMANDS:
         cases.append((command, False, command))
+
+    semantic_examples = {
+        r"\top": r"A^\top + T",
+        r"\mathbb": r"N + \mathbb{N} + 3\mathsf{N}",
+        r"\mathrm": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}",
+        r"\mathtt": r"\mathtt{var}_0",
+        r"\mathsf": r"m + 3\mathsf{m}",
+    }
+    for item in SEMANTIC_ROLE_COMMANDS:
+        command = item["command"]
+        cases.append((semantic_examples[command], False, command))
+
+    # Same implementation path for all six advertised number-set arguments.
+    for symbol in "ZQRCH":
+        cases.append((rf"{symbol} + \mathbb{{{symbol}}}", False, f"semantic_number_set:{symbol}"))
+
     for command in ACCENTS:
         cases.append((f"{command}{{x}}", False, command))
     for command in SPACING:
