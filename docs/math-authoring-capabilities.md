@@ -42,7 +42,7 @@ The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_s
 
 These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
 
-Burhan #7 and BuTeX #23 have landed, and the scoped forms above were validated on 2026-10-06 through the persisted **normal Al-Bayan MCP** path and the development browser. They are now advertised under `round_trip_safe.commands.semantic_roles`, rather than treating the underlying font-wrapper commands as generically safe.
+Burhan #7 and BuTeX #23 have landed. On 2026-10-06 the persisted **normal Al-Bayan MCP** path plus the development browser validated transpose, number-set roles, exact differential `\mathrm{d}`, and simple `\mathsf` unit atoms. Those scoped forms are now advertised under `round_trip_safe.commands.semantic_roles`. The `\mathtt` named-variable convention remains documented but is not yet advertised safe because the real browser path preserved unmapped names such as `var` and `sin` in Latin instead of producing the intended Arabic translation.
 
 The validated forms include:
 
@@ -51,8 +51,6 @@ A^\top + T
 R + \mathbb{R}
 N + \mathbb{N} + 3\mathsf{N}
 d + \frac{\mathrm{d}f}{\mathrm{d}x}
-\mathtt{var}_0
-\mathtt{sin} + \sin x
 m + 3\mathsf{m}
 ```
 
@@ -60,8 +58,9 @@ The safe scope is deliberately narrow:
 
 - `\mathbb` is advertised only for `N, Z, Q, R, C, H`.
 - `\mathrm` is advertised only as exact `\mathrm{d}`.
-- `\mathtt` is one atomic multi-character Latin variable name; scripts stay outside. Arabic translation remains model-dependent, while source-preserving fallback still round-trips the canonical name.
-- `\mathsf` is one unit atom. **Do not combine `\mathsf` unit atoms with raw `/` yet**: the Arabic side correctly mirrors division to `\backslash`, but reverse conversion currently fails to normalize it back to canonical `/`.
+- `\mathtt` is one atomic multi-character Latin variable name, but it is **not currently in `round_trip_safe`**. The code is designed to call the selected Burhan model for an unmapped atomic name; the persisted dev browser result instead kept `var`/`sin` in Latin, so that behavior still needs to be resolved before promotion.
+- `\mathsf` is one unit atom and is round-trip safe in the validated simple-unit cases. **Do not combine unit atoms with raw `/` yet**.
+- Raw `/`, `<`, and `>` are temporarily outside `round_trip_safe`: Burhan intentionally mirrors them on the Arabic side, but its reverse renderer currently returns the Arabic-side operator spelling unchanged rather than applying the inverse mapping.
 - Existing legacy `\unit{...}` input remains supported by the stack but is not the preferred AI authoring convention.
 
 The strict Document2 math-node schema accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, migrations, or new semantic macros. `contract_version: 1` remains response bookkeeping, not an equation version.
