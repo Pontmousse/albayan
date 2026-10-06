@@ -112,6 +112,17 @@ def _validated_mappings(value: Any) -> dict[str, str]:
     return mappings
 
 
+def _drop_burhan_internal_math_metadata(value: Any) -> None:
+    """Remove Burhan-only annotations that are not part of the Document2 wire AST."""
+    if isinstance(value, dict):
+        value.pop("arabic_unit", None)
+        for child in value.values():
+            _drop_burhan_internal_math_metadata(child)
+    elif isinstance(value, list):
+        for child in value:
+            _drop_burhan_internal_math_metadata(child)
+
+
 def _arabic_math_object(
     arabic_json: Any,
     *,
@@ -135,6 +146,7 @@ def _arabic_math_object(
     # Burhan's BaseNode includes root script placeholders; Document2 MathObject does not.
     tree.pop("superscript", None)
     tree.pop("subscript", None)
+    _drop_burhan_internal_math_metadata(tree)
     tree["source_side"] = "arabic"
     tree["source_owner"] = "editor"
     if display and label is not None and label.strip():
