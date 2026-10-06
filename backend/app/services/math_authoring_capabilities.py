@@ -173,16 +173,6 @@ SEMANTIC_ROLE_COMMANDS = [
         "constraints": [r"Only exact \mathrm{d} is advertised by this semantic convention."],
     },
     {
-        "command": r"\mathtt",
-        "meaning": "atomic_named_variable",
-        "form": r"\mathtt{var}",
-        "argument": "one atomic multi-character Latin name matching [A-Za-z]{2,}",
-        "constraints": [
-            "Scripts stay outside the wrapper.",
-            "Arabic translation is model-dependent; source-preserving fallback remains round-trip safe.",
-        ],
-    },
-    {
         "command": r"\mathsf",
         "meaning": "unit",
         "form": r"\mathsf{m}",
@@ -194,7 +184,8 @@ SEMANTIC_ROLE_COMMANDS = [
     },
 ]
 
-RAW_OPERATORS = ["+", "-", "=", "*", "/", "<", ">"]
+RAW_OPERATORS = ["+", "-", "=", "*"]
+ROUND_TRIP_UNSAFE_RAW_OPERATORS = ["/", "<", ">"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
     {"name": "matrix", "columns": "inferred", "rows": "use environment_syntax.row_separator"},
@@ -245,6 +236,7 @@ PARSE_BUILD_ONLY_COMMANDS = [
     r"\underbrace",
     r"\mathbf",
     r"\bfseries",
+    r"\mathtt",
     r"\mathit",
     r"\mathfrak",
     r"\mathcal",
@@ -290,8 +282,11 @@ CAPABILITIES: dict[str, Any] = {
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
         "Burhan's permissive parser happens to tokenize it. "
         "preferred_submission.semantic_conventions describes the five agreed forms. "
-        "Their tested scoped forms are advertised under round_trip_safe.commands.semantic_roles; "
-        "follow the per-form constraints rather than treating the underlying font wrappers as generic safe syntax."
+        "Transpose, number sets, the exact differential, and simple unit atoms are advertised "
+        "under round_trip_safe.commands.semantic_roles after persisted MCP + browser validation. "
+        r"\mathtt remains outside round_trip_safe until the intended Arabic translation of "
+        "unmapped atomic names is verified. Follow the per-form constraints rather than treating "
+        "the underlying font wrappers as generic safe syntax."
     ),
     "preferred_submission": {
         "latex": "Prefer the equation body without outer math delimiters.",
@@ -343,6 +338,7 @@ CAPABILITIES: dict[str, Any] = {
     },
     "accepted_but_not_round_trip_safe": {
         "commands": PARSE_BUILD_ONLY_COMMANDS,
+        "raw_operators": ROUND_TRIP_UNSAFE_RAW_OPERATORS,
         "internal_environments": PARSE_BUILD_ONLY_ENVIRONMENTS,
         "top_level_environments": TOP_LEVEL_ENVIRONMENTS,
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
@@ -350,11 +346,13 @@ CAPABILITIES: dict[str, Any] = {
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
             "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.2.x imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
+            r"\mathtt preserves atomic-name identity, but the development browser E2E kept unmapped names such as var/sin in Latin instead of producing the intended Arabic translation.",
+            r"Raw /, <, and > are temporarily not round-trip safe because Burhan mirrors them on the Arabic side while the reverse converter currently returns the Arabic-side operator spelling unchanged.",
             r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
         ],
     },
     "unsupported_or_forbidden": {
-        "rule": "For new AI-authored math, every command must appear in round_trip_safe.commands.",
+        "rule": "For new AI-authored math, every command must appear in round_trip_safe.commands and every raw operator must appear in round_trip_safe.raw_operators.",
         "internal_output_macro_examples": INTERNAL_OUTPUT_MACRO_EXAMPLES,
         "explicit_parser_rejection_examples": [r"x@", r"\left(x", r"\begin{document}x\end{document}"],
     },
@@ -367,7 +365,8 @@ CAPABILITIES: dict[str, Any] = {
         r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
-        r"Do not compose \mathsf unit atoms with raw / until Arabic \backslash is normalized back to canonical / on reverse conversion.",
+        r"Do not use raw /, <, or > until Arabic-side mirrored operators are normalized back to canonical English operators on reverse conversion.",
+        r"Do not use \mathtt for new AI-authored math yet; unmapped atomic names did not receive the intended Arabic translation in the persisted browser E2E.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
     "examples": [
@@ -380,7 +379,6 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"A^\top + T", "display": False},
         {"latex": r"N + \mathbb{N} + 3\mathsf{N}", "display": False},
         {"latex": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}", "display": False},
-        {"latex": r"\mathtt{var}_0", "display": False},
         {"latex": r"m + 3\mathsf{m}", "display": False},
     ],
 }
@@ -429,7 +427,6 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         r"\top": r"A^\top + T",
         r"\mathbb": r"N + \mathbb{N} + 3\mathsf{N}",
         r"\mathrm": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}",
-        r"\mathtt": r"\mathtt{var}_0",
         r"\mathsf": r"m + 3\mathsf{m}",
     }
     for item in SEMANTIC_ROLE_COMMANDS:
