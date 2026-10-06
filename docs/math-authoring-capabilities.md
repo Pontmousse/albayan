@@ -59,8 +59,8 @@ The safe scope is deliberately narrow:
 - `\mathbb` is advertised only for `N, Z, Q, R, C, H`.
 - `\mathrm` is advertised only as exact `\mathrm{d}`.
 - `\mathtt` is one atomic multi-character Latin variable name, but it is **not currently in `round_trip_safe`**. The code is designed to call the selected Burhan model for an unmapped atomic name; the persisted dev browser result instead kept `var`/`sin` in Latin, so that behavior still needs to be resolved before promotion.
-- `\mathsf` is one unit atom and is round-trip safe in the validated simple-unit cases. **Do not combine unit atoms with raw `/` yet**.
-- Raw `/`, `<`, and `>` are temporarily outside `round_trip_safe`: Burhan intentionally mirrors them on the Arabic side, but its reverse renderer currently returns the Arabic-side operator spelling unchanged rather than applying the inverse mapping.
+- `\mathsf` is one unit atom and is round-trip safe. Compound unit expressions may combine unit atoms with safe raw operators such as `3\mathsf{m}/\mathsf{s}`.
+- Raw `/`, `<`, and `>` are again in `round_trip_safe`: Burhan's reverse converter now applies the inverse of its Arabic-side mirroring, and BuTeX normalizes the structured `\backslash` divide command into the editable divide role instead of displaying the command name literally.
 - Existing legacy `\unit{...}` input remains supported by the stack but is not the preferred AI authoring convention.
 
 The strict Document2 math-node schema accepts bounded optional `source_latex` provenance emitted by Burhan; Burhan-only `arabic_unit` metadata is removed at the Al-Bayan projection boundary instead of becoming editor state. There are no equation profiles, migrations, or new semantic macros. `contract_version: 1` remains response bookkeeping, not an equation version.
@@ -90,12 +90,12 @@ These standard fallback symbols are intentionally separate from BuTeX's Arabic a
 
 The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
 
-- Burhan `drghaliasri/burhan3.0` commit `1665240dea718465f5a6208953af301d157141de`;
-- BuTeX `drghaliasri/butex` commit `9694b09341deef73916383833a82ae85591fed1b` (the 7.3.0 release line).
+- Burhan `drghaliasri/burhan3.0` commit `487b3c7b73eb8b8a81433fc90e0058d06cf7cc48` (MR !20 head);
+- BuTeX `drghaliasri/butex` commit `c751789b248db390ad621abf4d671ce19d2a47ba` (MR !43 head).
 
 The Burhan revision includes the standard semantic authoring work for `\top`, number systems, exact differential `\mathrm{d}`, atomic `\mathtt` names, and `\mathsf` units. The key reviewed files now also include `nodes.py`, `llm_utils.py`, `english_converter.py`, and `tests/api/test_standard_math_authoring.py`.
 
-The BuTeX revision includes the 7.3.0 structured import/export work for the same forms. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/divideOperator.ts` owns the editor divide representation, and `test/standard_math_roundtrip.test.ts` covers the new authoring conventions.
+The BuTeX revision includes the structured import/export work for the same forms plus the divide/unit browser fixes. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/divideOperator.ts` normalizes Burhan's structured `\backslash` divide spelling, while `src/register/passthrough.ts` renders units as upright MathJax text and the editor marks unit atoms visibly.
 
 Before promoting this Albayan snapshot to an environment that uses different Burhan/BuTeX revisions, align or re-review the pinned upstream service versions.
 
