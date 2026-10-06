@@ -149,7 +149,7 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert BURHAN_COMMIT == "487b3c7b73eb8b8a81433fc90e0058d06cf7cc48"
+    assert BURHAN_COMMIT == "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
     assert BUTEX_COMMIT == "c751789b248db390ad621abf4d671ce19d2a47ba"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
