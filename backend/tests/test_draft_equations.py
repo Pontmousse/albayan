@@ -421,9 +421,13 @@ def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables
         result = equation_projection_service.project_document_equations(
             document, {"k": r"\text{ك}"}
         )
+        unmapped_script = equation_projection_service.project_document_equations(
+            document, {}
+        )
 
     assert result[0]["latex"] == r"\mathsf{m}_k"
     assert "warnings" not in result[0]
+    assert unmapped_script[0]["warnings"] == ["unmapped_arabic_variable:ك"]
 
 
 def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
