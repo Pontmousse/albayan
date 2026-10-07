@@ -137,6 +137,20 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     assert set(RAW_OPERATORS) == {"+", "-", "=", "*", "/", "<", ">"}
 
 
+def test_advertised_environments_are_accepted_as_bare_canonical_content() -> None:
+    """Contract cases must be accepted exactly as advertised — no pre-wrap."""
+    for latex, display, label in burhan_verification_cases():
+        if not label.startswith("environment:"):
+            continue
+        full_match, opening, inner, closing = burhan_client._split_latex(
+            latex, display=display
+        )
+        assert inner == latex, label
+        assert full_match == (rf"\[{latex}\]" if display else f"${latex}$"), label
+        assert opening == (r"\[" if display else "$"), label
+        assert closing == (r"\]" if display else "$"), label
+
+
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
     advertised = set(advertised_round_trip_commands())
 
@@ -191,11 +205,6 @@ def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
 
     for latex, display, label in burhan_verification_cases():
-        # Burhan's matrix/array/aligned family are math-only environments, not
-        # top-level MathObject wrappers. Exercise them inside display math.
-        if label.startswith("environment:"):
-            latex = rf"\[{latex}\]"
-
         token, mappings = burhan_client.convert_latex_to_math_token(
             latex,
             display=display,
