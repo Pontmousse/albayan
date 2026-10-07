@@ -15,6 +15,10 @@ from app.services import (
     butex_worker_client,
     equation_mapping_service,
 )
+from app.services.burhan_client import (
+    CANONICAL_INTEROP_TIER,
+    normalize_english_math_ast,
+)
 
 
 def _stage(
@@ -141,6 +145,7 @@ def inspect_equation(
             "document2_command",
             "headless_butex_validation",
             "reverse_conversion",
+            "round_trip_equivalence",
         ):
             stages[name] = _missing_downstream("blocked_by_burhan", action)
         stages["browser_validation"] = _stage(
@@ -254,20 +259,29 @@ def inspect_equation(
         )
 
     reverse_ok = False
+    reverse_latex: str | None = None
     reverse_started = perf_counter()
     try:
         # Mirror the real AI-facing read path used by get_draft_equations:
         # 1) invert persisted English->Arabic mappings while omitting collisions;
         # 2) ask BuTeX to project the stored editor MathObject to its English-side tree;
-        # 3) send that tree plus Arabic->English mappings to Burhan reverse conversion.
+        # 3) send that tree plus Arabic->English mappings through deterministic
+        #    canonical reverse conversion (not the ambient Burhan default tier).
         reverse_mapping, ambiguous_values = equation_mapping_service.invert_unique_equation_mappings(
             mappings
         )
         english_math_object = butex_worker_client.project_math_object_to_english(math_object)
-        reverse_latex, reverse_warnings = burhan_reverse_client.convert_math_object_to_english(
-            english_math_object,
-            variable_mapping=reverse_mapping,
-            model_tier=model_tier,
+        reverse_latex, reverse_warnings = (
+            burhan_reverse_client.project_math_object_to_canonical_latex(
+                english_math_object,
+                variable_mapping=reverse_mapping,
+            )
+            if model_tier == CANONICAL_INTEROP_TIER
+            else burhan_reverse_client.convert_math_object_to_english(
+                english_math_object,
+                variable_mapping=reverse_mapping,
+                model_tier=model_tier,
+            )
         )
         stages["reverse_conversion"] = _stage(
             available=True,
@@ -280,6 +294,7 @@ def inspect_equation(
                 "reverse_mapping": reverse_mapping,
                 "ambiguous_mapping_values": sorted(ambiguous_values),
                 "projected_math_object": english_math_object,
+                "model_tier": model_tier,
             },
         )
         reverse_ok = True
@@ -294,6 +309,83 @@ def inspect_equation(
             human_action=human_action,
         )
 
+    equivalence_ok = False
+    if not reverse_ok or reverse_latex is None:
+        stages["round_trip_equivalence"] = _missing_downstream(
+            "blocked_by_reverse_conversion",
+            "Resolve reverse conversion before judging semantic round-trip safety.",
+        )
+    else:
+        try:
+            # Authoritative semantic check: HTTP 200 on reverse is not enough.
+            # Re-parse both the original canonical input and the reverse LaTeX
+            # through the deterministic forward converter and compare normalized
+            # English MathObject/AST identity.
+            input_diagnostics: dict[str, Any] = {}
+            if model_tier == CANONICAL_INTEROP_TIER and isinstance(
+                raw.get("english_json"), (dict, list)
+            ):
+                input_ast = raw["english_json"]
+            else:
+                burhan_client.convert_canonical_latex_to_math_object(
+                    latex,
+                    display=display,
+                    label=None,
+                    mappings={},
+                    diagnostics=input_diagnostics,
+                )
+                input_ast = input_diagnostics.get("english_json")
+
+            reverse_diagnostics: dict[str, Any] = {}
+            burhan_client.convert_canonical_latex_to_math_object(
+                reverse_latex,
+                display=display,
+                label=None,
+                mappings={},
+                diagnostics=reverse_diagnostics,
+            )
+            reverse_ast = reverse_diagnostics.get("english_json")
+            normalized_input = normalize_english_math_ast(input_ast)
+            normalized_reverse = normalize_english_math_ast(reverse_ast)
+            equivalence_ok = (
+                isinstance(normalized_input, (dict, list))
+                and normalized_input == normalized_reverse
+            )
+            stages["round_trip_equivalence"] = _stage(
+                available=True,
+                ok=equivalence_ok,
+                authoritative=True,
+                data={
+                    "comparison": "normalized_english_math_ast",
+                    "model_tier": CANONICAL_INTEROP_TIER,
+                    "input_ast": normalized_input,
+                    "reverse_ast": normalized_reverse,
+                    "canonical_input_latex": latex,
+                    "reverse_canonical_latex": reverse_latex,
+                },
+                error=None
+                if equivalence_ok
+                else {
+                    "code": "round_trip_identity_mismatch",
+                    "message": "Reverse conversion succeeded but normalized canonical AST identity changed.",
+                },
+                reason=None if equivalence_ok else "semantic_identity_changed",
+            )
+        except HTTPException as exc:
+            unavailable, human_action = _unavailable_from_http(exc)
+            stages["round_trip_equivalence"] = _stage(
+                available=not unavailable,
+                ok=None if unavailable else False,
+                authoritative=True,
+                error=_bounded_error(exc),
+                reason=(
+                    "round_trip_equivalence_unavailable"
+                    if unavailable
+                    else "round_trip_equivalence_failed"
+                ),
+                human_action=human_action,
+            )
+
     stages["browser_validation"] = _stage(
         available=False,
         ok=None,
@@ -302,7 +394,7 @@ def inspect_equation(
         human_action="Use Playwright MCP for real browser/editor/render validation; Dev MCP does not proxy browser control.",
     )
 
-    report["ok"] = document2_ok and headless_ok and reverse_ok
+    report["ok"] = document2_ok and headless_ok and reverse_ok and equivalence_ok
     report["partial"] = any(
         stage.get("available") is False
         for name, stage in stages.items()

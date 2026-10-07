@@ -20,6 +20,10 @@ from app.schemas.document2 import DocumentMathObjectJson
 logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 45.0
+# Canonical equation interoperability is an operation-level policy: always use
+# Burhan's deterministic heuristic tier, never the ambient settings default or
+# an authentication accident.
+CANONICAL_INTEROP_TIER = "heuristic"
 _SUPPORTED_MODEL_TIERS = {"heuristic", "free", "cheap", "medium", "frontier"}
 _SUPPORTED_ENVIRONMENTS = (
     "align",
@@ -187,6 +191,26 @@ def _bounded_warnings(value: Any) -> list[Any]:
     return compact
 
 
+def normalize_english_math_ast(value: Any) -> Any:
+    """Normalize an English MathObject/AST for semantic equivalence comparison.
+
+    Drops null placeholders and sorts object keys so formatting-only differences
+    (for example `x_1` vs `x_{1}` once both are parsed) do not produce false
+    failures. Structural/operator/variable identity is preserved.
+    """
+    if isinstance(value, dict):
+        normalized: dict[str, Any] = {}
+        for key in sorted(value):
+            child = value[key]
+            if child is None:
+                continue
+            normalized[key] = normalize_english_math_ast(child)
+        return normalized
+    if isinstance(value, list):
+        return [normalize_english_math_ast(child) for child in value]
+    return value
+
+
 def convert_latex_to_math_token(
     latex: str,
     *,
@@ -320,3 +344,22 @@ def convert_latex_to_math_token(
         "source": arabic_source,
         "math_object": math_object,
     }, resolved_mappings
+
+
+def convert_canonical_latex_to_math_object(
+    latex: str,
+    *,
+    display: bool,
+    label: str | None,
+    mappings: Mapping[str, str],
+    diagnostics: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Deterministic canonical → Document2 conversion for interoperability paths."""
+    return convert_latex_to_math_token(
+        latex,
+        display=display,
+        label=label,
+        mappings=mappings,
+        model_tier=CANONICAL_INTEROP_TIER,
+        diagnostics=diagnostics,
+    )

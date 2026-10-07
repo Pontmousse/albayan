@@ -40,7 +40,8 @@ Every stage reports `available`, `ok`, and `authoritative` separately.
 - `albayan_projection`: the real strict Al-Bayan `DocumentMathObjectJson` projection and resulting math token.
 - `document2_command`: an in-memory empty document is normalized, a paragraph is inserted, then the real `insert_inline_token` command is applied through the configured Document2/BuTeX worker. No article, database, or object-storage state is persisted.
 - `headless_butex_validation`: the BuTeX worker calls the existing `fromMathObjectJson()` and `mathObjectToEditorSession()` implementation. It does not contain a second parser or a diagnostic-only editor model.
-- `reverse_conversion`: the stored editor-shaped MathObject and the observed mappings are sent to the real Burhan `/convert-to-english` endpoint using the selected tier.
+- `reverse_conversion`: the stored editor-shaped MathObject and the observed mappings are sent to the real Burhan `/convert-to-english` endpoint. When the selected tier is `heuristic`, this mirrors the production canonical projection path (`project_math_object_to_canonical_latex`); other tiers remain available for model-tier comparison only. A successful HTTP response here is not enough to certify round-trip safety.
+- `round_trip_equivalence`: authoritative semantic check. Re-parses the original canonical input and the reverse LaTeX through deterministic Burhan forward conversion (`CANONICAL_INTEROP_TIER = heuristic`) and compares normalized English MathObject/AST identity. Formatting-only differences such as `x_1` vs `x_{1}` must not fail; identity changes such as `x \\leq y` → `x \\geq y` or `x + X` → `x + x` must fail even when every HTTP stage returned 200.
 - `browser_validation`: always reported as unavailable by this tool. Use Playwright MCP for real browser/editor/render/network evidence.
 
 An unavailable stage is not fabricated. The report includes `reason` and `human_action` describing the smallest missing capability.

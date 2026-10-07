@@ -190,20 +190,26 @@ def _arabic_char_values(value: Any) -> list[str]:
 
     def walk(node: Any) -> None:
         if isinstance(node, dict):
+            source_latex = node.get("source_latex")
+            has_local_identity = isinstance(source_latex, str) and bool(source_latex.strip())
+
             if node.get("node_type") == "CharObject":
                 expr = node.get("expr")
-                if isinstance(expr, str) and _ARABIC_RE.search(expr):
+                # Occurrence-level source_latex is authoritative identity. Do not
+                # treat the Arabic payload as unresolved merely because the
+                # article-level Arabic→English mapping is missing or ambiguous.
+                if (
+                    isinstance(expr, str)
+                    and _ARABIC_RE.search(expr)
+                    and not has_local_identity
+                ):
                     found.append(expr)
 
-            source_latex = node.get("source_latex")
-            semantic_payload = isinstance(source_latex, str) and source_latex.startswith(
-                (r"\mathsf{", r"\unit{", r"\mathtt{", r"\mathrm{d}")
-            )
             for key, child in node.items():
-                # Arabic payloads inside explicit semantic-role nodes are not
-                # variable mappings. Still walk scripts and other siblings so
-                # real variables attached to the node keep warning coverage.
-                if semantic_payload and key == "mandatory_args":
+                # Arabic payloads under a node that already carries reliable
+                # source identity are not global mapping problems. Still walk
+                # scripts and other siblings so attached variables keep coverage.
+                if has_local_identity and key == "mandatory_args":
                     continue
                 if isinstance(child, (dict, list)):
                     walk(child)
@@ -279,9 +285,11 @@ def project_document_equations(
 
         warnings = _mapping_warnings(raw_object, reverse_mapping, ambiguous_values)
         english_object = butex_worker_client.project_math_object_to_english(raw_object)
-        latex, conversion_warnings = burhan_reverse_client.convert_math_object_to_english(
-            english_object,
-            variable_mapping=reverse_mapping,
+        latex, conversion_warnings = (
+            burhan_reverse_client.project_math_object_to_canonical_latex(
+                english_object,
+                variable_mapping=reverse_mapping,
+            )
         )
         for warning in conversion_warnings:
             if warning not in warnings:

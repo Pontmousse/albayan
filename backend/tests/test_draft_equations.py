@@ -54,7 +54,7 @@ def _ids(field_id: str, token_id: str, source: str) -> dict:
     }
 
 
-def _convert_by_expr(math_object, *, variable_mapping):
+def _convert_by_expr(math_object, *, variable_mapping, model_tier=None):
     expr = math_object["lines"][0]["chain"][0]["expr"]
     return expr, []
 
@@ -70,7 +70,7 @@ def test_no_equations_returns_empty_projection() -> None:
             "app.services.butex_worker_client.project_math_object_to_english"
         ) as project,
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english"
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex"
         ) as convert,
     ):
         result = equation_projection_service.project_document_equations(
@@ -131,7 +131,7 @@ def test_projects_paragraph_heading_list_and_nested_content() -> None:
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             side_effect=_convert_by_expr,
         ),
     ):
@@ -191,7 +191,7 @@ def test_table_math_uses_row_major_sidecar_order_and_caption_math() -> None:
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             side_effect=_convert_by_expr,
         ),
     ):
@@ -233,7 +233,7 @@ def test_figure_caption_math_is_discovered() -> None:
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             side_effect=_convert_by_expr,
         ),
     ):
@@ -268,7 +268,7 @@ def test_raw_math_is_explicit_and_never_sent_to_butex_or_burhan() -> None:
             "app.services.butex_worker_client.project_math_object_to_english"
         ) as project,
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english"
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex"
         ) as convert,
     ):
         result = equation_projection_service.project_document_equations(document, {})
@@ -313,7 +313,7 @@ def test_structured_math_is_projected_through_butex_before_burhan() -> None:
             return_value=english_side,
         ) as project,
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             return_value=("x", []),
         ) as convert,
     ):
@@ -342,7 +342,7 @@ def test_reverse_mapping_omits_ambiguous_values_and_returns_compact_warnings() -
     }
     captured = {}
 
-    def convert(math_object, *, variable_mapping):
+    def convert(math_object, *, variable_mapping, model_tier=None):
         captured["mapping"] = variable_mapping
         return "x", ["burhan_fallback"]
 
@@ -352,7 +352,7 @@ def test_reverse_mapping_omits_ambiguous_values_and_returns_compact_warnings() -
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             side_effect=convert,
         ),
     ):
@@ -414,7 +414,7 @@ def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             return_value=(r"\mathsf{m}_k", []),
         ),
     ):
@@ -474,7 +474,7 @@ def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             return_value=(r"\mathtt{velocity}", []),
         ),
     ):
@@ -503,7 +503,7 @@ def test_mapping_mismatch_warns_but_still_projects_equation() -> None:
             side_effect=_project_identity,
         ),
         patch(
-            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            "app.services.burhan_reverse_client.project_math_object_to_canonical_latex",
             return_value=("q", []),
         ) as convert,
     ):
@@ -551,16 +551,19 @@ def test_reverse_client_uses_english_tree_contract_and_strips_outer_delimiters()
 
     with (
         patch.object(burhan_reverse_client.settings, "burhan_url", "http://burhan"),
-        patch.object(burhan_reverse_client.settings, "burhan_model_tier", "heuristic"),
+        # Intentionally leave the configured default non-heuristic so the
+        # canonical wrapper must force the deterministic interop tier.
+        patch.object(burhan_reverse_client.settings, "burhan_model_tier", "cheap"),
         patch.object(burhan_reverse_client.httpx, "Client", FakeClient),
     ):
-        latex, warnings = burhan_reverse_client.convert_math_object_to_english(
+        latex, warnings = burhan_reverse_client.project_math_object_to_canonical_latex(
             _math("س", mode=r"\[", closing=r"\]", label="eq:one"),
             variable_mapping={"س": "x"},
         )
 
     assert captured["path"] == "/convert-to-english"
     assert captured["payload"]["variable_mapping"] == {"س": "x"}
+    assert captured["payload"]["model_tier"] == "heuristic"
     sent_tree = json.loads(captured["payload"]["english_json"])
     assert sent_tree["node_type"] == "MathObject"
     assert sent_tree["lines"][0]["chain"][0]["expr"] == "س"
