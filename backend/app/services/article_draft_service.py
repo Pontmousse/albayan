@@ -642,11 +642,15 @@ def apply_command(
         token = command.get("token")
         if isinstance(token, dict) and token.get("kind") == "math" and "latex" in token:
             expected_equation_mappings = equation_mapping_service.get_equation_mappings(article)
+            # Agent-authored compact LaTeX is already constrained by the
+            # advertised math-authoring contract. Keep this conversion
+            # deterministic instead of asking a model to reinterpret canonical syntax.
             strict_token, resolved_mappings = burhan_client.convert_latex_to_math_token(
                 token["latex"],
                 display=bool(token.get("display", False)),
                 label=token.get("label"),
                 mappings=expected_equation_mappings,
+                model_tier="heuristic" if actor.auth_method == "agent" else None,
             )
             try:
                 next_equation_mappings = equation_mapping_service.merged_equation_mappings(

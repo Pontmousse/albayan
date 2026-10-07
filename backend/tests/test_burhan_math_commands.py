@@ -116,6 +116,7 @@ def _arabic_command_math(name: str, opening: str = "$", closing: str = "$") -> s
         r"m+3\mathsf{m}",
         r"N+\mathbb{N}+3\mathsf{N}",
         r"3\unit{m}",
+        r"\boxed{\frac{x_1}{\sqrt{1+x^2}}}",
     ],
 )
 def test_compact_math_command_schema_accepts_normal_latex(latex: str) -> None:
@@ -439,6 +440,7 @@ def test_apply_math_command_commits_mapping_and_replay_skips_burhan(db_and_stora
     assert replay["revision_number"] == 2
     assert article.equation_mappings == {"x": "س"}
     assert convert.call_count == 1
+    assert convert.call_args.kwargs["model_tier"] == "heuristic"
     assert "latex" not in captured["command"]["token"]
     assert captured["command"]["token"]["math_object"]["source_owner"] == "editor"
 
@@ -452,9 +454,10 @@ def test_consecutive_equations_reuse_and_accumulate_article_mappings(db_and_stor
         (_strict_token("ص"), {"x": "س", "y": "ص"}),
     ]
 
-    def convert(_latex, *, display, label, mappings, **_kwargs):
+    def convert(_latex, *, display, label, mappings, **kwargs):
         assert display is False
         assert label is None
+        assert kwargs["model_tier"] == "heuristic"
         seen_mappings.append(dict(mappings))
         return conversion_results[len(seen_mappings) - 1]
 
