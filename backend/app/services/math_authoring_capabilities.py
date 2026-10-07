@@ -22,7 +22,7 @@ from typing import Any
 # The base semantic roles were persisted/browser validated; the mirrored-operator
 # and editor-display follow-up fixes are pinned explicitly below.
 BURHAN_COMMIT = "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
-BUTEX_COMMIT = "de525c61fd5e231906b5c12ef67cc5fa40ac68b5"
+BUTEX_COMMIT = "355b76c4fe5cec215999be176df2b22ee4fc3919"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -57,10 +57,12 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/accentCommands.ts",
             "src/editor/standardCommands.ts",
             "src/editor/display/delimiter.ts",
+            "src/editor/display/boxed.ts",
             "src/document2/mathBridge.ts",
             "src/document2-cli/execute.ts",
             "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
+            "test/boxed_command.test.ts",
             "test/standard_math_roundtrip.test.ts",
             "src/editor/divideOperator.ts",
             "src/editor/display/base.ts",
@@ -85,6 +87,12 @@ STRUCTURAL_COMMANDS = [
         "mandatory_args": 1,
         "optional_args": "0_or_1",
         "form": r"\sqrt{radicand} or \sqrt[index]{radicand}",
+    },
+    {
+        "command": r"\boxed",
+        "mandatory_args": 1,
+        "optional_args": 0,
+        "form": r"\boxed{expression}",
     },
     {
         "command": r"\overset",
@@ -368,6 +376,7 @@ CAPABILITIES: dict[str, Any] = {
         "Accents take exactly one mandatory argument and no optional argument.",
         r"\frac, \overset, and \underset take exactly two mandatory arguments.",
         r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
+        r"\boxed takes exactly one mandatory expression and no optional arguments.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
         r"Do not use \mathtt for new AI-authored math yet; unmapped atomic names did not receive the intended Arabic translation in the persisted browser E2E.",
@@ -375,6 +384,7 @@ CAPABILITIES: dict[str, Any] = {
     ],
     "examples": [
         {"latex": r"\frac{x_1}{\sqrt{1+x^2}}", "display": False},
+        {"latex": r"\boxed{x=1}", "display": True},
         {"latex": r"\sum_{i=1}^{n} i^2", "display": True},
         {"latex": r"\frac{\partial f}{\partial x}", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
@@ -416,6 +426,7 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
     structure_examples = {
         r"\frac": r"\frac{x}{y}",
         r"\sqrt": r"\sqrt[3]{x}",
+        r"\boxed": r"\boxed{x=1}",
         r"\overset": r"\overset{a}{x}",
         r"\underset": r"\underset{a}{x}",
     }
