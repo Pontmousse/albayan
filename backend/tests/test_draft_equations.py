@@ -366,6 +366,124 @@ def test_reverse_mapping_omits_ambiguous_values_and_returns_compact_warnings() -
     assert mappings == {"x": "س", "X": "س", "y": "ص"}
 
 
+def test_mapping_warnings_ignore_semantic_unit_payload_but_keep_script_variables() -> None:
+    raw = {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "lines": [
+            {
+                "node_type": "ChainClass",
+                "chain": [
+                    {
+                        "node_type": "CommandObject",
+                        "name": r"\unit",
+                        "source_latex": r"\mathsf{m}",
+                        "mandatory_args": [
+                            {
+                                "node_type": "ChainClass",
+                                "chain": [{"node_type": "CharObject", "expr": "م"}],
+                            }
+                        ],
+                        "subscript": {
+                            "node_type": "ChainClass",
+                            "chain": [{"node_type": "CharObject", "expr": "ك"}],
+                        },
+                    }
+                ],
+            }
+        ],
+    }
+    document = {
+        "blocks": [
+            {
+                "id": "paragraph-1",
+                "command": r"\paragraph",
+                "value": r"$\unit{م}$",
+                "inline_ids": _ids("field-1", "math-1", r"$\unit{م}$"),
+                "math_objects": [raw],
+            }
+        ]
+    }
+
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            return_value=(r"\mathsf{m}_k", []),
+        ),
+    ):
+        result = equation_projection_service.project_document_equations(
+            document, {"k": r"\text{ك}"}
+        )
+        unmapped_script = equation_projection_service.project_document_equations(
+            document, {}
+        )
+
+    assert result[0]["latex"] == r"\mathsf{m}_k"
+    assert "warnings" not in result[0]
+    assert unmapped_script[0]["warnings"] == ["unmapped_arabic_variable:ك"]
+
+
+def test_mapping_warnings_ignore_atomic_named_variable_payload() -> None:
+    raw = {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "source_side": "arabic",
+        "source_owner": "editor",
+        "lines": [
+            {
+                "node_type": "ChainClass",
+                "chain": [
+                    {
+                        "node_type": "CommandObject",
+                        "name": r"\text",
+                        "source_latex": r"\mathtt{velocity}",
+                        "mandatory_args": [
+                            {
+                                "node_type": "ChainClass",
+                                "chain": [{"node_type": "CharObject", "expr": "السرعة"}],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+    document = {
+        "blocks": [
+            {
+                "id": "paragraph-1",
+                "command": r"\paragraph",
+                "value": r"$\text{السرعة}$",
+                "inline_ids": _ids("field-1", "math-1", r"$\text{السرعة}$"),
+                "math_objects": [raw],
+            }
+        ]
+    }
+
+    with (
+        patch(
+            "app.services.butex_worker_client.project_math_object_to_english",
+            side_effect=_project_identity,
+        ),
+        patch(
+            "app.services.burhan_reverse_client.convert_math_object_to_english",
+            return_value=(r"\mathtt{velocity}", []),
+        ),
+    ):
+        result = equation_projection_service.project_document_equations(document, {})
+
+    assert result[0]["latex"] == r"\mathtt{velocity}"
+    assert "warnings" not in result[0]
+
+
 def test_mapping_mismatch_warns_but_still_projects_equation() -> None:
     document = {
         "blocks": [
