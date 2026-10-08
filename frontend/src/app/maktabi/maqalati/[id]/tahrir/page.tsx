@@ -54,7 +54,7 @@ export default function TahrirPage() {
   const { getToken } = useAuth();
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { formatDigits } = useNumerals();
+  const { formatDigits, numeralSystem } = useNumerals();
   const articleId = params.id;
 
   const [phase, setPhase] = useState<EditorPhase>("loading");
@@ -575,6 +575,7 @@ export default function TahrirPage() {
             documentDirection="rtl"
             equationSide="arabic"
             mathOutput="svg"
+            digitForm={numeralSystem === "latn" ? "western" : "arabicIndic"}
             editableEquations
             resolveImageUrl={resolveImageUrl}
             listImageAssets={listButexImageAssets}

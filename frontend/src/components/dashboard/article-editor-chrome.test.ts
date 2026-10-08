@@ -27,6 +27,27 @@ describe("focused article editor chrome", () => {
     expect(page).not.toContain("--article-editor-site-header-height");
   });
 
+  it("uses the persisted Al-Bayan numeral preference as BuTeX's digit authority", () => {
+    const page = readLocal(
+      "../../app/maktabi/maqalati/[id]/tahrir/page.tsx",
+    );
+    const globals = readLocal("../../app/globals.css");
+
+    expect(page).toContain("formatDigits, numeralSystem");
+    expect(page).toContain(
+      'digitForm={numeralSystem === "latn" ? "western" : "arabicIndic"}',
+    );
+    expect(globals).toContain(
+      ".albayan-butex-theme .butex-document2-widget__digit-form-menu",
+    );
+    expect(globals).toContain(
+      ".albayan-butex-theme .butex-widget .digit-form-menu",
+    );
+    expect(globals).toContain(
+      ".butex-document2-widget__command-grid--digits",
+    );
+  });
+
   it("keeps article tools, workspace navigation, and save state reachable", () => {
     const header = readLocal("./article-editor-header.tsx");
 
