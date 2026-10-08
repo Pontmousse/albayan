@@ -76,3 +76,46 @@ def test_distinct_wrappers_with_same_arabic_payload_are_ambiguous() -> None:
     )
 
     assert warnings == ["ambiguous_reverse_mapping:ب"]
+
+
+def test_occurrence_source_latex_suppresses_ambiguous_global_mapping_warning() -> None:
+    """Node-local source identity wins over an ambiguous article-level mapping."""
+    math_object = {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+            {
+                "node_type": "ChainClass",
+                "chain": [
+                    {
+                        "node_type": "CharObject",
+                        "expr": "س",
+                        "source_latex": "x",
+                    }
+                ],
+            }
+        ],
+    }
+
+    warnings = _warnings(math_object, {"x": "س", "X": "س"})
+
+    assert warnings == []
+
+
+def test_occurrence_without_source_latex_still_warns_on_ambiguous_mapping() -> None:
+    math_object = {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "closing": "$",
+        "lines": [
+            {
+                "node_type": "ChainClass",
+                "chain": [{"node_type": "CharObject", "expr": "س"}],
+            }
+        ],
+    }
+
+    warnings = _warnings(math_object, {"x": "س", "X": "س"})
+
+    assert warnings == ["ambiguous_reverse_mapping:س"]

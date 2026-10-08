@@ -13,7 +13,11 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
-from app.services.burhan_client import _burhan_headers, _resolve_model_tier
+from app.services.burhan_client import (
+    CANONICAL_INTEROP_TIER,
+    _burhan_headers,
+    _resolve_model_tier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -123,4 +127,17 @@ def convert_math_object_to_english(
 
     return _strip_outer_math_delimiters(english_latex), _compact_warnings(
         body.get("warnings", [])
+    )
+
+
+def project_math_object_to_canonical_latex(
+    math_object: Mapping[str, Any],
+    *,
+    variable_mapping: Mapping[str, str],
+) -> tuple[str, list[str]]:
+    """Deterministic Document2 → canonical English LaTeX projection."""
+    return convert_math_object_to_english(
+        math_object,
+        variable_mapping=variable_mapping,
+        model_tier=CANONICAL_INTEROP_TIER,
     )

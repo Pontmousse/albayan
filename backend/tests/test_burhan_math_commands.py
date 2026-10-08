@@ -419,13 +419,44 @@ def db_and_storage():
     db.close()
 
 
-def _actor(user: User) -> Actor:
+def _actor(user: User, *, auth_method: str = "agent") -> Actor:
     return Actor(
         user_id=user.id,
         clerk_id=user.clerk_id,
-        auth_method="agent",
+        auth_method=auth_method,
         scopes=frozenset({"articles:read", "articles:draft:write"}),
     )
+
+
+def test_human_authoring_also_uses_deterministic_canonical_tier(db_and_storage) -> None:
+    """Authentication must not choose mathematical semantics for canonical interop."""
+    db, user = db_and_storage
+    article = article_service.create_article(db, user.id, "عنوان", None)
+    captured: dict = {}
+
+    def convert(latex, *, display, label, mappings, diagnostics=None):
+        captured["latex"] = latex
+        return _strict_token(), {"x": "س"}
+
+    with (
+        patch(
+            "app.services.burhan_client.convert_canonical_latex_to_math_object",
+            side_effect=convert,
+        ) as convert_mock,
+        patch(
+            "app.services.butex_worker_client.apply_document_command",
+            side_effect=lambda document, _command: {
+                **document,
+                "blocks": [{"id": "block_math"}],
+            },
+        ),
+    ):
+        article_draft_service.apply_command(
+            db, article.id, _actor(user, auth_method="human"), _insert_payload(1, "x")
+        )
+
+    assert convert_mock.call_count == 1
+    assert captured["latex"] == "x"
 
 
 def _strict_token(expr: str = "س") -> dict:
@@ -487,7 +518,7 @@ def test_apply_math_command_commits_mapping_and_replay_skips_burhan(db_and_stora
 
     with (
         patch(
-            "app.services.burhan_client.convert_latex_to_math_token",
+            "app.services.burhan_client.convert_canonical_latex_to_math_object",
             return_value=(_strict_token(), {"x": "س"}),
         ) as convert,
         patch(
@@ -503,7 +534,6 @@ def test_apply_math_command_commits_mapping_and_replay_skips_burhan(db_and_stora
     assert replay["revision_number"] == 2
     assert article.equation_mappings == {"x": "س"}
     assert convert.call_count == 1
-    assert convert.call_args.kwargs["model_tier"] == "heuristic"
     assert "latex" not in captured["command"]["token"]
     assert captured["command"]["token"]["math_object"]["source_owner"] == "editor"
 
@@ -520,7 +550,8 @@ def test_consecutive_equations_reuse_and_accumulate_article_mappings(db_and_stor
     def convert(_latex, *, display, label, mappings, **kwargs):
         assert display is False
         assert label is None
-        assert kwargs["model_tier"] == "heuristic"
+        # Canonical interop wrapper must not expose a caller-selected tier.
+        assert "model_tier" not in kwargs
         seen_mappings.append(dict(mappings))
         return conversion_results[len(seen_mappings) - 1]
 
@@ -533,7 +564,7 @@ def test_consecutive_equations_reuse_and_accumulate_article_mappings(db_and_stor
 
     with (
         patch(
-            "app.services.burhan_client.convert_latex_to_math_token",
+            "app.services.burhan_client.convert_canonical_latex_to_math_object",
             side_effect=convert,
         ),
         patch(
@@ -562,7 +593,7 @@ def test_failed_worker_does_not_persist_new_mapping(db_and_storage) -> None:
 
     with (
         patch(
-            "app.services.burhan_client.convert_latex_to_math_token",
+            "app.services.burhan_client.convert_canonical_latex_to_math_object",
             return_value=(_strict_token(), {"x": "س"}),
         ),
         patch(

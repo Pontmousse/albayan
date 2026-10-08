@@ -92,6 +92,18 @@ def _install_successful_pipeline(monkeypatch) -> None:
         projected.pop("source_owner")
         return projected
 
+    def fake_convert_with_round_trip(
+        latex, *, display, label, mappings, model_tier=None, diagnostics=None
+    ):
+        return fake_convert(
+            latex,
+            display=display,
+            label=label,
+            mappings=mappings,
+            model_tier=model_tier,
+            diagnostics=diagnostics,
+        )
+
     def fake_reverse(math, *, variable_mapping, model_tier=None):
         assert "source_side" not in math
         assert "source_owner" not in math
@@ -102,7 +114,7 @@ def _install_successful_pipeline(monkeypatch) -> None:
     monkeypatch.setattr(
         equation_diagnostic_service.burhan_client,
         "convert_latex_to_math_token",
-        fake_convert,
+        fake_convert_with_round_trip,
     )
     monkeypatch.setattr(
         equation_diagnostic_service.butex_worker_client,
@@ -160,6 +172,10 @@ def test_inspect_equation_reports_each_real_pipeline_stage(monkeypatch) -> None:
     assert reverse_data["ambiguous_mapping_values"] == []
     assert "source_side" not in reverse_data["projected_math_object"]
     assert "source_owner" not in reverse_data["projected_math_object"]
+    equivalence = report["stages"]["round_trip_equivalence"]
+    assert equivalence["available"] is True
+    assert equivalence["ok"] is True
+    assert equivalence["authoritative"] is True
     assert report["stages"]["browser_validation"]["available"] is False
 
 
@@ -190,6 +206,7 @@ def test_burhan_unavailable_blocks_downstream_without_fabricating(monkeypatch) -
         "document2_command",
         "headless_butex_validation",
         "reverse_conversion",
+        "round_trip_equivalence",
     ):
         assert report["stages"][name]["available"] is False
         assert report["stages"][name]["reason"] == "blocked_by_burhan"

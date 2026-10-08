@@ -202,10 +202,14 @@ def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     """Exercise the exact client used before Document2 insertion for every whitelist entry."""
 
     monkeypatch.setattr(burhan_client.settings, "burhan_url", os.environ["BURHAN_URL"])
-    monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
+    # Contract verification must use the same deterministic policy as production
+    # authoring, not a test-only safer override of settings.burhan_model_tier.
+    monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "cheap")
 
     for latex, display, label in burhan_verification_cases():
-        token, mappings = burhan_client.convert_latex_to_math_token(
+        # Inner math environments are equation content (PR #200); the
+        # deterministic canonical interop API wraps them from `display`.
+        token, mappings = burhan_client.convert_canonical_latex_to_math_object(
             latex,
             display=display,
             label=None,
