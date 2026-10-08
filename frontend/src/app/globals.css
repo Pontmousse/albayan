@@ -432,6 +432,29 @@ button:disabled,
   --butex-document2-collapse-bg: var(--journal-accent-soft);
 }
 
+/* Al-Bayan owns digit presentation globally through NumeralProvider.
+ * Keep BuTeX controlled by that host preference and hide its duplicate
+ * three-way digit pickers (which also expose a Persian mode Al-Bayan does not). */
+.albayan-butex-theme .butex-document2-widget__digit-form-menu,
+.albayan-butex-theme .butex-document2-widget__command-grid--digits,
+.albayan-butex-theme .butex-widget .digit-form-menu {
+  display: none;
+}
+
+.albayan-butex-theme
+  .butex-document2-widget__command-subtitle:has(
+    + .butex-document2-widget__command-grid--digits
+  ) {
+  display: none;
+}
+
+/* The embedded equation editor's compact menu puts "digits" last. */
+.albayan-butex-theme
+  .butex-widget__sheet-categories
+  > button:last-child {
+  display: none;
+}
+
 /* روابط الوجهات الخاصة في شريط التنقل */
 .nav-feature-link {
   --feature-accent: var(--journal-accent);
