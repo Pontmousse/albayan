@@ -371,6 +371,18 @@ button:disabled,
 }
 
 /* ثيم BuTeX Document v2 — مربوط بهوية مجلة البيان */
+/* Al-Bayan owns numeral presentation globally. BuTeX stays controlled by
+ * NumeralProvider, so its duplicate local digit pickers are hidden. */
+.albayan-butex-theme .butex-document2-widget__digit-form-menu,
+.albayan-butex-theme .butex-document2-widget__command-subtitle:has(
+    + .butex-document2-widget__command-grid--digits
+  ),
+.albayan-butex-theme .butex-document2-widget__command-grid--digits,
+.albayan-butex-theme .butex-widget .digit-form-menu,
+.albayan-butex-theme .butex-widget__sheet-categories > button:last-child {
+  display: none;
+}
+
 .albayan-butex-theme.butex-document2-widget {
   --butex-bg: var(--journal-paper);
   --butex-fg: var(--journal-ink);
