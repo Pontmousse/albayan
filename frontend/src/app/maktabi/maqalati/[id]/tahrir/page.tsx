@@ -36,7 +36,6 @@ import { createButexImageAssetListCache } from "@/lib/butex-image-assets";
 import { useButexImageResolver } from "@/lib/butex-images";
 import { ensureButexMathJax } from "@/lib/butex-mathjax";
 import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
-import { butexDigitFormForNumeralSystem } from "@/lib/butex-numerals";
 import { isButexDocumentValid } from "@/lib/butex-validation";
 import { isDevMode } from "@/lib/dev-mode";
 import { userFacingErrorMessage } from "@/lib/user-facing-errors";
