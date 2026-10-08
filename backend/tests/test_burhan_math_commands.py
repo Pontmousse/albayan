@@ -227,6 +227,69 @@ def test_delimiter_display_mismatch_is_rejected() -> None:
     assert raised.value.detail["code"] == "math_display_mismatch"
 
 
+@pytest.mark.parametrize(
+    "latex",
+    [
+        r"\begin{pmatrix}a&b\\c&d\end{pmatrix}",
+        r"\begin{bmatrix}a&b\\c&d\end{bmatrix}",
+        r"\begin{array}{cc}a&b\\c&d\end{array}",
+        r"\begin{aligned}a&=b\\c&=d\end{aligned}",
+    ],
+)
+def test_inner_math_environments_are_wrapped_from_display_flag(latex: str) -> None:
+    """Math-only envs are equation content, not outer math wrappers."""
+    full_match, opening, inner, closing = burhan_client._split_latex(
+        latex, display=True
+    )
+
+    assert opening == r"\["
+    assert closing == r"\]"
+    assert inner == latex
+    assert full_match == rf"\[{latex}\]"
+
+
+def test_inner_math_environment_inline_uses_dollar_wrappers() -> None:
+    latex = r"\begin{pmatrix}a&b\\c&d\end{pmatrix}"
+    full_match, opening, inner, closing = burhan_client._split_latex(
+        latex, display=False
+    )
+
+    assert opening == "$"
+    assert closing == "$"
+    assert inner == latex
+    assert full_match == f"${latex}$"
+
+
+@pytest.mark.parametrize(
+    "latex",
+    [
+        "$x",
+        r"\[x",
+        r"\(x",
+        r"\begin{equation}x",
+        r"\begin{align}a&=b",
+    ],
+)
+def test_incomplete_outer_wrappers_are_rejected(latex: str) -> None:
+    with pytest.raises(HTTPException) as raised:
+        burhan_client._split_latex(latex, display=True)
+
+    assert raised.value.status_code == 422
+    assert raised.value.detail["code"] == "invalid_math_latex"
+
+
+def test_genuine_outer_equation_wrapper_is_unwrapped() -> None:
+    latex = r"\begin{equation}x=1\end{equation}"
+    full_match, opening, inner, closing = burhan_client._split_latex(
+        latex, display=True
+    )
+
+    assert full_match == latex
+    assert opening == r"\begin{equation}"
+    assert closing == r"\end{equation}"
+    assert inner == "x=1"
+
+
 def test_convert_calls_burhan_and_uses_returned_arabic_json(monkeypatch) -> None:
     captured = {}
 

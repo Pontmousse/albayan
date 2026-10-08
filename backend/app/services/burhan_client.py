@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 45.0
 _SUPPORTED_MODEL_TIERS = {"heuristic", "free", "cheap", "medium", "frontier"}
-_SUPPORTED_ENVIRONMENTS = (
+# Genuine outer math wrappers only. Math-only inner environments (pmatrix,
+# array, aligned, …) are equation content and must not appear here.
+_OUTER_MATH_WRAPPER_ENVIRONMENTS = (
     "align",
     "align*",
     "gather",
@@ -60,11 +62,27 @@ def _resolve_model_tier(model_tier: str | None) -> str:
     return value
 
 
+def _is_incomplete_outer_wrapper(value: str) -> bool:
+    """True when input starts an outer math wrapper but is not a complete one.
+
+    Distinguishes genuine outer wrappers ($...$, \\[...\\], equation/align, …)
+    from math-only inner environments (pmatrix, array, aligned, …), which are
+    equation content and must not be treated as incomplete delimiters.
+    """
+    if value.startswith(("$", r"\(", r"\[")):
+        return True
+    return any(
+        value.startswith(rf"\begin{{{name}}}")
+        for name in _OUTER_MATH_WRAPPER_ENVIRONMENTS
+    )
+
+
 def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
     value = latex.strip()
     if not value:
         raise _error(422, "invalid_math_latex", "نص المعادلة فارغ.")
 
+    # Only genuine outer math wrappers — never math-only inner environments.
     wrappers: list[tuple[str, str, bool]] = [
         ("$$", "$$", True),
         (r"\[", r"\]", True),
@@ -73,7 +91,7 @@ def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
     ]
     wrappers.extend(
         (rf"\begin{{{name}}}", rf"\end{{{name}}}", True)
-        for name in _SUPPORTED_ENVIRONMENTS
+        for name in _OUTER_MATH_WRAPPER_ENVIRONMENTS
     )
 
     for opening, closing, wrapper_display in wrappers:
@@ -89,9 +107,11 @@ def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
                 raise _error(422, "invalid_math_latex", "محتوى المعادلة فارغ.")
             return value, opening, inner, closing
 
-    if value.startswith(("$", r"\(", r"\[", r"\begin{")):
+    if _is_incomplete_outer_wrapper(value):
         raise _error(422, "invalid_math_latex", "محددات LaTeX للمعادلة غير مكتملة.")
 
+    # No outer wrapper: treat the full string as canonical equation content and
+    # wrap from the explicit display flag (inner envs like pmatrix stay intact).
     opening, closing = (r"\[", r"\]") if display else ("$", "$")
     return opening + value + closing, opening, value, closing
 
