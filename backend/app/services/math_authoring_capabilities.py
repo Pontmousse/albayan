@@ -18,11 +18,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-# Reviewed upstream revisions for the 2026-10-06 semantic-authoring contract.
-# The base semantic roles were persisted/browser validated; the mirrored-operator
-# and editor-display follow-up fixes are pinned explicitly below.
-BURHAN_COMMIT = "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
-BUTEX_COMMIT = "800eef814fc724987c10ccf3ecaa522ed5b5abba"
+# Reviewed upstream revisions for the 2026-10-08 live development contract.
+# These pins include Burhan occurrence-level source identity and semantic RTL
+# operator preservation, plus BuTeX 7.3.3 presentation-time RTL mirroring.
+BURHAN_COMMIT = "73379098faab5509efe48eb4b024ec8da5c20ba6"
+BUTEX_COMMIT = "8c69d46077a0f355deace73684b7c8225a4a9090"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -44,6 +44,8 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "tests/parser/test_delimiter_coverage.py",
             "tests/parser/test_structured_arabic_commands.py",
             "tests/api/test_standard_math_authoring.py",
+            "tests/api/test_variable_source_identity.py",
+            "tests/api/test_prescanning.py",
             "tests/api/test_prescanning_semantic_guards.py",
         ],
     },
@@ -56,14 +58,18 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/atomicCommandsOperators.ts",
             "src/editor/accentCommands.ts",
             "src/editor/standardCommands.ts",
+            "src/editor/rawOperatorPresentation.ts",
             "src/editor/display/delimiter.ts",
             "src/editor/display/boxed.ts",
             "src/document2/mathBridge.ts",
+            "src/document2/mathObject.ts",
+            "src/ast/arabic_ast.ts",
             "src/document2-cli/execute.ts",
             "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
             "test/boxed_command.test.ts",
             "test/standard_math_roundtrip.test.ts",
+            "test/rtl_raw_operator_identity.test.ts",
             "src/editor/divideOperator.ts",
             "src/editor/display/base.ts",
             "src/editor/styles.ts",
@@ -131,7 +137,7 @@ ATOMIC_OPERATORS = [
 
 # General standard-symbol set supported by BOTH:
 # - Burhan GREEK_SYMBOL_COMMANDS; and
-# - BuTeX 7.2.x STANDARD_COMMANDS editable fallback.
+# - BuTeX 7.3.3 STANDARD_COMMANDS editable fallback.
 # Keep this as a capability group, not per-symbol special cases.
 STANDARD_SYMBOL_COMMANDS = [
     r"\alpha",
@@ -358,7 +364,7 @@ CAPABILITIES: dict[str, Any] = {
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
         "notes": [
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
-            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.2.x imports them as editable standardCommand nodes.",
+            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.3.3 imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
             r"\mathtt preserves atomic-name identity, but the development browser E2E kept unmapped names such as var/sin in Latin instead of producing the intended Arabic translation.",
             r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
