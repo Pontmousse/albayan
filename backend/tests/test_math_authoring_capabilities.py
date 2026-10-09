@@ -163,17 +163,20 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert BURHAN_COMMIT == "396d6c1c0068ad01b2f4a19d4dc411deb2f0af17"
-    assert BUTEX_COMMIT == "800eef814fc724987c10ccf3ecaa522ed5b5abba"
+    assert BURHAN_COMMIT == "73379098faab5509efe48eb4b024ec8da5c20ba6"
+    assert BUTEX_COMMIT == "d4d08a493e25e35e4c44a45658a953688e2bc4f8"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_reverse_command_mappings.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_convert_to_english.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_standard_math_authoring.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_variable_source_identity.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "src/editor/rawOperatorPresentation.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_math_roundtrip.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/rtl_raw_operator_identity.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "src/editor/display/boxed.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/boxed_command.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert any(item["command"] == r"\boxed" for item in contract["round_trip_safe"]["commands"]["structures"])

@@ -70,7 +70,7 @@ The strict Document2 math-node schema accepts bounded optional `source_latex` pr
 
 The contract now exposes a general `round_trip_safe.commands.standard_symbols` group. It is not an `\alpha` / `\beta` special case.
 
-The advertised set is the reviewed intersection of Burhan's `GREEK_SYMBOL_COMMANDS` mapping registry and BuTeX 7.2.x's tested `STANDARD_COMMANDS` editable fallback registry:
+The advertised set is the reviewed intersection of Burhan's `GREEK_SYMBOL_COMMANDS` mapping registry and BuTeX 7.3.3's tested `STANDARD_COMMANDS` editable fallback registry:
 
 ```text
 \alpha  \beta  \gamma  \delta  \epsilon  \eta  \theta
@@ -82,7 +82,7 @@ Recent upstream changes are what make this possible:
 
 - Burhan structures resolved Arabic LaTeX mapping fragments as real `CommandObject` nodes instead of embedding command strings in `CharObject.expr`.
 - Burhan's reverse converter handles command-valued mappings and normalizes equivalent Arabic font wrappers generically; it does not special-case Greek letters.
-- BuTeX 7.2.x imports every command in its standard-command compatibility registry as an editable `standardCommand` node, preserves scripts, rendering, save/reopen, and structured export, while still rejecting genuinely unknown commands.
+- BuTeX 7.3.3 imports every command in its standard-command compatibility registry as an editable `standardCommand` node, preserves scripts, rendering, save/reopen, and structured export, while still rejecting genuinely unknown commands.
 
 These standard fallback symbols are intentionally separate from BuTeX's Arabic authoring toolbar/custom macro registries. The editor may show a non-blocking warning for a standard fallback command; that warning does not make the MathObject non-editable.
 
@@ -90,12 +90,12 @@ These standard fallback symbols are intentionally separate from BuTeX's Arabic a
 
 The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
 
-- Burhan `drghaliasri/burhan3.0` commit `396d6c1c0068ad01b2f4a19d4dc411deb2f0af17` (merged MR !20 / develop);
-- BuTeX `drghaliasri/butex` commit `de525c61fd5e231906b5c12ef67cc5fa40ac68b5` (MR !43 head, released as 7.3.1).
+- Burhan `drghaliasri/burhan3.0` commit `73379098faab5509efe48eb4b024ec8da5c20ba6` (develop after merged MRs !24–!27);
+- BuTeX `drghaliasri/butex` commit `8c69d46077a0f355deace73684b7c8225a4a9090` (develop after merged MR !53, released as 7.3.3).
 
-The Burhan revision includes the standard semantic authoring work for `\top`, number systems, exact differential `\mathrm{d}`, atomic `\mathtt` names, and `\mathsf` units, plus merged inverse normalization of Arabic presentation operators during reverse conversion. The key reviewed files now also include `nodes.py`, `llm_utils.py`, `english_converter.py`, and `tests/api/test_standard_math_authoring.py`.
+The Burhan revision includes the existing semantic authoring roles plus explicit `\boxed` registration, occurrence-level `source_latex` identity for many-to-one Arabic variable mappings, and canonical operator identity for RTL-sensitive relations/arrows. The reviewed regression set therefore includes `tests/api/test_variable_source_identity.py` in addition to the standard authoring and reverse-conversion coverage.
 
-The BuTeX revision includes the structured import/export work for the same forms plus the divide/unit browser fixes. The key round-trip boundary is `src/document/mathEditorAdapter.ts`; `src/editor/divideOperator.ts` normalizes Burhan's structured `\backslash` divide spelling, while `src/register/passthrough.ts` renders units as upright MathJax text and the editor marks unit atoms visibly.
+The BuTeX revision includes the existing structured import/export work plus 7.3.3 presentation-time mirroring for raw RTL operators. Canonical operator identity remains in the AST; `src/editor/rawOperatorPresentation.ts` owns visual mirroring, with `test/rtl_raw_operator_identity.test.ts` covering the semantic/presentation boundary.
 
 Before promoting this Albayan snapshot to an environment that uses different Burhan/BuTeX revisions, align or re-review the pinned upstream service versions.
 
