@@ -20,9 +20,9 @@ from typing import Any
 
 # Reviewed upstream revisions for the 2026-10-08 live development contract.
 # These pins include Burhan occurrence-level source identity and semantic RTL
-# operator preservation, plus BuTeX 7.3.3 presentation-time RTL mirroring.
+# operator preservation, plus BuTeX 7.3.4 presentation-time RTL mirroring.
 BURHAN_COMMIT = "73379098faab5509efe48eb4b024ec8da5c20ba6"
-BUTEX_COMMIT = "8c69d46077a0f355deace73684b7c8225a4a9090"
+BUTEX_COMMIT = "d4d08a493e25e35e4c44a45658a953688e2bc4f8"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -137,7 +137,7 @@ ATOMIC_OPERATORS = [
 
 # General standard-symbol set supported by BOTH:
 # - Burhan GREEK_SYMBOL_COMMANDS; and
-# - BuTeX 7.3.3 STANDARD_COMMANDS editable fallback.
+# - BuTeX 7.3.4 STANDARD_COMMANDS editable fallback.
 # Keep this as a capability group, not per-symbol special cases.
 STANDARD_SYMBOL_COMMANDS = [
     r"\alpha",
@@ -364,7 +364,7 @@ CAPABILITIES: dict[str, Any] = {
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
         "notes": [
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
-            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.3.3 imports them as editable standardCommand nodes.",
+            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.3.4 imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
             r"\mathtt preserves atomic-name identity, but the development browser E2E kept unmapped names such as var/sin in Latin instead of producing the intended Arabic translation.",
             r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
