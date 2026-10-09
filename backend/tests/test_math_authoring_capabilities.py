@@ -164,7 +164,7 @@ def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None
     contract = get_math_authoring_capabilities()
 
     assert BURHAN_COMMIT == "73379098faab5509efe48eb4b024ec8da5c20ba6"
-    assert BUTEX_COMMIT == "8c69d46077a0f355deace73684b7c8225a4a9090"
+    assert BUTEX_COMMIT == "d4d08a493e25e35e4c44a45658a953688e2bc4f8"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
