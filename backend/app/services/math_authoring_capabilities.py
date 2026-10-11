@@ -18,11 +18,10 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-# Reviewed upstream revisions for the 2026-10-08 live development contract.
-# These pins include Burhan occurrence-level source identity and semantic RTL
-# operator preservation, plus BuTeX 7.3.4 presentation-time RTL mirroring.
-BURHAN_COMMIT = "73379098faab5509efe48eb4b024ec8da5c20ba6"
-BUTEX_COMMIT = "d4d08a493e25e35e4c44a45658a953688e2bc4f8"
+# Candidate feature-branch revisions. Do not merge/publish this snapshot until
+# Burhan !30 and BuTeX !56 are integrated and normal MCP/browser tests pass.
+BURHAN_COMMIT = "889e67737e92362806572f3e072dee53baf53f13"
+BUTEX_COMMIT = "41b129e5033ba86031066e5d0516e1e1cb477afc"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -45,6 +44,7 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "tests/parser/test_structured_arabic_commands.py",
             "tests/api/test_standard_math_authoring.py",
             "tests/api/test_variable_source_identity.py",
+            "tests/api/test_ordered_indices.py",
             "tests/api/test_prescanning.py",
             "tests/api/test_prescanning_semantic_guards.py",
         ],
@@ -58,6 +58,10 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/atomicCommandsOperators.ts",
             "src/editor/accentCommands.ts",
             "src/editor/standardCommands.ts",
+            "src/editor/indexSequence.ts",
+            "src/editor/types.ts",
+            "src/editor/render.ts",
+            "src/editor/state.ts",
             "src/editor/rawOperatorPresentation.ts",
             "src/editor/display/delimiter.ts",
             "src/editor/display/boxed.ts",
@@ -69,6 +73,7 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "test/vertical_delimiter_import.test.ts",
             "test/boxed_command.test.ts",
             "test/standard_math_roundtrip.test.ts",
+            "test/ordered_indices.test.ts",
             "test/rtl_raw_operator_identity.test.ts",
             "src/editor/divideOperator.ts",
             "src/editor/display/base.ts",
@@ -195,6 +200,18 @@ SEMANTIC_ROLE_COMMANDS = [
         "constraints": [r"Only exact \mathrm{d} is advertised by this semantic convention."],
     },
     {
+        "command": r"\mathnormal",
+        "meaning": "ordered_index_sequence",
+        "form": r"T_{\mathnormal{12}} or \alpha^\mathnormal{ijk,23}",
+        "argument": "2–64 ASCII letters/digits, optionally separated by single commas",
+        "constraints": [
+            r"Only a complete subscript/superscript group; \mathnormal elsewhere retains ordinary LaTeX typography.",
+            r"Each letter/digit is a separate ordered index atom; commas separate runs.",
+            r"Ordinary x_{12} and x^{32} remain numeric. Do not emit \idx.",
+            "No nested commands, compound expressions, decimals, leading/trailing/repeated commas, or new UI controls.",
+        ],
+    },
+    {
         "command": r"\mathsf",
         "meaning": "unit",
         "form": r"\mathsf{m}",
@@ -302,7 +319,7 @@ CAPABILITIES: dict[str, Any] = {
         "Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not "
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
         "Burhan's permissive parser happens to tokenize it. "
-        "preferred_submission.semantic_conventions describes the five agreed forms. "
+        "preferred_submission.semantic_conventions describes the agreed scoped forms. "
         "Transpose, number sets, the exact differential, and simple unit atoms are advertised "
         "under round_trip_safe.commands.semantic_roles after persisted MCP + browser validation. "
         r"\mathtt remains outside round_trip_safe until the intended Arabic translation of "
@@ -321,6 +338,11 @@ CAPABILITIES: dict[str, Any] = {
                 "complex numbers, quaternions. Bare letters are variables; D is not a number set."
             ),
             "differential": r"Use exact \mathrm{d}, never bare d for a differential; bare d is a variable.",
+            "ordered_indices": (
+                r"Only when intending separate ordered index atoms use the complete-script wrapper "
+                r"T_{\mathnormal{12}} or \alpha^\mathnormal{ijk,23}; ordinary x_{12} "
+                r"and x^{32} stay numeric. Commas separate index runs. Never use \idx."
+            ),
             "named_variable": (
                 r"Use \mathtt{var} for one atomic multi-character Latin variable, with scripts outside, "
                 r"e.g. \mathtt{var}_0. Do not use it for compound expressions. "
@@ -348,6 +370,7 @@ CAPABILITIES: dict[str, Any] = {
         "scripts": [
             "Use ^ and _ with one atom or a braced group, e.g. x^2, x_{i+1}.",
             "Scripts may contain other round_trip_safe constructs.",
+        r"Use \mathnormal{...} only as a complete script for 2–64 ordered letter/digit index atoms, optionally separated by commas.",
         ],
         "delimiters": SAFE_DELIMITERS,
         "internal_environments": SAFE_INTERNAL_ENVIRONMENTS,
@@ -386,6 +409,7 @@ CAPABILITIES: dict[str, Any] = {
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
         r"Do not use \mathtt for new AI-authored math yet; unmapped atomic names did not receive the intended Arabic translation in the persisted browser E2E.",
+        r"\mathnormal has ordered-index meaning only as the whole ^ or _ content; ordinary multi-digit scripts remain numbers.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
     "examples": [
@@ -401,6 +425,8 @@ CAPABILITIES: dict[str, Any] = {
         {"latex": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}", "display": False},
         {"latex": r"m + 3\mathsf{m}", "display": False},
         {"latex": r"3\mathsf{m}/\mathsf{s}", "display": False},
+        {"latex": r"T_{\mathnormal{12}}", "display": False},
+        {"latex": r"\alpha^\mathnormal{ijk,23}", "display": False},
     ],
 }
 
@@ -450,6 +476,7 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         r"\mathbb": r"N + \mathbb{N} + 3\mathsf{N}",
         r"\mathrm": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}",
         r"\mathsf": r"m + 3\mathsf{m}",
+        r"\mathnormal": r"\alpha^\mathnormal{ijk,23}",
     }
     for item in SEMANTIC_ROLE_COMMANDS:
         command = item["command"]
@@ -466,6 +493,8 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
     for operator in RAW_OPERATORS:
         cases.append((f"x{operator}y", False, f"raw_operator:{operator}"))
     cases.append((r"x_{i+1}^2", False, "scripts:^_"))
+    cases.append((r"x^{32}", False, "scripts:ordinary_numeric_exponent"))
+    cases.append((r"x_{12}", False, "scripts:ordinary_numeric_subscript"))
 
     for index, delimiter in enumerate(SAFE_DELIMITERS):
         cases.append((delimiter["form"].replace("...", "x"), False, f"delimiter:{index}"))
