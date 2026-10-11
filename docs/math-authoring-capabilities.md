@@ -28,7 +28,7 @@ The Albayan contract is therefore a conservative snapshot of the intersection of
 
 The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_safe` rather than pretending all parser-pass-through syntax is supported.
 
-## Five simple semantic conventions
+## Scoped semantic conventions
 
 `preferred_submission.semantic_conventions` describes the single agreed convention:
 
@@ -39,6 +39,7 @@ The response distinguishes `round_trip_safe` from `accepted_but_not_round_trip_s
 | Differential | Exact `\mathrm{d}`; bare `d` is a variable. |
 | Multi-character variable | `\mathtt{var}`, scripts outside (`\mathtt{var}_0`). Use it for one atomic multi-character Latin variable, not a compound expression. `\mathtt{sin}` is a name; `\sin` is a function. |
 | Unit | `\mathsf{m}`, using Burhan's existing `\unit` resolver, known-unit tables and model/fallback logic. Keep existing `\unit` support. |
+| Ordered indices | `T_{\mathnormal{12}}` means indices 1,2; `\alpha^\mathnormal{ijk,23}` means i,j,k, comma, 2,3. Ordinary `x_{12}` and `x^{32}` stay numeric. |
 
 These are conventions for this stack: `\mathtt` and `\mathsf` are ordinary LaTeX font commands, not universal declarations of variable/unit semantics.
 
@@ -53,6 +54,15 @@ N + \mathbb{N} + 3\mathsf{N}
 d + \frac{\mathrm{d}f}{\mathrm{d}x}
 m + 3\mathsf{m}
 ```
+
+### Ordered indices (candidate; pending integrated browser validation)
+
+Only a complete superscript/subscript `\mathnormal{...}` represents ordered index atoms under Al-Bayan's AI authoring convention. Elsewhere `\mathnormal` remains ordinary LaTeX typography.
+The initial grammar is 2–64 ASCII letters/digits, optionally separated by single commas: `T_{\mathnormal{12}}`, `T^{\mathnormal{ij}}`, and `\alpha^\mathnormal{ijk,23}`. Ordinary `x_{12}` and `x^{32}` stay numeric. Never generate internal `\idx`.
+
+Burhan [!30](https://gitlab.com/drghaliasri/burhan3.0/-/merge_requests/30) preserves the `CommandObject` wrapper, atomization, and Arabic comma. BuTeX [!56](https://gitlab.com/drghaliasri/butex/-/merge_requests/56) imports, edits, saves and reopens the group. No new Document2 schema, database table, or editor toolbar control.
+
+**Release gate:** This PR proposes the new `round_trip_safe` entry, but the integrated development browser, normal MCP insertion/reverse read and optional PDF rendering have not yet been verified. Keep the PR in draft until verified, and re-pin upstream commits if needed.
 
 The safe scope is deliberately narrow:
 
@@ -88,10 +98,10 @@ These standard fallback symbols are intentionally separate from BuTeX's Arabic a
 
 ## Reviewed source revisions
 
-The snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to the reviewed development revisions:
+The candidate snapshot in `backend/app/services/math_authoring_capabilities.py` is pinned to upstream feature revisions pending integration:
 
-- Burhan `drghaliasri/burhan3.0` commit `73379098faab5509efe48eb4b024ec8da5c20ba6` (develop after merged MRs !24–!27);
-- BuTeX `drghaliasri/butex` commit `8c69d46077a0f355deace73684b7c8225a4a9090` (develop after merged MR !53, released as 7.3.3).
+- Burhan `drghaliasri/burhan3.0` commit `889e67737e92362806572f3e072dee53baf53f13` (develop after merged MRs !24–!27);
+- BuTeX `drghaliasri/butex` commit `41b129e5033ba86031066e5d0516e1e1cb477afc` (develop after merged MR !53, released as 7.3.3).
 
 The Burhan revision includes the existing semantic authoring roles plus explicit `\boxed` registration, occurrence-level `source_latex` identity for many-to-one Arabic variable mappings, and canonical operator identity for RTL-sensitive relations/arrows. The reviewed regression set therefore includes `tests/api/test_variable_source_identity.py` in addition to the standard authoring and reverse-conversion coverage.
 
