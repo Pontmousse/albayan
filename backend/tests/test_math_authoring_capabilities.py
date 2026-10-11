@@ -45,11 +45,11 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
-def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
+def test_scoped_semantic_roles_match_the_feature_candidate_contract() -> None:
     contract = get_math_authoring_capabilities()
     conventions = contract["preferred_submission"]["semantic_conventions"]
     assert set(conventions) == {
-        "transpose", "number_sets", "differential", "named_variable", "unit",
+        "transpose", "number_sets", "differential", "named_variable", "unit", "ordered_indices",
     }
     for symbol in "NZQRCH":
         assert rf"\mathbb{{{symbol}}}" in conventions["number_sets"]
@@ -57,11 +57,12 @@ def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     assert r"\unit" in conventions["unit"]
     assert "atomic multi-character Latin variable" in conventions["named_variable"]
     assert "compound expressions" in conventions["named_variable"]
+    assert r"\mathnormal{ijk,23}" in conventions["ordered_indices"]
 
     semantic_roles = contract["round_trip_safe"]["commands"]["semantic_roles"]
     assert semantic_roles == SEMANTIC_ROLE_COMMANDS
     advertised = set(advertised_round_trip_commands())
-    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathsf"}.issubset(advertised)
+    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathsf", r"\mathnormal"}.issubset(advertised)
     assert r"\mathtt" not in advertised
     assert {r"\mathbb", r"\mathrm", r"\mathsf"}.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
     assert r"\mathtt" in PARSE_BUILD_ONLY_COMMANDS
@@ -73,6 +74,9 @@ def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     unit = next(item for item in semantic_roles if item["command"] == r"\mathsf")
     assert any("safe raw operators" in item for item in unit["constraints"])
     assert not any(item["command"] == r"\mathtt" for item in semantic_roles)
+    ordered = next(item for item in semantic_roles if item["command"] == r"\mathnormal")
+    assert ordered["meaning"] == "ordered_index_sequence"
+    assert any("complete subscript" in constraint for constraint in ordered["constraints"])
 
     examples = {item["latex"] for item in contract["examples"]}
     assert r"\frac{\partial f}{\partial x}" in examples
@@ -82,6 +86,8 @@ def test_only_browser_validated_semantic_forms_are_advertised_safe() -> None:
     assert r"\mathtt{var}_0" not in examples
     assert r"m + 3\mathsf{m}" in examples
     assert r"3\mathsf{m}/\mathsf{s}" in examples
+    assert r"T_{\mathnormal{12}}" in examples
+    assert r"\alpha^\mathnormal{ijk,23}" in examples
     assert r"\mathtt{velocity} = 3\mathsf{m}/\mathsf{s}" not in examples
 
     conventions["transpose"] = "changed"
@@ -134,6 +140,8 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
     assert expected_raw_operators.issubset(labels)
     assert "scripts:^_" in labels
+    assert "scripts:ordinary_numeric_exponent" in labels
+    assert "scripts:ordinary_numeric_subscript" in labels
     assert set(RAW_OPERATORS) == {"+", "-", "=", "*", "/", "<", ">"}
 
 
@@ -163,8 +171,8 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert BURHAN_COMMIT == "73379098faab5509efe48eb4b024ec8da5c20ba6"
-    assert BUTEX_COMMIT == "d4d08a493e25e35e4c44a45658a953688e2bc4f8"
+    assert BURHAN_COMMIT == "889e67737e92362806572f3e072dee53baf53f13"
+    assert BUTEX_COMMIT == "41b129e5033ba86031066e5d0516e1e1cb477afc"
     assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
     assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
     assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
@@ -172,7 +180,10 @@ def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None
     assert "tests/api/test_convert_to_english.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_standard_math_authoring.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "tests/api/test_variable_source_identity.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_ordered_indices.py" in contract["source_snapshot"]["burhan"]["files"]
     assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "src/editor/indexSequence.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/ordered_indices.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "src/editor/rawOperatorPresentation.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
     assert "test/standard_math_roundtrip.test.ts" in contract["source_snapshot"]["butex"]["files"]
