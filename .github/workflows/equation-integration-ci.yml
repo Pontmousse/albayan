@@ -19,6 +19,13 @@ on:
       - "backend/app/models/article.py"
       - "backend/alembic/versions/023_article_unit_conventions.py"
       - "backend/tests/test_unit_conventions.py"
+      - "backend/tests/test_used_unit_service.py"
+      - "backend/app/services/used_unit_service.py"
+      - "backend/app/schemas/used_units.py"
+      - "frontend/src/components/dashboard/units-panel.tsx"
+      - "frontend/src/lib/api/units.ts"
+      - "frontend/src/lib/unit-conventions.ts"
+      - "frontend/src/lib/unit-conventions.test.ts"
       - "backend/app/routers/math_authoring.py"
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/dev_diagnostics.py"
@@ -100,6 +107,7 @@ jobs:
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_equation_mapping_api.py
           backend/tests/test_unit_conventions.py
+          backend/tests/test_used_unit_service.py
           backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_butex_math_projection_client.py
@@ -141,6 +149,7 @@ jobs:
         run: >-
           npx vitest run
           src/lib/equation-mappings.test.ts
+          src/lib/unit-conventions.test.ts
           src/lib/mapping-fonts.test.ts
           src/components/dashboard/article-editor-chrome.test.ts
           src/components/dashboard/authoring-ux-followup.test.ts
