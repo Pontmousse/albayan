@@ -23,6 +23,7 @@ from app.routers.unit_conventions import get_unit_conventions, put_unit_conventi
 from app.schemas.article import DocumentCommandPayload
 from app.schemas.unit_conventions import UnitConventions
 from app.services import article_draft_service, article_service, burhan_client
+from app.services.unit_conventions_service import validate_registry_membership
 
 
 ORIGINAL = {
@@ -66,6 +67,8 @@ def article_db():
         patch("app.core.s3.delete_key", side_effect=lambda key: stored.pop(key, None)),
         patch("app.services.butex_worker_client.normalize_document", side_effect=lambda x: x),
         patch("app.services.butex_worker_client.export_document", return_value=("tex", [])),
+        patch("app.services.unit_conventions_service.validate_registry_membership",
+              side_effect=lambda conventions: None),
     ):
         article = article_service.create_article(db, user.id, "عنوان", None)
         actor = Actor(
@@ -131,6 +134,13 @@ def test_permission_checks_and_frozen_rejection(article_db):
     {"overrides": {"kg": 3}},
     {"overrides": {"kg": "كغ"}, "custom_units": {"kg": {"name": "kg", "display": "وحدة"}}},
     {"custom_units": {"CU": {"name": "", "display": "وحدة"}}},
+    {"overrides": {"kg": r"\\input{evil}"}},
+    {"overrides": {"kg": "a/b"}},
+    {"overrides": {"kg": "a_b"}},
+    {"overrides": {"kg": "a  b"}},
+    {"overrides": {"kg": " كغ"}},
+    {"overrides": {"kg": "."}},
+    {"custom_units": {"CU": {"display": " "}}},
     {"custom_units": {"CU": {"name": "Calibration unit"}}},
     {"custom_units": {"CU": {"name": "Calibration unit", "display": "وحدة", "extra": True}}},
     {"custom_units": {"c/u": {"name": "Calibration unit", "display": "وحدة"}}},
@@ -140,6 +150,42 @@ def test_permission_checks_and_frozen_rejection(article_db):
 def test_schema_rejects_malformed_conventions(raw):
     with pytest.raises(ValidationError):
         UnitConventions.model_validate(raw)
+
+
+def test_optional_custom_name_matches_burhan():
+    conventions = UnitConventions.model_validate(
+        {"custom_units": {"CU": {"display": "وحدة معايرة"}}}
+    )
+    assert conventions.model_dump(exclude_none=True)["custom_units"]["CU"] == {
+        "display": "وحدة معايرة"
+    }
+
+
+def test_registry_checks_registered_overrides_and_custom_shadowing(monkeypatch):
+    registry = {"units": {"kg": {"default_display": "كلغ"}, "m": {}}}
+    seen = []
+
+    class Client:
+        def __init__(self, **kwargs):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def get(self, path):
+            seen.append(path)
+            return httpx.Response(200, json=registry, request=httpx.Request("GET", "https://burhan.local/unit-registry"))
+
+    monkeypatch.setattr("app.services.unit_conventions_service.settings.burhan_url", "https://burhan.local")
+    monkeypatch.setattr("app.services.unit_conventions_service.httpx.Client", Client)
+    validate_registry_membership(ORIGINAL)
+    with pytest.raises(HTTPException) as invalid_override:
+        validate_registry_membership({"overrides": {"fake": "و"}, "custom_units": {}})
+    assert invalid_override.value.status_code == 422
+    with pytest.raises(HTTPException) as shadow:
+        validate_registry_membership({"overrides": {}, "custom_units": {"kg": {"display": "و"}}})
+    assert shadow.value.status_code == 422
+    assert seen == ["/unit-registry"] * 3
 
 
 def test_tokens_are_case_sensitive():
