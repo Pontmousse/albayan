@@ -28,6 +28,7 @@ class UsedUnitInventory(BaseModel):
     revision_number: int = Field(ge=1)
     unit_conventions: UnitConventions
     used_units: list[UsedUnit]
+    registered_tokens: list[str] = Field(default_factory=list)
 
 
 class ApplyUnitConventionsRequest(BaseModel):
