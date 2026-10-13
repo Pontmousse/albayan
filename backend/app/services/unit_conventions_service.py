@@ -78,6 +78,5 @@ def replace_unit_conventions(
     article: Article, conventions: Mapping[str, Any]
 ) -> dict[str, Any]:
     result = validated_unit_conventions(dict(conventions))
-    validate_registry_membership(result)
     article.unit_conventions = result
     return validated_unit_conventions(result)
