@@ -92,6 +92,7 @@ headless BuTeX import, or prior deployed revisions alone.**
 ## Observed baseline on 2026-10-13 (before dependent merges)
 
 - Dev MCP service health: Al-Bayan, Burhan and BuTeX endpoints reachable.
+- Railway development environment: **9/9 services online**, no active warnings, recent failures or pending deployments. Development backend, normal MCP and frontend deploy commit `80de584eb0e28da87132253ffa7c8555b431a60e` on `develop` (2026-10-12). Neither #217–#219 nor the new normal MCP tools are deployed.
 - Dev Burhan `GET /unit-registry`: **HTTP 404** (trace
   `98837e0f-c8a8-41d3-b077-ea7fa6fb2730`).
 - GitLab Burhan MRs !31, !32 and !33: **opened/unmerged**.
