@@ -237,6 +237,7 @@ def convert_latex_to_math_token(
     display: bool,
     label: str | None,
     mappings: Mapping[str, str],
+    unit_conventions: Mapping[str, Any] | None = None,
     model_tier: str | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
@@ -260,6 +261,11 @@ def convert_latex_to_math_token(
         "model_tier": tier,
         "prescanning": True,
     }
+    if unit_conventions is not None:
+        # A sibling of variable mappings; never mix unit names into mappings.
+        from app.services.unit_conventions_service import validated_unit_conventions
+
+        payload["unit_conventions"] = validated_unit_conventions(unit_conventions)
 
     if diagnostics is not None:
         diagnostics.update(
@@ -277,6 +283,7 @@ def convert_latex_to_math_token(
                     "digits_mapping": "digits",
                     "prescanning": True,
                     "mapping_count": len(mappings),
+                    "unit_conventions": payload.get("unit_conventions"),
                 },
             }
         )
@@ -324,6 +331,17 @@ def convert_latex_to_math_token(
         status_code=response.status_code,
     )
     if response.status_code == 422:
+        try:
+            detail = response.json()
+        except ValueError:
+            detail = None
+        # Surface Burhan's unit-specific validation distinctly while keeping
+        # downstream/UI errors Arabic and never echoing untrusted error content.
+        reason = detail.get("detail", detail) if isinstance(detail, dict) else None
+        if isinstance(reason, dict):
+            code = str(reason.get("code", ""))
+            if code.startswith("invalid_unit") or code.startswith("unit_"):
+                raise _error(422, "invalid_unit_conventions", "اصطلاحات وحدات القياس غير صالحة.")
         raise _error(422, "invalid_math_latex", "تعذّر فهم صيغة LaTeX للمعادلة.")
     if response.status_code != 200:
         raise _error(502, "burhan_unavailable", "تعذّر تحويل المعادلة.")
@@ -372,6 +390,7 @@ def convert_canonical_latex_to_math_object(
     display: bool,
     label: str | None,
     mappings: Mapping[str, str],
+    unit_conventions: Mapping[str, Any] | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Deterministic canonical → Document2 conversion for interoperability paths."""
@@ -380,6 +399,7 @@ def convert_canonical_latex_to_math_object(
         display=display,
         label=label,
         mappings=mappings,
+        unit_conventions=unit_conventions,
         model_tier=CANONICAL_INTEROP_TIER,
         diagnostics=diagnostics,
     )
