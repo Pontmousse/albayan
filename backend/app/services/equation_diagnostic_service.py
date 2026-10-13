@@ -98,6 +98,7 @@ def inspect_equation(
     latex: str,
     display: bool,
     model_tier: str,
+    unit_conventions: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run one equation through every deterministic stage currently observable.
 
@@ -126,6 +127,7 @@ def inspect_equation(
             display=display,
             label=None,
             mappings={},
+            unit_conventions=unit_conventions,
             model_tier=model_tier,
             diagnostics=raw,
         )
@@ -332,6 +334,7 @@ def inspect_equation(
                     display=display,
                     label=None,
                     mappings={},
+                    unit_conventions=unit_conventions,
                     diagnostics=input_diagnostics,
                 )
                 input_ast = input_diagnostics.get("english_json")
@@ -342,6 +345,7 @@ def inspect_equation(
                 display=display,
                 label=None,
                 mappings={},
+                unit_conventions=unit_conventions,
                 diagnostics=reverse_diagnostics,
             )
             reverse_ast = reverse_diagnostics.get("english_json")
