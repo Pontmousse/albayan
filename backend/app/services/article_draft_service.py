@@ -147,6 +147,9 @@ def revision_response(
         "restored_from_id": revision.restored_from_id,
         "restored_from_revision_number": revision.restored_from_revision_number,
         "document": document,
+        "unit_conventions": unit_conventions_service.validated_unit_conventions(
+            revision.unit_conventions or {}
+        ),
     }
 
 
@@ -235,6 +238,9 @@ def get_revision_history_detail(
     return {
         **_history_item(article, revision, created_by_name),
         "document": read_document(revision),
+        "unit_conventions": unit_conventions_service.validated_unit_conventions(
+            revision.unit_conventions or {}
+        ),
     }
 
 
