@@ -21,6 +21,7 @@ class DraftRevisionReason(str, enum.Enum):
     INITIAL = "initial"
     AUTOSAVE = "autosave"
     AI_EDIT = "ai_edit"
+    UNIT_CONVENTIONS = "unit_conventions"
     METADATA_EDIT = "metadata_edit"
     RESTORE = "restore"
     REVISION_REQUEST = "revision_request"
