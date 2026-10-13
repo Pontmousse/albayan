@@ -434,8 +434,9 @@ def test_human_authoring_also_uses_deterministic_canonical_tier(db_and_storage) 
     article = article_service.create_article(db, user.id, "عنوان", None)
     captured: dict = {}
 
-    def convert(latex, *, display, label, mappings, diagnostics=None):
+    def convert(latex, *, display, label, mappings, diagnostics=None, unit_conventions=None):
         captured["latex"] = latex
+        assert unit_conventions == {"overrides": {}, "custom_units": {}}
         return _strict_token(), {"x": "س"}
 
     with (
