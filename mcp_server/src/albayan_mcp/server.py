@@ -12,6 +12,7 @@ from albayan_mcp.tools.drafts import register_draft_tools
 from albayan_mcp.tools.equations import register_equation_tools
 from albayan_mcp.tools.profile import register_profile_tools
 from albayan_mcp.tools.transport_probe import register_transport_probe_tool
+from albayan_mcp.tools.units import register_unit_tools
 
 
 def create_server() -> MCPServer:
@@ -42,7 +43,12 @@ def create_server() -> MCPServer:
             "معرّفات الكتل أو الحقول أو الرموز أو القوائم أو الجداول. للمعادلات الموجودة استخدم "
             "get_draft_equations؛ فهو يعرض LaTeX إنجليزيًا قانونيًا للتوافق مع الذكاء "
             "الاصطناعي داخل مقال رياضي عربي، مع اصطلاحات الرموز العربية الحالية. قبل إنشاء "
-            "أي معادلة جديدة استدع get_math_authoring_capabilities، والتزم فقط بقسم "
+            "أي معادلة جديدة استدع get_math_authoring_capabilities، ثم get_unit_registry "
+            "لمعرفة الوحدات العالمية وget_article_unit_context لاصطلاحات المقال "
+            "قبل كتابة وحدات جديدة بصيغة \\mathsf{token} القانونية. لتغيير اصطلاحات "
+            "الوحدات استدع apply_article_unit_conventions بعد قراءة أحدث مراجعة؛ "
+            "لا تكتب العرض العربي بدل الرمز القانوني ولا تحول القيم عددياً. "
+            "والتزم فقط بقسم "
             "round_trip_safe من LaTeX القانوني العادي، ولا تُنشئ ماكروات Burhan/BuTeX "
             "العربية الداخلية. استخدم أحدث revision كـ base_revision، وعند revision_conflict "
             "أعد قراءة المسودة قبل المحاولة. خصّص command_id واحدًا لكل تعديل منطقي ولا تعِد "
@@ -69,6 +75,7 @@ def create_server() -> MCPServer:
     register_article_tools(server)
     register_draft_tools(server)
     register_equation_tools(server)
+    register_unit_tools(server)
     register_asset_tools(server)
     if getattr(settings, "enable_transport_probe", False):
         register_transport_probe_tool(server)
