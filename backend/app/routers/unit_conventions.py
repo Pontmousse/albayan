@@ -29,6 +29,9 @@ def put_unit_conventions(
 ) -> dict:
     require_actor_scope(actor, "articles:draft:write")
     article_draft_service.assert_editable_author(db, article_id, actor)
+    normalized = unit_conventions_service.validated_unit_conventions(payload.model_dump())
+    # Registry discovery is remote I/O; do it before acquiring the row lock.
+    unit_conventions_service.validate_registry_membership(normalized)
     # Serialize edits with Document2 creation. A concurrent conversion detects
     # conventions changed under its feet rather than saving a mismatched AST.
     article = db.scalar(
@@ -41,7 +44,7 @@ def put_unit_conventions(
         raise article_draft_service._NOT_FOUND
     if article.status not in article_draft_service._EDITABLE_STATUSES:
         raise article_draft_service._FROZEN
-    result = unit_conventions_service.replace_unit_conventions(article, payload.model_dump())
+    result = unit_conventions_service.replace_unit_conventions(article, normalized)
     db.add(article)
     db.commit()
     return result
