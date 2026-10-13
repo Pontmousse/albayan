@@ -64,6 +64,7 @@ export type DraftRevision = {
     | "initial"
     | "autosave"
     | "ai_edit"
+    | "unit_conventions"
     | "metadata_edit"
     | "restore"
     | "revision_request";
