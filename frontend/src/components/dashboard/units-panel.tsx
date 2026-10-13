@@ -168,12 +168,8 @@ export function UnitsPanel({
     try {
       const next = validateUnitConventions(
         settings, inventory.registered_tokens, Array.from(usedTokens),
+        inventory.unit_conventions,
       );
-      for (const token of Object.keys(inventory.unit_conventions.custom_units)) {
-        if (usedTokens.has(token) && !(token in next.custom_units)) {
-          throw new Error("لا يمكن حذف وحدة مستخدمة في المعادلات.");
-        }
-      }
       // Flush browser edits before touching server-side Document2. The server
       // checks the base revision and rejects concurrent changes atomically.
       const baseRevision = await onBeforeApply();
