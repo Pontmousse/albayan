@@ -22,7 +22,7 @@ def _math_object() -> dict:
 
 
 def _install_successful_pipeline(monkeypatch) -> None:
-    def fake_convert(latex, *, display, label, mappings, model_tier=None, diagnostics=None):
+    def fake_convert(latex, *, display, label, mappings, model_tier=None, diagnostics=None, unit_conventions=None):
         assert latex == "x"
         assert display is False
         assert label is None
@@ -93,7 +93,7 @@ def _install_successful_pipeline(monkeypatch) -> None:
         return projected
 
     def fake_convert_with_round_trip(
-        latex, *, display, label, mappings, model_tier=None, diagnostics=None
+        latex, *, display, label, mappings, model_tier=None, diagnostics=None, unit_conventions=None
     ):
         return fake_convert(
             latex,
@@ -102,6 +102,7 @@ def _install_successful_pipeline(monkeypatch) -> None:
             mappings=mappings,
             model_tier=model_tier,
             diagnostics=diagnostics,
+            unit_conventions=unit_conventions,
         )
 
     def fake_reverse(math, *, variable_mapping, model_tier=None):
