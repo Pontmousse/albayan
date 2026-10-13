@@ -4,8 +4,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.unit_conventions import UnitConventions
+
 
 class EquationDiagnosticRequest(BaseModel):
     latex: str = Field(min_length=1, max_length=10_000)
     display: bool = False
     model_tier: Literal["heuristic", "cheap", "medium"] = "heuristic"
+    unit_conventions: UnitConventions = Field(default_factory=UnitConventions)
