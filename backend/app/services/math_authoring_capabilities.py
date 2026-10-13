@@ -215,9 +215,9 @@ SEMANTIC_ROLE_COMMANDS = [
         "command": r"\mathsf",
         "meaning": "unit",
         "form": r"\mathsf{m}",
-        "argument": r"one unit token matching [A-Za-z]+, \\[A-Za-z]+, or Ω",
+        "argument": "one case-sensitive token matching ^[A-Za-z][A-Za-z0-9]*$ (see get_unit_registry)",
         "constraints": [
-            "One unit atom per wrapper.",
+            "One unit atom per wrapper; scripts/exponents/operators stay outside the wrapper.",
             r"Compound unit expressions may combine safe unit atoms with safe raw operators, e.g. 3\mathsf{m}/\mathsf{s}.",
         ],
     },
@@ -349,11 +349,34 @@ CAPABILITIES: dict[str, Any] = {
                 r"\mathtt{sin} is a named variable, whereas \sin is the function."
             ),
             "unit": (
-                r"Use \mathsf{m} for a unit, through the existing \unit resolver and its "
-                r"known-unit/model/fallback behavior. Existing \unit input remains supported; "
-                r"\mathsf{N} is a unit, not \mathbb{N} or the variable N."
+                r"Use canonical \mathsf{token} for every unit atom (ASCII identifier "
+                r"^[A-Za-z][A-Za-z0-9]*$, case-sensitive). "
+                r"Use get_unit_registry for Burhan-owned defaults and alternatives; "
+                r"get_article_unit_context for overrides and custom units. "
+                r"Never author Arabic display directly: known units resolve "
+                r"deterministically, unknown explicit tokens are preserved with a warning. "
+                r"\mathsf{N} is a unit, not \mathbb{N} or bare variable N. "
+                r"Keep exponents and compound operators outside each \mathsf{...} atom. "
+                r"Legacy \unit input remains supported but is not preferred. "
+                "Notation only; no numerical or dimensional conversion."
             ),
         },
+    },
+    "unit_discovery": {
+        "registry_tool": "get_unit_registry",
+        "article_tool": "get_article_unit_context",
+        "apply_tool": "apply_article_unit_conventions",
+        "canonical_syntax": r"\mathsf{token}",
+        "token_pattern": "^[A-Za-z][A-Za-z0-9]*$",
+        "case_sensitive": True,
+        "notation_only": True,
+        "unknown_explicit_token": "preserve_canonical_identity_and_warn",
+        "precedence": ["article_custom", "article_override", "registry_default", "unknown_preserved"],
+        "examples": [
+            r"v = 30\mathsf{m}/\mathsf{s}",
+            r"A = 2\mathsf{m}^2",
+            r"E = 5\mathsf{CU}",
+        ],
     },
     "source_snapshot": SOURCE_SNAPSHOT,
     "round_trip_safe": {
