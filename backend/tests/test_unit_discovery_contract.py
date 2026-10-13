@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from app.main import app
-from app.routers.math_authoring import read_unit_registry
+from app.routers.math_authoring import read_unit_registry, router
 from app.schemas.math_authoring import MathAuthoringCapabilitiesRead
 from app.services.math_authoring_capabilities import get_math_authoring_capabilities
 
@@ -58,7 +57,7 @@ def test_registry_endpoint_requires_read_scope_and_uses_burhan_live_service():
 
 def test_registry_route_is_discoverable_under_math_namespace():
     matching = [
-        route for route in app.routes
+        route for route in router.routes
         if getattr(route, "path", None) == "/api/v1/math/unit-registry"
     ]
     assert len(matching) == 1
