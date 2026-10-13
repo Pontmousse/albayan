@@ -14,6 +14,7 @@ from app.routers import (
     draft_references,
     editor,
     equation_mappings,
+    unit_conventions,
     invitations,
     issues,
     math_authoring,
@@ -53,6 +54,7 @@ app.include_router(articles.router)
 app.include_router(draft_equations.router)
 app.include_router(draft_references.router)
 app.include_router(equation_mappings.router)
+app.include_router(unit_conventions.router)
 app.include_router(math_authoring.router)
 if settings.dev_mode:
     # Keep the diagnostic surface absent from production routing/OpenAPI, not
