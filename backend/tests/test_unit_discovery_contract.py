@@ -22,7 +22,7 @@ def test_capabilities_advertise_canonical_unit_syntax_and_tool_names():
     assert unit["registry_tool"] == "get_unit_registry"
     assert unit["article_tool"] == "get_article_unit_context"
     assert unit["apply_tool"] == "apply_article_unit_conventions"
-    assert "unknown" in unit["unknown_explicit_token"]
+    assert unit["unknown_explicit_token"] == "preserve_canonical_identity_and_warn"
     assert unit["examples"] == [
         r"v = 30\mathsf{m}/\mathsf{s}",
         r"A = 2\mathsf{m}^2",
