@@ -25,6 +25,7 @@ export function validateUnitConventions(
   data: UnitConventions,
   registered: readonly string[],
   usedTokens: readonly string[],
+  previous?: UnitConventions,
 ): UnitConventions {
   if (
     Object.keys(data.overrides).length > 256 ||
@@ -53,10 +54,10 @@ export function validateUnitConventions(
     }
     validateUnitDisplay(definition.display);
   }
-  for (const token of used) {
-    // Prevent deletion of a previously defined and still-used custom unit
-    // in the UI; the server enforces this atomically too.
-    if (!UNIT_TOKEN_PATTERN.test(token)) continue;
+  for (const token of Object.keys(previous?.custom_units ?? {})) {
+    if (used.has(token) && !(token in data.custom_units)) {
+      throw new UserFacingError(`لا يمكن حذف «${token}» لأنها مستخدمة في المعادلات.`);
+    }
   }
   return {
     overrides: { ...data.overrides },
