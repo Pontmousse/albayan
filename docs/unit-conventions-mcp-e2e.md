@@ -100,6 +100,12 @@ headless BuTeX import, or prior deployed revisions alone.**
   description and has not yet discovered the three new tools.
 - Playwright `browser_navigate` attempt to the dev domain was blocked
   by the testing tool's security check; **no real browser evidence acquired**.
+- Dev MCP read-only `10\\mathsf{N}` diagnostic trace
+  `b67261f5-b7e3-41aa-9da4-d9eba7379dd4`: Burhan converts to
+  `\\unit{ن}` with `source_latex = \\mathsf{N}`; Document2 insertion,
+  headless BuTeX editable import and reverse to `10 \\mathsf{N}` succeeded.
+  This is **headless diagnostic evidence**, not deployed convention resolution
+  or a browser/normal MCP insertion acceptance pass.
 - Therefore live registry, override/custom, UI edit, revision and full
   round-trip cases are **not yet verified**.
 
