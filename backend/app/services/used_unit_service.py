@@ -97,6 +97,7 @@ def inventory(
         "revision_number": revision_number,
         "unit_conventions": unit_conventions_service.validated_unit_conventions(conventions),
         "used_units": rows,
+        "registered_tokens": sorted(registry.get("units", {})),
     }
 
 
