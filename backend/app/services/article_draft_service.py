@@ -435,6 +435,7 @@ def create_revision(
     equation_mappings: dict[str, str] | None = None,
     expected_unit_conventions: dict[str, Any] | None = None,
     revision_unit_conventions: dict[str, Any] | None = None,
+    updated_unit_conventions: dict[str, Any] | None = None,
 ) -> tuple[ArticleDraftRevision, dict[str, Any], list[str]]:
     """Create N+1 exactly once, or return N for a canonical hash no-op."""
     article = assert_editable_author(db, article_id, actor)
@@ -490,6 +491,14 @@ def create_revision(
         and effective_conventions != expected_unit_conventions
     ):
         raise _unit_conventions_conflict()
+
+    if updated_unit_conventions is not None:
+        if expected_unit_conventions is None:
+            raise ValueError("Updating conventions requires optimistic comparison")
+        unit_conventions_service.replace_unit_conventions(
+            locked_article, updated_unit_conventions
+        )
+        effective_conventions = unit_conventions_service.get_unit_conventions(locked_article)
 
     if expected_equation_mappings is not None:
         locked_mappings = equation_mapping_service.get_equation_mappings(locked_article)
