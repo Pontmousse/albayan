@@ -75,6 +75,8 @@ on:
       - "mcp_server/src/albayan_mcp/tools/block_projection.py"
       - "mcp_server/src/albayan_mcp/tools/drafts.py"
       - "mcp_server/src/albayan_mcp/tools/equations.py"
+      - "mcp_server/src/albayan_mcp/tools/units.py"
+      - "mcp_server/tests/test_unit_tools.py"
       - "mcp_server/tests/test_article_tools.py"
       - "mcp_server/tests/test_draft_block_projection.py"
       - "mcp_server/tests/test_draft_command_schema.py"
@@ -122,6 +124,7 @@ jobs:
           PYTHONPATH=mcp_server/src:mcp_server pytest -q
           mcp_server/tests/test_draft_command_schema.py
           mcp_server/tests/test_equation_tools.py
+          mcp_server/tests/test_unit_tools.py
           mcp_server/tests/test_draft_block_projection.py
           mcp_server/tests/test_article_tools.py
       - name: Detect frontend equation changes
