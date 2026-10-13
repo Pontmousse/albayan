@@ -342,6 +342,14 @@ def convert_latex_to_math_token(
             code = str(reason.get("code", ""))
             if code.startswith("invalid_unit") or code.startswith("unit_"):
                 raise _error(422, "invalid_unit_conventions", "اصطلاحات وحدات القياس غير صالحة.")
+        elif isinstance(reason, list) and any(
+            isinstance(item, dict)
+            and "unit_conventions" in item.get("loc", [])
+            for item in reason
+        ):
+            # FastAPI/Pydantic uses a list of errors with loc: ["body",
+            # "unit_conventions", ...], rather than an application error code.
+            raise _error(422, "invalid_unit_conventions", "اصطلاحات وحدات القياس غير صالحة.")
         raise _error(422, "invalid_math_latex", "تعذّر فهم صيغة LaTeX للمعادلة.")
     if response.status_code != 200:
         raise _error(502, "burhan_unavailable", "تعذّر تحويل المعادلة.")
