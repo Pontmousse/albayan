@@ -58,7 +58,7 @@ def test_registry_endpoint_requires_read_scope_and_uses_burhan_live_service():
 def test_registry_route_is_discoverable_under_math_namespace():
     matching = [
         route for route in router.routes
-        if getattr(route, "path", None) == "/api/v1/math/unit-registry"
+        if getattr(route, "path", None) == "/unit-registry"
     ]
     assert len(matching) == 1
     assert "GET" in matching[0].methods
