@@ -16,6 +16,14 @@ import type { DraftRevision } from "@/lib/api/articles";
 
 type GetToken = () => Promise<string | null>;
 const EMPTY: UnitConventions = { overrides: {}, custom_units: {} };
+const GROUP_LABELS: Record<string, string> = {
+  length: "الطول", mass: "الكتلة", time: "الزمن والتردد",
+  electricity: "الكهرباء والمغناطيسية", temperature: "درجة الحرارة",
+  chemistry: "كمية المادة", light: "الضوء", mechanics: "الميكانيكا",
+  energy_power: "الطاقة والقدرة", angles: "الزوايا",
+  area_volume: "المساحة والحجم", historical: "الوحدات التراثية",
+  custom: "وحدات المقال", unknown: "وحدات غير معرّفة",
+};
 const fieldClass = "min-h-10 w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]";
 
 function stateLabel(unit: UsedUnit) {
@@ -70,6 +78,9 @@ export function UnitsPanel({
     [inventory],
   );
   const customRows = Object.entries(settings.custom_units).sort(([a], [b]) => a.localeCompare(b));
+  const orderedUsedUnits = useMemo(() => [...(inventory?.used_units ?? [])].sort(
+    (a, b) => (a.group ?? a.status).localeCompare(b.group ?? b.status) || a.token.localeCompare(b.token),
+  ), [inventory]);
 
   function setKnownDisplay(unit: UsedUnit, value: string) {
     if (value === "__custom__") {
@@ -222,7 +233,11 @@ export function UnitsPanel({
                 <p className="mt-3 rounded-xl border border-dashed border-[var(--journal-border)] p-5 text-sm text-slate-500">لا توجد وحدات صريحة في معادلات المقال حالياً.</p>
               ) : (
                 <div className="mt-3 space-y-3">
-                  {inventory.used_units.map((unit) => {
+                  {orderedUsedUnits.map((unit, index) => {
+                    const group = unit.group ?? (unit.status === "custom" ? "custom" : "unknown");
+                    const previous = orderedUsedUnits[index - 1];
+                    const previousGroup = previous?.group ?? (previous?.status === "custom" ? "custom" : "unknown");
+                    const showGroup = index === 0 || previousGroup !== group;
                     const override = settings.overrides[unit.token];
                     const isCustom = unit.status === "custom" || !!settings.custom_units[unit.token];
                     const chosen = override === undefined ? "__default__"
@@ -231,7 +246,9 @@ export function UnitsPanel({
                       : "__custom__";
                     const showCustom = customDisplays[unit.token] || chosen === "__custom__";
                     return (
-                      <div key={unit.token} className="rounded-xl border border-[var(--journal-border)] bg-white p-4">
+                      <div key={unit.token} className="space-y-3">
+                        {showGroup ? <h4 className="pt-2 text-sm font-bold text-slate-700">{GROUP_LABELS[group] ?? group}</h4> : null}
+                        <div className="rounded-xl border border-[var(--journal-border)] bg-white p-4">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-3">
                             <code dir="ltr" className="rounded-lg bg-slate-100 px-2 py-1 font-mono font-semibold text-slate-900">{unit.token}</code>
@@ -269,6 +286,7 @@ export function UnitsPanel({
                             ) : null}
                           </div>
                         ) : null}
+                        </div>
                       </div>
                     );
                   })}
