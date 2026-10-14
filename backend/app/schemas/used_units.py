@@ -22,6 +22,7 @@ class UsedUnit(BaseModel):
     name_ar: str | None = None
     default_display: str | None = None
     alternatives: list[str] = Field(default_factory=list)
+    group: str | None = None  # Burhan registry browsing group; article/custom units may lack one
 
 
 class UsedUnitInventory(BaseModel):
