@@ -23,9 +23,9 @@ from app.services import (
 REGISTRY = {
     "units": {
         "kg": {"name_en": "kilogram", "name_ar": "الكيلوغرام",
-               "default_display": "كلغ", "alternatives": ["كغ"]},
+               "default_display": "كلغ", "alternatives": ["كغ"], "group": "mass"},
         "N": {"name_en": "newton", "name_ar": "النيوتن",
-              "default_display": "ن", "alternatives": []},
+              "default_display": "ن", "alternatives": [], "group": "mechanics"},
     }
 }
 EMPTY = {"overrides": {}, "custom_units": {}}
@@ -82,8 +82,10 @@ def test_inventory_ignores_bare_variables_and_counts_unit_atoms():
     indexed = {row["token"]: row for row in rows["used_units"]}
     assert indexed["kg"]["usage_count"] == 2
     assert indexed["kg"]["source"] == "article_override"
+    assert indexed["kg"]["group"] == "mass"
     assert indexed["N"]["status"] == "registry"
     assert indexed["KG"]["source"] == "unknown"
+    assert indexed["KG"]["group"] is None
     assert indexed["CU"]["display"] == "وحدة معايرة"
     assert len(rows["used_units"]) == 4
 
