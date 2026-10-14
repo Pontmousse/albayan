@@ -21,7 +21,7 @@ const GROUP_LABELS: Record<string, string> = {
   electricity: "الكهرباء والمغناطيسية", temperature: "درجة الحرارة",
   chemistry: "كمية المادة", light: "الضوء", mechanics: "الميكانيكا",
   energy_power: "الطاقة والقدرة", angles: "الزوايا",
-  area_volume: "المساحة والحجم", historical: "الوحدات التراثية",
+  area_volume: "المساحة والحجم",
   custom: "وحدات المقال", unknown: "وحدات غير معرّفة",
 };
 const fieldClass = "min-h-10 w-full rounded-lg border border-[var(--journal-border)] bg-white px-3 text-sm text-slate-900 outline-none focus:border-[var(--journal-accent)] focus:ring-2 focus:ring-[var(--journal-accent-soft)]";
