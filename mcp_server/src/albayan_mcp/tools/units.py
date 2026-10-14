@@ -63,6 +63,7 @@ class UsedUnitResult(UnitResult):
     name_ar: str | None = None
     default_display: str | None = None
     alternatives: list[str] = Field(default_factory=list)
+    group: str | None = None
 
 
 class ArticleUnitContextResult(UnitResult):
@@ -91,7 +92,8 @@ def register_unit_tools(server: MCPServer) -> None:
         description=(
             "Pure read. Discover the live Burhan-owned global registry via Al-Bayan FastAPI: "
             "canonical \\mathsf{token} syntax, case-sensitive token grammar "
-            "^[A-Za-z][A-Za-z0-9]*$, Arabic defaults, alternatives, names, and "
+            "^[A-Za-z][A-Za-z0-9]*$, Arabic defaults, alternatives, names, subject "
+            "groups for UI navigation, and "
             "notation_only=true. There is NO registry copy in MCP. "
             "Each \\mathsf{...} is an explicit unit atom; scripts and operators remain "
             "outside it (30\\mathsf{m}/\\mathsf{s}, 2\\mathsf{m}^2). "
