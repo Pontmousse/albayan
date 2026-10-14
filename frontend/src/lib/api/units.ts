@@ -17,6 +17,7 @@ export type UsedUnit = {
   name_ar: string | null;
   default_display: string | null;
   alternatives: string[];
+  group: string | null;
 };
 
 export type UnitInventory = {
