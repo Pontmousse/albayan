@@ -92,6 +92,7 @@ def inventory(
             "name_ar": entry.get("name_ar") if entry else None,
             "default_display": entry.get("default_display") if entry else None,
             "alternatives": list(entry.get("alternatives", [])) if entry else [],
+            "group": entry.get("group") if entry else None,
         })
     return {
         "revision_number": revision_number,
