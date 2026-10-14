@@ -23,11 +23,11 @@ REGISTRY = {
     "units": {
         "kg": {
             "name_en": "kilogram", "name_ar": "كيلوغرام",
-            "default_display": "كلغ", "alternatives": ["كغ"],
+            "default_display": "كلغ", "alternatives": ["كغ"], "group": "mass",
         },
         "ha": {
             "name_en": "hectare", "default_display": "هكتار",
-            "alternatives": [],
+            "alternatives": [], "group": "area_volume",
         },
     },
 }
@@ -44,7 +44,7 @@ CONTEXT = {
             "token": "kg", "usage_count": 3, "status": "registry",
             "display": "كغ", "source": "article_override",
             "name": "kilogram", "name_ar": "كيلوغرام",
-            "default_display": "كلغ", "alternatives": ["كغ"],
+            "default_display": "كلغ", "alternatives": ["كغ"], "group": "mass",
         },
         {
             "token": "CU", "usage_count": 1, "status": "custom",
@@ -86,6 +86,7 @@ class NormalMcpUnitsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.units["kg"]["alternatives"], ["كغ"])
         self.assertEqual(result.units["ha"]["default_display"], "هكتار")
         self.assertTrue(result.notation_only)
+        self.assertEqual(result.units["kg"]["group"], "mass")
 
     async def test_article_state_includes_custom_known_and_unknown_identity(self):
         with patch(
@@ -103,6 +104,7 @@ class NormalMcpUnitsTests(unittest.IsolatedAsyncioTestCase):
             {("kg", "registry"), ("CU", "custom"), ("XYZ", "unknown")},
         )
         self.assertEqual(result.revision_number, 4)
+        self.assertEqual(result.used_units[0].group, "mass")
 
     async def test_apply_uses_full_typed_payload_and_draft_revision(self):
         response = {
