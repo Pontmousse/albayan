@@ -59,6 +59,38 @@ Check **development only**, in this order:
   all frontend API requests target `https://api.dev.albayan-journal.org`.
   Production redirects or API calls are configuration bugs.
 
+## Diagnosing a missing tool in the ChatGPT connection
+
+**Do not assume this is a server registration defect when a deployed capability
+advertises a tool but ChatGPT does not expose it.** There are two separate
+catalogues: the currently deployed MCP server's `tools/list` response and the
+set of actions ChatGPT has registered for the connected app.
+
+1. Confirm the *development* Railway MCP deployment and its commit, and call
+   `tools/list` on that exact development MCP endpoint using an authorized MCP
+   client (not the Dev MCP, FastAPI, or a source-code mock).
+2. Check that `get_unit_registry`, `get_article_unit_context`,
+   `apply_article_unit_conventions`, `get_math_authoring_capabilities`
+   and `apply_draft_command` all appear in the actual returned list. If any
+   are absent, investigate `create_server` registration, startup failures,
+   protocol negotiation and transport logs **in Al-Bayan**.
+3. If all appear in the server's list but are missing from ChatGPT, treat it as
+   an out-of-date **ChatGPT app action catalogue** first. Refresh/re-scan the
+   existing development app's tools in ChatGPT's app/plugin management, and
+   review/enable newly discovered actions where required. Reconnect or
+   re-publish the app only if the configured app flow requires it. Server
+   redeployment alone does **not** guarantee that ChatGPT will discover new
+   actions. Do not create redundant Al-Bayan endpoints to work around it.
+4. In a fresh chat, select the refreshed development Al-Bayan connection and
+   invoke the three unit tools **through the normal MCP**, followed by a
+   disposable draft round-trip. Capture the request/result and verify that
+   the caller sees the registered tool schemas, not merely capability text.
+
+`mcp_server/tests/test_unit_tools.py` includes both isolated unit registrations
+and a real `create_server().list_tools()`/dispatch guard. The latter is an
+in-process server-side regression check, **not** evidence of the live HTTP MCP
+transport nor of the user's ChatGPT app snapshot. Keep those checks distinct.
+
 ## Live acceptance matrix (use a dedicated disposable dev test draft)
 
 Record the normal MCP tool call/result, the revision ID/number, canonical
