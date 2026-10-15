@@ -25,4 +25,5 @@ def inspect_equation(
         latex=payload.latex,
         display=payload.display,
         model_tier=payload.model_tier,
+        unit_conventions=payload.unit_conventions.model_dump(),
     )

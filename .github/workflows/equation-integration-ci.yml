@@ -13,6 +13,12 @@ on:
       - "backend/app/routers/dev_diagnostics.py"
       - "backend/app/routers/draft_equations.py"
       - "backend/app/routers/equation_mappings.py"
+      - "backend/app/routers/unit_conventions.py"
+      - "backend/app/schemas/unit_conventions.py"
+      - "backend/app/services/unit_conventions_service.py"
+      - "backend/app/models/article.py"
+      - "backend/alembic/versions/023_article_unit_conventions.py"
+      - "backend/tests/test_unit_conventions.py"
       - "backend/app/routers/math_authoring.py"
       - "backend/app/schemas/article.py"
       - "backend/app/schemas/dev_diagnostics.py"
@@ -93,6 +99,7 @@ jobs:
           PYTHONPATH=backend pytest -q
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_equation_mapping_api.py
+          backend/tests/test_unit_conventions.py
           backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_butex_math_projection_client.py

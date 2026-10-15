@@ -29,6 +29,7 @@ from app.services import (
     compile_service,
     email_service,
     workflow_notification_service,
+    unit_conventions_service,
 )
 
 _FROZEN = HTTPException(status_code=409, detail="المخطوطة مجمّدة — لا يمكن تعديلها بعد التقديم.")
@@ -129,6 +130,7 @@ def create_article(
         actor_type=DraftActorType.HUMAN,
         reason=DraftRevisionReason.INITIAL,
         referenced_asset_ids=[],
+        unit_conventions={"overrides": {}, "custom_units": {}},
     )
     db.add(revision)
     db.add(
@@ -226,6 +228,9 @@ def submit_article(db: Session, article: Article) -> ArticleVersion:
         document_hash=revision.document_hash,
         title_snapshot=title_snapshot,
         abstract_snapshot=abstract_snapshot,
+        unit_conventions=unit_conventions_service.validated_unit_conventions(
+            revision.unit_conventions or {}
+        ),
         submitted_at=datetime.now(timezone.utc),
     )
     db.add(version)

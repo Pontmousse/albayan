@@ -37,6 +37,7 @@ from app.services import (
     butex_worker_client,
     compile_service,
     equation_mapping_service,
+    unit_conventions_service,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,6 +147,9 @@ def revision_response(
         "restored_from_id": revision.restored_from_id,
         "restored_from_revision_number": revision.restored_from_revision_number,
         "document": document,
+        "unit_conventions": unit_conventions_service.validated_unit_conventions(
+            revision.unit_conventions or {}
+        ),
     }
 
 
@@ -234,6 +238,9 @@ def get_revision_history_detail(
     return {
         **_history_item(article, revision, created_by_name),
         "document": read_document(revision),
+        "unit_conventions": unit_conventions_service.validated_unit_conventions(
+            revision.unit_conventions or {}
+        ),
     }
 
 
@@ -274,6 +281,9 @@ def restore_revision(
         restored_from_id=target.id,
         restored_from_revision_number=target.revision_number,
         force_revision=True,
+        # A restored Document2 tree was produced with the source revision's
+        # conventions, not necessarily those currently selected for the article.
+        revision_unit_conventions=target.unit_conventions or {},
     )
     return revision_response(revision, canonical)
 
@@ -365,6 +375,16 @@ def _mapping_conflict() -> HTTPException:
     )
 
 
+def _unit_conventions_conflict() -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": "unit_conventions_conflict",
+            "message": "تغيّرت اصطلاحات وحدات القياس؛ أعد المحاولة على الحالة الأحدث.",
+        },
+    )
+
+
 def _receipt_result(
     db: Session,
     receipt: DraftCommandReceipt,
@@ -413,6 +433,8 @@ def create_revision(
     force_revision: bool = False,
     expected_equation_mappings: dict[str, str] | None = None,
     equation_mappings: dict[str, str] | None = None,
+    expected_unit_conventions: dict[str, Any] | None = None,
+    revision_unit_conventions: dict[str, Any] | None = None,
 ) -> tuple[ArticleDraftRevision, dict[str, Any], list[str]]:
     """Create N+1 exactly once, or return N for a canonical hash no-op."""
     article = assert_editable_author(db, article_id, actor)
@@ -462,6 +484,13 @@ def create_revision(
     if locked_article.draft_revision_number != base_revision:
         raise _conflict(locked_article.draft_revision_number)
 
+    effective_conventions = unit_conventions_service.get_unit_conventions(locked_article)
+    if (
+        expected_unit_conventions is not None
+        and effective_conventions != expected_unit_conventions
+    ):
+        raise _unit_conventions_conflict()
+
     if expected_equation_mappings is not None:
         locked_mappings = equation_mapping_service.get_equation_mappings(locked_article)
         if locked_mappings != expected_equation_mappings:
@@ -490,6 +519,11 @@ def create_revision(
             restored_from_id=restored_from_id,
             restored_from_revision_number=restored_from_revision_number,
             referenced_asset_ids=referenced_asset_ids,
+            unit_conventions=(
+                unit_conventions_service.validated_unit_conventions(revision_unit_conventions)
+                if revision_unit_conventions is not None
+                else effective_conventions
+            ),
         )
         db.add(result)
         db.flush()
@@ -637,11 +671,13 @@ def apply_command(
     command = deepcopy(command_body)
     expected_equation_mappings: dict[str, str] | None = None
     next_equation_mappings: dict[str, str] | None = None
+    expected_unit_conventions: dict[str, Any] | None = None
 
     if command.get("op") in {"insert_inline_token", "replace_inline_token"}:
         token = command.get("token")
         if isinstance(token, dict) and token.get("kind") == "math" and "latex" in token:
             expected_equation_mappings = equation_mapping_service.get_equation_mappings(article)
+            expected_unit_conventions = unit_conventions_service.get_unit_conventions(article)
             # Canonical interoperability is deterministic by operation, not by
             # authentication method. Compact LaTeX is constrained by the
             # advertised math-authoring contract for AI authoring and must not
@@ -652,6 +688,7 @@ def apply_command(
                     display=bool(token.get("display", False)),
                     label=token.get("label"),
                     mappings=expected_equation_mappings,
+                    unit_conventions=expected_unit_conventions,
                 )
             )
             try:
@@ -683,6 +720,7 @@ def apply_command(
         affected_block_ids=affected,
         expected_equation_mappings=expected_equation_mappings,
         equation_mappings=next_equation_mappings,
+        expected_unit_conventions=expected_unit_conventions,
     )
     return {
         "ok": True,

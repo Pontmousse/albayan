@@ -67,6 +67,11 @@ class Article(Base):
     equation_mappings: Mapped[dict[str, str]] = mapped_column(
         JSON, default=dict, nullable=False
     )
+    unit_conventions: Mapped[dict] = mapped_column(
+        JSON,
+        default=lambda: {"overrides": {}, "custom_units": {}},
+        nullable=False,
+    )
     revision_request_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     revision_requested_for_version_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("article_versions.id", ondelete="SET NULL", use_alter=True),
@@ -146,6 +151,11 @@ class ArticleVersion(Base):
     document_hash: Mapped[str] = mapped_column(String(64))
     title_snapshot: Mapped[str] = mapped_column(String(500))
     abstract_snapshot: Mapped[str | None] = mapped_column(Text)
+    unit_conventions: Mapped[dict] = mapped_column(
+        JSON,
+        default=lambda: {"overrides": {}, "custom_units": {}},
+        nullable=False,
+    )
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -203,6 +213,12 @@ class ArticleDraftRevision(Base):
     )
     referenced_asset_ids: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True
+    )
+    # Immutable article-specific state used when this Document2 revision was made.
+    unit_conventions: Mapped[dict] = mapped_column(
+        JSON,
+        default=lambda: {"overrides": {}, "custom_units": {}},
+        nullable=False,
     )
     compile_status: Mapped[CompileStatus] = mapped_column(
         Enum(CompileStatus, native_enum=False, values_callable=_enum_values),

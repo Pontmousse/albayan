@@ -13,6 +13,7 @@ from app.models.enums import (
     ReviewRecommendation,
 )
 from app.schemas.draft_command import DocumentCommand
+from app.schemas.unit_conventions import UnitConventions
 
 
 class ArticleCreate(BaseModel):
@@ -152,6 +153,7 @@ class DraftUpdatePayload(BaseModel):
 
 
 class DraftRevisionRead(BaseModel):
+    unit_conventions: UnitConventions = Field(default_factory=UnitConventions)
     revision_id: UUID
     revision_number: int
     document_hash: str
@@ -179,6 +181,7 @@ class DraftRevisionHistoryItem(BaseModel):
 
 class DraftRevisionHistoryDetail(DraftRevisionHistoryItem):
     document: Any
+    unit_conventions: UnitConventions = Field(default_factory=UnitConventions)
 
 
 class DraftRestorePayload(BaseModel):
@@ -280,6 +283,7 @@ class DraftReferenceIndexRead(BaseModel):
 
 
 class DocumentCommandResult(BaseModel):
+    unit_conventions: UnitConventions = Field(default_factory=UnitConventions)
     ok: bool = True
     revision_id: UUID
     revision_number: int
