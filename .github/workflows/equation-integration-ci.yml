@@ -19,6 +19,7 @@ on:
       - "backend/app/models/article.py"
       - "backend/alembic/versions/023_article_unit_conventions.py"
       - "backend/tests/test_unit_conventions.py"
+      - "backend/tests/test_unit_discovery_contract.py"
       - "backend/tests/test_used_unit_service.py"
       - "backend/app/services/used_unit_service.py"
       - "backend/app/schemas/used_units.py"
@@ -75,6 +76,8 @@ on:
       - "mcp_server/src/albayan_mcp/tools/block_projection.py"
       - "mcp_server/src/albayan_mcp/tools/drafts.py"
       - "mcp_server/src/albayan_mcp/tools/equations.py"
+      - "mcp_server/src/albayan_mcp/tools/units.py"
+      - "mcp_server/tests/test_unit_tools.py"
       - "mcp_server/tests/test_article_tools.py"
       - "mcp_server/tests/test_draft_block_projection.py"
       - "mcp_server/tests/test_draft_command_schema.py"
@@ -107,6 +110,7 @@ jobs:
           backend/tests/test_equation_mapping_service.py
           backend/tests/test_equation_mapping_api.py
           backend/tests/test_unit_conventions.py
+          backend/tests/test_unit_discovery_contract.py
           backend/tests/test_used_unit_service.py
           backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
@@ -122,6 +126,7 @@ jobs:
           PYTHONPATH=mcp_server/src:mcp_server pytest -q
           mcp_server/tests/test_draft_command_schema.py
           mcp_server/tests/test_equation_tools.py
+          mcp_server/tests/test_unit_tools.py
           mcp_server/tests/test_draft_block_projection.py
           mcp_server/tests/test_article_tools.py
       - name: Detect frontend equation changes

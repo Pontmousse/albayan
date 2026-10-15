@@ -53,6 +53,7 @@ class MathAuthoringCapabilitiesResult(EquationResultModel):
     representation: Literal["canonical_english_latex"]
     instruction: str
     preferred_submission: dict[str, Any]
+    unit_discovery: dict[str, Any] = Field(default_factory=dict)
     source_snapshot: dict[str, Any]
     round_trip_safe: dict[str, Any]
     accepted_but_not_round_trip_safe: dict[str, Any]
@@ -75,6 +76,11 @@ def register_equation_tools(server: MCPServer) -> None:
             "\\top, \\mathbb, \\mathrm{d}, \\mathtt and \\mathsf meanings. Their tested "
             "scoped forms are listed in round_trip_safe.commands.semantic_roles; obey each "
             "form's constraints instead of treating the wrapper command as generically safe. "
+            "For explicit units, call get_unit_registry for Burhan-owned defaults and "
+            "get_article_unit_context for the article's overrides/custom units. "
+            "Write case-sensitive canonical \\mathsf{token}, never Arabic unit display, "
+            "and keep scripts/operators outside each atom. Unknown explicit units are "
+            "preserved with warnings; there are no numerical conversions. "
             "Existing \\unit support is retained. Scoped ordered-index sequences use "
             "\\mathnormal only as the whole script, e.g. T_{\\mathnormal{12}} or "
             "\\alpha^\\mathnormal{ijk,23}; plain x_{12} and x^{32} are numeric. "
