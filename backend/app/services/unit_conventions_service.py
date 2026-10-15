@@ -23,18 +23,8 @@ def get_unit_conventions(article: Article) -> dict[str, Any]:
     return validated_unit_conventions(article.unit_conventions or {})
 
 
-def validate_registry_membership(conventions: Mapping[str, Any]) -> None:
-    """Use Burhan's live registry; never replicate its unit catalogue here.
-
-    Empty resets work even when Burhan is offline. Fail closed for nonempty
-    conventions so an unknown override or shadowed custom identity is never
-    persisted as article state.
-    """
-    overrides = conventions.get("overrides", {})
-    custom_units = conventions.get("custom_units", {})
-    if not overrides and not custom_units:
-        return
-
+def get_unit_registry() -> dict[str, Any]:
+    """Fetch the Burhan-owned catalogue; never hard-code unit definitions here."""
     base = settings.burhan_url.rstrip("/")
     if not base:
         raise HTTPException(
@@ -61,7 +51,18 @@ def validate_registry_membership(conventions: Mapping[str, Any]) -> None:
             status_code=503,
             detail={"code": "unit_registry_unavailable", "message": "استجابة سجل الوحدات غير صالحة."},
         )
-    registered = body["units"]
+    return body
+
+
+def validate_registry_membership(
+    conventions: Mapping[str, Any], registry: Mapping[str, Any] | None = None
+) -> None:
+    """Fail closed for unknown overrides or custom tokens shadowing Burhan."""
+    overrides = conventions.get("overrides", {})
+    custom_units = conventions.get("custom_units", {})
+    if not overrides and not custom_units:
+        return
+    registered = (registry or get_unit_registry())["units"]
     if any(token not in registered for token in overrides):
         raise HTTPException(
             status_code=422,

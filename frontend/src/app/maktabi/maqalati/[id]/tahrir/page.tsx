@@ -14,6 +14,7 @@ import { ArticleEditorHeader } from "@/components/dashboard/article-editor-heade
 import { DocumentJsonDevDialog } from "@/components/dashboard/document-json-dev-dialog";
 import { DraftHistoryDialog } from "@/components/dashboard/draft-history-dialog";
 import { EquationMappingsPanel } from "@/components/dashboard/equation-mappings-panel";
+import { UnitsPanel } from "@/components/dashboard/units-panel";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import { SubmitDialog } from "@/components/dashboard/submit-dialog";
 import { useNumerals } from "@/components/numeral-provider";
@@ -83,6 +84,7 @@ export default function TahrirPage() {
   const [jsonDialogOpen, setJsonDialogOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [equationMappingsOpen, setEquationMappingsOpen] = useState(false);
+  const [unitsOpen, setUnitsOpen] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
   const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
@@ -387,6 +389,27 @@ export default function TahrirPage() {
     [prefetchFromDocument, syncVisibleMetadata],
   );
 
+  async function beforeApplyUnits(): Promise<number> {
+    const controller = autosaveController.current;
+    if (!controller) throw new ApiError("تعذّر تهيئة حفظ الوحدات.", 409);
+    const saved = await controller.flush();
+    if (saved === false || controller.isUnsafeToLeave()) {
+      throw new ApiError("تعذّر حفظ التغييرات؛ احفظ المسودة أولاً.", 409);
+    }
+    return controller.getBaseRevision();
+  }
+
+  function handleUnitsApplied(revision: DraftRevision) {
+    applyRevisionToEditor(revision);
+    installAutosaveController(revision);
+    setArticle((current) => current ? {
+      ...current,
+      current_draft_revision_id: revision.revision_id,
+      draft_revision_number: revision.revision_number,
+    } : current);
+    setHistoryRefreshKey((value) => value + 1);
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     try {
@@ -483,6 +506,7 @@ export default function TahrirPage() {
           setAssetsPanelMode("manage");
         }}
         onOpenEquationMappings={() => setEquationMappingsOpen(true)}
+        onOpenUnits={() => setUnitsOpen(true)}
         onOpenHistory={handleOpenHistory}
         onOpenJson={() => setJsonDialogOpen(true)}
         onSubmit={() => setDialogOpen(true)}
@@ -598,6 +622,15 @@ export default function TahrirPage() {
         articleId={articleId}
         getToken={getToken}
         onClose={() => setEquationMappingsOpen(false)}
+      />
+
+      <UnitsPanel
+        open={unitsOpen}
+        articleId={articleId}
+        getToken={getToken}
+        onClose={() => setUnitsOpen(false)}
+        onBeforeApply={beforeApplyUnits}
+        onApplied={handleUnitsApplied}
       />
 
       <DraftHistoryDialog
