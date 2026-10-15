@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from types import SimpleNamespace
 import uuid
 from unittest.mock import AsyncMock, patch
 
@@ -159,6 +160,68 @@ class NormalMcpUnitsTests(unittest.IsolatedAsyncioTestCase):
         context_schema = published["get_article_unit_context"].output_schema
         self.assertIn("unit_conventions", context_schema["properties"])
         self.assertIn("used_units", context_schema["properties"])
+
+    async def test_fully_assembled_server_lists_and_dispatches_unit_tools(self):
+        """Exercise the real MCPServer used by the application, not only an
+        isolated register_unit_tools() instance or a FakeServer. This checks
+        server-side tools/list registration; it cannot refresh client caches.
+        """
+        from albayan_mcp import server as server_module
+
+        with patch.object(
+            server_module,
+            "settings",
+            SimpleNamespace(oauth_enabled=False, enable_transport_probe=False),
+        ):
+            app = server_module.create_server()
+
+        listed = await app.list_tools()
+        published = {tool.name: tool for tool in listed}
+        self.assertEqual(len(listed), len(published), "Duplicate MCP tool names")
+        self.assertTrue(
+            {
+                "get_math_authoring_capabilities",
+                "apply_draft_command",
+                "get_unit_registry",
+                "get_article_unit_context",
+                "apply_article_unit_conventions",
+            }.issubset(published),
+            "The assembled MCP server must publish the complete unit workflow",
+        )
+        self.assertEqual(
+            set(published["get_unit_registry"].input_schema["properties"]),
+            set(),
+        )
+        self.assertEqual(
+            set(published["get_article_unit_context"].input_schema["properties"]),
+            {"article_id"},
+        )
+        self.assertEqual(
+            set(published["apply_article_unit_conventions"].input_schema["properties"]),
+            {"article_id", "base_revision", "unit_conventions"},
+        )
+        for name in (
+            "get_unit_registry",
+            "get_article_unit_context",
+            "apply_article_unit_conventions",
+        ):
+            self.assertTrue(published[name].description)
+            self.assertIsNotNone(published[name].output_schema)
+
+        with patch(
+            "albayan_mcp.tools.units.api_get_object",
+            new=AsyncMock(return_value=CONTEXT),
+        ) as get:
+            call = await app.call_tool(
+                "get_article_unit_context", {"article_id": str(ARTICLE)}
+            )
+        get.assert_awaited_once_with(
+            f"/api/v1/articles/{ARTICLE}/unit-conventions/used"
+        )
+        self.assertFalse(call.is_error)
+        self.assertEqual(
+            call.structured_content["unit_conventions"]["overrides"]["kg"], "كغ"
+        )
 
     async def test_real_mcp_transport_preserves_unit_result(self):
         server = MCPServer("units-call-test")
