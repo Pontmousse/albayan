@@ -222,7 +222,10 @@ def test_revision_snapshots_survive_changes_and_restoration(article_db):
     restored = article_draft_service.restore_revision(db, article.id, first["revision_id"], actor, 3)
     assert restored["revision_number"] == 4
     assert restored["unit_conventions"] == ORIGINAL
-    assert get_unit_conventions(article.id, actor, db) == CHANGED
+    assert get_unit_conventions(article.id, actor, db) == ORIGINAL
+    assert article_draft_service.get_revision_history_detail(
+        db, article.id, second["revision_id"], actor
+    )["unit_conventions"] == CHANGED
 
 
 def test_document2_passes_effective_conventions_separately_and_replays(article_db):
