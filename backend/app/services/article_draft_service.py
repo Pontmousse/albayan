@@ -281,9 +281,9 @@ def restore_revision(
         restored_from_id=target.id,
         restored_from_revision_number=target.revision_number,
         force_revision=True,
-        # A restored Document2 tree was produced with the source revision's
-        # conventions, not necessarily those currently selected for the article.
-        revision_unit_conventions=target.unit_conventions or {},
+        # Restore the article settings with the historical Document2 snapshot.
+        expected_unit_conventions=unit_conventions_service.get_unit_conventions(article),
+        updated_unit_conventions=target.unit_conventions or {},
     )
     return revision_response(revision, canonical)
 
