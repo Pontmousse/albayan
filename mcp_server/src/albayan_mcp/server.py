@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from importlib.metadata import version as distribution_version
+
 from mcp.server.mcpserver import MCPServer
 from pydantic import AnyHttpUrl
 
@@ -35,6 +37,7 @@ def create_server() -> MCPServer:
 
     server = MCPServer(
         "albayan",
+        version=distribution_version("albayan-mcp"),
         title="مجلة البيان",
         instructions=(
             "خادم MCP لمجلة البيان. يستدعي واجهة FastAPI فقط — "
