@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight, Check, ChevronDown, ChevronLeft, CircleHelp, Clock3, Cog,
-  FlaskConical, Gauge, Lightbulb, Orbit, Pencil, Plus, Puzzle, Ruler,
-  Scale, Shapes, Sun, Thermometer, Trash2, Waves, X, Zap,
+  FlaskConical, Gauge, Orbit, Pencil, Plus, Puzzle, Ruler,
+  Scale, Shapes, Sun, Thermometer, Trash2, X, Zap,
   type LucideIcon,
 } from "lucide-react";
 
