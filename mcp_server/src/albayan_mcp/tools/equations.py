@@ -53,6 +53,7 @@ class MathAuthoringCapabilitiesResult(EquationResultModel):
     representation: Literal["canonical_english_latex"]
     instruction: str
     preferred_submission: dict[str, Any]
+    unit_discovery: dict[str, Any] = Field(default_factory=dict)
     source_snapshot: dict[str, Any]
     round_trip_safe: dict[str, Any]
     accepted_but_not_round_trip_safe: dict[str, Any]
@@ -71,7 +72,20 @@ def register_equation_tools(server: MCPServer) -> None:
             "canonical ordinary English-LaTeX whitelist that the current Albayan -> Burhan -> "
             "Document2 path can author safely, plus syntax that Burhan can parse/build but that "
             "is not reliable for editor round-trip. Restrict newly generated math to "
-            "round_trip_safe. Never emit Arabic-side/internal Burhan or BuTeX macros such as "
+            "round_trip_safe. Read preferred_submission.semantic_conventions for the agreed "
+            "\\top, \\mathbb, \\mathrm{d}, \\mathtt and \\mathsf meanings. Their tested "
+            "scoped forms are listed in round_trip_safe.commands.semantic_roles; obey each "
+            "form's constraints instead of treating the wrapper command as generically safe. "
+            "For explicit units, call get_unit_registry for Burhan-owned defaults and "
+            "get_article_unit_context for the article's overrides/custom units. "
+            "Write case-sensitive canonical \\mathsf{token}, never Arabic unit display, "
+            "and keep scripts/operators outside each atom. Unknown explicit units are "
+            "preserved with warnings; there are no numerical conversions. "
+            "Existing \\unit support is retained. Scoped ordered-index sequences use "
+            "\\mathnormal only as the whole script, e.g. T_{\\mathnormal{12}} or "
+            "\\alpha^\\mathnormal{ijk,23}; plain x_{12} and x^{32} are numeric. "
+            "Never emit the legacy internal \\idx macro. "
+            "Never emit Arabic-side/internal Burhan or BuTeX macros such as "
             "\\ad, \\arsum, \\arprod, \\arlim, \\boldarabic, or \\butextakween. This tool "
             "does not read or mutate an article and needs no article ID."
         ),

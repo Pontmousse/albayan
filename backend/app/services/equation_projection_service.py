@@ -6,9 +6,13 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from app.services import burhan_reverse_client, equation_mapping_service
+from app.services import (
+    burhan_reverse_client,
+    butex_worker_client,
+    equation_mapping_service,
+)
 
-_ARABIC_RE = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]")
+_ARABIC_RE = re.compile(r"[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]+")
 _INLINE_MATH_MODES = {"$", r"\("}
 
 
@@ -186,11 +190,27 @@ def _arabic_char_values(value: Any) -> list[str]:
 
     def walk(node: Any) -> None:
         if isinstance(node, dict):
+            source_latex = node.get("source_latex")
+            has_local_identity = isinstance(source_latex, str) and bool(source_latex.strip())
+
             if node.get("node_type") == "CharObject":
                 expr = node.get("expr")
-                if isinstance(expr, str) and _ARABIC_RE.search(expr):
+                # Occurrence-level source_latex is authoritative identity. Do not
+                # treat the Arabic payload as unresolved merely because the
+                # article-level Arabic→English mapping is missing or ambiguous.
+                if (
+                    isinstance(expr, str)
+                    and _ARABIC_RE.search(expr)
+                    and not has_local_identity
+                ):
                     found.append(expr)
-            for child in node.values():
+
+            for key, child in node.items():
+                # Arabic payloads under a node that already carries reliable
+                # source identity are not global mapping problems. Still walk
+                # scripts and other siblings so attached variables keep coverage.
+                if has_local_identity and key == "mandatory_args":
+                    continue
                 if isinstance(child, (dict, list)):
                     walk(child)
         elif isinstance(node, list):
@@ -201,17 +221,32 @@ def _arabic_char_values(value: Any) -> list[str]:
     return found
 
 
+def _mapping_aliases(value: str) -> set[str]:
+    """Return a mapping value plus Arabic payloads nested inside TeX wrappers."""
+
+    return {value, *_ARABIC_RE.findall(value)}
+
+
 def _mapping_warnings(
     math_object: Mapping[str, Any],
     reverse_mapping: Mapping[str, str],
     ambiguous_values: set[str],
 ) -> list[str]:
+    ambiguous_aliases: set[str] = set()
+    for value in ambiguous_values:
+        ambiguous_aliases.update(_mapping_aliases(value))
+
+    mapped_alias_counts: dict[str, int] = {}
+    for value in reverse_mapping:
+        for alias in _mapping_aliases(value):
+            mapped_alias_counts[alias] = mapped_alias_counts.get(alias, 0) + 1
+
     warnings: list[str] = []
     seen: set[str] = set()
     for expr in _arabic_char_values(math_object):
-        if expr in ambiguous_values:
+        if expr in ambiguous_aliases or mapped_alias_counts.get(expr, 0) > 1:
             warning = f"ambiguous_reverse_mapping:{expr}"
-        elif expr not in reverse_mapping:
+        elif mapped_alias_counts.get(expr, 0) == 0:
             warning = f"unmapped_arabic_variable:{expr}"
         else:
             continue
@@ -249,9 +284,12 @@ def project_document_equations(
             continue
 
         warnings = _mapping_warnings(raw_object, reverse_mapping, ambiguous_values)
-        latex, conversion_warnings = burhan_reverse_client.convert_math_object_to_english(
-            raw_object,
-            variable_mapping=reverse_mapping,
+        english_object = butex_worker_client.project_math_object_to_english(raw_object)
+        latex, conversion_warnings = (
+            burhan_reverse_client.project_math_object_to_canonical_latex(
+                english_object,
+                variable_mapping=reverse_mapping,
+            )
         )
         for warning in conversion_warnings:
             if warning not in warnings:

@@ -210,8 +210,10 @@ test("shared MCP connection guide owns copyable connection data and detailed ins
   assert.match(source, /export const MCP_CONNECTION_NAME = "مجلة البيان"/);
   assert.match(source, /مساعد مجلة البيان للبحث والكتابة والمراجعة والتحرير/);
   assert.equal(source.includes("دون تقديم المقال أو اتخاذ قرارات نهائية"), false);
-  assert.match(source, /download="albayan-connector-icon\.png"/);
-  assert.match(source, /الملف أقل من 10 كيلوبايت/);
+  const fields = readSrc("components/wukala/mcp-connection-fields.tsx");
+  assert.match(fields, /filename = "albayan-connector-icon\.png"/);
+  assert.match(fields, /download=\{filename\}/);
+  assert.match(fields, /الملف أقل من 10 كيلوبايت/);
   assert.match(source, /إذا ظهر حقل للأيقونة/);
   assert.equal(source.includes("الوصول إلى ملفي ومقالاتي"), false);
 

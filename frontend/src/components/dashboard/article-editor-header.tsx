@@ -14,6 +14,7 @@ import {
   Send,
   Settings,
   Sigma,
+  Ruler,
 } from "lucide-react";
 import {
   forwardRef,
@@ -51,6 +52,7 @@ type ArticleEditorHeaderProps = {
   onBack: () => void;
   onOpenAssets: (returnFocus: HTMLElement | null) => void;
   onOpenEquationMappings: () => void;
+  onOpenUnits: () => void;
   onOpenHistory: () => void;
   onOpenJson: () => void;
   onSubmit: () => void;
@@ -229,6 +231,7 @@ export const ArticleEditorHeader = forwardRef<
     onBack,
     onOpenAssets,
     onOpenEquationMappings,
+    onOpenUnits,
     onOpenHistory,
     onOpenJson,
     onSubmit,
@@ -296,6 +299,15 @@ export const ArticleEditorHeader = forwardRef<
           onClick={() => {
             closeMenu();
             onOpenEquationMappings();
+          }}
+        />
+        <MenuAction
+          icon={<Ruler className="h-4 w-4" aria-hidden />}
+          label="وحدات القياس"
+          disabled={!ready}
+          onClick={() => {
+            closeMenu();
+            onOpenUnits();
           }}
         />
         <MenuAction
@@ -416,6 +428,15 @@ export const ArticleEditorHeader = forwardRef<
         onClick={() => {
           closeMenu();
           onOpenEquationMappings();
+        }}
+      />
+      <MobileContextAction
+        icon={<Ruler className="h-5 w-5" aria-hidden />}
+        label="وحدات القياس"
+        disabled={!ready}
+        onClick={() => {
+          closeMenu();
+          onOpenUnits();
         }}
       />
       <MobileContextAction

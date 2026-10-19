@@ -76,11 +76,12 @@ Arabic article/editor rendering
 ### Forward-conversion rules
 
 1. Al-Bayan loads the article's current mapping dictionary and sends it to Burhan with the canonical English LaTeX.
-2. Burhan owns mathematical parsing and translation. Its returned `arabic_json` must already be structurally correct (for example `\\ad` is a command node, not text hidden inside a CharObject).
-3. Al-Bayan feeds that returned Arabic MathObject into the normal Document2 path **as is**, apart from the ordinary Document2/token metadata and schema checks required by the document system.
-4. Al-Bayan must not rebuild the Arabic tree by starting from `english_json` and substituting mapped strings into CharObjects. The historical `_editor_math_object()` projection is not part of the target architecture.
-5. Newly discovered mappings are merged into the article mapping dictionary only if the corresponding draft mutation succeeds.
-6. The equation is persisted only once: as its normal MathObject inside the article's Document2 `document.json`.
+2. Canonical interoperability always uses Burhan's deterministic heuristic tier (`convert_canonical_latex_to_math_object`). Authentication method and `settings.burhan_model_tier` must not choose mathematical semantics for this path.
+3. Burhan owns mathematical parsing and translation. Its returned `arabic_json` must already be structurally correct (for example `\\ad` is a command node, not text hidden inside a CharObject).
+4. Al-Bayan feeds that returned Arabic MathObject into the normal Document2 path **as is**, apart from the ordinary Document2/token metadata and schema checks required by the document system.
+5. Al-Bayan must not rebuild the Arabic tree by starting from `english_json` and substituting mapped strings into CharObjects. The historical `_editor_math_object()` projection is not part of the target architecture.
+6. Newly discovered mappings are merged into the article mapping dictionary only if the corresponding draft mutation succeeds.
+7. The equation is persisted only once: as its normal MathObject inside the article's Document2 `document.json`.
 
 If Burhan cannot return a valid structured MathObject at all, the mutation should fail cleanly rather than inventing another representation. Graceful fallback applies to valid imported standard commands inside a structured equation; it is not a license to persist arbitrary malformed output.
 
@@ -146,10 +147,11 @@ AI
 
 1. The current stored Document2 equation is authoritative.
 2. BuTeX owns the structural reconstruction from the stored Arabic editor representation to its English/canonical-side structured MathObject. Al-Bayan should not reproduce BuTeX's editor semantics in Python.
-3. Al-Bayan sends that English-side MathObject plus the article's mapping dictionary to Burhan `/convert-to-english`.
+3. Al-Bayan sends that English-side MathObject plus the article's mapping dictionary through deterministic canonical reverse conversion (`project_math_object_to_canonical_latex` / Burhan `/convert-to-english` with the heuristic interop tier). Production projection must not inherit a model-backed `settings.burhan_model_tier`.
 4. Burhan performs the final cleanup/canonicalization. This includes reversing mapped values even when the Arabic-side value is itself a command with no Arabic Unicode, for example `d -> \\ad`.
-5. `get_draft_equations` returns canonical English interoperability LaTeX to the AI together with targeting identity and the article mappings; it does not expose internal Arabic/BuTeX macros as the canonical AI representation.
-6. Because this projection is live, human edits in BuTeX are naturally reflected the next time the AI fetches equations.
+5. When an occurrence already carries reliable node-local `source_latex`, Al-Bayan mapping warnings must not treat that occurrence as unresolved merely because the article-level Arabic→English mapping is ambiguous or incomplete.
+6. `get_draft_equations` returns canonical English interoperability LaTeX to the AI together with targeting identity and the article mappings; it does not expose internal Arabic/BuTeX macros as the canonical AI representation.
+7. Because this projection is live, human edits in BuTeX are naturally reflected the next time the AI fetches equations.
 
 ## MCP read surfaces
 

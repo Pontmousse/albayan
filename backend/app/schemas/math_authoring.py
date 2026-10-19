@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MathAuthoringCapabilitiesRead(BaseModel):
@@ -15,6 +15,7 @@ class MathAuthoringCapabilitiesRead(BaseModel):
     representation: Literal["canonical_english_latex"]
     instruction: str
     preferred_submission: dict[str, Any]
+    unit_discovery: dict[str, Any] = Field(default_factory=dict)
     source_snapshot: dict[str, Any]
     round_trip_safe: dict[str, Any]
     accepted_but_not_round_trip_safe: dict[str, Any]

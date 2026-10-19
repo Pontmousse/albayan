@@ -9,7 +9,7 @@ from typing import get_type_hints
 from mcp.server.mcpserver import MCPServer
 from pydantic import TypeAdapter
 
-from albayan_mcp.schemas.document2 import DocumentCommand
+from albayan_mcp.schemas.document2 import DocumentCommand, DocumentMathObjectJson
 from albayan_mcp.tools.drafts import register_draft_tools
 from tests.test_profile_tools import FakeServer
 
@@ -67,6 +67,42 @@ class Document2McpSchemaTests(unittest.TestCase):
         self.assertEqual(set(schema["discriminator"]["mapping"]), EXPECTED_OPERATIONS)
         self.assertEqual(len(schema["oneOf"]), 29)
         self.assertTrue(all("$ref" in variant for variant in schema["oneOf"]))
+
+    def test_math_node_schema_accepts_minimal_source_provenance(self) -> None:
+        value = DocumentMathObjectJson.model_validate(
+            {
+                "node_type": "MathObject",
+                "math_mode": "$",
+                "closing": "$",
+                "lines": [
+                    {
+                        "node_type": "ChainClass",
+                        "chain": [
+                            {
+                                "node_type": "CommandObject",
+                                "name": r"\text",
+                                "source_latex": r"\mathtt{var}",
+                                "optional_args": [],
+                                "mandatory_args": [
+                                    {
+                                        "node_type": "ChainClass",
+                                        "chain": [
+                                            {
+                                                "node_type": "CharObject",
+                                                "expr": "متغير",
+                                            }
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+
+        node = value.lines[0].chain[0]
+        self.assertEqual(node.source_latex, r"\mathtt{var}")
 
     def test_apply_tool_signature_publishes_typed_command_union(self) -> None:
         server = FakeServer()

@@ -18,8 +18,10 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-BURHAN_COMMIT = "7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159"
-BUTEX_COMMIT = "7f55227b4cf368efb26b937c1729ba2e89eee865"
+# Candidate feature-branch revisions. Do not merge/publish this snapshot until
+# Burhan !30 and BuTeX !56 are integrated and normal MCP/browser tests pass.
+BURHAN_COMMIT = "889e67737e92362806572f3e072dee53baf53f13"
+BUTEX_COMMIT = "41b129e5033ba86031066e5d0516e1e1cb477afc"
 ROW_SEPARATOR = chr(92) * 2
 
 SOURCE_SNAPSHOT: dict[str, Any] = {
@@ -32,9 +34,19 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "arabic_latex_parser/nodes.py",
             "arabic_latex_parser/base_node.py",
             "arabic_latex_parser/equation_processor.py",
+            "arabic_latex_parser/arabic_json_normalizer.py",
             "arabic_latex_parser/english_converter.py",
+            "arabic_latex_parser/llm_utils.py",
             "tests/api/test_parse_equation.py",
+            "tests/api/test_reverse_command_mappings.py",
+            "tests/api/test_convert_to_english.py",
             "tests/parser/test_delimiter_coverage.py",
+            "tests/parser/test_structured_arabic_commands.py",
+            "tests/api/test_standard_math_authoring.py",
+            "tests/api/test_variable_source_identity.py",
+            "tests/api/test_ordered_indices.py",
+            "tests/api/test_prescanning.py",
+            "tests/api/test_prescanning_semantic_guards.py",
         ],
     },
     "butex": {
@@ -45,10 +57,31 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/atomicCommands.ts",
             "src/editor/atomicCommandsOperators.ts",
             "src/editor/accentCommands.ts",
+            "src/editor/standardCommands.ts",
+            "src/editor/indexSequence.ts",
+            "src/editor/types.ts",
+            "src/editor/render.ts",
+            "src/editor/state.ts",
+            "src/editor/rawOperatorPresentation.ts",
             "src/editor/display/delimiter.ts",
+            "src/editor/display/boxed.ts",
             "src/document2/mathBridge.ts",
+            "src/document2/mathObject.ts",
+            "src/ast/arabic_ast.ts",
             "src/document2-cli/execute.ts",
+            "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
+            "test/boxed_command.test.ts",
+            "test/standard_math_roundtrip.test.ts",
+            "test/ordered_indices.test.ts",
+            "test/rtl_raw_operator_identity.test.ts",
+            "src/editor/divideOperator.ts",
+            "src/editor/display/base.ts",
+            "src/editor/styles.ts",
+            "src/register/passthrough.ts",
+            "src/rtl-css.ts",
+            "test/register.compatMacros.test.ts",
+            "test/editor_css.test.ts",
         ],
     },
 }
@@ -67,6 +100,12 @@ STRUCTURAL_COMMANDS = [
         "form": r"\sqrt{radicand} or \sqrt[index]{radicand}",
     },
     {
+        "command": r"\boxed",
+        "mandatory_args": 1,
+        "optional_args": 0,
+        "form": r"\boxed{expression}",
+    },
+    {
         "command": r"\overset",
         "mandatory_args": 2,
         "optional_args": 0,
@@ -81,111 +120,109 @@ STRUCTURAL_COMMANDS = [
 ]
 
 ATOMIC_FUNCTIONS = [
-    r"\sin",
-    r"\cos",
-    r"\tan",
-    r"\cot",
-    r"\sec",
-    r"\csc",
-    r"\arcsin",
-    r"\arccos",
-    r"\arctan",
-    r"\arccot",
-    r"\arcsec",
-    r"\arccsc",
-    r"\sinh",
-    r"\cosh",
-    r"\tanh",
-    r"\coth",
-    r"\sum",
-    r"\prod",
-    r"\lim",
-    r"\arg",
-    r"\max",
-    r"\min",
-    r"\sup",
-    r"\inf",
-    r"\pi",
-    r"\exp",
-    r"\ln",
-    r"\log",
-    r"\det",
+    r"\sin", r"\cos", r"\tan", r"\cot", r"\sec", r"\csc",
+    r"\arcsin", r"\arccos", r"\arctan", r"\arccot", r"\arcsec", r"\arccsc",
+    r"\sinh", r"\cosh", r"\tanh", r"\coth",
+    r"\sum", r"\prod", r"\lim", r"\arg", r"\max", r"\min", r"\sup", r"\inf",
+    r"\pi", r"\exp", r"\ln", r"\log", r"\det",
 ]
 
 ATOMIC_OPERATORS = [
-    r"\infty",
-    r"\times",
-    r"\div",
-    r"\pm",
-    r"\mp",
-    r"\neq",
-    r"\approx",
-    r"\sim",
-    r"\mid",
-    r"\leq",
-    r"\geq",
-    r"\coloneqq",
-    r"\eqqcolon",
-    r"\propto",
-    r"\in",
-    r"\notin",
-    r"\subset",
-    r"\supset",
-    r"\subseteq",
-    r"\supseteq",
-    r"\cap",
-    r"\cup",
-    r"\emptyset",
-    r"\ldots",
-    r"\cdot",
-    r"\cdots",
-    r"\vdots",
-    r"\ddots",
-    r"\Leftrightarrow",
-    r"\implies",
-    r"\impliedby",
-    r"\iff",
-    r"\Longrightarrow",
-    r"\Longleftarrow",
-    r"\to",
-    r"\rightleftharpoons",
-    r"\leftarrow",
-    r"\rightarrow",
-    r"\Leftarrow",
-    r"\Rightarrow",
-    r"\leftharpoonup",
-    r"\rightharpoonup",
-    r"\leftharpoondown",
-    r"\rightharpoondown",
-    r"\int",
-    r"\iint",
-    r"\iiint",
-    r"\iiiint",
-    r"\oint",
-    r"\oiint",
-    r"\oiiint",
+    r"\infty", r"\times", r"\div", r"\pm", r"\mp", r"\neq", r"\approx",
+    r"\sim", r"\mid", r"\leq", r"\geq", r"\coloneqq", r"\eqqcolon",
+    r"\propto", r"\in", r"\notin", r"\subset", r"\supset", r"\subseteq",
+    r"\supseteq", r"\cap", r"\cup", r"\emptyset", r"\ldots", r"\cdot",
+    r"\cdots", r"\vdots", r"\ddots", r"\Leftrightarrow", r"\implies",
+    r"\impliedby", r"\iff", r"\Longrightarrow", r"\Longleftarrow", r"\to",
+    r"\rightleftharpoons", r"\leftarrow", r"\rightarrow", r"\Leftarrow",
+    r"\Rightarrow", r"\leftharpoonup", r"\rightharpoonup",
+    r"\leftharpoondown", r"\rightharpoondown", r"\int", r"\iint",
+    r"\iiint", r"\iiiint", r"\oint", r"\oiint", r"\oiiint",
+]
+
+# General standard-symbol set supported by BOTH:
+# - Burhan GREEK_SYMBOL_COMMANDS; and
+# - BuTeX 7.3.4 STANDARD_COMMANDS editable fallback.
+# Keep this as a capability group, not per-symbol special cases.
+STANDARD_SYMBOL_COMMANDS = [
+    r"\alpha",
+    r"\beta",
+    r"\gamma",
+    r"\delta",
+    r"\epsilon",
+    r"\eta",
+    r"\theta",
+    r"\lambda",
+    r"\mu",
+    r"\rho",
+    r"\sigma",
+    r"\tau",
+    r"\phi",
+    r"\chi",
+    r"\psi",
+    r"\omega",
+    r"\zeta",
+    r"\nabla",
+    r"\Delta",
+    r"\partial",
 ]
 
 ACCENTS = [
-    r"\vec",
-    r"\hat",
-    r"\tilde",
-    r"\dot",
-    r"\ddot",
-    r"\dddot",
-    r"\bar",
-    r"\check",
-    r"\breve",
-    r"\acute",
-    r"\grave",
-    r"\overline",
-    r"\underline",
-    r"\overleftarrow",
-    r"\overrightarrow",
-    r"\overleftrightarrow",
+    r"\vec", r"\hat", r"\tilde", r"\dot", r"\ddot", r"\dddot", r"\bar",
+    r"\check", r"\breve", r"\acute", r"\grave", r"\overline", r"\underline",
+    r"\overleftarrow", r"\overrightarrow", r"\overleftrightarrow",
 ]
 
 SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
+
+# Scoped semantic forms validated through the persisted normal MCP path and the
+# development browser on 2026-10-06. These are intentionally narrower than
+# generic LaTeX font-wrapper support.
+SEMANTIC_ROLE_COMMANDS = [
+    {
+        "command": r"\top",
+        "meaning": "transpose",
+        "form": r"A^\top",
+        "constraints": ["Use as the transpose symbol in a script; bare T remains a variable."],
+    },
+    {
+        "command": r"\mathbb",
+        "meaning": "number_set",
+        "form": r"\mathbb{N}",
+        "allowed_args": ["N", "Z", "Q", "R", "C", "H"],
+        "constraints": ["Exactly one advertised number-set letter as the mandatory argument."],
+    },
+    {
+        "command": r"\mathrm",
+        "meaning": "differential",
+        "form": r"\mathrm{d}",
+        "allowed_args": ["d"],
+        "constraints": [r"Only exact \mathrm{d} is advertised by this semantic convention."],
+    },
+    {
+        "command": r"\mathnormal",
+        "meaning": "ordered_index_sequence",
+        "form": r"T_{\mathnormal{12}} or \alpha^\mathnormal{ijk,23}",
+        "argument": "2–64 ASCII letters/digits, optionally separated by single commas",
+        "constraints": [
+            r"Only a complete subscript/superscript group; \mathnormal elsewhere retains ordinary LaTeX typography.",
+            r"Each letter/digit is a separate ordered index atom; commas separate runs.",
+            r"Ordinary x_{12} and x^{32} remain numeric. Do not emit \idx.",
+            "No nested commands, compound expressions, decimals, leading/trailing/repeated commas, or new UI controls.",
+        ],
+    },
+    {
+        "command": r"\mathsf",
+        "meaning": "unit",
+        "form": r"\mathsf{m}",
+        "argument": "one case-sensitive token matching ^[A-Za-z][A-Za-z0-9]*$ (see get_unit_registry)",
+        "constraints": [
+            "One unit atom per wrapper; scripts/exponents/operators stay outside the wrapper.",
+            r"Compound unit expressions may combine safe unit atoms with safe raw operators, e.g. 3\mathsf{m}/\mathsf{s}.",
+        ],
+    },
+]
+
 RAW_OPERATORS = ["+", "-", "=", "*", "/", "<", ">"]
 
 SAFE_INTERNAL_ENVIRONMENTS = [
@@ -221,26 +258,6 @@ SAFE_DELIMITERS = [
 ]
 
 PARSE_BUILD_ONLY_COMMANDS = [
-    r"\theta",
-    r"\alpha",
-    r"\beta",
-    r"\gamma",
-    r"\delta",
-    r"\epsilon",
-    r"\lambda",
-    r"\mu",
-    r"\rho",
-    r"\sigma",
-    r"\tau",
-    r"\phi",
-    r"\psi",
-    r"\omega",
-    r"\eta",
-    r"\zeta",
-    r"\chi",
-    r"\nabla",
-    r"\Delta",
-    r"\partial",
     r"\not",
     r"\backslash",
     r"\Longleftrightarrow",
@@ -257,11 +274,9 @@ PARSE_BUILD_ONLY_COMMANDS = [
     r"\underbrace",
     r"\mathbf",
     r"\bfseries",
-    r"\mathrm",
-    r"\mathsf",
+    r"\mathtt",
     r"\mathit",
     r"\mathfrak",
-    r"\mathbb",
     r"\mathcal",
     r"\mathscr",
     r"\text",
@@ -277,33 +292,14 @@ PARSE_BUILD_ONLY_DELIMITERS = [
     }
 ]
 TOP_LEVEL_ENVIRONMENTS = [
-    "align",
-    "align*",
-    "gather",
-    "gather*",
-    "multline",
-    "multline*",
-    "eqnarray",
-    "eqnarray*",
-    "equation",
-    "equation*",
+    "align", "align*", "gather", "gather*", "multline", "multline*",
+    "eqnarray", "eqnarray*", "equation", "equation*",
 ]
 
 INTERNAL_OUTPUT_MACRO_EXAMPLES = [
-    r"\ad",
-    r"\arsum",
-    r"\arprod",
-    r"\arlim",
-    r"\arsqrt",
-    r"\boldarabic",
-    r"\arabvec",
-    r"\butextakween",
-    r"\butexdiwani",
-    r"\butexdiwanioutline",
-    r"\butexmaghribi",
-    r"\unit",
-    r"\idx",
-    r"\prescript",
+    r"\ad", r"\arsum", r"\arprod", r"\arlim", r"\arsqrt", r"\boldarabic",
+    r"\arabvec", r"\butextakween", r"\butexdiwani", r"\butexdiwanioutline",
+    r"\butexmaghribi", r"\unit", r"\idx", r"\prescript",
 ]
 
 NORMALIZED_ALIASES = [
@@ -322,12 +318,65 @@ CAPABILITIES: dict[str, Any] = {
         "Send ordinary canonical LaTeX through the compact Document2 math token. "
         "Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not "
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
-        "Burhan's permissive parser happens to tokenize it."
+        "Burhan's permissive parser happens to tokenize it. "
+        "preferred_submission.semantic_conventions describes the agreed scoped forms. "
+        "Transpose, number sets, the exact differential, and simple unit atoms are advertised "
+        "under round_trip_safe.commands.semantic_roles after persisted MCP + browser validation. "
+        r"\mathtt remains outside round_trip_safe until the intended Arabic translation of "
+        "unmapped atomic names is verified. Follow the per-form constraints rather than treating "
+        "the underlying font wrappers as generic safe syntax."
     ),
     "preferred_submission": {
         "latex": "Prefer the equation body without outer math delimiters.",
         "display": "Use the compact math token display boolean to select inline/display math.",
         "wrappers_accepted_by_albayan": ["$...$", r"\(...\)", "$$...$$", r"\[...\]"],
+        "semantic_conventions": {
+            "transpose": r"Use A^\top for transpose, never A^T; bare T is a variable.",
+            "number_sets": (
+                r"Use \mathbb{N}, \mathbb{Z}, \mathbb{Q}, \mathbb{R}, "
+                r"\mathbb{C}, \mathbb{H} for naturals, integers, rationals, reals, "
+                "complex numbers, quaternions. Bare letters are variables; D is not a number set."
+            ),
+            "differential": r"Use exact \mathrm{d}, never bare d for a differential; bare d is a variable.",
+            "ordered_indices": (
+                r"Only when intending separate ordered index atoms use the complete-script wrapper "
+                r"T_{\mathnormal{12}} or \alpha^\mathnormal{ijk,23}; ordinary x_{12} "
+                r"and x^{32} stay numeric. Commas separate index runs. Never use \idx."
+            ),
+            "named_variable": (
+                r"Use \mathtt{var} for one atomic multi-character Latin variable, with scripts outside, "
+                r"e.g. \mathtt{var}_0. Do not use it for compound expressions. "
+                r"\mathtt{sin} is a named variable, whereas \sin is the function."
+            ),
+            "unit": (
+                r"Use canonical \mathsf{token} for every unit atom (ASCII identifier "
+                r"^[A-Za-z][A-Za-z0-9]*$, case-sensitive). "
+                r"Use get_unit_registry for Burhan-owned defaults and alternatives; "
+                r"get_article_unit_context for overrides and custom units. "
+                r"Never author Arabic display directly: known units resolve "
+                r"deterministically, unknown explicit tokens are preserved with a warning. "
+                r"\mathsf{N} is a unit, not \mathbb{N} or bare variable N. "
+                r"Keep exponents and compound operators outside each \mathsf{...} atom. "
+                r"Legacy \unit input remains supported but is not preferred. "
+                "Notation only; no numerical or dimensional conversion."
+            ),
+        },
+    },
+    "unit_discovery": {
+        "registry_tool": "get_unit_registry",
+        "article_tool": "get_article_unit_context",
+        "apply_tool": "apply_article_unit_conventions",
+        "canonical_syntax": r"\mathsf{token}",
+        "token_pattern": "^[A-Za-z][A-Za-z0-9]*$",
+        "case_sensitive": True,
+        "notation_only": True,
+        "unknown_explicit_token": "preserve_canonical_identity_and_warn",
+        "precedence": ["article_custom", "article_override", "registry_default", "unknown_preserved"],
+        "examples": [
+            r"v = 30\mathsf{m}/\mathsf{s}",
+            r"A = 2\mathsf{m}^2",
+            r"E = 5\mathsf{CU}",
+        ],
     },
     "source_snapshot": SOURCE_SNAPSHOT,
     "round_trip_safe": {
@@ -335,6 +384,8 @@ CAPABILITIES: dict[str, Any] = {
             "structures": STRUCTURAL_COMMANDS,
             "functions_and_limits": ATOMIC_FUNCTIONS,
             "operators_relations_sets_arrows_integrals": ATOMIC_OPERATORS,
+            "standard_symbols": STANDARD_SYMBOL_COMMANDS,
+            "semantic_roles": SEMANTIC_ROLE_COMMANDS,
             "accents": ACCENTS,
             "spacing": SPACING,
         },
@@ -342,6 +393,7 @@ CAPABILITIES: dict[str, Any] = {
         "scripts": [
             "Use ^ and _ with one atom or a braced group, e.g. x^2, x_{i+1}.",
             "Scripts may contain other round_trip_safe constructs.",
+        r"Use \mathnormal{...} only as a complete script for 2–64 ordered letter/digit index atoms, optionally separated by commas.",
         ],
         "delimiters": SAFE_DELIMITERS,
         "internal_environments": SAFE_INTERNAL_ENVIRONMENTS,
@@ -358,32 +410,46 @@ CAPABILITIES: dict[str, Any] = {
         "delimiters": PARSE_BUILD_ONLY_DELIMITERS,
         "notes": [
             "Burhan can parse/build these forms, but current BuTeX editor re-import is incomplete or multi-line editing is unsupported.",
+            "Common Greek/symbol commands are advertised separately under round_trip_safe.commands.standard_symbols because Burhan maps them and BuTeX 7.3.4 imports them as editable standardCommand nodes.",
             "Top-level multiline math can be stored structurally, but a MathObject with more than one top-level line is not editor-editable.",
-            "Burhan also preserves unknown alphabetic commands such as \\foo; that generic passthrough is intentionally not advertised as supported authoring.",
+            r"\mathtt preserves atomic-name identity, but the development browser E2E kept unmapped names such as var/sin in Latin instead of producing the intended Arabic translation.",
+            r"Burhan also preserves unknown alphabetic commands such as \foo; that generic passthrough is intentionally not advertised as supported authoring.",
         ],
     },
     "unsupported_or_forbidden": {
-        "rule": "For new AI-authored math, every command must appear in round_trip_safe.commands.",
+        "rule": "For new AI-authored math, every command must appear in round_trip_safe.commands and every raw operator must appear in round_trip_safe.raw_operators.",
         "internal_output_macro_examples": INTERNAL_OUTPUT_MACRO_EXAMPLES,
         "explicit_parser_rejection_examples": [r"x@", r"\left(x", r"\begin{document}x\end{document}"],
     },
     "normalization_aliases": NORMALIZED_ALIASES,
     "constraints": [
         "Atomic functions/operators/spacing commands take no brace arguments; place operands as following expression nodes.",
+        "Standard-symbol commands take no brace arguments; scripts may be attached normally.",
         "Accents take exactly one mandatory argument and no optional argument.",
-        "\\frac, \\overset, and \\underset take exactly two mandatory arguments.",
-        "\\sqrt takes exactly one mandatory radicand and at most one optional root index.",
+        r"\frac, \overset, and \underset take exactly two mandatory arguments.",
+        r"\sqrt takes exactly one mandatory radicand and at most one optional root index.",
+        r"\boxed takes exactly one mandatory expression and no optional arguments.",
         "For array, use only l/c/r column alignment letters.",
         "Do not use a top-level row break in AI-authored equations; it creates a multi-line MathObject that the current editor cannot round-trip edit.",
+        r"Do not use \mathtt for new AI-authored math yet; unmapped atomic names did not receive the intended Arabic translation in the persisted browser E2E.",
+        r"\mathnormal has ordered-index meaning only as the whole ^ or _ content; ordinary multi-digit scripts remain numbers.",
         "Do not depend on generic unknown-command passthrough, LLM normalization, or output-side Arabic macros.",
     ],
     "examples": [
         {"latex": r"\frac{x_1}{\sqrt{1+x^2}}", "display": False},
+        {"latex": r"\boxed{x=1}", "display": True},
         {"latex": r"\sum_{i=1}^{n} i^2", "display": True},
-        {"latex": r"\int_0^1 x^2\;dx", "display": True},
+        {"latex": r"\frac{\partial f}{\partial x}", "display": True},
         {"latex": r"\left\lVert x \right\rVert \leq 1", "display": False},
         {"latex": r"\begin{pmatrix}a&b\\c&d\end{pmatrix}", "display": True},
         {"latex": r"\arg\min_x f(x)", "display": True},
+        {"latex": r"A^\top + T", "display": False},
+        {"latex": r"N + \mathbb{N} + 3\mathsf{N}", "display": False},
+        {"latex": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}", "display": False},
+        {"latex": r"m + 3\mathsf{m}", "display": False},
+        {"latex": r"3\mathsf{m}/\mathsf{s}", "display": False},
+        {"latex": r"T_{\mathnormal{12}}", "display": False},
+        {"latex": r"\alpha^\mathnormal{ijk,23}", "display": False},
     ],
 }
 
@@ -401,6 +467,8 @@ def advertised_round_trip_commands() -> tuple[str, ...]:
     values.extend(item["command"] for item in STRUCTURAL_COMMANDS)
     values.extend(ATOMIC_FUNCTIONS)
     values.extend(ATOMIC_OPERATORS)
+    values.extend(STANDARD_SYMBOL_COMMANDS)
+    values.extend(item["command"] for item in SEMANTIC_ROLE_COMMANDS)
     values.extend(ACCENTS)
     values.extend(SPACING)
     return tuple(values)
@@ -413,6 +481,7 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
     structure_examples = {
         r"\frac": r"\frac{x}{y}",
         r"\sqrt": r"\sqrt[3]{x}",
+        r"\boxed": r"\boxed{x=1}",
         r"\overset": r"\overset{a}{x}",
         r"\underset": r"\underset{a}{x}",
     }
@@ -422,6 +491,24 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
         cases.append((f"{command} x", False, command))
     for command in ATOMIC_OPERATORS:
         cases.append((f"x {command} y", False, command))
+    for command in STANDARD_SYMBOL_COMMANDS:
+        cases.append((command, False, command))
+
+    semantic_examples = {
+        r"\top": r"A^\top + T",
+        r"\mathbb": r"N + \mathbb{N} + 3\mathsf{N}",
+        r"\mathrm": r"d + \frac{\mathrm{d}f}{\mathrm{d}x}",
+        r"\mathsf": r"m + 3\mathsf{m}",
+        r"\mathnormal": r"\alpha^\mathnormal{ijk,23}",
+    }
+    for item in SEMANTIC_ROLE_COMMANDS:
+        command = item["command"]
+        cases.append((semantic_examples[command], False, command))
+
+    # Same implementation path for all six advertised number-set arguments.
+    for symbol in "ZQRCH":
+        cases.append((rf"{symbol} + \mathbb{{{symbol}}}", False, f"semantic_number_set:{symbol}"))
+
     for command in ACCENTS:
         cases.append((f"{command}{{x}}", False, command))
     for command in SPACING:
@@ -429,6 +516,8 @@ def burhan_verification_cases() -> list[tuple[str, bool, str]]:
     for operator in RAW_OPERATORS:
         cases.append((f"x{operator}y", False, f"raw_operator:{operator}"))
     cases.append((r"x_{i+1}^2", False, "scripts:^_"))
+    cases.append((r"x^{32}", False, "scripts:ordinary_numeric_exponent"))
+    cases.append((r"x_{12}", False, "scripts:ordinary_numeric_subscript"))
 
     for index, delimiter in enumerate(SAFE_DELIMITERS):
         cases.append((delimiter["form"].replace("...", "x"), False, f"delimiter:{index}"))

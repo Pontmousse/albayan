@@ -8,11 +8,15 @@ import pytest
 from app.schemas.math_authoring import MathAuthoringCapabilitiesRead
 from app.services import burhan_client
 from app.services.math_authoring_capabilities import (
+    BURHAN_COMMIT,
+    BUTEX_COMMIT,
     INTERNAL_OUTPUT_MACRO_EXAMPLES,
     PARSE_BUILD_ONLY_COMMANDS,
     RAW_OPERATORS,
     SAFE_DELIMITERS,
     SAFE_INTERNAL_ENVIRONMENTS,
+    SEMANTIC_ROLE_COMMANDS,
+    STANDARD_SYMBOL_COMMANDS,
     advertised_round_trip_commands,
     burhan_verification_cases,
     get_math_authoring_capabilities,
@@ -41,6 +45,87 @@ def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> 
         assert labels.count(command) == 1
 
 
+def test_scoped_semantic_roles_match_the_feature_candidate_contract() -> None:
+    contract = get_math_authoring_capabilities()
+    conventions = contract["preferred_submission"]["semantic_conventions"]
+    assert set(conventions) == {
+        "transpose", "number_sets", "differential", "named_variable", "unit", "ordered_indices",
+    }
+    for symbol in "NZQRCH":
+        assert rf"\mathbb{{{symbol}}}" in conventions["number_sets"]
+    assert r"\mathbb{D}" not in conventions["number_sets"]
+    assert r"\unit" in conventions["unit"]
+    assert "atomic multi-character Latin variable" in conventions["named_variable"]
+    assert "compound expressions" in conventions["named_variable"]
+    assert r"\mathnormal{ijk,23}" in conventions["ordered_indices"]
+
+    semantic_roles = contract["round_trip_safe"]["commands"]["semantic_roles"]
+    assert semantic_roles == SEMANTIC_ROLE_COMMANDS
+    advertised = set(advertised_round_trip_commands())
+    assert {r"\top", r"\mathbb", r"\mathrm", r"\mathsf", r"\mathnormal"}.issubset(advertised)
+    assert r"\mathtt" not in advertised
+    assert {r"\mathbb", r"\mathrm", r"\mathsf"}.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
+    assert r"\mathtt" in PARSE_BUILD_ONLY_COMMANDS
+
+    mathbb = next(item for item in semantic_roles if item["command"] == r"\mathbb")
+    assert mathbb["allowed_args"] == list("NZQRCH")
+    differential = next(item for item in semantic_roles if item["command"] == r"\mathrm")
+    assert differential["allowed_args"] == ["d"]
+    unit = next(item for item in semantic_roles if item["command"] == r"\mathsf")
+    assert any("safe raw operators" in item for item in unit["constraints"])
+    assert not any(item["command"] == r"\mathtt" for item in semantic_roles)
+    ordered = next(item for item in semantic_roles if item["command"] == r"\mathnormal")
+    assert ordered["meaning"] == "ordered_index_sequence"
+    assert any("complete subscript" in constraint for constraint in ordered["constraints"])
+
+    examples = {item["latex"] for item in contract["examples"]}
+    assert r"\frac{\partial f}{\partial x}" in examples
+    assert r"A^\top + T" in examples
+    assert r"N + \mathbb{N} + 3\mathsf{N}" in examples
+    assert r"d + \frac{\mathrm{d}f}{\mathrm{d}x}" in examples
+    assert r"\mathtt{var}_0" not in examples
+    assert r"m + 3\mathsf{m}" in examples
+    assert r"3\mathsf{m}/\mathsf{s}" in examples
+    assert r"T_{\mathnormal{12}}" in examples
+    assert r"\alpha^\mathnormal{ijk,23}" in examples
+    assert r"\mathtt{velocity} = 3\mathsf{m}/\mathsf{s}" not in examples
+
+    conventions["transpose"] = "changed"
+    assert get_math_authoring_capabilities()["preferred_submission"]["semantic_conventions"][
+        "transpose"
+    ] != "changed"
+
+
+def test_common_standard_symbols_are_advertised_as_one_general_capability_group() -> None:
+    contract = get_math_authoring_capabilities()
+    advertised_symbols = contract["round_trip_safe"]["commands"]["standard_symbols"]
+
+    assert advertised_symbols == STANDARD_SYMBOL_COMMANDS
+    assert set(STANDARD_SYMBOL_COMMANDS) == {
+        r"\alpha",
+        r"\beta",
+        r"\gamma",
+        r"\delta",
+        r"\epsilon",
+        r"\eta",
+        r"\theta",
+        r"\lambda",
+        r"\mu",
+        r"\rho",
+        r"\sigma",
+        r"\tau",
+        r"\phi",
+        r"\chi",
+        r"\psi",
+        r"\omega",
+        r"\zeta",
+        r"\nabla",
+        r"\Delta",
+        r"\partial",
+    }
+    assert set(STANDARD_SYMBOL_COMMANDS).isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
+
+
 def test_every_advertised_environment_delimiter_operator_and_script_has_a_case() -> None:
     labels = {label for _, _, label in burhan_verification_cases()}
 
@@ -55,6 +140,23 @@ def test_every_advertised_environment_delimiter_operator_and_script_has_a_case()
     expected_raw_operators = {f"raw_operator:{operator}" for operator in RAW_OPERATORS}
     assert expected_raw_operators.issubset(labels)
     assert "scripts:^_" in labels
+    assert "scripts:ordinary_numeric_exponent" in labels
+    assert "scripts:ordinary_numeric_subscript" in labels
+    assert set(RAW_OPERATORS) == {"+", "-", "=", "*", "/", "<", ">"}
+
+
+def test_advertised_environments_are_accepted_as_bare_canonical_content() -> None:
+    """Contract cases must be accepted exactly as advertised — no pre-wrap."""
+    for latex, display, label in burhan_verification_cases():
+        if not label.startswith("environment:"):
+            continue
+        full_match, opening, inner, closing = burhan_client._split_latex(
+            latex, display=display
+        )
+        assert inner == latex, label
+        assert full_match == (rf"\[{latex}\]" if display else f"${latex}$"), label
+        assert opening == (r"\[" if display else "$"), label
+        assert closing == (r"\]" if display else "$"), label
 
 
 def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> None:
@@ -62,19 +164,33 @@ def test_internal_and_parse_only_commands_are_not_advertised_for_authoring() -> 
 
     assert advertised.isdisjoint(INTERNAL_OUTPUT_MACRO_EXAMPLES)
     assert advertised.isdisjoint(PARSE_BUILD_ONLY_COMMANDS)
-    for representative in (r"\foo", r"\partial", r"\text", r"\arsum", r"\butextakween"):
+    for representative in (r"\foo", r"\text", r"\arsum", r"\butextakween"):
         assert representative not in advertised
 
 
 def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None:
     contract = get_math_authoring_capabilities()
 
-    assert contract["source_snapshot"]["burhan"]["commit"] == (
-        "7ad84b2bdfd4c7eb95c2ad7c584b8e2a93207159"
-    )
-    assert contract["source_snapshot"]["butex"]["commit"] == (
-        "7f55227b4cf368efb26b937c1729ba2e89eee865"
-    )
+    assert BURHAN_COMMIT == "889e67737e92362806572f3e072dee53baf53f13"
+    assert BUTEX_COMMIT == "41b129e5033ba86031066e5d0516e1e1cb477afc"
+    assert contract["source_snapshot"]["burhan"]["commit"] == BURHAN_COMMIT
+    assert contract["source_snapshot"]["butex"]["commit"] == BUTEX_COMMIT
+    assert "arabic_latex_parser/arabic_json_normalizer.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_reverse_command_mappings.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_convert_to_english.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_standard_math_authoring.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_variable_source_identity.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "tests/api/test_ordered_indices.py" in contract["source_snapshot"]["burhan"]["files"]
+    assert "src/editor/standardCommands.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "src/editor/indexSequence.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/ordered_indices.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "src/editor/rawOperatorPresentation.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/standard_commands.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/standard_math_roundtrip.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/rtl_raw_operator_identity.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "src/editor/display/boxed.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert "test/boxed_command.test.ts" in contract["source_snapshot"]["butex"]["files"]
+    assert any(item["command"] == r"\boxed" for item in contract["round_trip_safe"]["commands"]["structures"])
     assert contract["unsupported_or_forbidden"]["explicit_parser_rejection_examples"] == [
         r"x@",
         r"\left(x",
@@ -100,10 +216,14 @@ def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     """Exercise the exact client used before Document2 insertion for every whitelist entry."""
 
     monkeypatch.setattr(burhan_client.settings, "burhan_url", os.environ["BURHAN_URL"])
-    monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "heuristic")
+    # Contract verification must use the same deterministic policy as production
+    # authoring, not a test-only safer override of settings.burhan_model_tier.
+    monkeypatch.setattr(burhan_client.settings, "burhan_model_tier", "cheap")
 
     for latex, display, label in burhan_verification_cases():
-        token, mappings = burhan_client.convert_latex_to_math_token(
+        # Inner math environments are equation content (PR #200); the
+        # deterministic canonical interop API wraps them from `display`.
+        token, mappings = burhan_client.convert_canonical_latex_to_math_object(
             latex,
             display=display,
             label=None,
@@ -119,10 +239,19 @@ def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     not os.getenv("BURHAN_URL"),
     reason="Set BURHAN_URL to verify representative parser rejection cases.",
 )
-def test_representative_unsupported_forms_are_rejected_by_live_burhan_parser() -> None:
+def test_representative_malformed_forms_are_rejected_by_live_burhan_parser() -> None:
     base = os.environ["BURHAN_URL"].rstrip("/")
     rejected = get_math_authoring_capabilities()["unsupported_or_forbidden"]
-    examples = rejected["explicit_parser_rejection_examples"]
+
+    # A whole-document environment is forbidden by the AI equation-authoring policy,
+    # but Burhan's parser is intentionally permissive for otherwise tokenizable LaTeX.
+    # Parser-rejection CI should therefore cover malformed syntax only.
+    policy_only = {r"\begin{document}x\end{document}"}
+    examples = [
+        latex
+        for latex in rejected["explicit_parser_rejection_examples"]
+        if latex not in policy_only
+    ]
 
     with httpx.Client(
         base_url=base,

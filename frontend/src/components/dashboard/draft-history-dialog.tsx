@@ -53,6 +53,7 @@ const REASON_LABELS: Record<DraftRevisionHistoryItem["reason"], string> = {
   initial: "المسودة الأولى",
   autosave: "حفظ تلقائي",
   ai_edit: "تعديل بالوكيل",
+  unit_conventions: "تعديل اصطلاحات الوحدات",
   metadata_edit: "تعديل العنوان أو الملخص",
   restore: "استعادة",
   revision_request: "فتح جولة تعديل",

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import uuid
 from collections.abc import Mapping
 from time import perf_counter
@@ -21,8 +20,14 @@ from app.schemas.document2 import DocumentMathObjectJson
 logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 45.0
+# Canonical equation interoperability is an operation-level policy: always use
+# Burhan's deterministic heuristic tier, never the ambient settings default or
+# an authentication accident.
+CANONICAL_INTEROP_TIER = "heuristic"
 _SUPPORTED_MODEL_TIERS = {"heuristic", "free", "cheap", "medium", "frontier"}
-_SUPPORTED_ENVIRONMENTS = (
+# Genuine outer math wrappers only. Math-only inner environments (pmatrix,
+# array, aligned, …) are equation content and must not appear here.
+_OUTER_MATH_WRAPPER_ENVIRONMENTS = (
     "align",
     "align*",
     "gather",
@@ -61,11 +66,27 @@ def _resolve_model_tier(model_tier: str | None) -> str:
     return value
 
 
+def _is_incomplete_outer_wrapper(value: str) -> bool:
+    """True when input starts an outer math wrapper but is not a complete one.
+
+    Distinguishes genuine outer wrappers ($...$, \\[...\\], equation/align, …)
+    from math-only inner environments (pmatrix, array, aligned, …), which are
+    equation content and must not be treated as incomplete delimiters.
+    """
+    if value.startswith(("$", r"\(", r"\[")):
+        return True
+    return any(
+        value.startswith(rf"\begin{{{name}}}")
+        for name in _OUTER_MATH_WRAPPER_ENVIRONMENTS
+    )
+
+
 def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
     value = latex.strip()
     if not value:
         raise _error(422, "invalid_math_latex", "نص المعادلة فارغ.")
 
+    # Only genuine outer math wrappers — never math-only inner environments.
     wrappers: list[tuple[str, str, bool]] = [
         ("$$", "$$", True),
         (r"\[", r"\]", True),
@@ -74,7 +95,7 @@ def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
     ]
     wrappers.extend(
         (rf"\begin{{{name}}}", rf"\end{{{name}}}", True)
-        for name in _SUPPORTED_ENVIRONMENTS
+        for name in _OUTER_MATH_WRAPPER_ENVIRONMENTS
     )
 
     for opening, closing, wrapper_display in wrappers:
@@ -90,9 +111,11 @@ def _split_latex(latex: str, *, display: bool) -> tuple[str, str, str, str]:
                 raise _error(422, "invalid_math_latex", "محتوى المعادلة فارغ.")
             return value, opening, inner, closing
 
-    if value.startswith(("$", r"\(", r"\[", r"\begin{")):
+    if _is_incomplete_outer_wrapper(value):
         raise _error(422, "invalid_math_latex", "محددات LaTeX للمعادلة غير مكتملة.")
 
+    # No outer wrapper: treat the full string as canonical equation content and
+    # wrap from the explicit display flag (inner envs like pmatrix stay intact).
     opening, closing = (r"\[", r"\]") if display else ("$", "$")
     return opening + value + closing, opening, value, closing
 
@@ -113,77 +136,41 @@ def _validated_mappings(value: Any) -> dict[str, str]:
     return mappings
 
 
-def _segment_mapping_keys(expr: str, mappings: Mapping[str, str]) -> list[str] | None:
-    """Find a deterministic full segmentation, preferring longer mapping keys."""
-    keys = sorted((key for key in mappings if key), key=lambda key: (-len(key), key))
-    memo: dict[int, list[str] | None] = {}
-
-    def solve(offset: int) -> list[str] | None:
-        if offset == len(expr):
-            return []
-        if offset in memo:
-            return memo[offset]
-        for key in keys:
-            if expr.startswith(key, offset):
-                remainder = solve(offset + len(key))
-                if remainder is not None:
-                    memo[offset] = [key, *remainder]
-                    return memo[offset]
-        memo[offset] = None
-        return None
-
-    return solve(0)
+def _drop_burhan_internal_math_metadata(value: Any) -> None:
+    """Remove Burhan-only annotations that are not part of the Document2 wire AST."""
+    if isinstance(value, dict):
+        value.pop("arabic_unit", None)
+        for child in value.values():
+            _drop_burhan_internal_math_metadata(child)
+    elif isinstance(value, list):
+        for child in value:
+            _drop_burhan_internal_math_metadata(child)
 
 
-def _arabic_char_expr(expr: str, mappings: Mapping[str, str]) -> str:
-    direct = mappings.get(expr)
-    if direct is not None:
-        return direct
-
-    parts = _segment_mapping_keys(expr, mappings)
-    if parts:
-        return "".join(mappings[part] for part in reversed(parts))
-
-    if not re.search(r"[A-Za-z]", expr):
-        return expr
-    raise _error(
-        502,
-        "invalid_burhan_response",
-        "تعذّر مطابقة متغيرات المعادلة مع تحويل Burhan.",
-    )
-
-
-def _editor_math_object(
-    english_json: str,
-    mappings: Mapping[str, str],
+def _arabic_math_object(
+    arabic_json: Any,
     *,
     display: bool,
     label: str | None,
 ) -> dict[str, Any]:
-    try:
-        tree = json.loads(english_json)
-    except (TypeError, json.JSONDecodeError) as exc:
-        raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.") from exc
-    if not isinstance(tree, dict) or tree.get("node_type") != "MathObject":
+    """Validate Burhan's Arabic MathObject without rewriting its mathematical AST."""
+    if isinstance(arabic_json, str):
+        try:
+            tree = json.loads(arabic_json)
+        except json.JSONDecodeError as exc:
+            raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.") from exc
+    elif isinstance(arabic_json, dict):
+        tree = dict(arabic_json)
+    else:
         raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.")
 
-    def walk(value: Any) -> None:
-        if isinstance(value, dict):
-            if value.get("node_type") == "CharObject":
-                expr = value.get("expr")
-                if not isinstance(expr, str):
-                    raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.")
-                value["expr"] = _arabic_char_expr(expr, mappings)
-            for child in value.values():
-                walk(child)
-        elif isinstance(value, list):
-            for child in value:
-                walk(child)
+    if tree.get("node_type") != "MathObject":
+        raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.")
 
-    walk(tree)
-    # Burhan's BaseNode includes root script placeholders; BuTeX MathObject does not.
+    # Burhan's BaseNode includes root script placeholders; Document2 MathObject does not.
     tree.pop("superscript", None)
     tree.pop("subscript", None)
+    _drop_burhan_internal_math_metadata(tree)
     tree["source_side"] = "arabic"
     tree["source_owner"] = "editor"
     if display and label is not None and label.strip():
@@ -224,21 +211,37 @@ def _bounded_warnings(value: Any) -> list[Any]:
     return compact
 
 
+def normalize_english_math_ast(value: Any) -> Any:
+    """Normalize an English MathObject/AST for semantic equivalence comparison.
+
+    Drops null placeholders and sorts object keys so formatting-only differences
+    (for example `x_1` vs `x_{1}` once both are parsed) do not produce false
+    failures. Structural/operator/variable identity is preserved.
+    """
+    if isinstance(value, dict):
+        normalized: dict[str, Any] = {}
+        for key in sorted(value):
+            child = value[key]
+            if child is None:
+                continue
+            normalized[key] = normalize_english_math_ast(child)
+        return normalized
+    if isinstance(value, list):
+        return [normalize_english_math_ast(child) for child in value]
+    return value
+
+
 def convert_latex_to_math_token(
     latex: str,
     *,
     display: bool,
     label: str | None,
     mappings: Mapping[str, str],
+    unit_conventions: Mapping[str, Any] | None = None,
     model_tier: str | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Convert normal English LaTeX into the strict editor-shaped Document2 math token.
-
-    ``diagnostics`` is an optional dev-only sink populated with bounded,
-    non-secret stages from the same real Burhan request. Product callers do not
-    need it and keep the historical two-value return contract.
-    """
+    """Convert canonical English LaTeX into a structured Arabic Document2 math token."""
     base = settings.burhan_url.rstrip("/")
     if not base:
         raise _UNCONFIGURED
@@ -258,6 +261,11 @@ def convert_latex_to_math_token(
         "model_tier": tier,
         "prescanning": True,
     }
+    if unit_conventions is not None:
+        # A sibling of variable mappings; never mix unit names into mappings.
+        from app.services.unit_conventions_service import validated_unit_conventions
+
+        payload["unit_conventions"] = validated_unit_conventions(unit_conventions)
 
     if diagnostics is not None:
         diagnostics.update(
@@ -275,6 +283,7 @@ def convert_latex_to_math_token(
                     "digits_mapping": "digits",
                     "prescanning": True,
                     "mapping_count": len(mappings),
+                    "unit_conventions": payload.get("unit_conventions"),
                 },
             }
         )
@@ -322,6 +331,25 @@ def convert_latex_to_math_token(
         status_code=response.status_code,
     )
     if response.status_code == 422:
+        try:
+            detail = response.json()
+        except ValueError:
+            detail = None
+        # Surface Burhan's unit-specific validation distinctly while keeping
+        # downstream/UI errors Arabic and never echoing untrusted error content.
+        reason = detail.get("detail", detail) if isinstance(detail, dict) else None
+        if isinstance(reason, dict):
+            code = str(reason.get("code", ""))
+            if code.startswith("invalid_unit") or code.startswith("unit_"):
+                raise _error(422, "invalid_unit_conventions", "اصطلاحات وحدات القياس غير صالحة.")
+        elif isinstance(reason, list) and any(
+            isinstance(item, dict)
+            and "unit_conventions" in item.get("loc", [])
+            for item in reason
+        ):
+            # FastAPI/Pydantic uses a list of errors with loc: ["body",
+            # "unit_conventions", ...], rather than an application error code.
+            raise _error(422, "invalid_unit_conventions", "اصطلاحات وحدات القياس غير صالحة.")
         raise _error(422, "invalid_math_latex", "تعذّر فهم صيغة LaTeX للمعادلة.")
     if response.status_code != 200:
         raise _error(502, "burhan_unavailable", "تعذّر تحويل المعادلة.")
@@ -333,14 +361,12 @@ def convert_latex_to_math_token(
         raise _error(502, "invalid_burhan_response", "لم تكتمل عملية تحويل المعادلة.")
 
     arabic_source = body.get("arabic")
-    english_json = body.get("english_json")
     resolved_mappings = _validated_mappings(body.get("mappings"))
-    if not isinstance(arabic_source, str) or not arabic_source.strip() or not isinstance(english_json, str):
+    if not isinstance(arabic_source, str) or not arabic_source.strip():
         raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.")
 
-    math_object = _editor_math_object(
-        english_json,
-        resolved_mappings,
+    math_object = _arabic_math_object(
+        body.get("arabic_json"),
         display=display,
         label=label,
     )
@@ -348,7 +374,7 @@ def convert_latex_to_math_token(
         diagnostics.update(
             {
                 "duration_ms": round(duration_ms, 3),
-                "english_json": _decode_json_stage(english_json),
+                "english_json": _decode_json_stage(body.get("english_json")),
                 "arabic_json": _decode_json_stage(body.get("arabic_json")),
                 "arabic_latex": arabic_source,
                 "mappings": dict(resolved_mappings),
@@ -364,3 +390,24 @@ def convert_latex_to_math_token(
         "source": arabic_source,
         "math_object": math_object,
     }, resolved_mappings
+
+
+def convert_canonical_latex_to_math_object(
+    latex: str,
+    *,
+    display: bool,
+    label: str | None,
+    mappings: Mapping[str, str],
+    unit_conventions: Mapping[str, Any] | None = None,
+    diagnostics: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Deterministic canonical → Document2 conversion for interoperability paths."""
+    return convert_latex_to_math_token(
+        latex,
+        display=display,
+        label=label,
+        mappings=mappings,
+        unit_conventions=unit_conventions,
+        model_tier=CANONICAL_INTEROP_TIER,
+        diagnostics=diagnostics,
+    )

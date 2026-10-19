@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from importlib.metadata import version as distribution_version
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -57,6 +58,9 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "get_draft_reference_index",
                 "get_math_authoring_capabilities",
                 "get_draft_equations",
+                "get_unit_registry",
+                "get_article_unit_context",
+                "apply_article_unit_conventions",
                 "apply_draft_command",
                 "compile_draft",
                 "get_compile_status",
@@ -65,6 +69,23 @@ class ArticleToolTests(unittest.IsolatedAsyncioTestCase):
                 "get_article_asset",
                 "upload_article_asset",
             },
+        )
+
+    def test_create_server_advertises_installed_version_in_mcp_server_info(self) -> None:
+        # The MCP server version belongs to this Python distribution, not to
+        # the ChatGPT/Codex app manifest or the MCP SDK's own release version.
+        with patch.object(
+            server_module,
+            "settings",
+            SimpleNamespace(oauth_enabled=False, enable_transport_probe=False),
+        ):
+            mcp = server_module.create_server()
+
+        installed_version = distribution_version("albayan-mcp")
+        self.assertEqual(mcp.version, installed_version)
+        self.assertEqual(
+            mcp._lowlevel_server.server_info.version,
+            installed_version,
         )
 
     async def test_read_articles_calls_backend_and_returns_structured_output(self) -> None:

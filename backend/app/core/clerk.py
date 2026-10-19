@@ -134,6 +134,7 @@ def get_auth_context(request: Request) -> AuthContext:
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
                 "https://albayan-journal.org",
+                "https://dev.albayan-journal.org",
             ],
         ),
     )
