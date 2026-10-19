@@ -63,7 +63,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `frontend/` — واجهة المستخدم (App Router، عربي/RTL).
 - `backend/` — واجهة برمجة التطبيقات والمنطق الخادمي وقاعدة البيانات.
 - `mcp_server/` — محوّل MCP رفيع فوق FastAPI؛ انسخ `mcp_server/.env.example` إلى `mcp_server/.env`.
-- `documentation/` — توثيق التصميم؛ راجع [database-schema.md](documentation/database-schema.md) لمخطط PostgreSQL.
+- `docs/` — توثيق التصميم؛ راجع [database-schema.md](docs/database-schema.md) لمخطط PostgreSQL.
+
+## دعم الكتب (مخطط — غير منفذ)
+
+- [المعمارية المقترحة ومراحل التنفيذ](docs/book-authoring-architecture.md) في البيان.
+- [عقد الكتب ومحررها في BuTeX](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md) — مستودع GitLab الخاص (يتطلب صلاحية الوصول).
+- يستمر تحرير المقالات كما هو؛ لا توجد مسارات API أو أدوات MCP للكتب حالياً.
 
 ## تدقيقات الواجهة
 

@@ -2,6 +2,8 @@
 
 ## Purpose
 
+> **Historical audit only (October 2026):** this report records upstream BuTeX editor renaming work. Its book-file references were historical at the time; the current book design lives in [Al-Bayan's integration architecture](book-authoring-architecture.md) and [BuTeX's current book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md). The old upstream feasibility report has been retired.
+
 This report inventories the work required to remove the legacy BuTeX React
 document editor first, and only then promote the current editor from
 `ButexDocumentEditor2` to `ButexDocumentEditor`.
@@ -351,8 +353,8 @@ Update current documentation to use the promoted component/path while retaining
 
 - `README.md`
 - `AGENTS.md`
-- `docs/book-editor-feasibility-report.md`
-- `docs/book-editor-plan.md`
+- `docs/book-editor-plan.md` (upstream BuTeX; since revised for the 7.x architecture)
+- `docs/book-editor-feasibility-report.md` (historical upstream BuTeX; now removed as redundant)
 - `docs/superpowers/specs/2026-07-12-document2-block-selection-design.md`
 
 For historical specs, either update references so links do not break after the
