@@ -2,7 +2,7 @@
 
 [← Architecture index](README.md) · **Status: implemented**
 
-The repository has **two intentionally separate MCP servers**. This page documents their architecture and security boundary; for **how to use Developer MCP**, see [Development: Developer MCP](../development/developer-mcp.md). Conflating these surfaces is a security and correctness mistake.
+The Al-Bayan codebase has **two intentionally separate MCP servers** (product and developer). A **third external tool**, Playwright MCP, runs on Railway's development environment to control a real test browser. This page documents the architectural boundaries; for **how to use Developer MCP**, see [Development: Developer MCP](../development/developer-mcp.md). Conflating these surfaces is a security and correctness mistake.
 
 ## User-facing MCP (`mcp_server/`)
 
@@ -30,6 +30,10 @@ canonical LaTeX -> MCP contract -> FastAPI -> Burhan AST
 ```
 
 A trace or headless test establishes only the stages it actually observed. Browser/UI rendering requires separate browser evidence (for example development-site Playwright checks).
+
+## Independent browser validation
+
+Railway also hosts a separate [Playwright MCP browser service](../development/playwright-mcp.md), which an AI developer agent can use to navigate, inspect DOM/accessibility, click/type, capture screenshots, and inspect console/network behavior in the **development** browser. It is not implemented by `dev_mcp_server/` and is not the normal product MCP. Its operating rules and Railway deployment are documented under [Development](../development/README.md), not repeated here.
 
 ## Authentication is enforced at FastAPI
 
