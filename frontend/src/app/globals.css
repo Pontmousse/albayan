@@ -1,11 +1,5 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "AlmaghribiWarch";
-  src: url("/Almaghribi-warch.ttf") format("truetype");
-  font-display: swap;
-}
-
 :root {
   --journal-ink: #17231c;
   --journal-muted: #5b625c;
