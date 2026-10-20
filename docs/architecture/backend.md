@@ -35,6 +35,8 @@ The product MCP forwards credentials to FastAPI. The browser feature flags do no
 - Burhan performs equation conversion; FastAPI validates the returned structured result before passing it into Document2.
 - The compiler accepts XeLaTeX and necessary assets for the requested revision. It is not a public MCP operation.
 
+For the up-to-date ownership map see [Database and storage](database.md); for other active services see [Platform services](platform-services.md). Figure and host/editor boundaries are covered in [Document2 and assets](document-assets.md).
+
 ## Operational notes
 
 Set `DATABASE_URL`, Clerk settings and any required `S3_*`, `BUTEX_WORKER_*`, `BURHAN_*` and `COMPILER_URL` values using the relevant example environment files; never commit secrets. Local PostgreSQL is provisioned by [`backend/database/`](../../backend/database/) and migrations are applied using `alembic upgrade head`.

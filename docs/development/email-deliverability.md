@@ -13,7 +13,7 @@ This document defines the repository rules for transactional email deliverabilit
 
 ## Clerk account-security notifications
 
-Clerk remains the authority that detects and validates account-security events, but Al-Bayan/Resend owns delivery of the six security emails listed in [`clerk-security-email-templates.md`](./clerk-security-email-templates.md).
+Clerk remains the authority that detects and validates account-security events, but Al-Bayan/Resend owns delivery of the six security emails listed in [`clerk-security-email-templates.md`](clerk-security-email.md).
 
 The key invariant is **one delivery owner per event**:
 

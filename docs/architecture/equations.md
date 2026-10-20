@@ -52,6 +52,6 @@ The [Developer MCP](mcp.md) and separate browser testing can inspect individual 
 
 - [Math capability implementation](../../backend/app/services/math_authoring_capabilities.py)
 - [Math capabilities endpoint](../../backend/app/routers/math_authoring.py)
-- [Canonical equation integration notes](../equation-ai-architecture-reference.md) — additional design/verification context; verify current behavior against source
+- [Current math/Document2 verification procedure](../development/math-verification.md) — normal MCP, Dev MCP, browser and compile evidence
 - [BuTeX worker client](../../backend/app/services/butex_worker_client.py)
 - [Burhan client](../../backend/app/services/burhan_client.py)

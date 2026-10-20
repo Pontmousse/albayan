@@ -1,3 +1,5 @@
+> **Development-only testing utility.** A transport probe is diagnostic evidence, not the normal product authoring contract. Confirm the tool is enabled on the intended development MCP deployment; do not enable an experimental probe in production for this test.
+
 # MCP binary/file transport probe
 
 `test_mcp_content_transport` is a temporary, self-contained diagnostic tool for comparing

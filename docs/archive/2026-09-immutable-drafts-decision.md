@@ -1,3 +1,5 @@
+> **ARCHIVED — historical design/evidence only.** This is a preserved development snapshot, not the current implementation contract. For today’s behavior see [Architecture](../architecture/README.md) and [Development](../development/README.md).
+
 # Design: Replace article sessions with immutable draft revisions
 
 **Date:** 2026-09-15  

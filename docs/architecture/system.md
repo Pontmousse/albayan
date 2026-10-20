@@ -53,7 +53,9 @@ The diagram shows logical dependencies, not guaranteed deployment topology or se
 
 ## What's not yet implemented
 
-The book/unit architecture documented in [book-authoring-architecture.md](../proposals/book-authoring.md) is a **proposal**. There are no shipped book-specific persistence models, authoring routes, or MCP tools in this reviewed tree. The separate BuTeX naming-cleanup document is likewise a proposal, not a declaration that all legacy entrypoints are removed.
+The book/unit architecture documented in [book authoring proposal](../proposals/book-authoring.md) is a **proposal**. There are no shipped book-specific persistence models, authoring routes, or MCP tools in this reviewed tree. The separate BuTeX naming-cleanup document is likewise a proposal, not a declaration that all legacy entrypoints are removed.
+
+For precise ownership see [Database and storage](database.md), [Document2/assets](document-assets.md) and [Platform services](platform-services.md).
 
 ## Source map
 

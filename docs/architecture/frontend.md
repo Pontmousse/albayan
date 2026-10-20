@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-For backend/worker ownership and revision semantics, see [Backend](backend.md) and [Article authoring](authoring.md).
+For backend/worker ownership and revision semantics, see [Backend](backend.md), [Article authoring](authoring.md), and [Document2/images](document-assets.md).
 
 ## Primary source
 
