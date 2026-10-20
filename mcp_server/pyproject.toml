@@ -2,7 +2,7 @@
 name = "albayan-mcp"
 version = "2.0.0"
 description = "خادم MCP لمجلة البيان — thin adapter فوق FastAPI"
-readme = "Documentation.md"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "mcp>=2,<3",
@@ -23,4 +23,4 @@ build-backend = "hatchling.build"
 packages = ["src/albayan_mcp"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/albayan_mcp", "Documentation.md"]
+include = ["src/albayan_mcp", "README.md"]
