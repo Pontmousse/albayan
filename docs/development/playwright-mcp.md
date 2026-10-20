@@ -18,7 +18,7 @@ The Railway project `albayan` deploys `albayan-playwright-mcp` **only in `develo
 | Notable arguments | `--headless --browser chromium --no-sandbox --shared-browser-context --host 0.0.0.0`, with the public service host in `--allowed-hosts` |
 | Railway | One replica in `us-east4-eqdc4a`; successful deployment observed |
 
-The Docker image and launch parameters above were read from Railway's current service configuration; they are **not** installation instructions for the application repository. A connected AI client calls its Playwright MCP tools remotely. Client connection/authentication is managed outside Al-Bayan's user-facing authoring MCP. The published host is a network endpoint; **do not infer that merely being on the development environment makes it private or authenticated**. Review access controls before running sensitive tests.
+The Docker image and launch parameters above were read from Railway's current service configuration; they are **not** installation instructions for the application repository. A connected AI client calls its Playwright MCP tools remotely. Client connection/authentication is managed outside Al-Bayan's user-facing authoring MCP. The published host is a network endpoint; **do not infer that merely being on the development environment makes it private or authenticated**. Review network exposure and authentication/access controls before running sensitive tests. A configured `--allowed-hosts` value controls allowed HTTP hostnames; **it is not evidence of caller authentication or isolation**.
 
 ## What the AI agent can test
 
@@ -49,7 +49,7 @@ Use `get_math_authoring_capabilities` on the normal MCP, prepare a supported can
 
 ## Safety and reliability
 
-- The hosted service currently starts with `--shared-browser-context`. **Treat browser state as potentially shared** among connected testers; do not assume isolated sessions. Coordinate tests that could interfere, and reset/close dev-only test sessions when appropriate.
+- The hosted service currently starts with `--shared-browser-context` and `--no-sandbox`. These are **runtime security choices**, not an assurance of isolation. Treat browser state as potentially shared among connected testers; do not assume isolated sessions. Coordinate tests that could interfere, and reset/close dev-only test sessions when appropriate.
 - Prefer non-destructive navigation and read-only checks first. Only create/modify **explicitly authorized test data** in development; avoid bulk deletion, irreversible publication or payment actions.
 - Do not expose authentication tokens, password fields, cookies or private page contents in public PR comments, screenshots or logs.
 - Avoid unrestricted arbitrary-code execution for routine UI inspection; standard browser tools are sufficient for most tasks.

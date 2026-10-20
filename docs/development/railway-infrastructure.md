@@ -38,24 +38,26 @@ Railway reported **successful latest deployments** for all nine development serv
 ### Component links and network exposure
 
 ```text
-DEVELOPMENT                                 PRODUCTION
-dev.albayan-journal.org                    albayan-journal.org
-    |                                           |
-api.dev.albayan-journal.org                 api.albayan-journal.org
-    |  \                                     |  \
-    |   \--> private BuTeX / Burhan /         |   \--> private BuTeX / Burhan /
-    |          XeLaTeX services               |          XeLaTeX services
-    |                                           |
-    +--> PostgreSQL + S3-compatible store      +--> PostgreSQL + S3-compatible store
-    ^
-    |
-mcp.dev.albayan-journal.org/mcp            mcp.albayan-journal.org/mcp
-    |
-    +-- separate devmcp.dev... diagnostics
-    +-- separate playwright.dev... browser MCP
+DEVELOPMENT                                    PRODUCTION
+Browser/Next.js                                Browser/Next.js
+dev.albayan-journal.org                       albayan-journal.org
+       |                                               |
+       v                                               v
+FastAPI: api.dev...                           FastAPI: api.albayan-journal.org
+       |                                               |
+       +-- PostgreSQL / S3                             +-- PostgreSQL / S3
+       +-- BuTeX / Burhan / XeLaTeX                     +-- BuTeX / Burhan / XeLaTeX
+       ^                                               ^
+       |                                               |
+User MCP: mcp.dev.../mcp                       User MCP: mcp.albayan-journal.org/mcp
+      (independent API client)                       (independent API client)
+
+Developer MCP: devmcp.dev... --> bounded dev diagnostics only
+Playwright MCP: playwright.dev... --> controls development browser only
 ```
 
-The diagram summarizes service roles, not a network packet trace. The MCP services are **separate clients/surfaces**, not child modules or proxy routes inside FastAPI. Playwright controls a browser that visits the development frontend; Developer MCP inspects permitted development service boundaries.
+
+The diagram summarizes logical service roles and permitted targets, not a network packet trace or a claim that those hosts are mutually isolated. **All three MCP surfaces are independent entry points**: user MCP for authoring, Developer MCP for bounded diagnostics, and Playwright MCP for browser control. Playwright controls a browser that visits the development frontend; Developer MCP inspects permitted development service boundaries.
 
 ### Database and object storage
 
