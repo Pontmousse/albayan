@@ -66,7 +66,11 @@ npm run dev
 
 عدّل إعدادات البيئة قبل التشغيل، ولا سيما `DATABASE_URL` وبيانات Clerk و`NEXT_PUBLIC_API_URL`. تتطلب بعض الوظائف خدمات خارجية مهيّأة (BuTeX worker وBurhan والتجميع وتخزين الملفات)، وقد لا تعمل دونها. لمزيد من تفاصيل الخلفية راجع [دليلها](backend/README.md).
 
-## وثائق المعمارية
+## الوثائق
+
+تنظيم الوثائق في أربعة أقسام: [المعمارية](docs/architecture/README.md)، [التطوير](docs/development/README.md)، [المقترحات](docs/proposals/README.md)، و[الأرشيف التاريخي](docs/archive/README.md). يمكنك البدء من [فهرس الوثائق](docs/README.md).
+
+### المعمارية
 
 ابدأ من [فهرس المعمارية](docs/architecture/README.md)، ثم اختر الجزء الذي تريد فهمه:
 
@@ -77,14 +81,14 @@ npm run dev
 - [المعادلات: البيان ↔ برهان ↔ BuTeX](docs/architecture/equations.md)
 - [MCP للمستخدمين وDeveloper MCP للتشخيص](docs/architecture/mcp.md)
 
-## مقترحات نحتفظ بها
+## المقترحات النشطة (غير منفذة)
 
 هذه مستندات تصميم، **وليست** وصفًا لميزات متاحة حالياً:
 
-- [توحيد أسماء محرر BuTeX وإزالة الأسماء/الواجهات القديمة](docs/butex-document-editor-legacy-removal-rename-audit.md).
-- [تأليف الكتب في البيان](docs/book-authoring-architecture.md) و[التصميم المقابل في BuTeX](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md).
+- [توحيد أسماء محرر BuTeX وإزالة الأسماء/الواجهات القديمة](docs/proposals/butex-document2-naming.md).
+- [تأليف الكتب في البيان](docs/proposals/book-authoring.md) و[التصميم المقابل في BuTeX](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md).
 
-ما زالت المستندات التقنية والبحوث التطويرية الأخرى موجودة خلال الانتقال التدريجي إلى تنظيم الوثائق الجديد. **لا تُعدّ الملفات القديمة مرجعاً أعلى من الشيفرة أو وثائق المعمارية الجديدة** عند تعارض الوصف مع التنفيذ.
+ما زالت بعض المستندات القديمة موجودة خارج الأقسام الأربعة خلال الانتقال التدريجي. يوجّه فهرس الوثائق إلى المصادر المعتمدة. **لا تُعدّ الملفات القديمة مرجعاً أعلى من الشيفرة أو وثائق المعمارية الجديدة** عند تعارض الوصف مع التنفيذ.
 
 ## المساهمة
 

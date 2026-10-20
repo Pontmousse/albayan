@@ -2,7 +2,7 @@
 
 [← Architecture index](README.md) · **Status: implemented**
 
-The repository has **two intentionally separate MCP servers**. Conflating them is a security and correctness mistake.
+The repository has **two intentionally separate MCP servers**. This page documents their architecture and security boundary; for **how to use Developer MCP**, see [Development: Developer MCP](../development/developer-mcp.md). Conflating these surfaces is a security and correctness mistake.
 
 ## User-facing MCP (`mcp_server/`)
 
@@ -40,5 +40,5 @@ A trace or headless test establishes only the stages it actually observed. Brows
 - [Product MCP source](../../mcp_server/src/albayan_mcp/)
 - [Developer MCP source](../../dev_mcp_server/src/albayan_dev_mcp/)
 - [FastAPI actor model](../../backend/app/core/actor.py)
-- [Developer investigation guidance](../dev-mcp-investigation-workflows.md)
+- [Developer investigation guidance](../development/investigation-workflows.md)
 - [Product MCP detailed guide](../../mcp_server/Documentation.md) — supplementary operational notes; treat historical session terminology as superseded.

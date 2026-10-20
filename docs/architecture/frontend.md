@@ -13,7 +13,7 @@ The browser application under [`frontend/`](../../frontend/) uses Next.js App Ro
 
 ## Article editor
 
-The current editor imports **`Document2Json`** from `@drghaliasri/butex/document2` and dynamically mounts **`ButexDocumentEditor2`** from `@drghaliasri/butex/react-document2`. These are the *actual current names*, even though [a cleanup/rename is proposed](../butex-document-editor-legacy-removal-rename-audit.md).
+The current editor imports **`Document2Json`** from `@drghaliasri/butex/document2` and dynamically mounts **`ButexDocumentEditor2`** from `@drghaliasri/butex/react-document2`. These are the *actual current names*, even though [a cleanup/rename is proposed](../proposals/butex-document2-naming.md).
 
 The editing page coordinates:
 

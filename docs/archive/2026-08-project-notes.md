@@ -1,3 +1,5 @@
+> **ARCHIVED HISTORICAL RECORD.** Preserved for provenance only. It may describe outdated source files, product state, or unresolved development ideas. Do not use as a current implementation contract; see [Architecture](../architecture/README.md) and [Proposals](../proposals/README.md).
+
 # أفكار ومخطط تطوير مشروع البيان
 
 > **الغرض:** حفظ الأفكار والتحديثات المخططة للمشروع قبل تنفيذها. يُحدَّث هذا الملف تدريجياً مع كل مرحلة أو حدث تطوير جديد.
@@ -14,7 +16,7 @@
 4. [صفحة الإبلاغ عن المشاكل وآراء المستخدمين](#4-صفحة-الإبلاغ-عن-المشاكل-وآراء-المستخدمين)
 5. [نظام الإشعارات وربطه بإرسال البريد الإلكتروني](#5-نظام-الإشعارات-وربطه-بإرسال-البريد-الإلكتروني)
 
-> **توثيق MCP:** [`mcp_server/Documentation.md`](../mcp_server/Documentation.md) — التصميم، ما تم إنجازه، وخارطة التنفيذ.
+> **توثيق MCP:** [`mcp_server/Documentation.md`](../../mcp_server/Documentation.md) — التصميم، ما تم إنجازه، وخارطة التنفيذ.
 
 ---
 
@@ -80,7 +82,7 @@
 
 أصبح تصميم تحرير الكتب مشروعاً مستقلاً عن تحرير المقالات، ويعتمد على مستندات `Document2Json` لكل فصل، والمراجع والترقيم على مستوى الكتاب، ولقطات مراجعات غير قابلة للتعديل. مصدر الحقيقة لتصميم التطبيق ومراحل التنفيذ:
 
-- **في البيان:** [`docs/book-authoring-architecture.md`](book-authoring-architecture.md) — نموذج قاعدة البيانات المقترح، مراجعات الكتب والفصول، واجهات FastAPI/MCP، الأصول وتجميع PDF.
+- **في البيان:** [`docs/book-authoring-architecture.md`](../proposals/book-authoring.md) — نموذج قاعدة البيانات المقترح، مراجعات الكتب والفصول، واجهات FastAPI/MCP، الأصول وتجميع PDF.
 - **في BuTeX:** [`docs/book-editor-plan.md`](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md) — بنية الكتاب والواجهة، التحقق، الترقيم، فهرس المراجع، التصدير متعدد الملفات والعامل المستقل.
 
 **الحالة:** ميزة الكتب لم تُنفذ بعد. دعم المقالات الحالي لا يتغير، ولا يُفترض أن الكتاب مجرد مقال طويل أو أن مسارات العامل الحالية تجمع كتباً متعددة الملفات.
@@ -478,7 +480,7 @@ email_enabled   boolean DEFAULT true
 | ٢٢/٠٨/٢٠٢٦ | إضافة القسم ٥: خادم MCP — التفاعل مع المنصة عبر الوكلاء الذكية |
 | ٢٣/٠٨/٢٠٢٦ | تحديث القسم ٥: اعتماد **الجلسة المشتركة** (session draft) كنموذج التحرير الأساسي؛ منع التقديم/الإرسال من MCP |
 | ٢٣/٠٨/٢٠٢٦ | تحديث القسم ٣: تقليص الفيديوهات من ١٩ إلى ٨ (~٣٠ ثانية) مع سكربتات ومشاهد مفصّلة لكل فيديو |
-| ٢٣/٠٨/٢٠٢٦ | نقل توثيق MCP إلى [`mcp_server/Documentation.md`](../mcp_server/Documentation.md) |
+| ٢٣/٠٨/٢٠٢٦ | نقل توثيق MCP إلى [`mcp_server/Documentation.md`](../../mcp_server/Documentation.md) |
 | ٢٤/٠٨/٢٠٢٦ | إضافة القسم ٥: نظام الإشعارات وربطه بإرسال البريد الإلكتروني (فكرة فقط) |
 | ٢٤/٠٨/٢٠٢٦ | قرار معماري: واجهة عامة صادقة — انتقال تلقائي للرئيسية، API `/public/journal`، إزالة البيانات الوهمية |
 

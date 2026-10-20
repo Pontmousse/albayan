@@ -90,7 +90,7 @@
 6. عند `blocked` أو `partial` ارفع للإنسان السبب والـmissing observations والـhuman actions كما هي، ولا تطلب production credentials كحل بديل.
 7. لا تضف shell أو deployment أو database أو repository-write capabilities إلى Dev MCP من دون مراجعة أمنية مستقلة وصريحة.
 
-التفاصيل الكاملة: `dev_mcp_server/AGENTS.md` و`docs/dev-mcp-investigation-workflows.md`.
+التفاصيل الكاملة: `dev_mcp_server/AGENTS.md` و`docs/development/investigation-workflows.md`.
 
 ## CORS
 
