@@ -21,7 +21,9 @@
 ## الهيكل
 
 - **`frontend/`** — تطبيق **Next.js** (App Router، TypeScript، Tailwind). كل ما يخص الواجهة والتجربة البصرية والتوجيه الأمامي.
-- **`backend/`** — تطبيق **Python FastAPI**. واجهة برمجة التطبيقات، التحكيم، النماذج الخادمية، و**قاعدة البيانات** عند إضافتها.
+- **`backend/`** — تطبيق **Python FastAPI**. واجهة برمجة التطبيقات، التحكيم، النماذج الخادمية، و**قاعدة البيانات** الحالية.
+
+**الوثائق:** [`docs/README.md`](docs/README.md) هي المدخل الوحيد للأقسام الأربعة: architecture وdevelopment وproposals وarchive. لا تُعد استخدام خطط التنفيذ القديمة بوصفها عقدًا قائمًا.
 
 **قاعدة:** لا تضع منطق قاعدة بيانات أو أسرار خادمية داخل `frontend/`. استهلك الـ API من المتصفح عبر `NEXT_PUBLIC_API_URL` (انظر `frontend/.env.example`).
 
@@ -58,8 +60,8 @@
 
 ## البريد الإلكتروني
 
-- أي تعديل على البريد أو روابط الإجراءات الحساسة يجب أن يتبع `docs/email-deliverability.md`.
-- رسائل أمان الحساب الستة المولَّدة من Clerk تتبع `docs/clerk-security-email-templates.md`: Clerk يملك كشف الحدث والتحقق الأمني، بينما البيان/Resend يملك إرسال البريد العربي عبر webhook موقّع. بعد اكتمال الترحيل يجب إبقاء **Delivered by Clerk** معطّلًا لهذه الرسائل الستة، ولا يُعاد تفعيله من دون مراجعة صريحة لملكية الإرسال ومنع التكرار.
+- أي تعديل على البريد أو روابط الإجراءات الحساسة يجب أن يتبع `docs/development/email-deliverability.md`.
+- رسائل أمان الحساب الستة المولَّدة من Clerk تتبع `docs/development/clerk-security-email.md`: Clerk يملك كشف الحدث والتحقق الأمني، بينما البيان/Resend يملك إرسال البريد العربي عبر webhook موقّع. بعد اكتمال الترحيل يجب إبقاء **Delivered by Clerk** معطّلًا لهذه الرسائل الستة، ولا يُعاد تفعيله من دون مراجعة صريحة لملكية الإرسال ومنع التكرار.
 - لا تُنشئ تخزيناً موازياً لسجل Resend إلا عند وجود متطلب منتج صريح، ولا تُرسل رابط bearer حساساً في البريد بحيث يستطيع GET آلي استهلاكه.
 
 ## النسخ إلى الحافظة
@@ -85,12 +87,12 @@
 1. ابدأ بـ `dev_capabilities` ولا تفترض أن خدمة أو طبقة رصد متاحة.
 2. استخدم أصغر أداة متخصصة أو أصغر regression suite مناسبة قبل `dev_http_request` العام.
 3. اجمع `trace_id` والأدلة المرحلية قبل إسناد العطل إلى خدمة بعينها؛ `likely_owning_service` إشارة تشخيصية من أول حدّ فشل مرصود وليست إثباتًا لسبب الجذر.
-4. استخدم Playwright MCP منفصلًا فقط عندما تكون النتيجة المطلوبة مرتبطة بالمتصفح/DOM/MathJax/واجهة المستخدم؛ لا تفترض نجاح المتصفح من نجاح headless.
+4. اختبر واجهة المستخدم بنفسك عبر **Playwright MCP المستضاف على Railway في بيئة التطوير** عند الحاجة إلى إثبات سلوك المتصفح/DOM/MathJax أو الشبكة؛ انتقل إلى `https://dev.albayan-journal.org` وتحقّق من أن طلبات API تتجه إلى `api.dev.albayan-journal.org`. لا تتعامل مع نجاح headless بوصفه نجاحاً للمتصفح، ولا تستخدم الإنتاج لاختبارات التشخيص.
 5. بعد أي تعديل أعد تشغيل suite المناسبة ثم أنشئ `dev_investigation_report` بدل الاكتفاء بانطباع يدوي.
 6. عند `blocked` أو `partial` ارفع للإنسان السبب والـmissing observations والـhuman actions كما هي، ولا تطلب production credentials كحل بديل.
 7. لا تضف shell أو deployment أو database أو repository-write capabilities إلى Dev MCP من دون مراجعة أمنية مستقلة وصريحة.
 
-التفاصيل الكاملة: `dev_mcp_server/AGENTS.md` و`docs/dev-mcp-investigation-workflows.md`.
+التفاصيل الكاملة: `dev_mcp_server/AGENTS.md` و`docs/development/investigation-workflows.md` و`docs/development/playwright-mcp.md` و`docs/development/railway-infrastructure.md`.
 
 ## CORS
 

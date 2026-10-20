@@ -1,98 +1,95 @@
-# Al-Bayan monorepo
+# البيان — منصة مجلة علمية عربية
 
-مجلة علمية عربية — واجهة **Next.js** في `frontend/` وخادم **FastAPI** في `backend/`.
+البيان منصة لنشر الأبحاث العلمية باللغة العربية. يجمع هذا المستودع واجهة **Next.js**، وخادم **FastAPI**، وأدوات **MCP** للمساعدة في التأليف العلمي. تُحرَّر المقالات عبر مستندات **BuTeX Document2** المنظمة؛ وتُنشئ تعديلات المسودات مراجعات غير قابلة للتعديل.
 
-## المتطلبات
+> **حالة المشروع:** يصف هذا الملف ما هو موجود في فرع `develop`. دعم **تأليف الكتب** وإعادة تسمية محرر **BuTeX Document2** مقترحان قيد التصميم، وليسا ميزتين منفذتين.
 
-| جزء       | المتطلب        |
-| --------- | -------------- |
-| الواجهة   | Node.js (LTS)  |
-| الخلفية   | Python 3.11+ (conda موصى به) |
-| قاعدة البيانات (تطوير) | Docker |
+## ابدأ من هنا
 
-## التشغيل السريع (كل الخدمات)
+| الجزء | التقنية | الموقع |
+| --- | --- | --- |
+| الواجهة | Next.js / React / TypeScript | [`frontend/`](frontend/) |
+| الخادم | FastAPI / SQLAlchemy / PostgreSQL | [`backend/`](backend/) |
+| واجهة الوكلاء للمستخدمين | MCP فوق FastAPI | [`mcp_server/`](mcp_server/) |
+| تشخيص بيئة التطوير | Developer MCP مستقل | [`dev_mcp_server/`](dev_mcp_server/) |
+| وصف البنية | وثائق المعمارية الحالية | [`docs/architecture/`](docs/architecture/README.md) |
 
-من جذر المستودع، بعد إعداد conda وملفات `.env`:
+**المتطلبات المحلية:** Node.js LTS وPython 3.11+ وDocker لتشغيل PostgreSQL. يتطلب مسار `./launch.sh` وجود conda وبيئة Python مناسبة؛ ويمكن تشغيل الواجهة والخلفية يدويًا بدلاً منه.
+
+### تشغيل سريع (باستخدام conda)
+
+1. جهّز ملفات الإعداد المحلية من ملفات `.env.example` في `frontend/` و`backend/`، واضبط خدمة Clerk وقاعدة البيانات والخدمات اللازمة. لا تضع مفاتيح حقيقية في Git.
+2. تأكد من إعداد بيئة conda وتبعيات الواجهة والخلفية.
+3. من جذر المستودع شغّل:
 
 ```bash
 ./launch.sh
+# اسم البيئة الافتراضي: my_env1
+# أو CONDA_ENV_NAME=your_env ./launch.sh
 ```
 
-يفتح السكربت:
+يشغّل السكربت PostgreSQL المحلية عبر Docker (المنفذ 5434 افتراضيًا)، ويطبّق ترحيلات Alembic، ثم يشغّل FastAPI وNext.js.
 
-1. PostgreSQL عبر Docker (`backend/database`, منفذ **5434** افتراضيًا)
-2. ترحيلات Alembic
-3. الخلفية FastAPI في طرفية منفصلة (conda)
-4. الواجهة Next.js في طرفية منفصلة
+### تشغيل يدوي
 
-متغير اختياري: `CONDA_ENV_NAME=my_env1 ./launch.sh` لتغيير اسم بيئة conda (الافتراضي: `my_env1`).
-
-### الواجهة (Next.js) — يدويًا
+من جذر المستودع، شغّل قاعدة البيانات أولاً:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+cd backend/database
+docker compose up -d
 ```
 
-التطبيق المحلي: [http://localhost:3000](http://localhost:3000)
-
-انسخ `frontend/.env.example` إلى `frontend/.env.local` وعدّل `NEXT_PUBLIC_API_URL` عند الحاجة (افتراضيًا `http://localhost:8000`).
-
-### الخلفية (FastAPI)
-
-راجع تعليمات التثبيت والتشغيل في [backend/README.md](backend/README.md).
-
-باختصار:
+ثم الخلفية (في طرفية منفصلة):
 
 ```bash
 cd backend
 cp .env.example .env
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1   # Windows PowerShell
+source .venv/bin/activate
 pip install -r requirements.txt
+alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- التوثيق: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- الصحة: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-
-## هيكل المستودع
-
-- `frontend/` — واجهة المستخدم (App Router، عربي/RTL).
-- `backend/` — واجهة برمجة التطبيقات والمنطق الخادمي وقاعدة البيانات.
-- `mcp_server/` — محوّل MCP رفيع فوق FastAPI؛ انسخ `mcp_server/.env.example` إلى `mcp_server/.env`.
-- `documentation/` — توثيق التصميم؛ راجع [database-schema.md](documentation/database-schema.md) لمخطط PostgreSQL.
-
-## تدقيقات الواجهة
-
-- [تدقيق الأرقام الظاهرة وخطة مفتاح الأرقام العربية/الغربية](docs/frontend-numeral-audit.md).
-
-## Docker
-
-غير مضمّن في الإصدار الأول؛ يمكن إضافة صور منفصلة للواجهة والخلفية لاحقًا.
-
-## استكشاف أخطاء الواجهة (Next)
-
-### `Cannot find module './239.js'` (أو أرقام مشابهة) من مجلد `.next`
-
-غالبًا بسبب **كاش بناء تالف** أثناء `npm run dev` بعد تغييرات كثيرة أو إيقاف غير نظيف.
-
-1. أوقف الخادم (`Ctrl+C`).
-2. من مجلد `frontend/` شغّل:
+ثم الواجهة (في طرفية منفصلة):
 
 ```bash
-npm run clean
+cd frontend
+cp .env.example .env.local
+npm install
 npm run dev
 ```
 
-أو مرة واحدة: `npm run dev:clean`
+- الواجهة: <http://localhost:3000>
+- توثيق API التفاعلي: <http://localhost:8000/docs>
+- فحص صحة الخادم: <http://localhost:8000/health>
 
-### `GET /Almaghribi-warch.ttf 404`
+عدّل إعدادات البيئة قبل التشغيل، ولا سيما `DATABASE_URL` وبيانات Clerk و`NEXT_PUBLIC_API_URL`. تتطلب بعض الوظائف خدمات خارجية مهيّأة (BuTeX worker وBurhan والتجميع وتخزين الملفات)، وقد لا تعمل دونها. لمزيد من تفاصيل الخلفية راجع [دليلها](backend/README.md).
 
-الخط غير موجود في `frontend/public/` بالاسم المتوقع. راجع [frontend/public/FONT-README.md](frontend/public/FONT-README.md).
+## الوثائق
 
-### `GET /sw.js 404`
+تنظيم الوثائق في أربعة أقسام: [المعمارية](docs/architecture/README.md)، [التطوير](docs/development/README.md)، [المقترحات](docs/proposals/README.md)، و[الأرشيف التاريخي](docs/archive/README.md). يمكنك البدء من [فهرس الوثائق](docs/README.md).
 
-طلب من المتصفح أو إضافة؛ غالبًا غير ضار. إذا تكرر مع أخطاء أخرى، جرّب مسح بيانات الموقع للـ localhost أو إغلاق تبويب قديم بعد `npm run clean`.
+### المعمارية
+
+ابدأ من [فهرس المعمارية](docs/architecture/README.md)، ثم اختر الجزء الذي تريد فهمه:
+
+- [حدود النظام وتدفق الطلبات](docs/architecture/system.md)
+- [واجهة المستخدم ومحرر المقالات](docs/architecture/frontend.md)
+- [FastAPI والبيانات والصلاحيات](docs/architecture/backend.md)
+- [المسودات والمراجعات والتحكيم](docs/architecture/authoring.md)
+- [المعادلات: البيان ↔ برهان ↔ BuTeX](docs/architecture/equations.md)
+- [MCP للمستخدمين وDeveloper MCP للتشخيص](docs/architecture/mcp.md)
+
+## المقترحات النشطة (غير منفذة)
+
+هذه مستندات تصميم، **وليست** وصفًا لميزات متاحة حالياً:
+
+- [توحيد أسماء محرر BuTeX وإزالة الأسماء/الواجهات القديمة](docs/proposals/butex-document2-naming.md).
+- [تأليف الكتب في البيان](docs/proposals/book-authoring.md) و[التصميم المقابل في BuTeX](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md).
+
+ما زالت بعض المستندات القديمة موجودة خارج الأقسام الأربعة خلال الانتقال التدريجي. يوجّه فهرس الوثائق إلى المصادر المعتمدة. **لا تُعدّ الملفات القديمة مرجعاً أعلى من الشيفرة أو وثائق المعمارية الجديدة** عند تعارض الوصف مع التنفيذ.
+
+## المساهمة
+
+تبدأ تغييرات التطوير والتوثيق من `develop`، وتُفتح PRs إليه لا إلى `main`. انظر [`AGENTS.md`](AGENTS.md) لإرشادات المساهمين والوكلاء. هذه المرحلة توثيقية فقط: لا تغييرات على التطبيق أو قاعدة البيانات أو الخدمات أو إعدادات CI.

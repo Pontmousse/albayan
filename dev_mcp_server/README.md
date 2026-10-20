@@ -148,7 +148,7 @@ The report distinguishes:
 
 If a conclusion genuinely requires browser behavior, set `require_browser=true`, use Playwright separately, and provide only a short browser observation summary. A missing Playwright capability is not automatically a blocked headless investigation.
 
-Full Phase 4 protocol: `docs/dev-mcp-investigation-workflows.md`.
+Full Phase 4 protocol: [Development investigation workflows](../docs/development/investigation-workflows.md).
 
 ## Recommended coding-agent workflow
 
