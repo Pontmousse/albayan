@@ -6,7 +6,7 @@
 
 ## 1. Executive summary and immutable audit baseline
 
-The first-generation editor deletion is predominantly a **BuTeX source/refactor**. Al-Bayan's observed current **browser** already uses the *second-generation* editor and read-only preview. The migration now includes GUI imports/styles, headless TypeScript types/functions, package-lock/version, CLI/worker binary, HTTP routes, FastAPI backend clients, typed MCP command surface, tests, docs, infrastructure wiring and rollout. The authoritative Al-Bayan FastAPI, headless document worker, Burhan projection and normal MCP typed commands **are explicitly in scope for identifier/route renaming**. Preserve their **behavior**, permission model, mathematical conversion and immutable revision JSON. Do not rewrite stored JSON merely to eliminate a TypeScript, Python or HTTP identifier; audit real serialized version markers as a separate schema decision.
+The first-generation editor deletion and canonical headless promotion require a **BuTeX source/refactor** plus coordinated **Al-Bayan backend, MCP and frontend integration**. Al-Bayan's observed current **browser** already uses the *second-generation* editor and read-only preview. The migration now includes GUI imports/styles, headless TypeScript types/functions, package-lock/version, CLI/worker binary, HTTP routes, FastAPI backend clients, typed MCP command surface, tests, docs, infrastructure wiring and rollout. The authoritative Al-Bayan FastAPI, headless document worker, Burhan projection and normal MCP typed commands **are explicitly in scope for identifier/route renaming**. Preserve their **behavior**, permission model, mathematical conversion and immutable revision JSON. Do not rewrite stored JSON merely to eliminate a TypeScript, Python or HTTP identifier; audit real serialized version markers as a separate schema decision.
 
 | Repository/baseline | Verified revision on 2026-10-20 | Package contract |
 | --- | --- | --- |
@@ -121,8 +121,8 @@ This is **not** a frontend-only change. The final architecture must use canonica
 | `frontend/src/components/dashboard/history-ui-contract.test.ts` | Current frozen preview integration | Update expected `@drghaliasri/butex/react-document-preview`; keep assertions that preview is lightweight/read-only and not the interactive editor |
 | `frontend/src/components/dashboard/authoring-ux-followup.test.ts` | Current authoring UI | Preserve; update only path/name expectations where found |
 | `frontend/src/lib/{butex-image-assets,draft-autosave,butex-latex,butex-validation}.test.ts` **where present** | Asset/JSON/revision behavior | Enumerate exact present files; preserve behavior tests and add missing editor callbacks/figure/preview smoke coverage |
-| `backend/tests/{test_butex_worker_client,test_butex_math_projection_client,test_draft_equations,test_equation_diagnostics,test_burhan_math_commands,test_draft_revisions}.py` | Headless worker/immutable revision | Preserve; should not need rename; run to prove no behavioral drift |
-| `mcp_server/tests/{test_draft_command_schema,test_equation_tools,test_draft_block_projection,test_article_tools}.py` | Normal MCP contracts | Preserve; no schema rename; run before and after integrated dev deployment |
+| `backend/tests/{test_butex_worker_client,test_butex_math_projection_client,test_draft_equations,test_equation_diagnostics,test_burhan_math_commands,test_draft_revisions}.py` | Headless worker/immutable revision | Preserve the tests; **update route and typed command assertions** to canonical names, and run to prove no behavioral drift |
+| `mcp_server/tests/{test_draft_command_schema,test_equation_tools,test_draft_block_projection,test_article_tools}.py` | Normal MCP contracts | Preserve and migrate tool/schema name assertions; run before and after integrated dev deployment |
 | `.github/workflows/equation-integration-ci.yml` | Actual path-filtered CI | Update affected-file filters **if needed** so GUI import/CSS/lock/test edits trigger relevant frontend checks. Do not invent package scripts |
 | `.github/workflows/stripe-donations-ci.yml` | Shared frontend CI | Ensure changed dependency does not break install/typechecking; no change required unless observed |
 
@@ -228,7 +228,7 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 
 | Scenario | Where observed | Accept only if |
 | --- | --- | --- |
-| Package version + exports | npm registry, installed `node_modules`, manifest+lock | `react-document`/`react-document-preview` resolve new API, removed versioned GUI does not; `document2` unchanged |
+| Package version + exports | npm registry, installed `node_modules`, manifest+lock | `document`, `react-document` and `react-document-preview` resolve maintained APIs, versioned generation-two subpaths do not; CLI is `butex-document` |
 | Article editing and save | Browser/Next and FastAPI | Validated wrapper, image callback and `onDocumentJsonChange` work, revision conflict handling intact |
 | Figures/captions/references | Current Document2 tests, preview, browser | Asset identifiers, captions, labels, bibliographic references survive roundtrip |
 | Mathematics | Normal MCP, Burhan, Document2 worker, GUI | Canonical LaTeX is converted, stored MathObject reopens as editable (or reports real unsupported reason), SVG rendered |
