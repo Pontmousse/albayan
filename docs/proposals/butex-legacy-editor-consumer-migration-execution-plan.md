@@ -1,12 +1,12 @@
-# Al-Bayan consumer migration after legacy BuTeX editor retirement — execution plan
+# Al-Bayan complete Document2 → Document architecture migration — execution plan
 
 > **Status: PROPOSED EXECUTION PLAN — NOT IMPLEMENTED.** Audit date: **2026-10-20**. No editor deletion, source rename, package upgrade, deployment, or publication has been performed. Each implementation phase must be a separately reviewed PR/MR with the checkboxes below updated from observed evidence. Temporary failures on isolated migration branches are permitted; never merge/publish/deploy incomplete phases.
 
-**BuTeX source-of-truth plan:** [Complete BuTeX legacy editor migration execution plan](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md). **Earlier naming proposal:** [BuTeX Document2 naming audit](butex-document2-naming.md). This execution plan supersedes *its historical file/version inventories and ordering*, not the policy to preserve Document2 persistent schema/worker contracts. The earlier proposal cites older 6.1.x package snapshots, which do **not** describe the baseline audited here.
+**BuTeX source-of-truth plan:** [Complete BuTeX legacy editor migration execution plan](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md). **Earlier naming proposal:** [BuTeX Document2 naming audit](butex-document2-naming.md). This revised plan **supersedes the earlier GUI-only naming boundary**: the owner requires canonical unsuffixed Document names across React, headless TypeScript, CLI/worker, FastAPI routes, backend clients and normal MCP typed commands. It continues to protect the meaning and structure of persisted draft/revision JSON. The earlier proposal cites older 6.1.x package snapshots, which do **not** describe the baseline audited here.
 
 ## 1. Executive summary and immutable audit baseline
 
-The first-generation editor deletion is predominantly a **BuTeX source/refactor**. Al-Bayan's observed current **browser** already uses the *second-generation* editor and read-only preview. Its changes are bounded to GUI component imports, style injection, scoped CSS selectors, supporting asset types, frontend tests, package-lock/version and documentation. The authoritative Al-Bayan FastAPI, Document2 worker protocol, immutable draft revisions, Burhan projection and normal MCP typed commands **do not depend on the React editor's name**. They must remain stable, subject to final regression verification. Do not opportunistically rename protocol or persistence identifiers.
+The first-generation editor deletion is predominantly a **BuTeX source/refactor**. Al-Bayan's observed current **browser** already uses the *second-generation* editor and read-only preview. The migration now includes GUI imports/styles, headless TypeScript types/functions, package-lock/version, CLI/worker binary, HTTP routes, FastAPI backend clients, typed MCP command surface, tests, docs, infrastructure wiring and rollout. The authoritative Al-Bayan FastAPI, headless document worker, Burhan projection and normal MCP typed commands **are explicitly in scope for identifier/route renaming**. Preserve their **behavior**, permission model, mathematical conversion and immutable revision JSON. Do not rewrite stored JSON merely to eliminate a TypeScript, Python or HTTP identifier; audit real serialized version markers as a separate schema decision.
 
 | Repository/baseline | Verified revision on 2026-10-20 | Package contract |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ The first-generation editor deletion is predominantly a **BuTeX source/refactor*
 
 Al-Bayan `frontend/package-lock.json` locks `node_modules/@drghaliasri/butex` to **7.4.2** with an npm registry `resolved` tarball and a recorded `integrity` hash. This is **verified tracked lockfile content**, not evidence that a later npm dist-tag does or does not exist. Re-query the live npm registry via `npm view @drghaliasri/butex version dist-tags --json` before Phase 5/6. On audit, no open migration-specific GitHub PR or GitLab MR was found. Both branches already include recently promoted architecture and proposal docs. Avoid historical local checkouts and claims about old untracked `node_modules`.
 
-The precise current GUI entrypoints in BuTeX `package.json` are `./react-document2` and `./react-document2-preview`; `./react-document` still belongs to the obsolete first editor. The future GUI uses `./react-document` **with a different meaning**, and the dedicated read-only preview is proposed at `./react-document-preview`. The headless `./document2` package, `Document2Json` and the worker CLI and route names remain unchanged.
+The precise current GUI entrypoints in BuTeX `package.json` are `./react-document2` and `./react-document2-preview`; `./react-document` still belongs to the obsolete first editor. The future GUI uses `./react-document` **with a different meaning**, and the dedicated read-only preview is proposed at `./react-document-preview`. The headless `./document2` package becomes `./document`, `Document2Json` becomes `DocumentJson`, the worker CLI becomes `butex-document`, and `/v1/document2/*` becomes `/v1/document/*`, coordinated with Al-Bayan backend/MCP changes.
 
 ## 2. Exact current frontend consumer inventory
 
@@ -33,16 +33,16 @@ These imports/consumers were inspected in the current `develop` files or were ob
 | `ButexDocumentPreview` from `react-document2-preview` | Al-Bayan | Current read-only GUI | `frontend/src/components/dashboard/document-frozen-preview.tsx` | MIGRATE **subpath** to `react-document-preview`; keep component name | Dedicated preview must not import/render interactive editor |
 | `.butex-document2-widget*`, `--butex-document2-*` | Al-Bayan | Current GUI CSS | `frontend/src/app/globals.css` | MIGRATE selectors/props after comparing actual new BuTeX CSS | Needed for sticky editor chrome, theme, digit picker, Arabic layout |
 | `ALBAYAN_BUTEX_THEME_CLASS` | Al-Bayan | Host theme | `frontend/src/lib/butex-theme.ts`, editor/preview | PRESERVE | Host class `albayan-butex-theme` is independent of BuTeX generation; revise comment if helpful |
-| `Document2Json`, `Document2Node`, `fromDocumentJson2`, `document2Latex` | Al-Bayan | Headless model | `frontend/src/lib/{butex-latex,butex-validation,draft-autosave}.ts`; `frontend/src/lib/api/articles.ts`; editor page; preview | PRESERVE, **no rename** | Current persisted JSON, conversion, validation and autosave contracts |
-| `Document2Json` | Al-Bayan | Headless model | `frontend/src/components/dashboard/{document-frozen-preview,draft-history-dialog}.tsx` and article detail/read pages | PRESERVE | Frozen revisions display the same wire JSON across GUI change |
+| `Document2Json`, `Document2Node`, `fromDocumentJson2`, `document2Latex` | Al-Bayan | Headless model | `frontend/src/lib/{butex-latex,butex-validation,draft-autosave}.ts`; `frontend/src/lib/api/articles.ts`; editor page; preview | MIGRATE to `DocumentJson`, `DocumentNode`, `fromDocumentJson`, `documentLatex` and headless `@drghaliasri/butex/document` import | Preserve the *content and semantics* of persisted JSON, conversions, validation and autosave |
+| `Document2Json` | Al-Bayan | Headless model | `frontend/src/components/dashboard/{document-frozen-preview,draft-history-dialog}.tsx` and article detail/read pages | MIGRATE type/import only to `DocumentJson` | Frozen revisions continue displaying unchanged historical JSON |
 | `@drghaliasri/butex` core | Al-Bayan | Shared MathJax | `frontend/src/lib/butex-mathjax.ts` | PRESERVE | `registerBuTeX`, `BUTEX_TEX_PACKAGE`, `registerBuTeXSvgTextWrapper`, `injectBuTeXStyles` are standalone MathJax integrations |
 | `@drghaliasri/butex` version + resolved artifact | Al-Bayan | Package | `frontend/package.json`, `frontend/package-lock.json` | MIGRATE together | A new **major** BuTeX version removes/repurposes public exports |
 | CSS selector and preview path source tests | Al-Bayan | Integration tests | `frontend/src/components/dashboard/{article-editor-chrome,history-ui-contract}.test.ts` | MIGRATE expectations, PRESERVE assertions | Tests currently literally match old digit-picker CSS and `react-document2-preview` |
-| `/v1/document2/*` and worker request JSON | Al-Bayan | Headless protocol | `backend/app/services/butex_worker_client.py` | PRESERVE, verify | Stateless private worker interface is not a React import |
+| `/v1/document2/*` and worker request JSON | Al-Bayan | Headless protocol | `backend/app/services/butex_worker_client.py` | MIGRATE URL builders/calls to `/v1/document/*`, update retry/error/health tests and worker deployment | Preserve authorization, payload semantics and math response behavior |
 | `MathObject` projection/diagnostics | Al-Bayan | Math protocol | `backend/app/services/{butex_diagnostic_client,burhan_client,burhan_reverse_client}.py` | PRESERVE, verify | Shared BuTeX math extraction must not break its headless worker |
-| Typed `Document2` command APIs | Al-Bayan | Backend/MCP | `backend/app/schemas/{document2,draft_command}.py`, `mcp_server/src/albayan_mcp/schemas/document2.py`, `mcp_server/src/albayan_mcp/tools/{drafts,equations}.py` | PRESERVE, verify | No GUI rename justification for changing schema or authorization |
+| Typed `Document2` command APIs | Al-Bayan | Backend/MCP | `backend/app/schemas/{document2,draft_command}.py`, `mcp_server/src/albayan_mcp/schemas/document2.py`, `mcp_server/src/albayan_mcp/tools/{drafts,equations}.py` | MIGRATE canonical type/module/tool/command labels to unsuffixed `Document` names; keep validated request semantics and auth | Normal MCP capability discovery and FastAPI/OpenAPI specs must expose final canonical naming |
 
-**Negative finding (scoped):** searched frontend repository source for `@drghaliasri/butex/react-document2` and `@drghaliasri/butex/document`. Current actual browser source consumes only the second-generation GUI and `document2` headless model; no first-generation document editor render/import was observed. Historical docs legitimately mention obsolete interfaces and are not current consumers. Re-run strict full-tree `rg` at implementation time; repository code search is not a substitute for a complete imported-package graph.
+**Negative finding (scoped):** searched frontend repository source for `@drghaliasri/butex/react-document2` and `@drghaliasri/butex/document`. Current actual browser source consumes only the second-generation GUI and headless model currently exported as `document2`; no first-generation document editor render/import was observed. Historical docs legitimately mention obsolete interfaces and are not current consumers. Re-run strict full-tree `rg` at implementation time; repository code search is not a substitute for a complete imported-package graph.
 
 ### CSS, callback and DOM contracts to preserve
 
@@ -79,6 +79,25 @@ Normal Al-Bayan MCP → mcp_server API facade / typed commands
 
 The four shared BuTeX math modules must be **EXTRACTED, not deleted** before old `src/document/` is retired. See the linked [BuTeX detailed graph](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md#2-verified-dependency-graph). Al-Bayan does **not** need to import internal neutral BuTeX paths; only the new public GUI/preview paths.
 
+### Complete naming cleanup — expanded owner-approved scope (2026-10-20)
+
+This is **not** a frontend-only change. The final architecture must use canonical **Document** names across the entire stack and must not retain old generation-two aliases in active modules, executable names, routes, typed schemas or MCP discovery. The HTTP `/v1` prefix denotes **API version**, not editor generation, and is kept unless independently approved. Mappings are target designs, **not existing implementation**.
+
+| Boundary | Before | After / migration responsibility |
+| --- | --- | --- |
+| BuTeX headless package | `@drghaliasri/butex/document2` | `@drghaliasri/butex/document`; old first-generation export must be retired first |
+| BuTeX headless paths | `src/document2/` | `src/document/` after extracting shared math and deleting obsolete code |
+| TS JSON and command names | `Document2Json`, `Document2Node`, `fromDocumentJson2`, `document2Latex`, other `Document2*` | `DocumentJson`, `DocumentNode`, `fromDocumentJson`, `documentLatex` and corresponding unsuffixed commands; update all Al-Bayan imports |
+| BuTeX worker source and executable | `src/document2-cli/`, `butex-document2` | `src/document-cli/`, `butex-document` and matching package bin/build/container scripts |
+| Worker HTTP API | `/v1/document2/*` | `/v1/document/*`, rename both server routes and Al-Bayan `butex_worker_client.py` URL builders/tests |
+| Backend/FastAPI | `backend/app/schemas/document2.py` and active `Document2` schema/route names where found | Canonical `document.py` and `Document` schema/route names; audit actual route declarations/OpenAPI before changing |
+| Normal Al-Bayan MCP | `mcp_server/src/albayan_mcp/schemas/document2.py`, typed `Document2` commands and discoverable tool docs | Canonical `document.py`, `Document` commands/tool contracts; end-user-facing normal MCP must verify this (Developer MCP is diagnostic only) |
+| Frontend GUI | `react-document2`, `ButexDocumentEditor2`, `react-document2-preview` | `react-document`, `ButexDocumentEditor`, `react-document-preview`; rename style helpers and CSS too |
+
+**Data contract invariant:** *identifier/route renaming is not a mandate to transform existing saved draft JSON*. Freeze canonical fixtures, compare old/new serialization, validate historical immutable revisions and detect any genuine on-wire `document2` discriminator. Such an on-wire change needs a separately approved, backward-data-compatible design; never reinterpret historical articles to make a source-code name look cleaner.
+
+**Deployment invariant:** versioned BuTeX worker and Al-Bayan backend/frontend/MCP must be rolled out as a **compatible unit on development first**, with failing mixed-version states prevented. Do not rely on a worker lagging behind the API rename. Old `/v1/document2/*` must not be a permanent live alias in the final architecture. Production remains unchanged without separate authorization.
+
 ## 4. Final public names: agreed boundary with BuTeX
 
 | Shipped today | Proposed final | Al-Bayan action |
@@ -89,7 +108,7 @@ The four shared BuTeX math modules must be **EXTRACTED, not deleted** before old
 | `injectBuTeXDocument2Styles` / `DOCUMENT2_WIDGET_CSS` | `injectBuTeXDocumentStyles` / `DOCUMENT_WIDGET_CSS` | MathJax loader and source tests |
 | `.butex-document2-widget*` / `--butex-document2-*` | `.butex-document-widget*` / `--butex-document-*` | Host `globals.css` and CSS source tests |
 | `@drghaliasri/butex/react-document2-preview` | `@drghaliasri/butex/react-document-preview` | Frozen preview dynamic import (keep `ButexDocumentPreview`) |
-| `@drghaliasri/butex/document2`, `Document2Json`, `/v1/document2/*`, `butex-document2` CLI | **UNCHANGED** | No backend, MCP, persisted schema or worker renaming |
+| `@drghaliasri/butex/document2`, `Document2Json`, `/v1/document2/*`, `butex-document2` CLI | `@drghaliasri/butex/document`, `DocumentJson`, `/v1/document/*`, `butex-document` CLI | Migrate frontend headless API, Python worker client, MCP schema/typed command names, runtime/config/tests; preserve persisted JSON semantics |
 | Standalone `@drghaliasri/butex/react` and main MathJax API | **UNCHANGED** | No change |
 
 **Breaking change:** first-generation `@drghaliasri/butex/document` is removed; the old `react-document` public name is repurposed to the current editor. Do not add transition aliases. Publish a breaking semver-major package only with approval and release gates. Ordinary docs pointing to implemented architecture should not claim migration completed until final code is shipped.
@@ -135,11 +154,11 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 1. Complete BuTeX **Phases 0–4** first on feature branches/MRs, including extraction, removal, GUI promotion, source tests, demo, package exports and final tarball/CI checks. No intermediate build green requirement; do not merge these incompletely into deployment-triggering `develop` or `main`.
 2. For a cross-repo integration rehearsal before npm publication, use a controlled locally built tarball or temporary pinned Git/tarball dependency **only in isolated integration branches** if strictly necessary. Do not commit temporary compatibility aliases or cause production/dev shared deployments to pull an incompatible package. Prefer the straightforward published-version transition when the full BuTeX branch is verified.
 3. **Phase 5:** human authorizes BuTeX major version/tag/npm release only after final BuTeX gates. Confirm registry propagation and exact tarball integrity. BuTeX GitLab tag triggers its publish pipeline; BuTeX branch `develop`/`main` can trigger **worker deployment**, so keep package / worker compatibility and release order explicit.
-4. **Phase 6:** on a new Al-Bayan PR from fresh `develop`, change `frontend/package.json` and `frontend/package-lock.json` in the **same PR**, using `npm install --package-lock-only` after publication, verify resolved+integrity, run `npm ci`. Migrate only the identified UI/CSS/GUI names.
+4. **Phase 6:** on a new Al-Bayan PR from fresh `develop`, change `frontend/package.json` and `frontend/package-lock.json` in the **same PR**, using `npm install --package-lock-only` after publication, verify resolved+integrity, run `npm ci`. Migrate every identified GUI **and headless** TS symbol, Python worker endpoint, FastAPI and normal MCP typed-command/API name, tests, scripts and documentation.
 5. **Phase 7:** coordinate development-only deploy of compatible BuTeX worker and Al-Bayan frontend. Verify origins: `https://dev.albayan-journal.org`, requests to `https://api.dev.albayan-journal.org`. Any production-origin redirect/request is a configuration blocker, not a passed test. Development MCP/browser evidence needed.
 6. **Phase 8:** update implemented architecture docs, release notes, external breaking-change guidance and checkboxes; do not merge/deploy until explicitly reviewed.
 
-**Potential pin distinction:** backend currently calls the worker by HTTP URL, not by importing a BuTeX npm React GUI. Verify deployment config/actual worker source revision at Phase 0/7. A separate worker image/version may legitimately lag the npm GUI release as long as the unchanged `/v1/document2/*` protocol and mathematical behavior are compatible. Do not infer its image package version from `frontend/package-lock.json`.
+**Potential pin distinction:** backend currently calls the worker by HTTP URL, not by importing a BuTeX npm React GUI. Verify deployment config/actual worker source revision at Phase 0/7. A separate worker image/version **cannot** be assumed compatible across the breaking HTTP route rename. Coordinate an explicitly tested matching worker/client version pair; do not infer the worker version from `frontend/package-lock.json`. Do not infer its image package version from `frontend/package-lock.json`.
 
 ## 7. Tracking checklists — each phase a separate open PR/MR
 
@@ -147,7 +166,8 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 
 - [ ] Refresh `develop`/`main` SHAs for BuTeX and Al-Bayan; verify promoted docs and open requests.
 - [ ] Verify actual npm dist-tag and worker deployed revision, capture tracked Al-Bayan manifest/lock and package export list.
-- [ ] Re-run full-tree references for legacy/current GUI and tests, CSS and packaging. Record exact affected files and baseline outcomes.
+- [ ] Re-run full-tree references for legacy/current GUI and headless imports, Python schemas, CLI/bin, worker source, `/v1/document2/*` route strings, infrastructure, MCP tools, tests, CSS and packaging; record exact affected files and baseline outcomes.
+- [ ] Audit actual frozen/persisted revision JSON and typed command payloads for schema version discriminators: preserve bytes and meaning unless a distinct validated data-migration design is explicitly approved.
 - [ ] **Gate:** no unknown consumer is treated as safe for unconditional removal.
 
 ### Phase 1 — BuTeX shared-math extraction gate (BuTeX MR; Al-Bayan watches)
@@ -158,20 +178,20 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 
 ### Phase 2 — first-generation cleanup gate (BuTeX MR)
 
-- [ ] Remove first-gen GUI, old headless-only model, obsolete demo and exclusively legacy tests only after extraction.
-- [ ] Keep `src/document2/`, `src/document2-cli/`, `src/editor/`, standalone `src/react/` and MathJax intact.
+- [ ] Remove first-gen GUI, old headless-only model, obsolete demo and exclusively legacy tests only after extraction; free the old `src/document/` and `@drghaliasri/butex/document` names for the maintained headless implementation.
+- [ ] Keep the **implementations** under `src/document2/`, `src/document2-cli/`, `src/editor/`, standalone `src/react/` and MathJax intact until they are safely migrated; the first two directories and exported names must ultimately be canonicalized, not deleted.
 - [ ] **Gate:** no current source import targets a deleted file; no shared test silently dropped.
 
 ### Phase 3 — current GUI promotion gate (BuTeX MR)
 
-- [ ] Ship documented GUI API mapping, new preview subpath and scoped CSS names, no compatibility aliases.
+- [ ] Ship **full-stack** contract: maintained GUI, preview, scoped CSS, `src/document2/` → `src/document/`, `@drghaliasri/butex/document2` → `/document`, `Document2Json` → `DocumentJson`, associated functions/typed commands, worker executable `butex-document` and `/v1/document/*`; no permanent compatibility aliases.
 - [ ] Verify separate validated wrapper and lightweight preview, correct demo/package exported entries.
-- [ ] **Gate:** public API table is exact; persistent Document2 types and HTTP protocol unchanged.
+- [ ] **Gate:** public API table is exact, `Document2` symbols/old binary/old routes are absent from final active names; persisted document structure, math and authorization **behavior** unchanged.
 
 ### Phase 4 — BuTeX regression + packaging gate (BuTeX MR)
 
 - [ ] Observe BuTeX `npm ci`, build, typecheck, lint, tests, pack, demo and final GitLab pipeline.
-- [ ] Verify worker commands/math diagnostics, figure/reference persistence, RTL/MathJax in maintained demo.
+- [ ] Verify renamed worker executable/HTTP routes and commands/math diagnostics, figure/reference persistence, RTL/MathJax in maintained demo; compare serialized JSON fixtures before/after.
 - [ ] **Gate:** green final BuTeX state (intermediate failures acceptable only on isolated branches).
 
 ### Phase 5 — controlled npm contract publication gate
@@ -183,22 +203,24 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 ### Phase 6 — Al-Bayan frontend consumer PR
 
 - [ ] Update `frontend/package.json` and `frontend/package-lock.json` together; version exactly matches published artifact.
-- [ ] Rename editor imports/JS names in `tahrir/page.tsx`, two `ImageAssetRef` consumers, MathJax style injection, read-only preview subpath and `globals.css` selectors.
+- [ ] Rename editor imports/JS names in `tahrir/page.tsx`, `ImageAssetRef` consumers, MathJax style injection, read-only preview subpath and `globals.css` selectors **plus** every headless frontend import/type/helper across `butex-latex`, `butex-validation`, `draft-autosave`, article API and frozen revisions.
+- [ ] Migrate `backend/app/services/butex_worker_client.py` route mapping to `/v1/document/*`, associated backend schemas/modules/tests/OpenAPI where versioned, and `mcp_server/src/albayan_mcp/schemas/document2.py` and tools to canonical `Document` names. Preserve typed command validation, authorization, Burhan math semantics and immutable revision JSON.
 - [ ] Update host style/preview tests and docs; preserve full image/revision/MathJax/auth workflows.
-- [ ] Run frontend `npm ci`, `npm test`, `npx tsc --noEmit`, `npm run build`; check actual GitHub Actions workflow results.
-- [ ] **Gate:** no old package GUI names in active frontend runtime; no opportunistic Python/MCP contract changes.
+- [ ] Run frontend `npm ci`, `npm test`, `npx tsc --noEmit`, `npm run build`; backend/MCP pytest, worker HTTP contract tests, renamed MCP discovery/schema tests and both repos' CI. Check actual GitHub Actions workflow results.
+- [ ] **Gate:** no generation-two naming survives in active frontend/backend/MCP/worker runtime routes or exports, no data corruption, permissions unchanged, all renamed endpoints resolve against matching worker and backend revisions.
 
 ### Phase 7 — full development end-to-end (cross-repo validation PRs)
 
 - [ ] Confirm development browser + API origins; load existing draft, type Arabic text, create/reopen mathematical equation, insert figure and reference, validate, autosave, navigate and restore revision.
 - [ ] Confirm immutable draft/frozen revision preview uses lightweight `ButexDocumentPreview` and correct new CSS; MathJax SVG and RTL/digit form observed.
-- [ ] Invoke the **normal Al-Bayan MCP** with a supported canonical English LaTeX typed Document2 command on an authorized development draft; read resulting revision and ensure source→Burhan MathObject→worker→stored JSON→renamed GUI roundtrip.
+- [ ] Invoke the **normal Al-Bayan MCP** with a supported canonical English LaTeX typed **Document** command on an authorized development draft; verify tool discovery uses final names and follow source→Burhan MathObject→**renamed `/v1/document/*` worker**→stored JSON→renamed GUI roundtrip.
 - [ ] Use **Developer MCP** for intermediate diagnostics, Playwright MCP for actual DOM/network/equation rendering, and optional development PDF compilation for visual consistency.
+- [ ] Verify development FastAPI OpenAPI/worker route enumeration exposes `/v1/document/*` and no obsolete `/v1/document2/*`, CLI responds to `butex-document`, retained historical revisions load without rewrite.
 - [ ] **Gate:** all pipeline stages independently evidenced. Unit tests alone are insufficient. Do not modify production data or services.
 
 ### Phase 8 — final docs + release readiness (docs PRs)
 
-- [ ] Update implemented (not merely proposed) BuTeX/Al-Bayan docs, consumer examples, CSS/public symbols and version notes; retain Document2 schema/worker naming.
+- [ ] Update implemented (not merely proposed) BuTeX/Al-Bayan docs, consumer examples, CSS/public symbols, package/headless types, FastAPI/MCP endpoints, worker/CLI runbooks and version notes; remove active Document2/`document2` generation labels. Migration/historical audit evidence may quote old identifiers as before-state facts.
 - [ ] Verify final CI checks in both repos and stage-specific approvals; link each phase PR/MR and confirm checkboxes.
 - [ ] **Gate:** no release/deploy without explicit authorization and complete cross-repo pass.
 
@@ -226,7 +248,7 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 | Preview/editor export confusion | Separate preview package entry, test no editor mount | Frozen preview interactive or blocked |
 | npm version / lockfile / integrity drift | Major-release gate, `npm install --package-lock-only`, `npm ci` | Lock differs from published artifact |
 | Tests falsely green from deletion | Retain shared/headless tests, strengthen source-path assertions | Required regressions removed or path assumptions stale |
-| Worker/MCP interface inadvertently renamed | Keep `document2` model/HTTP routes and typed schemas | Backend/MCP/immutable revision regression |
+| Worker/MCP interface partially renamed | Coordinate explicit `document` model/HTTP route/typed schema migration across BuTeX and Al-Bayan; validate new OpenAPI/MCP discovery and worker tests | Mismatched endpoint, stale tooling or backend/MCP/immutable revision regression |
 | Frontend/development service skew | Coordinate versioned rollout; test dev origins and HTTP outputs | Mixed incompatible artifacts |
 | Existing third-party production users of removed legacy GUI | Major semver + documented breaking behavior, do not deploy prod | Missing explicit authorization or notice |
 
@@ -237,7 +259,7 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 - [ ] BuTeX's [complete source-preservation, cleanup and GUI rename plan](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md) completed and final package tested/released with approval.
 - [ ] Every active Al-Bayan editor, asset, style, frozen preview, test and documentation reference uses the final public GUI names; standalone equation/MathJax behavior survives.
 - [ ] `frontend/package.json` and `frontend/package-lock.json` agree with a verified published release.
-- [ ] Document2 JSON, CLI/worker `/v1/document2/*`, backend typed commands, immutable draft revisions, normal MCP schema, authorization and security contracts remain unchanged.
+- [ ] Active headless `@drghaliasri/butex/document`, `DocumentJson`, `butex-document`, `/v1/document/*`, backend typed **Document** commands and normal MCP tool/schema names are canonical and unsuffixed; immutable draft/revision **JSON contents**, authorization/security and mathematical semantics remain unchanged.
 - [ ] Frontend, backend, MCP, BuTeX CI and **development browser/MCP end-to-end evidence** all pass.
 - [ ] Each phase executed as individually reviewable requests with progress checkboxes; every future merge, publish and deployment approved separately.
 
