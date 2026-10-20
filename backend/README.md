@@ -50,11 +50,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## قاعدة البيانات
 
-الجداول: `users`, `articles`, `article_versions`, `article_authors`, `article_reviewers`, `reviews`.
+تعتمد الخلفية على `Article` ذي الحالة الحالية و`ArticleDraftRevision` غير القابلة للتعديل، بينما `ArticleVersion` إصدار رسمي يُنشأ عند التقديم. مستند المسودة محفوظ في S3 وتخزن PostgreSQL بياناته الوصفية ورقم المراجعة.
 
-**حالة المخطوطة** على `article_versions.status` (وليس `articles`): `draft` = قابل للتحرير؛ غير ذلك = مجمّد. آخر إصدار (`ORDER BY version_number DESC LIMIT 1`) هو مصدر الحقيقة.
-
-الشرح الكامل للتصميم والعلاقات: [docs/database-schema.md](../docs/database-schema.md).
+الشرح المحدث: [معمارية البيانات والتخزين](../docs/architecture/database.md) و[مسار تأليف المقالات](../docs/architecture/authoring.md).
 
 ## ترحيلات Alembic
 

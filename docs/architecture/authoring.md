@@ -65,9 +65,11 @@ The browser's autosave path and the AI command path converge at this revision se
 
 The route implementations are in [`app/routers/articles.py`](../../backend/app/routers/articles.py).
 
+For model boundaries see [Database and storage](database.md) and for image/figure validity see [Document2 and assets](document-assets.md).
+
 ## Source and historical context
 
 - [draft service](../../backend/app/services/article_draft_service.py)
 - [article submission service](../../backend/app/services/article_service.py)
 - [compiler service](../../backend/app/services/compile_service.py)
-- [September 2026 session→revision design record](../superpowers/specs/2026-09-15-draft-revision-architecture.md) — historical decision context, **not** a separate active session API.
+- [September 2026 session→revision design record](../archive/2026-09-immutable-drafts-decision.md) — historical decision context, **not** a separate active session API.

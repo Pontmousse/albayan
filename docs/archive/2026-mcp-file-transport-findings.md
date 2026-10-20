@@ -1,3 +1,5 @@
+> **ARCHIVED — historical design/evidence only.** This is a preserved development snapshot, not the current implementation contract. For today’s behavior see [Architecture](../architecture/README.md) and [Development](../development/README.md).
+
 # ChatGPT MCP file transport findings
 
 ## Scope

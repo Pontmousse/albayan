@@ -2,6 +2,9 @@
 
 ## Purpose
 
+> **Documentation cleanup (October 2026):** the historic Al-Bayan document paths and repository search exclusions quoted below describe the **original rename audit scope**. Several old audits/worker-session plans have now been removed from `develop`. For the present-day documentation use [Document2 assets/validity](../architecture/document-assets.md), [MCP architecture](../architecture/mcp.md) and [the development index](../development/README.md). Update the inventories/search exclusions against live files when actually implementing this proposal.
+
+
 > **Status: ACTIVE PROPOSAL — NOT IMPLEMENTED.** This is an October 2026 refactor audit and phased implementation plan, not a description of the current shipped editor. Revalidate paths/exports against the latest BuTeX and Al-Bayan `develop` branches before implementation. The separate current book design is [Al-Bayan's book proposal](book-authoring.md) and [BuTeX's book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md).
 
 This report inventories the work required to remove the legacy BuTeX React

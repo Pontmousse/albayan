@@ -45,4 +45,4 @@ Railway also hosts a separate [Playwright MCP browser service](../development/pl
 - [Developer MCP source](../../dev_mcp_server/src/albayan_dev_mcp/)
 - [FastAPI actor model](../../backend/app/core/actor.py)
 - [Developer investigation guidance](../development/investigation-workflows.md)
-- [Product MCP detailed guide](../../mcp_server/Documentation.md) — supplementary operational notes; treat historical session terminology as superseded.
+- [Product MCP operations and client verification](../development/mcp-operations.md) — current usage and safe authoring checks.
