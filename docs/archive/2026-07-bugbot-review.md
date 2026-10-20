@@ -1,3 +1,5 @@
+> **ARCHIVED HISTORICAL RECORD.** Preserved for provenance only. It may describe outdated source files, product state, or unresolved development ideas. Do not use as a current implementation contract; see [Architecture](../architecture/README.md) and [Proposals](../proposals/README.md).
+
 # تقرير مراجعة Bugbot
 
 **المستودع:** `/home/elghaliasri/سطح المكتب/ufuq/albayan`  

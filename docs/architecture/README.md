@@ -19,12 +19,12 @@
 - **Responsibility boundaries:** Al-Bayan authenticates, authorizes, orchestrates, stores and compiles. BuTeX owns structured document transformations/editor functionality. Burhan owns English→Arabic mathematical conversion.
 - **Cross-repository contracts:** Prefer implementation and canonical interface descriptions in the owning repository over duplicated snapshots elsewhere.
 - **No session architecture:** The old mutable `ArticleSession` / `/session/commands` workflow was replaced by immutable `ArticleDraftRevision` and `/draft/commands`.
-- **No code changes in this phase:** Existing in-depth specs, audits, and developer notes remain available while subsequent documentation cleanup is reviewed.
+- **Documentation organization:** [Development](../development/README.md) holds operational and diagnostic instructions. [Proposals](../proposals/README.md) contains the two maintained future designs. [Archive](../archive/README.md) preserves dated historical reports. Unclassified root documents remain for a later phase.
 
 ## Preserved proposals (not shipped)
 
-- [BuTeX Document2 legacy naming cleanup](../butex-document-editor-legacy-removal-rename-audit.md): proposed renaming/removal of old editor surfaces; do not present as completed work.
-- [Book authoring in Al-Bayan](../book-authoring-architecture.md) and [BuTeX book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md): proposed book/unit model and editor, not present-day routes or models.
+- [BuTeX Document2 legacy naming cleanup](../proposals/butex-document2-naming.md): proposed renaming/removal of old editor surfaces; do not present as completed work.
+- [Book authoring in Al-Bayan](../proposals/book-authoring.md) and [BuTeX book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md): proposed book/unit model and editor, not present-day routes or models.
 
 ## Primary source entrypoints
 

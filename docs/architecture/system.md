@@ -30,7 +30,7 @@ Arabic/RTL browser (Next.js)          AI client
                               revision-bound PDF
 ```
 
-The diagram shows logical dependencies, not guaranteed deployment topology or service readiness in every environment.
+The diagram shows logical dependencies, not guaranteed deployment topology or service readiness in every environment. For the **observed Railway deployment**, separate production/development boundaries and actual service domains, see [Development: Railway infrastructure](../development/railway-infrastructure.md).
 
 ## Repository responsibilities
 
@@ -53,7 +53,7 @@ The diagram shows logical dependencies, not guaranteed deployment topology or se
 
 ## What's not yet implemented
 
-The book/unit architecture documented in [book-authoring-architecture.md](../book-authoring-architecture.md) is a **proposal**. There are no shipped book-specific persistence models, authoring routes, or MCP tools in this reviewed tree. The separate BuTeX naming-cleanup document is likewise a proposal, not a declaration that all legacy entrypoints are removed.
+The book/unit architecture documented in [book-authoring-architecture.md](../proposals/book-authoring.md) is a **proposal**. There are no shipped book-specific persistence models, authoring routes, or MCP tools in this reviewed tree. The separate BuTeX naming-cleanup document is likewise a proposal, not a declaration that all legacy entrypoints are removed.
 
 ## Source map
 

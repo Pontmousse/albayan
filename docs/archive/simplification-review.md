@@ -1,3 +1,5 @@
+> **ARCHIVED HISTORICAL RECORD.** Preserved for provenance only. It may describe outdated source files, product state, or unresolved development ideas. Do not use as a current implementation contract; see [Architecture](../architecture/README.md) and [Proposals](../proposals/README.md).
+
 # تقرير تبسيط — مراجِع / محرر / إدارة
 
 مراجعة فقط على التغييرات المحلية (معدّل + غير متتبَّع). **لم يُغيَّر أي ملف أثناء إعداد هذا التقرير.**

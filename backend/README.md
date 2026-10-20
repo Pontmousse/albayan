@@ -54,7 +54,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 **حالة المخطوطة** على `article_versions.status` (وليس `articles`): `draft` = قابل للتحرير؛ غير ذلك = مجمّد. آخر إصدار (`ORDER BY version_number DESC LIMIT 1`) هو مصدر الحقيقة.
 
-الشرح الكامل للتصميم والعلاقات: [documentation/database-schema.md](../documentation/database-schema.md).
+الشرح الكامل للتصميم والعلاقات: [docs/database-schema.md](../docs/database-schema.md).
 
 ## ترحيلات Alembic
 
