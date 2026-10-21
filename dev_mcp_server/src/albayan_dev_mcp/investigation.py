@@ -6,6 +6,7 @@ from time import perf_counter
 from typing import Any, Literal
 from uuid import uuid4
 
+from albayan_dev_mcp.document import DOCUMENT_SUITES, DocumentMigrationRunner
 from albayan_dev_mcp.equation import (
     MODEL_TIERS,
     EquationDiagnosticClient,
@@ -30,6 +31,7 @@ _STAGE_OWNERS = {
     "headless_butex_validation": "butex",
     "reverse_conversion": "burhan",
     "browser_validation": "frontend-browser",
+    "butex_worker": "butex",
 }
 
 
@@ -144,7 +146,19 @@ _SUITES: dict[str, SuiteSpec] = {
 def list_suites() -> list[dict[str, Any]]:
     """Return stable suite discovery metadata without touching live services."""
 
-    return [spec.metadata() for spec in _SUITES.values()]
+    return [spec.metadata() for spec in _SUITES.values()] + [
+        {
+            "name": name,
+            "domain": "document",
+            "description": "Stateless document migration diagnostic: " + tag,
+            "mode": "document-fixtures",
+            "deterministic": True,
+            "live": True,
+            "ci_policy": "opt-in-live",
+            "default_model_tier": None,
+        }
+        for name, tag in DOCUMENT_SUITES.items()
+    ]
 
 
 def suite_by_name(name: str) -> SuiteSpec | None:
@@ -188,7 +202,8 @@ def capabilities(settings: Settings) -> dict[str, Any]:
                 "trace_lookup": True,
                 "equation_inspection": equation_ready,
                 "named_regression_suites": True,
-                "suite_names": list(_SUITES),
+                "suite_names": list(_SUITES) + list(DOCUMENT_SUITES),
+                "document_diagnostics": equation_ready,
                 "comparison_support": True,
                 "burhan_tiers": list(MODEL_TIERS),
                 "butex_editor_import": equation_ready,
@@ -228,6 +243,10 @@ class InvestigationRunner:
         model_tier: ModelTier = "heuristic",
         max_fixtures: int = 50,
     ) -> dict[str, Any]:
+        if suite_name in DOCUMENT_SUITES:
+            return await DocumentMigrationRunner(
+                self.settings, trace_source=self.trace_source,
+            ).run_suite(suite_name, max_fixtures=max_fixtures)
         spec = suite_by_name(suite_name)
         if spec is None:
             return {
@@ -237,7 +256,7 @@ class InvestigationRunner:
                 "status": "blocked",
                 "reason": "suite_not_found",
                 "suite": suite_name,
-                "available_suites": list(_SUITES),
+                "available_suites": list(_SUITES) + list(DOCUMENT_SUITES),
                 "human_actions": ["Choose one of the suite names returned by dev_regression_suites."],
             }
         if model_tier not in MODEL_TIERS:
@@ -302,6 +321,16 @@ class InvestigationRunner:
         browser_observation: Literal["not_checked", "passed", "failed", "blocked"] = "not_checked",
         browser_note: str | None = None,
     ) -> dict[str, Any]:
+        if suite_name in DOCUMENT_SUITES and compare_model_tier is not None:
+            return {
+                "schema_version": REPORT_SCHEMA_VERSION,
+                "regression_status": "blocked",
+                "reason": "model_tier_comparison_not_a_build_comparison",
+                "human_actions": [
+                    "Use dev_document_compare for attested baseline/candidate worker outputs; "
+                    "Burhan model_tier comparisons do not compare software revisions."
+                ],
+            }
         investigation_id = str(uuid4())
         baseline = await self.run_suite(
             suite_name=suite_name,
