@@ -34,7 +34,7 @@ export function QuranicOpening() {
           </div>
           <div
             className="text-center text-lg leading-relaxed text-emerald-950 sm:text-3xl lg:text-4xl"
-            style={{ fontFamily: "AlmaghribiWarch, var(--font-display-ar), serif" }}
+            style={{ fontFamily: "var(--font-display-ar), serif" }}
           >
             أعوذ بالله من الشيطان الرجيم
             <br />
