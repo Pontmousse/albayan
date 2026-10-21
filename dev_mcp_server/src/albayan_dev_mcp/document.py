@@ -21,6 +21,29 @@ DOCUMENT_OPERATIONS = (
     "reference_index", "export", "diff", "apply_command",
     "diagnose_math_object", "project_math_object_english",
 )
+_CREDENTIAL_KEYS = {
+    "authorization", "cookie", "password", "secret", "api_key", "apikey",
+    "token", "access_token", "refresh_token", "id_token",
+}
+
+
+def sanitize_document(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            str(key): (
+                "[REDACTED]"
+                if str(key).lower() in _CREDENTIAL_KEYS or str(key).lower().endswith("_token")
+                else sanitize_document(item)
+            )
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [sanitize_document(item) for item in value]
+    if isinstance(value, tuple):
+        return [sanitize_document(item) for item in value]
+    return sanitize(value)
+
+
 DOCUMENT_SUITES = {
     "document-contract-smoke": "worker-contract",
     "document-normalization": "normalization",
@@ -154,7 +177,7 @@ class DocumentDiagnosticClient:
                             "human_action": "Inspect the deployed document diagnostic adapter and response size.",
                         }
                     else:
-                        result = sanitize(body)
+                        result = sanitize_document(body)
                     result.update({
                         "trace_id": resolved,
                         "correlation_preserved": (
@@ -196,7 +219,7 @@ def compare_document_reports(baseline: dict[str, Any], candidate: dict[str, Any]
         }
     left, right = baseline["data"], candidate["data"]
     differences = json_diff(left, right, limit=30)
-    return sanitize({
+    return sanitize_document({
         "status": "passed" if not differences else "failed",
         "equivalent": not differences,
         "operation": baseline["operation"],
