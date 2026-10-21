@@ -131,6 +131,11 @@ class FakeDocumentClient:
                 "status": "failed", "ok": False, "operation": operation,
                 "status_code": 422, "trace_id": "fixture-err",
             }
+        if operation == "normalize" and "document" not in payload:
+            return {
+                "status": "failed", "ok": False, "operation": operation,
+                "status_code": 422, "trace_id": "fixture-missing",
+            }
         if operation == "normalize":
             return {
                 "status": "passed", "ok": True, "operation": operation,
@@ -145,7 +150,7 @@ async def test_document_suite_checks_expected_negative_cases_not_only_http_200()
     normal = await runner.run_suite("document-normalization")
     errors = await runner.run_suite("document-error-contracts")
     assert normal["status"] == "passed"
-    assert errors["status"] in {"partial", "failed"}
+    assert errors["status"] == "passed"
     assert await runner.run_suite("document-final-stress") == {
         "status": "blocked", "blocked": True, "suite": "document-final-stress",
         "reason": "round_7_only",
