@@ -12,6 +12,7 @@ from albayan_dev_mcp.document import (
     DocumentMigrationRunner,
     compare_document_reports,
     document_fixtures,
+    sanitize_document,
 )
 from albayan_dev_mcp.investigation import InvestigationRunner, list_suites
 from albayan_dev_mcp.settings import Settings
@@ -174,3 +175,37 @@ async def test_existing_investigation_registry_dispatches_document_suites(monkey
     )
     assert blocked["regression_status"] == "blocked"
     assert blocked["reason"] == "model_tier_comparison_not_a_build_comparison"
+
+
+def test_document_redaction_keeps_real_token_structure_but_hides_credentials():
+    content = {
+        "tokens": [{"token_id": "inline_1", "math_object": {"node_type": "MathObject"}}],
+        "api_key": "private",
+        "access_token": "private",
+        "token": "private",
+        "message": "Bearer simulated-secret",
+    }
+    cleaned = sanitize_document(content)
+    assert cleaned["tokens"][0]["token_id"] == "inline_1"
+    assert cleaned["tokens"][0]["math_object"]["node_type"] == "MathObject"
+    assert cleaned["api_key"] == "[REDACTED]"
+    assert cleaned["access_token"] == "[REDACTED]"
+    assert cleaned["token"] == "[REDACTED]"
+    assert "simulated-secret" not in cleaned["message"]
+
+
+def test_comparison_detects_changes_inside_structural_token_lists():
+    baseline = {
+        "status": "passed",
+        "operation": "normalize",
+        "data": {"tokens": [{"token_id": "t-1", "text": "أ"}]},
+    }
+    candidate = {
+        "status": "passed",
+        "operation": "normalize",
+        "data": {"tokens": [{"token_id": "t-1", "text": "ب"}]},
+    }
+    difference = compare_document_reports(baseline, candidate)
+    assert difference["status"] == "failed"
+    assert difference["equivalent"] is False
+    assert any("tokens[0].text" in row["path"] for row in difference["differences"])
