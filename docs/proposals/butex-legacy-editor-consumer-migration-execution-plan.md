@@ -1,6 +1,6 @@
 # Al-Bayan complete Document2 → Document architecture migration — execution plan
 
-> **Status: PROPOSED EXECUTION PLAN — NOT IMPLEMENTED.** Audit date: **2026-10-20**. No editor deletion, source rename, package upgrade, deployment, or publication has been performed. Each implementation phase must be a separately reviewed PR/MR with the checkboxes below updated from observed evidence. Temporary failures on isolated migration branches are permitted; never merge/publish/deploy incomplete phases.
+> **Status: PROPOSED EXECUTION PLAN — NOT IMPLEMENTED.** Audit date: **2026-10-20**; synchronized eight-round plan updated **2026-10-21**. No editor deletion, source rename, package upgrade, deployment, or publication has been performed. These *planning* requests contain the same frozen-v1 acceptance specification; after their review/merge, use **one long-lived implementation PR plus one long-lived implementation MR** with phase-labeled commits, shared gates, and a final Round-7 stress run. Intermediate development breakage is explicitly permitted; no backward-compatibility shims are required.
 
 **BuTeX source-of-truth plan:** [Complete BuTeX legacy editor migration execution plan](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md). **Earlier naming proposal:** [BuTeX Document2 naming audit](butex-document2-naming.md). This revised plan **supersedes the earlier GUI-only naming boundary**: the owner requires canonical unsuffixed Document names across React, headless TypeScript, CLI/worker, FastAPI routes, backend clients and normal MCP typed commands. It continues to protect the meaning and structure of persisted draft/revision JSON. The earlier proposal cites older 6.1.x package snapshots, which do **not** describe the baseline audited here.
 
@@ -15,7 +15,7 @@ The first-generation editor deletion and canonical headless promotion require a 
 | BuTeX `develop` | `be3f564f0f9568d81eb25a2f93bc51b7d1e2b2fc` | `package.json` version **7.4.2** |
 | BuTeX `main` | `95a27efb5bc875a3478941ab6fe8cb9a5fa53bc8` | Recent `develop` → `main` docs promotion |
 
-Al-Bayan `frontend/package-lock.json` locks `node_modules/@drghaliasri/butex` to **7.4.2** with an npm registry `resolved` tarball and a recorded `integrity` hash. This is **verified tracked lockfile content**, not evidence that a later npm dist-tag does or does not exist. Re-query the live npm registry via `npm view @drghaliasri/butex version dist-tags --json` before Phase 5/6. On audit, no open migration-specific GitHub PR or GitLab MR was found. Both branches already include recently promoted architecture and proposal docs. Avoid historical local checkouts and claims about old untracked `node_modules`.
+Al-Bayan `frontend/package-lock.json` locks `node_modules/@drghaliasri/butex` to **7.4.2** with an npm registry `resolved` tarball and a recorded `integrity` hash. This is **verified tracked lockfile content**, not evidence that a later npm dist-tag does or does not exist. Re-query the live npm registry via `npm view @drghaliasri/butex version dist-tags --json` before the Round 7 authorized release decision. On audit, no open migration-specific GitHub PR or GitLab MR was found. Both branches already include recently promoted architecture and proposal docs. Avoid historical local checkouts and claims about old untracked `node_modules`.
 
 The precise current GUI entrypoints in BuTeX `package.json` are `./react-document2` and `./react-document2-preview`; `./react-document` still belongs to the obsolete first editor. The future GUI uses `./react-document` **with a different meaning**, and the dedicated read-only preview is proposed at `./react-document-preview`. The headless `./document2` package becomes `./document`, `Document2Json` becomes `DocumentJson`, the worker CLI becomes `butex-document`, and `/v1/document2/*` becomes `/v1/document/*`, coordinated with Al-Bayan backend/MCP changes.
 
@@ -46,7 +46,7 @@ These imports/consumers were inspected in the current `develop` files or were ob
 
 ### CSS, callback and DOM contracts to preserve
 
-The editor page owns `DraftAutosaveController`, authenticated `getArticleDraft`/`putArticleDraft`/`restoreDraftRevision`, revision conflicts, validity, images, `getToken` and `onDocumentJsonChange`. Retain those host behaviors. In `frontend/src/app/globals.css`, replace *only* selectors and vars corresponding to the newly renamed BuTeX widget; preserve `.albayan-butex-theme`, journal tokens, sticky editor offset calculations, RTL, Tailwind reset overrides and three-way numeral-picker restrictions. Compare against the actual final `src/react-document/documentWidgetCss.ts` after BuTeX Phase 3, including styles injected by the **dedicated preview**. Use DOM tests/Playwright to prove selectors still match real elements.
+The editor page owns `DraftAutosaveController`, authenticated `getArticleDraft`/`putArticleDraft`/`restoreDraftRevision`, revision conflicts, validity, images, `getToken` and `onDocumentJsonChange`. Retain those host behaviors. In `frontend/src/app/globals.css`, replace *only* selectors and vars corresponding to the newly renamed BuTeX widget; preserve `.albayan-butex-theme`, journal tokens, sticky editor offset calculations, RTL, Tailwind reset overrides and three-way numeral-picker restrictions. Compare against the actual final `src/react-document/documentWidgetCss.ts` after BuTeX Round 5, including styles injected by the **dedicated preview**. Use DOM tests/Playwright to prove selectors still match real elements.
 
 ## 3. Verified cross-repository dependency graph
 
@@ -149,80 +149,94 @@ PYTHONPATH=mcp_server/src:mcp_server pytest -q mcp_server/tests/test_draft_comma
 
 Add a focused frontend smoke verifying that dynamic editor and preview imports resolve from **actual npm package exports**, that the wrapper accepts `onValidityChange` and image picker, that editor JSON autosave remains canonical, and that read-only preview does not mount editor UI. Do not delete backend/MCP tests to make migration green.
 
-## 6. Dependency-version and deployment transition
+## 6. Synchronized cross-repository execution contract (Rounds 0–7)
 
-1. Complete BuTeX **Phases 0–4** first on feature branches/MRs, including extraction, removal, GUI promotion, source tests, demo, package exports and final tarball/CI checks. No intermediate build green requirement; do not merge these incompletely into deployment-triggering `develop` or `main`.
-2. For a cross-repo integration rehearsal before npm publication, use a controlled locally built tarball or temporary pinned Git/tarball dependency **only in isolated integration branches** if strictly necessary. Do not commit temporary compatibility aliases or cause production/dev shared deployments to pull an incompatible package. Prefer the straightforward published-version transition when the full BuTeX branch is verified.
-3. **Phase 5:** human authorizes BuTeX major version/tag/npm release only after final BuTeX gates. Confirm registry propagation and exact tarball integrity. BuTeX GitLab tag triggers its publish pipeline; BuTeX branch `develop`/`main` can trigger **worker deployment**, so keep package / worker compatibility and release order explicit.
-4. **Phase 6:** on a new Al-Bayan PR from fresh `develop`, change `frontend/package.json` and `frontend/package-lock.json` in the **same PR**, using `npm install --package-lock-only` after publication, verify resolved+integrity, run `npm ci`. Migrate every identified GUI **and headless** TS symbol, Python worker endpoint, FastAPI and normal MCP typed-command/API name, tests, scripts and documentation.
-5. **Phase 7:** coordinate development-only deploy of compatible BuTeX worker and Al-Bayan frontend. Verify origins: `https://dev.albayan-journal.org`, requests to `https://api.dev.albayan-journal.org`. Any production-origin redirect/request is a configuration blocker, not a passed test. Development MCP/browser evidence needed.
-6. **Phase 8:** update implemented architecture docs, release notes, external breaking-change guidance and checkboxes; do not merge/deploy until explicitly reviewed.
+**Authoritative Phase 0 acceptance oracle (identical file in both repositories):** [Frozen Document migration acceptance v1](document-migration-frozen-acceptance-v1.md). The owner reviews and freezes this **before implementation**; save a SHA-256 of each copy and verify byte-for-byte equality. After freeze, **do not change either copy to accommodate failures**. Implement/test against it through migration and ask the AI agent to run the **entire specified acceptance/stress suite only in Round 7**, after the migration implementation is complete. A defect in the specification requires an explicitly reviewed, versioned addendum, never an in-place edit. This documentation PR/MR authors the contract; Phase 0 is not complete until it is reviewed and formally frozen.
 
-**Potential pin distinction:** backend currently calls the worker by HTTP URL, not by importing a BuTeX npm React GUI. Verify deployment config/actual worker source revision at Phase 0/7. A separate worker image/version **cannot** be assumed compatible across the breaking HTTP route rename. Coordinate an explicitly tested matching worker/client version pair; do not infer the worker version from `frontend/package-lock.json`. Do not infer its image package version from `frontend/package-lock.json`.
+**Eight planned AI-agent work rounds, exactly synchronized across the two repositories:**
 
-## 7. Tracking checklists — each phase a separate open PR/MR
+| Round | Shared objective | Al-Bayan responsibility | BuTeX responsibility | Shared exit rule |
+| --- | --- | --- | --- | --- |
+| **0** | Author/review/freeze acceptance specification; align planning baselines | Mirror the frozen document; record agreed naming and final assertions | Mirror the **same bytes** and agree on worker/package invariants | Both confirm specification hash, shared phase ledger and owner approval |
+| **1** | Build the migration diagnostic harness **before editing legacy runtime** | Design/implement/test Developer MCP `dev_document_contract_snapshot`, `dev_document_inspect`, `dev_document_compare`, named suites, fixture report schema and safe diagnostic backend endpoints | Supply real current worker commands/types, test fixtures and any narrow stateless adapter required for diagnostics | Harness contracts/tests pass; old-implementation baseline and build provenance captured |
+| **2** | Full dependency and persistence audit, then extract live shared math | Classify all frontend/backend/MCP/deploy references and immutable revision data; pin baseline consumers | Regenerate import graph; mark DELETE/PRESERVE/EXTRACT/MIGRATE; extract four shared `src/document/` math modules; preserve standalone math | No unknown inbound dependency on planned deletions; extraction verified |
+| **3** | Remove first-generation BuTeX editor/model and free canonical names | Track integration impact and update affected test inventories as needed; no runtime compatibility requirement | Remove classified obsolete GUI/model/demo/legacy-only tests; preserve current implementation and shared math | Legacy code removed without losing shared functionality; interim builds may fail |
+| **4** | Promote maintained headless `Document` and worker/CLI HTTP interface | Update backend worker client endpoints/types against candidate worker; add matching route/contract tests | Move current headless `src/document2/` to `src/document/`, `src/document2-cli/` to `src/document-cli/`; canonical worker/bin/`/v1/document/*`/types/exports | Canonical stateless worker operations and backend client agree in isolated integration tests |
+| **5** | Promote maintained React GUI/preview and Al-Bayan frontend consumer | Replace GUI/headless imports, CSS/asset/preview/types and frontend tests; consume local candidate BuTeX tarball without npm publishing | Promote `react-document2`/preview to `react-document`/preview; rename CSS/injector/demo; produce consumable tested tarball | Candidate GUI/editor/preview and frontend integrate locally; no permanent aliases |
+| **6** | Finish Al-Bayan FastAPI + normal MCP renaming, CI, candidate integration | Canonical typed Document schemas/tools/commands/backend tests, CI, security and revision invariants; coordinate **development-only** candidate integration | Finish full source tests, CLI/worker contracts, packaging, candidate artifact, final required CI | Full candidate cross-repo build/contract gates pass; ready for **final** acceptance, not released |
+| **7** | Run **frozen** complete validation and stress; prepare release decisions | AI agent runs Developer MCP test matrix, separate normal MCP + Playwright, authorized dev compile/revision tests, evidence report | Verify candidate worker/package tests, old-name absence, baseline/candidate equivalence, CI and package provenance | Every mandatory frozen test passed in both ledgers; blockers are not checked off; human authorizes any later merge/tag/npm/deployment |
 
-### Phase 0 — freeze & re-audit both repositories
+**Checkbox synchronization:** these rows are the **same numbered work rounds and shared gates in both documents**. Each repository contains local subtasks below, but the **round-level checkbox** may be checked in **both places at once only when all cross-repo requirements for that round are evidenced**. A local no-change task is marked `N/A — verified`, not silently marked completed. A BuTeX-only operation does not automatically complete an Al-Bayan phase, or vice versa. Maintain a small evidence ledger per round: BuTeX commit, Al-Bayan commit, Developer MCP report/CI links, failed/partial gaps and human approval.
 
-- [ ] Refresh `develop`/`main` SHAs for BuTeX and Al-Bayan; verify promoted docs and open requests.
-- [ ] Verify actual npm dist-tag and worker deployed revision, capture tracked Al-Bayan manifest/lock and package export list.
-- [ ] Re-run full-tree references for legacy/current GUI and headless imports, Python schemas, CLI/bin, worker source, `/v1/document2/*` route strings, infrastructure, MCP tools, tests, CSS and packaging; record exact affected files and baseline outcomes.
-- [ ] Audit actual frozen/persisted revision JSON and typed command payloads for schema version discriminators: preserve bytes and meaning unless a distinct validated data-migration design is explicitly approved.
-- [ ] **Gate:** no unknown consumer is treated as safe for unconditional removal.
+**Branch/PR/MR strategy:** Merge/review these **documentation-only** planning PR #236 and MR !66 first when approved. Subsequently create **one long-lived implementation GitHub PR in Al-Bayan and one long-lived implementation GitLab MR in BuTeX**, both based on a fresh `develop`, and **keep adding phase-labeled commits to those same two open requests for Rounds 1–7**. Do **not** open one PR/MR per round. Review the commits/checkpoints and update both ledgers; do not merge either implementation request until final integration and explicit human approval. Recording checkpoints as commits does not mean intermediate CI must be green.
 
-### Phase 1 — BuTeX shared-math extraction gate (BuTeX MR; Al-Bayan watches)
+**Intermediate-state policy:** This is an intentional breaking refactor in a development-only workflow. It is acceptable for the unmerged implementation branches, cross-repo candidate combinations, and **explicitly authorized development deployments** to be temporarily broken while different layers are migrated. Do not add compatibility aliases, parallel `document2` routes or shims merely to make intermediate rounds pass; there is **no backward-compatibility requirement during migration**. There **is** a final behavioral compatibility requirement for preserved JSON, math, authorization and revision semantics. Report temporary failures as `expected_intermediate` with evidence rather than pretending they passed. Never deploy these states to production.
 
-- [ ] Verify four math modules extracted from `src/document/` and current Document2/CLI/standalone imports updated.
-- [ ] Confirm MathObject import/export, Arabic font normalization, equations and worker diagnostics preserved by tests.
-- [ ] **Gate:** Al-Bayan backend diagnostics remain compatible with Document2 worker response.
+**Development infrastructure:** Al-Bayan's [observed Railway environment inventory](../development/railway-infrastructure.md) states `develop` feeds persistent Railway `development` and `main` feeds `production`; do not assume unmerged PR source is deployed automatically. The BuTeX worker is independently built/deployed and may not follow the same source revision. For live candidate tests, use an explicitly authorized isolated local/preview development target or coordinated **development-only** deployment and attest the exact source revisions. Avoid an accidental production rollout, and do not infer health from a successful Railway deployment status.
 
-### Phase 2 — first-generation cleanup gate (BuTeX MR)
+**Tests versus the frozen oracle:** Rounds 1–6 should run *focused diagnostics and existing/added CI tests* to guide repairs; this does **not** consume or redefine the frozen Round-7 full acceptance decision. The `dev_document_*` suite is a new **Developer MCP** domain, separate from the normal MCP's public authoring tools. Dev MCP must remain bounded/authenticated and nonpersistent; no arbitrary POST, shell, database, deployment, or production authority. Tests requiring a real browser must use Playwright MCP separately; tests of the public typed authoring path must use the normal MCP separately. Agent access to both repositories does not collapse these observation boundaries.
 
-- [ ] Remove first-gen GUI, old headless-only model, obsolete demo and exclusively legacy tests only after extraction; free the old `src/document/` and `@drghaliasri/butex/document` names for the maintained headless implementation.
-- [ ] Keep the **implementations** under `src/document2/`, `src/document2-cli/`, `src/editor/`, standalone `src/react/` and MathJax intact until they are safely migrated; the first two directories and exported names must ultimately be canonicalized, not deleted.
-- [ ] **Gate:** no current source import targets a deleted file; no shared test silently dropped.
+### Shared round-level completion ledger — mirror statuses/evidence in both plans
 
-### Phase 3 — current GUI promotion gate (BuTeX MR)
+- [ ] **Round 0 shared gate:** v1 acceptance specification reviewed/frozen; **identical SHA-256** recorded for the two copies; no testing claimed passed.
+- [ ] **Round 1 shared gate:** extra Developer MCP tools and safe backend/worker diagnostic adapters tested, fixture corpus and pre-migration behavioral baseline captured.
+- [ ] **Round 2 shared gate:** complete source and stored-wire inventories cross-reviewed; shared math extracted; no unknown deletion dependencies.
+- [ ] **Round 3 shared gate:** legacy first-generation GUI/model removed; shared behavior preserved; tracked interim failures acceptable.
+- [ ] **Round 4 shared gate:** renamed headless worker/bin/routes + Al-Bayan backend client agree in isolated contract probes.
+- [ ] **Round 5 shared gate:** renamed GUI/preview and Al-Bayan frontend consume the same candidate tarball and integrate in isolated tests.
+- [ ] **Round 6 shared gate:** canonical backend/normal MCP names complete; both candidate pipelines and deterministic integration tests green.
+- [ ] **Round 7 shared gate:** **all frozen mandatory acceptance and stress tests passed**, evidence report and both ledgers complete; human approval before release/merge/deploy.
 
-- [ ] Ship **full-stack** contract: maintained GUI, preview, scoped CSS, `src/document2/` → `src/document/`, `@drghaliasri/butex/document2` → `/document`, `Document2Json` → `DocumentJson`, associated functions/typed commands, worker executable `butex-document` and `/v1/document/*`; no permanent compatibility aliases.
-- [ ] Verify separate validated wrapper and lightweight preview, correct demo/package exported entries.
-- [ ] **Gate:** public API table is exact, `Document2` symbols/old binary/old routes are absent from final active names; persisted document structure, math and authorization **behavior** unchanged.
+## 7. Al-Bayan round-specific tasks (do not replace shared gates)
 
-### Phase 4 — BuTeX regression + packaging gate (BuTeX MR)
+### Round 0 — contract authoring and freeze, Al-Bayan
+- [ ] Review `docs/proposals/document-migration-frozen-acceptance-v1.md` against actual Al-Bayan and BuTeX service contract; verify mirror hash and owner approval.
+- [ ] Confirm each acceptance ID is observable via Developer MCP, existing test/CI, normal MCP, Playwright or authorized compiler (never falsify an unsupported observation).
+- [ ] Record initial Al-Bayan/BuTeX source SHAs and confirm `development`/production Railway branch separation.
+- [ ] **Exit:** both repositories check the **same** Round 0 gate only on freeze approval.
 
-- [ ] Observe BuTeX `npm ci`, build, typecheck, lint, tests, pack, demo and final GitLab pipeline.
-- [ ] Verify renamed worker executable/HTTP routes and commands/math diagnostics, figure/reference persistence, RTL/MathJax in maintained demo; compare serialized JSON fixtures before/after.
-- [ ] **Gate:** green final BuTeX state (intermediate failures acceptable only on isolated branches).
+### Round 1 — implement Developer MCP infrastructure, Al-Bayan primary owner
+- [ ] Implement **narrow** `dev_document_contract_snapshot`, `dev_document_inspect`, `dev_document_compare`; bounded trace-linked stable schema, explicit `passed/failed/partial/blocked` and human actions; compare Git/build *snapshots*, not Burhan tiers.
+- [ ] Implement or extend an authenticated, feature-gated stateless **development backend** diagnostic boundary delegating to the real BuTeX worker. No second parser; no arbitrary POST or production access.
+- [ ] Register and test `document-contract-smoke`, `document-normalization`, `document-commands`, `document-references`, `document-math-roundtrip`, `document-export`, `document-error-contracts`, `document-final-stress` (stress is **not** executed yet). Preserve original equation coverage.
+- [ ] Add offline/CI tests for auth/redaction, unavailable stages, provenance, trace propagation, regression report schema, comparison and deterministic fixtures; capture the **before-rename** baseline on a verified old dev/isolated worker.
+- [ ] **Exit:** jointly verify the Round 1 shared harness/baseline gate with BuTeX contributions.
 
-### Phase 5 — controlled npm contract publication gate
+### Round 2 — audit and protect data/consumers
+- [ ] Regenerate full frontend headless/React import map, backend `butex_worker_client`, FastAPI schemas/routes, normal MCP schemas/tool names, deployment variables, source-based consumer graph.
+- [ ] Confirm `DocumentObject` JSON fields, frozen immutable revisions, command `op` wire discriminators and auth/revision semantics are to be **preserved**, and classify any serialized conflict before changes.
+- [ ] Coordinate tests of four BuTeX extracted shared math utilities through worker math diagnostics and existing Al-Bayan equation path.
+- [ ] **Exit:** no unknown Al-Bayan consumers of deleted/renamed symbols.
 
-- [ ] Obtain explicit package release authorization, choose major semver, verify npm peer dependency and immutable tarball.
-- [ ] Confirm registry version/integrity and remaining active consumers; release notes describe intentional legacy API break.
-- [ ] **Gate:** no implementation PR, npm publish, GitLab tag or deployment triggered by this planning PR alone.
+### Round 3 — legacy removal checkpoint
+- [ ] Inspect impact of BuTeX first-generation code removal on Al-Bayan; update affected planned CI/source references as needed.
+- [ ] Keep current Al-Bayan `Document2` consumers temporarily if the current maintained BuTeX implementation still uses those names; no shims needed and interim integration may be broken.
+- [ ] **Exit:** shared removal gate recorded with BuTeX commit; no discarded preserved math/identity behavior.
 
-### Phase 6 — Al-Bayan frontend consumer PR
+### Round 4 — worker/client cutover
+- [ ] Migrate `backend/app/services/butex_worker_client.py` operations to `/v1/document/*` and canonical schemas/route constants; keep HTTP `/v1/` protocol version intact.
+- [ ] Update backend route/error/timeout/auth tests; verify real candidate worker `normalize`, `outline`, `references`, `reference-index`, `diff`, `export`, `commands` and math diagnostics against expected schema.
+- [ ] Bind test outcomes to exact deployed/candidate worker revision; acknowledge transitory breakage before Round 6.
+- [ ] **Exit:** identical request/response semantics with new active worker route names and zero permanent route aliases.
 
-- [ ] Update `frontend/package.json` and `frontend/package-lock.json` together; version exactly matches published artifact.
-- [ ] Rename editor imports/JS names in `tahrir/page.tsx`, `ImageAssetRef` consumers, MathJax style injection, read-only preview subpath and `globals.css` selectors **plus** every headless frontend import/type/helper across `butex-latex`, `butex-validation`, `draft-autosave`, article API and frozen revisions.
-- [ ] Migrate `backend/app/services/butex_worker_client.py` route mapping to `/v1/document/*`, associated backend schemas/modules/tests/OpenAPI where versioned, and `mcp_server/src/albayan_mcp/schemas/document2.py` and tools to canonical `Document` names. Preserve typed command validation, authorization, Burhan math semantics and immutable revision JSON.
-- [ ] Update host style/preview tests and docs; preserve full image/revision/MathJax/auth workflows.
-- [ ] Run frontend `npm ci`, `npm test`, `npx tsc --noEmit`, `npm run build`; backend/MCP pytest, worker HTTP contract tests, renamed MCP discovery/schema tests and both repos' CI. Check actual GitHub Actions workflow results.
-- [ ] **Gate:** no generation-two naming survives in active frontend/backend/MCP/worker runtime routes or exports, no data corruption, permissions unchanged, all renamed endpoints resolve against matching worker and backend revisions.
+### Round 5 — frontend consumer cutover
+- [ ] Update `frontend/package.json` / lock in **one commit** to a reproducible local candidate tarball, workspace test artifact or other precisely attested unreleased package workflow; **do not** publish npm merely to test.
+- [ ] Migrate maintained GUI/headless imports in editor page, image asset picker, `butex-latex`, validation, autosave, article client, revision/frozen preview and `globals.css` widget selectors/injected styles.
+- [ ] Test editor/preview separation, callbacks, RTL, numeral picker, MathJax/digit forms and CSS scope via component tests and focused browser probes when candidate is deployed.
+- [ ] **Exit:** Al-Bayan frontend consumes same candidate BuTeX package as the integration report.
 
-### Phase 7 — full development end-to-end (cross-repo validation PRs)
+### Round 6 — finish public backend/MCP contract, CI
+- [ ] Canonicalize Python typed Document schemas, FastAPI request/response names, `mcp_server/src/albayan_mcp/schemas/document2.py` and tools/docs, Developer MCP suite/stage names; preserve **actual serialized command `op` strings** unless separately approved.
+- [ ] Confirm normal user MCP tool discovery exposes final document vocabulary, scopes, authenticated draft commands, revision semantics, and no old `Document2` active names.
+- [ ] Run all Python backend/normal-MCP/Dev MCP tests, frontend `npm ci`, `npm test`, `npx tsc --noEmit`, `npm run build` and relevant CI workflows. Verify development worker/backend build identity, not just app package lock.
+- [ ] **Exit:** deterministic candidate integration and both CI gates green; **no npm tag/publish required**.
 
-- [ ] Confirm development browser + API origins; load existing draft, type Arabic text, create/reopen mathematical equation, insert figure and reference, validate, autosave, navigate and restore revision.
-- [ ] Confirm immutable draft/frozen revision preview uses lightweight `ButexDocumentPreview` and correct new CSS; MathJax SVG and RTL/digit form observed.
-- [ ] Invoke the **normal Al-Bayan MCP** with a supported canonical English LaTeX typed **Document** command on an authorized development draft; verify tool discovery uses final names and follow source→Burhan MathObject→**renamed `/v1/document/*` worker**→stored JSON→renamed GUI roundtrip.
-- [ ] Use **Developer MCP** for intermediate diagnostics, Playwright MCP for actual DOM/network/equation rendering, and optional development PDF compilation for visual consistency.
-- [ ] Verify development FastAPI OpenAPI/worker route enumeration exposes `/v1/document/*` and no obsolete `/v1/document2/*`, CLI responds to `butex-document`, retained historical revisions load without rewrite.
-- [ ] **Gate:** all pipeline stages independently evidenced. Unit tests alone are insufficient. Do not modify production data or services.
-
-### Phase 8 — final docs + release readiness (docs PRs)
-
-- [ ] Update implemented (not merely proposed) BuTeX/Al-Bayan docs, consumer examples, CSS/public symbols, package/headless types, FastAPI/MCP endpoints, worker/CLI runbooks and version notes; remove active Document2/`document2` generation labels. Migration/historical audit evidence may quote old identifiers as before-state facts.
-- [ ] Verify final CI checks in both repos and stage-specific approvals; link each phase PR/MR and confirm checkboxes.
-- [ ] **Gate:** no release/deploy without explicit authorization and complete cross-repo pass.
+### Round 7 — immutable-spec final stress and readiness
+- [ ] Run every **mandatory ID** in the frozen spec via Developer MCP and independent public normal MCP/browser/compiler observation where required; repeat mandated stress counts without changing the spec.
+- [ ] Verify authorized dev browser and APIs only, old revisions load unchanged, final worker route/CLI names, data/math/Auth/MathJax, full CI; record pass/fail/partial/blockers and build/trace evidence.
+- [ ] Update **implemented architecture docs only after the code exists**; write a separate final result report (never modify the v1 acceptance spec).
+- [ ] Prepare explicit human review for merge, major npm publication/tag/consumer lock and development deployment sequence; **no production actions**.
+- [ ] **Exit:** the same Round 7 shared checkbox only after **all mandatory frozen checks pass** and owner approves next actions.
 
 ## 8. Cross-repo acceptance matrix
 
@@ -261,7 +275,7 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 - [ ] `frontend/package.json` and `frontend/package-lock.json` agree with a verified published release.
 - [ ] Active headless `@drghaliasri/butex/document`, `DocumentJson`, `butex-document`, `/v1/document/*`, backend typed **Document** commands and normal MCP tool/schema names are canonical and unsuffixed; immutable draft/revision **JSON contents**, authorization/security and mathematical semantics remain unchanged.
 - [ ] Frontend, backend, MCP, BuTeX CI and **development browser/MCP end-to-end evidence** all pass.
-- [ ] Each phase executed as individually reviewable requests with progress checkboxes; every future merge, publish and deployment approved separately.
+- [ ] Every synchronized round evidenced in the same two accumulating implementation requests, with both shared gates and final approval; every future merge, publish and deployment separately authorized.
 
 ### Evidence provenance and limitations
 
