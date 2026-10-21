@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "contract-legacy-worker",
+      "suite": "document-contract-smoke",
+      "operation": "diagnose_contract",
+      "payload": {},
+      "expect_status": "passed"
+    },
+    {
+      "id": "empty-normalize",
+      "suite": "document-normalization",
+      "operation": "normalize",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "arabic-normalize",
+      "suite": "document-normalization",
+      "operation": "normalize",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": [
+            {
+              "command": "\\paragraph",
+              "value": "نص عربي ١٢٣ و x."
+            }
+          ]
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "paragraph-insert",
+      "suite": "document-commands",
+      "operation": "apply_command",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        },
+        "command": {
+          "op": "insert_text_block",
+          "kind": "paragraph",
+          "text": "مرحبا x",
+          "anchor": {
+            "end": true
+          }
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "invalid-command-id",
+      "suite": "document-commands",
+      "operation": "apply_command",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        },
+        "command": {
+          "op": "remove_block",
+          "block_id": "missing_block"
+        }
+      },
+      "expect_status": "failed",
+      "expect_status_code": 422
+    },
+    {
+      "id": "empty-outline",
+      "suite": "document-references",
+      "operation": "outline",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "empty-references",
+      "suite": "document-references",
+      "operation": "references",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "empty-reference-index",
+      "suite": "document-references",
+      "operation": "reference_index",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "math-editor-diagnostic",
+      "suite": "document-math-roundtrip",
+      "operation": "diagnose_math_object",
+      "payload": {
+        "math_object": {
+          "node_type": "MathObject",
+          "math_mode": "$",
+          "closing": "$",
+          "lines": [
+            {
+              "node_type": "ChainClass",
+              "chain": [
+                {
+                  "node_type": "CharObject",
+                  "expr": "س"
+                }
+              ]
+            }
+          ],
+          "source_side": "arabic",
+          "source_owner": "editor"
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "math-english-projection",
+      "suite": "document-math-roundtrip",
+      "operation": "project_math_object_english",
+      "payload": {
+        "math_object": {
+          "node_type": "MathObject",
+          "math_mode": "$",
+          "closing": "$",
+          "lines": [
+            {
+              "node_type": "ChainClass",
+              "chain": [
+                {
+                  "node_type": "CharObject",
+                  "expr": "س"
+                }
+              ]
+            }
+          ],
+          "source_side": "arabic",
+          "source_owner": "editor"
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "arabic-export",
+      "suite": "document-export",
+      "operation": "export",
+      "payload": {
+        "document": {
+          "node_type": "DocumentObject",
+          "blocks": [
+            {
+              "command": "\\paragraph",
+              "value": "نص عربي ١٢٣ و x."
+            }
+          ]
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "empty-diff",
+      "suite": "document-export",
+      "operation": "diff",
+      "payload": {
+        "before": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        },
+        "after": {
+          "node_type": "DocumentObject",
+          "blocks": []
+        }
+      },
+      "expect_status": "passed"
+    },
+    {
+      "id": "reject-invalid-document",
+      "suite": "document-error-contracts",
+      "operation": "normalize",
+      "payload": {
+        "document": {
+          "node_type": "InvalidDocument",
+          "blocks": []
+        }
+      },
+      "expect_status": "failed",
+      "expect_status_code": 422
+    },
+    {
+      "id": "reject-no-document",
+      "suite": "document-error-contracts",
+      "operation": "normalize",
+      "payload": {},
+      "expect_status": "failed",
+      "expect_status_code": 422
+    }
+  ]
+}
