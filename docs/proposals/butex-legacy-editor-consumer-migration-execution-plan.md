@@ -242,14 +242,14 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 
 | Scenario | Where observed | Accept only if |
 | --- | --- | --- |
-| Package version + exports | npm registry, installed `node_modules`, manifest+lock | `document`, `react-document` and `react-document-preview` resolve maintained APIs, versioned generation-two subpaths do not; CLI is `butex-document` |
+| Package version + exports | candidate tarball, installed `node_modules`, manifest+lock; registry post-authorization | `document`, `react-document` and `react-document-preview` resolve maintained APIs, versioned generation-two subpaths do not; CLI is `butex-document` |
 | Article editing and save | Browser/Next and FastAPI | Validated wrapper, image callback and `onDocumentJsonChange` work, revision conflict handling intact |
 | Figures/captions/references | Current Document2 tests, preview, browser | Asset identifiers, captions, labels, bibliographic references survive roundtrip |
 | Mathematics | Normal MCP, Burhan, Document2 worker, GUI | Canonical LaTeX is converted, stored MathObject reopens as editable (or reports real unsupported reason), SVG rendered |
 | Arabic UX | Browser DOM + screenshot + CSS tests | Correct RTL, themes, numeral chooser, MathJax display, mobile toolbar |
 | Frozen/history preview | Dedicated dynamic preview + revision storage | Same selected immutable revision, no editor chrome, correct styling/image assets |
 | Security/identity | FastAPI/MCP tests | Auth and scoped draft changes preserved; no redirect to production |
-| Optional compiled output | Development compiler if configured | Same structured equations/refs/assets rendered consistently; no false claim if compiler unavailable |
+| Development compiled output | Authorized development compiler | Same structured equations/refs/assets rendered consistently; required evidence recorded as blocked when unavailable |
 
 ## 9. Risks, mitigations, recovery and hard release gates
 
@@ -266,17 +266,17 @@ Add a focused frontend smoke verifying that dynamic editor and preview imports r
 | Frontend/development service skew | Coordinate versioned rollout; test dev origins and HTTP outputs | Mixed incompatible artifacts |
 | Existing third-party production users of removed legacy GUI | Major semver + documented breaking behavior, do not deploy prod | Missing explicit authorization or notice |
 
-**Recovery:** Abandon/revert isolated phase branches; maintain current known-good `develop` until all final gates. If a new npm artifact has been published, do not rewrite that published tarball; pin Al-Bayan to its prior working version/lock and repair in new commits. Roll back development frontend/worker independently only after verifying current API compatibility; never mutate historical article revisions, authentication or production data to compensate for a GUI rename.
+**Recovery:** Keep the two accumulating implementation branches unmerged until final gates; revert individual commits or abandon a candidate PR/MR if blocked. Explicitly authorized development-only deployments may be temporarily broken; never modify production. If a new npm artifact has been published, do not rewrite that published tarball; pin Al-Bayan to its prior working version/lock and repair in new commits. Roll back development frontend/worker independently only after verifying current API compatibility; never mutate historical article revisions, authentication or production data to compensate for a GUI rename.
 
 ## 10. Definition of done
 
 - [ ] BuTeX's [complete source-preservation, cleanup and GUI rename plan](https://gitlab.com/drghaliasri/butex/-/blob/docs/legacy-editor-execution-plan-2026-10-20/docs/proposals/legacy-document-editor-migration-execution-plan.md) completed and final package tested/released with approval.
 - [ ] Every active Al-Bayan editor, asset, style, frozen preview, test and documentation reference uses the final public GUI names; standalone equation/MathJax behavior survives.
-- [ ] `frontend/package.json` and `frontend/package-lock.json` agree with a verified published release.
+- [ ] Candidate `frontend/package.json` and `frontend/package-lock.json` agree with an attested unreleased BuTeX artifact for final acceptance; **after separate approval**, update them together to the verified published major release and confirm registry integrity.
 - [ ] Active headless `@drghaliasri/butex/document`, `DocumentJson`, `butex-document`, `/v1/document/*`, backend typed **Document** commands and normal MCP tool/schema names are canonical and unsuffixed; immutable draft/revision **JSON contents**, authorization/security and mathematical semantics remain unchanged.
-- [ ] Frontend, backend, MCP, BuTeX CI and **development browser/MCP end-to-end evidence** all pass.
+- [ ] Frontend, backend, MCP, BuTeX CI and **development browser/MCP end-to-end evidence** pass every mandatory frozen-v1 test, including the final stress procedure.
 - [ ] Every synchronized round evidenced in the same two accumulating implementation requests, with both shared gates and final approval; every future merge, publish and deployment separately authorized.
 
 ### Evidence provenance and limitations
 
-Verified `develop` sources include Al-Bayan `frontend/package.json`, `frontend/package-lock.json`, editor page, `butex-mathjax.ts`, `butex-image-assets.ts`, frozen preview, `globals.css`, `article-editor-chrome.test.ts`, `history-ui-contract.test.ts`, `backend/app/services/butex_worker_client.py`, `article_draft_service.py`, `docs/architecture/mcp.md`, `.github/workflows/equation-integration-ci.yml`; cross-referenced BuTeX `src/document2/mathBridge.ts`, `src/document2/types.ts`, `src/react-document2/index.ts`, `tsup.config.ts` and the package manifest. Some repository-wide search hits identify further consumers; Phase 0 requires a full re-run of a real checkout symbol/import graph. **No tests, runtime release, MCP diagnostic, Playwright browser session or CI pipeline were executed for this documentation-only task.** No claims of a passing integration test are made.
+Verified `develop` sources include Al-Bayan `frontend/package.json`, `frontend/package-lock.json`, editor page, `butex-mathjax.ts`, `butex-image-assets.ts`, frozen preview, `globals.css`, `article-editor-chrome.test.ts`, `history-ui-contract.test.ts`, `backend/app/services/butex_worker_client.py`, `article_draft_service.py`, `docs/architecture/mcp.md`, `.github/workflows/equation-integration-ci.yml`; cross-referenced BuTeX `src/document2/mathBridge.ts`, `src/document2/types.ts`, `src/react-document2/index.ts`, `tsup.config.ts` and the package manifest. Some repository-wide search hits identify further consumers; Round 2 requires a full re-run of a real checkout symbol/import graph after the Round 1 baseline snapshot. **No tests, runtime release, MCP diagnostic, Playwright browser session or CI pipeline were executed for this documentation-only task.** No claims of a passing integration test are made.
