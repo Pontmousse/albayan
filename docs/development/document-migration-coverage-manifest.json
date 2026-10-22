@@ -1,0 +1,2842 @@
+{
+  "schema_version": 1,
+  "scope": "Round 1 source-backed coverage planning, not an acceptance result",
+  "canonical_identifier": "sourceSpecNamespace:localId; v1:MTH-01 and addendumA:MTH-01 are distinct cases",
+  "frozen_spec_sha256": {
+    "v1": "6457a3d1abe43ba4cde16bd9b287d097978671db5ba3657c28099b1c6e26ca8e",
+    "addendumA": "dd96dae156fd2d026ca75ca390bb8c63104bdb938ecea7b6b0359dfbe905591e"
+  },
+  "case_count": 145,
+  "local_id_collisions": [
+    "MTH-01",
+    "MTH-02",
+    "MTH-03",
+    "MTH-04",
+    "MTH-05",
+    "MTH-06"
+  ],
+  "completion_rule": "Every row must have verified actual source/tests and observed evidence at Round 7; candidates are NOT proven coverage",
+  "cases": [
+    {
+      "case_id": "v1:ENV-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ENV-01",
+      "requirement": "Inspect actual Railway development service and API/worker origins",
+      "expected": "All tested service targets explicitly development; **zero production origins, redirects, writes or credentials**",
+      "observation_planes": [
+        "developer_mcp",
+        "development_railway"
+      ],
+      "source_test_candidates": [
+        "albayan:dev_mcp_server/tests/test_document.py",
+        "albayan:backend/tests/test_document_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ENV-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ENV-02",
+      "requirement": "Snapshot Al-Bayan backend/frontend/normal MCP, BuTeX worker and relevant package build IDs",
+      "expected": "Actual compatible candidate source revisions/versions attested; missing provenance is **partial**",
+      "observation_planes": [
+        "developer_mcp",
+        "development_railway"
+      ],
+      "source_test_candidates": [
+        "albayan:dev_mcp_server/tests/test_document.py",
+        "albayan:backend/tests/test_document_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ENV-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ENV-03",
+      "requirement": "`dev_capabilities`, `dev_health`, named suite discovery",
+      "expected": "Available and reachable required dev tools/services; meaningful explicit blocker otherwise",
+      "observation_planes": [
+        "developer_mcp",
+        "development_railway"
+      ],
+      "source_test_candidates": [
+        "albayan:dev_mcp_server/tests/test_document.py",
+        "albayan:backend/tests/test_document_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ENV-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ENV-04",
+      "requirement": "Traces through Al-Bayan → BuTeX and Al-Bayan → Burhan",
+      "expected": "Correlated `X-Trace-Id`; missing downstream source explicitly identified, not invented",
+      "observation_planes": [
+        "developer_mcp",
+        "development_railway"
+      ],
+      "source_test_candidates": [
+        "albayan:dev_mcp_server/tests/test_document.py",
+        "albayan:backend/tests/test_document_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ENV-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ENV-05",
+      "requirement": "Run diagnostics without permanent article state changes",
+      "expected": "No DB/draft mutations caused by Developer MCP inspection",
+      "observation_planes": [
+        "developer_mcp",
+        "development_railway"
+      ],
+      "source_test_candidates": [
+        "albayan:dev_mcp_server/tests/test_document.py",
+        "albayan:backend/tests/test_document_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-01",
+      "requirement": "Build exact TypeScript package export/import probes",
+      "expected": "Current GUI at `@drghaliasri/butex/react-document`, preview at `.../react-document-preview`, headless at `.../document`; declarations resolve",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-02",
+      "requirement": "Check canonical types/functions and React declarations",
+      "expected": "Unsuffixed `ButexDocumentEditor`, `DocumentJson`, `DocumentNode`, import/export/validation/commands and CSS injector API; named expected exports compile",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-03",
+      "requirement": "Inspect `bin`, executable help, worker health/service identity",
+      "expected": "`butex-document` exists/starts and worker service identity is unsuffixed",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-04",
+      "requirement": "Route discovery + authenticated requests through worker",
+      "expected": "`/v1/document/{normalize,outline,references,reference-index,export,diff,commands,diagnostics/math-object,math-object/english}` dispatch correctly",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-05",
+      "requirement": "Test removed generation-two routes, exports, bin and old GUI",
+      "expected": "`/v1/document2/*` returns 404 (with valid worker auth), removed `document2` package exports/CLI and old GUI no longer active; **no permanent aliases**",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-06",
+      "requirement": "Audit runtime source, generated exports/CLI help, FastAPI and normal MCP schema",
+      "expected": "No active generation-two document naming; archived historical migration evidence may still name old API",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:NAM-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "NAM-07",
+      "requirement": "Serialize `D0-D6` across old/canonical implementations",
+      "expected": "Wire `node_type: \"DocumentObject\"` and material JSON semantic fields unchanged; `/v1/` remains protocol version",
+      "observation_planes": [
+        "package_ci",
+        "worker_http",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:SHR-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "SHR-01",
+      "requirement": "Dependency graph across BuTeX shared math, CLI and standalone editor",
+      "expected": "Four shared modules extracted before deletion; no current preserved consumer imports deleted legacy files",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2.test.ts",
+        "butex:test/gui_v1_editor.test.ts",
+        "butex:test/normalizeCharImport.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:SHR-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "SHR-02",
+      "requirement": "Run existing standalone math, MathJax and Arabic font/digit normalization tests",
+      "expected": "Same supported parse/serialize/editor behavior and no deleted shared tests",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2.test.ts",
+        "butex:test/gui_v1_editor.test.ts",
+        "butex:test/normalizeCharImport.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-01",
+      "requirement": "Import/export/normalize `D0` and `D1`",
+      "expected": "Valid `DocumentObject`; no unexpected structural drop or failure",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-02",
+      "requirement": "Normalize each `D0-D6` twice",
+      "expected": "**Idempotence** `N(N(D))=N(D)` for canonical normalized output",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-03",
+      "requirement": "Import and export `D1-D4` without edit",
+      "expected": "Same semantic content, formats, metadata, Unicode and citation fields as baseline (ignore only documented benign canonicalization)",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-04",
+      "requirement": "Compare immutable snapshots `D6` before/after conversion",
+      "expected": "Original stored snapshots unchanged; old revision loads with preserved meaning",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-05",
+      "requirement": "Check IDs through normalize, update and move",
+      "expected": "Unaffected block/item/field/token IDs remain stable; generated IDs unique and deterministic where contract requires",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DOC-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DOC-06",
+      "requirement": "`D1` Unicode and Arabic authoring values",
+      "expected": "Arabic script, diacritics, digit forms, punctuation, RTL intentions retained without lossy conversion",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_persistence.test.ts",
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-01",
+      "requirement": "Text `insert_text_block`, `replace_text_block`, `remove_block`",
+      "expected": "Correct order/content and scoped changes only; preserved unrelated IDs",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-02",
+      "requirement": "`move_block` with before/after/end anchors",
+      "expected": "Exact deterministic ordering; invalid anchor returns typed failure",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-03",
+      "requirement": "`update_document_meta` and Hijri date",
+      "expected": "Title/authors/abstract/date patches correct, no unrelated loss",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-04",
+      "requirement": "`insert_figure`, `update_figure`, `update_float_meta`",
+      "expected": "Asset identity, caption/label/center metadata, text semantics survive",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-05",
+      "requirement": "`insert_list` and list item insert/replace/move/remove",
+      "expected": "Stable ordering, content and nested structure",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-06",
+      "requirement": "`insert_table`, cell replacement, row insert/remove/move",
+      "expected": "Rectangular table invariants and expected targeted edits",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-07",
+      "requirement": "Table column insert/remove/move",
+      "expected": "Column specification, cell content and indices consistent",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-08",
+      "requirement": "`insert_bibliography`; reference insert/update/move/remove",
+      "expected": "One bibliography and ordered valid reference set; duplicate/unknown keys typed failures",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-09",
+      "requirement": "Inline insert/replace/remove `text`, `math`, `cite`, `ref`",
+      "expected": "Token positions/IDs and payload meaning stable; unsupported math never silently coerced",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-10",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-10",
+      "requirement": "Command chain run via stateless worker stdin and HTTP",
+      "expected": "Equivalent normalized document and structured error codes across transports",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMD-11",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMD-11",
+      "requirement": "Apply one command with invalid block/token/anchor/index",
+      "expected": "No partial mutation; documented `DocumentCommandError`-equivalent typed code and HTTP 422 where applicable",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_article_commands.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:REF-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "REF-01",
+      "requirement": "`D4` references and index",
+      "expected": "Numbering, keys, citations/cross-references, resolved/unresolved buckets correct",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_citations.test.ts",
+        "butex:test/document2_reference_introspection.test.ts",
+        "butex:test/document2_floats_labels.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:REF-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "REF-02",
+      "requirement": "Rename reference/label, update cite/ref tokens",
+      "expected": "Relevant references updated; unrelated citations unchanged; no duplicate collisions",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_citations.test.ts",
+        "butex:test/document2_reference_introspection.test.ts",
+        "butex:test/document2_floats_labels.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:REF-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "REF-03",
+      "requirement": "Image/table/equation label references",
+      "expected": "Labels and numbering survive normalization, commands, preview and export",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_citations.test.ts",
+        "butex:test/document2_reference_introspection.test.ts",
+        "butex:test/document2_floats_labels.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:REF-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "REF-04",
+      "requirement": "`D3` asset references/duplicate images",
+      "expected": "`asset_id` preserved; export `asset_ids` unique and exact; missing image content not invented",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_citations.test.ts",
+        "butex:test/document2_reference_introspection.test.ts",
+        "butex:test/document2_floats_labels.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DIF-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DIF-01",
+      "requirement": "`D8` diff",
+      "expected": "`version: 1`, stable `changed` and valid bounded `added/removed/context` chunks",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_diff.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:DIF-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "DIF-02",
+      "requirement": "Diff identical normalized documents",
+      "expected": "`changed=false`, empty change chunks, no false positives",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_diff.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:EXP-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "EXP-01",
+      "requirement": "Export `D1-D5` to LaTeX using actual worker",
+      "expected": "Nonempty deterministic well-formed output, structural commands intact, no dropped supported content",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "development_compiler"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_worker_export.test.ts",
+        "butex:test/document2_latex_wrap.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:EXP-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "EXP-02",
+      "requirement": "Export citations/labels, Arabic title/Hijri metadata and figure/table captions",
+      "expected": "Cross-references and Arabic text survive; no broken escaping or orphaned labels",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "development_compiler"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_worker_export.test.ts",
+        "butex:test/document2_latex_wrap.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:EXP-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "EXP-03",
+      "requirement": "Re-export after normalized roundtrip",
+      "expected": "Semantically equivalent XeLaTeX, same asset IDs; formatting-only differences must be explained",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "development_compiler"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_worker_export.test.ts",
+        "butex:test/document2_latex_wrap.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-01",
+      "requirement": "Existing deterministic equation suites",
+      "expected": "All supported heuristic fixtures and MathObject projection succeed with no semantic regression",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-02",
+      "requirement": "Supported `D5` inline/display equations",
+      "expected": "Canonical LaTeX → real Burhan → Al-Bayan projection → worker command → BuTeX headless editable import succeeds",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-03",
+      "requirement": "Reverse math conversion/reparse",
+      "expected": "Normalized **semantic AST equivalence**, not raw LaTeX string equality; changed operators/case are failures",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-04",
+      "requirement": "Unsupported/raw/malformed math cases",
+      "expected": "Explicit noneditable/typed failure; never report unsupported expression as roundtrip-safe",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-05",
+      "requirement": "Scientific operator/adjacency/regression fixtures",
+      "expected": "No regressions for derivatives, `dx/df/kx`, matrices, sums, cases, fonts and delimiters",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:MTH-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "MTH-06",
+      "requirement": "Math diagnostics and projection worker operations",
+      "expected": "Unsuffixed diagnostic path and real headless adapters return stage-resolved evidence",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ERR-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ERR-01",
+      "requirement": "`D7` invalid JSON/document/command/table/maths",
+      "expected": "Stable structured error family, safe bounded issues; no 500 for documented invalid inputs",
+      "observation_planes": [
+        "backend_ci",
+        "butex_ci",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_validation.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ERR-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ERR-02",
+      "requirement": "Worker request without/with wrong token",
+      "expected": "401 and no document processing; no credential exposure",
+      "observation_planes": [
+        "backend_ci",
+        "butex_ci",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_validation.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ERR-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ERR-03",
+      "requirement": "Oversized request and unsupported method/path",
+      "expected": "413 / 404 per contract; bounded sanitized outputs",
+      "observation_planes": [
+        "backend_ci",
+        "butex_ci",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_validation.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:ERR-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "ERR-04",
+      "requirement": "Normal MCP unauthorized / stale revision / duplicate command replay",
+      "expected": "Scope checks and immutable revision conflict/idempotency policy preserved; no unauthorized write",
+      "observation_planes": [
+        "backend_ci",
+        "butex_ci",
+        "normal_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_validation.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:INT-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "INT-01",
+      "requirement": "FastAPI → configured worker `/v1/document/*` for all used operations",
+      "expected": "Real backend client and worker versions agree; no 404 or schema mismatch",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "albayan:mcp_server/tests/test_draft_tools.py",
+        "albayan:mcp_server/tests/test_document2_schema.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:INT-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "INT-02",
+      "requirement": "Normal MCP discovers final typed Document authoring schema/tools",
+      "expected": "Final canonical names visible to a real user-facing client; not inferred from Dev MCP",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "albayan:mcp_server/tests/test_draft_tools.py",
+        "albayan:mcp_server/tests/test_document2_schema.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:INT-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "INT-03",
+      "requirement": "Authorized normal MCP typed command on disposable dev draft",
+      "expected": "One correct immutable revision increment and the expected command result, then read/reopen same content",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "albayan:mcp_server/tests/test_draft_tools.py",
+        "albayan:mcp_server/tests/test_document2_schema.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:INT-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "INT-04",
+      "requirement": "Dev-only revision history, concurrency, autosave and restore",
+      "expected": "Stable ID/revision behavior, conflicts detected; old saved snapshots not rewritten",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "albayan:mcp_server/tests/test_draft_tools.py",
+        "albayan:mcp_server/tests/test_document2_schema.py",
+        "albayan:backend/tests/test_draft_revisions.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-01",
+      "requirement": "Separate Playwright MCP browser on `https://dev.albayan-journal.org`",
+      "expected": "Authenticated editor loads, correct dev API calls, no production redirects, console errors or crashed UI",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-02",
+      "requirement": "Edit Arabic RTL text, headings/list/table and save/reopen",
+      "expected": "Persisted content, caret/editability, spacing and Arabic typography survive",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-03",
+      "requirement": "Insert/reopen an equation from actual dev authoring flow",
+      "expected": "Arabic mathematical representation and editable MathJax/BuTeX session correct; SVG/DOM observed",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-04",
+      "requirement": "Insert existing authorized dev image, caption, reference and navigate preview",
+      "expected": "Asset/label/rendering correct, no broken picker or CSS",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-05",
+      "requirement": "Dedicated frozen revision preview, history and autosave conflict UI",
+      "expected": "Light preview works; no full editor unnecessarily required; expected messages shown",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:UI-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "UI-06",
+      "requirement": "CSS scope, numeral picker restrictions, preview style injection, responsive layout",
+      "expected": "Canonical widget selectors match DOM; no stylesheet duplication or global RTL regressions",
+      "observation_planes": [
+        "playwright_dev_browser",
+        "frontend_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "albayan:frontend/src/components/dashboard/history-ui-contract.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:CMP-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "CMP-01",
+      "requirement": "Authorized development XeLaTeX compilation of `D1-D5` representative supported fixture",
+      "expected": "PDF succeeds where compiler is configured; Arabic typography, equations, figures and references consistent; failure is a blocker unless explicitly approved as environment-unavailable",
+      "observation_planes": [
+        "development_compiler",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_issue4_latex_pdf.test.ts",
+        "butex:test/document2_latex_wrap.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:PKG-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "PKG-01",
+      "requirement": "BuTeX final `npm ci`, build, types, lint, tests, pack and CLI smoke",
+      "expected": "Green final pipeline, expected CJS/ESM/d.ts and bin in tarball; no deleted legacy imports",
+      "observation_planes": [
+        "butex_ci",
+        "albayan_ci",
+        "package_artifact"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:PKG-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "PKG-02",
+      "requirement": "Al-Bayan frontend build/types/tests and backend/user MCP/Dev MCP pytest",
+      "expected": "Green final pipelines and actual dependency build compatibility",
+      "observation_planes": [
+        "butex_ci",
+        "albayan_ci",
+        "package_artifact"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:PKG-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "PKG-03",
+      "requirement": "Consume final candidate BuTeX tarball in Al-Bayan **without npm publication**",
+      "expected": "Same package artifact/exports expected by the frontend; lock and integrity plan reproducible",
+      "observation_planes": [
+        "butex_ci",
+        "albayan_ci",
+        "package_artifact"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:PKG-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "PKG-04",
+      "requirement": "Deliberate breaking API audit",
+      "expected": "No invisible runtime compatibility shims for former generation-two exports, routes or commands",
+      "observation_planes": [
+        "butex_ci",
+        "albayan_ci",
+        "package_artifact"
+      ],
+      "source_test_candidates": [
+        "butex:test/npm_package_metadata.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "v1:REL-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-v1.md",
+      "local_id": "REL-01",
+      "requirement": "Final evidence and explicit approval review",
+      "expected": "No publish, tag, merge or production rollout implied by a test pass; release requires separate authorization",
+      "observation_planes": [
+        "human_release_review"
+      ],
+      "source_test_candidates": [],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-01",
+      "requirement": "Inventory every pre-migration BuTeX `test/document2*.test.*` assertion and all maintained standalone math/MathJax tests",
+      "expected": "Evidence maps each test/assertion to retained, replaced-equivalent, or genuinely obsolete-only coverage, with source path, rationale, and actual final run; no silent deletion, skipped test, or weakened assertion counts as pass",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-02",
+      "requirement": "Inventory every touched Al-Bayan backend, frontend, normal MCP, Developer MCP, and CI test",
+      "expected": "All relevant existing tests still execute or have source-traceable replacements; no removed route or renamed module leaves uncovered live consumer behavior",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-03",
+      "requirement": "Enumerate the authoritative typed normal-MCP document command union against the baseline",
+      "expected": "Every maintained command variant (29 variants in inspected pre-rename schema) remains discoverable under final canonical names with equivalent payload validation and behavior; explicit mapping per variant",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-04",
+      "requirement": "Enumerate BuTeX package exports, React types, CLI bins, worker operations, CSS entrypoints, ESM/CJS and TypeScript declarations",
+      "expected": "Required maintained surfaces exist in built *candidate tarball*, obsolete generation names are absent, and every consumer import and CLI route is accounted for",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-05",
+      "requirement": "Enumerate backend/normal-MCP routes, worker client methods, and deployment environment variables",
+      "expected": "All names and call sites in affected source/tests/docs/CI/config map to the intended final contract; identify historical-only names without deleting historical evidence",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-06",
+      "requirement": "Capture all baseline-supported user actions from the editor's toolbars, panels, dialogs, shortcuts and imperative host interfaces",
+      "expected": "A machine-readable action-to-test inventory covers every action; unavailable/uncovered actions are explicitly failed/partial until tested",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:INV-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "INV-07",
+      "requirement": "Preserve exact build and test provenance for each reported run",
+      "expected": "Both repo commit SHAs, package tarball digest, worker revision, backend/frontend/normal MCP revisions, suite version, fixture ID and trace IDs are recorded; no unverified live-candidate assumptions",
+      "observation_planes": [
+        "source_graph",
+        "both_repos_ci"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "albayan:mcp_server/tests/test_document2_schema.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-01",
+      "requirement": "Normalize legacy documents with missing IDs and nested list/table/inline fields",
+      "expected": "Canonical IDs generated correctly, nested ownership stable, repeated normalization idempotent; no duplicate IDs or identity theft",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-02",
+      "requirement": "Import documents with duplicate/misaligned block/item/cell/token IDs",
+      "expected": "Conflicting IDs repaired deterministically where specified, without transferring an ID to a different semantic token or block",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-03",
+      "requirement": "Apply document commands to frozen inputs",
+      "expected": "Inputs and unrelated nested metadata are deep-cloned/not mutated; output changes only the intended fields and validates atomically",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-04",
+      "requirement": "Select contiguous blocks, extend selection with Shift, uncheck endpoints/middle, then move/delete as a range",
+      "expected": "Selection, anchors, range remapping, edge no-ops and ordered results match pre-migration behavior; source helper and browser integration checked independently",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-05",
+      "requirement": "Split and toggle formatted text around inline math",
+      "expected": "Formatting changes text ranges without accidentally styling/editing MathObject tokens; heading and caption restrictions unchanged",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-06",
+      "requirement": "Insert inline/display math at a specified text caret position and continue typing",
+      "expected": "Correct source order, stable token IDs, trailing text token when needed, retained prose and focus/caret placement",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-07",
+      "requirement": "Round-trip structured math inside multiple figure/table captions",
+      "expected": "Caption field IDs and equation IDs stable; caption math does not migrate into body or table cells",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-08",
+      "requirement": "Round-trip multiple table-cell mathematical objects and nested list table cells",
+      "expected": "Cell associations remain row-major, nested command targets correct and independent of caption math",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-09",
+      "requirement": "Import/export legacy plain captions and structured captions",
+      "expected": "Legacy caption promoted on import where intended, semantic text preserved; no need to fabricate sidecars or lose labels",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-10",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-10",
+      "requirement": "Import and update article metadata, including Hijri dates and basmala/chrome",
+      "expected": "Arabic and older Latin Hijri month identifiers accepted according to documented contract; missing fields and invalid patches handled; title/authors/abstract/date stable",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-11",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-11",
+      "requirement": "Test paragraph centering, heading/paragraph/list/table and raw-content boundaries",
+      "expected": "Center environment and semantic preview correct; supported raw blocks preserved in document/export even where deliberately omitted from preview",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-12",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-12",
+      "requirement": "Validate Arabic/Latin reference and label keys, Unicode NFC normalization and namespace collisions",
+      "expected": "Documented allowed characters pass, invalid and normalized duplicate keys fail; references and labels share enforced namespace",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-13",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-13",
+      "requirement": "Rename a citation key inside multi-key citations in every inline field",
+      "expected": "Atomic propagation across paragraph, list, table, caption and nested fields, preserving unrelated keys and field separators",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-14",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-14",
+      "requirement": "Verify Arabic/English citation label ordering and digit form",
+      "expected": "RTL displayed citation order/separators/digits and corresponding logical LaTeX `\\cite` key order match baseline; LTR comma override remains supported",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-15",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-15",
+      "requirement": "Check bibliography href normalization and references metadata",
+      "expected": "Schemeless supported links normalize as documented; unsafe/invalid reference keys do not cause silent edits",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-16",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-16",
+      "requirement": "Compare diff reports across property reordering, legacy generated IDs and large unchanged context",
+      "expected": "Equivalent content reports unchanged; deterministic chunk kinds and size/truncation limits; no false positives from benign JSON key order",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-17",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-17",
+      "requirement": "Strict/non-strict invalid math import and malformed documents",
+      "expected": "Strict mismatch fails explicitly; non-strict diagnostic preserves raw content; invalid draft remains recoverable across save/reopen; guarded export refuses invalid data",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-18",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-18",
+      "requirement": "Check record provenance and metadata unknown-key handling",
+      "expected": "Known source provenance preserved/exposed only where present; unknown fields handled per established import contract; unrelated metadata and IDs never leak between document instances",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-19",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-19",
+      "requirement": "Verify figure identity independently of image value and float metadata",
+      "expected": "Asset ID, caption, label, alignment and provenance remain independent through updates/clears; empty-figure validation unchanged",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:HED-20",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "HED-20",
+      "requirement": "Verify exported text/preamble variants",
+      "expected": "Default full XeLaTeX, body-only option, two-column class, digit mapping, Arabic preamble/macros and structured table column specifications preserve baseline behavior",
+      "observation_planes": [
+        "butex_ci",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_json_commands.test.ts",
+        "butex:test/document2_extended_commands.test.ts",
+        "butex:test/document2_persistence.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-01",
+      "requirement": "Exercise equation drawer insert, edit, save, cancel, reopen and delete on actual GUI",
+      "expected": "Cancelled edits do not persist, newly inserted equation receives expected focus, existing IDs stable, English/Arabic side semantics unchanged",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-02",
+      "requirement": "Exercise equation drawer for caption equations",
+      "expected": "Same supported drawer pathway and stable caption token IDs; no destructive mutation of other caption or body math",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-03",
+      "requirement": "Exercise inline caret/arrow navigation between text and math chips in both prose directions",
+      "expected": "Visual direction, selection, focus and noneditable boundaries operate without mistaking equation direction for document direction",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-04",
+      "requirement": "Exercise selection move/delete, undo/redo and focus restoration using toolbar and keyboard",
+      "expected": "One user action has one intended undo unit, redo restores identical semantic document and no ghost selections remain",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-05",
+      "requirement": "Exercise clipboard, paste, Unicode/diacritics, and safe text-token editing",
+      "expected": "Arabic/Latin mixed content and mathematical tokens survive copy/paste and editing; no hidden raw LaTeX inadvertently becomes editable plain text",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-06",
+      "requirement": "Exercise document insertion toolbar and all supported menu callbacks",
+      "expected": "Every advertised insertion/format/reference/structure action is reachable and results in the intended typed command rather than an inert control",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-07",
+      "requirement": "Exercise host imperative image API and both picker fallbacks",
+      "expected": "Insert after focused block, update value, resolve host URL, request picker/list fallback, and clearing asset retain caption/label",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-08",
+      "requirement": "Exercise article metadata panel and invalid-figure validation UI",
+      "expected": "Arabic and English localized errors; invalid initial input reported invalid, not silently replaced with an empty document; validity callback emits initial and changes only on boolean transition",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-09",
+      "requirement": "Exercise both editor and preview panes, collapse/expand, debug JSON/TeX controls",
+      "expected": "State survives mode/panel toggles where designed; preview uses the same canonical content; debug outputs match actual headless result",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-10",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-10",
+      "requirement": "Exercise independent GUI language, prose RTL/LTR and equation-side settings",
+      "expected": "Changing one setting does not silently change the other; Arabic UI localization and mixed scientific text remain legible",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-11",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-11",
+      "requirement": "Exercise actual MathJax SVG islands and CSS resets",
+      "expected": "Equation chips/previews remain visible and aligned under host Tailwind resets; no disabled editing controls appear within read-only MathJax islands",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-12",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-12",
+      "requirement": "Verify CSS injection and host component styling",
+      "expected": "Idempotent injector, canonical selector names, scoped rules and no duplicate style tags, title/figure/list breaks, or leakage into unrelated app surfaces",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-13",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-13",
+      "requirement": "Verify saved frozen revision preview replacement",
+      "expected": "Preview updates when supplied a different revision, never shows stale previous content, avoids full editor machinery, supports asynchronous image resolver and localized malformed-data errors",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-14",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-14",
+      "requirement": "Verify runtime `onChange` and canonical JSON callbacks plus invalid-initial-state behavior",
+      "expected": "Callbacks remain distinct and type-correct; runtime math objects are not accepted after a destructive JSON de-prototyping operation; malformed data remains reported, not overwritten",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:EDT-15",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "EDT-15",
+      "requirement": "Check accessibility of major keyboard-operated editor workflows",
+      "expected": "Focusable controls have accessible names, predictable Tab/Shift-Tab/Escape operation, no focus traps outside intentional dialogs, RTL navigation remains functional",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_entrypoints.test.tsx",
+        "butex:test/document2_equation_dialog.test.tsx",
+        "butex:test/document2_imperative_image.test.tsx"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-01",
+      "requirement": "Switch mobile Edit/Preview workflows and desktop panels repeatedly",
+      "expected": "Correct mounted panel/state preservation and consistent content; mobile mode force-propagates to equation drawer only where intended",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-02",
+      "requirement": "Open all mobile toolbar structure/content/equation/reference/table submenus",
+      "expected": "Each action is discoverable and routes to same canonical command/validation as desktop",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-03",
+      "requirement": "Exercise compact block navigation, collapse, undo/redo and editing commands",
+      "expected": "Operation targets correct focused block and exposes expected reversible change",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-04",
+      "requirement": "Open mobile More sheet and manager modal dialogs",
+      "expected": "Focus trapped while sheet is open, Escape closes, focus returns to trigger, nested managers remain keyboard accessible",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-05",
+      "requirement": "Switch between desktop and mobile viewport sizes with RTL text/math/tables/images",
+      "expected": "No lost buttons, horizontally clipped critical controls, incorrect SVG mirroring, or stale editor selection after responsive transition",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MOB-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MOB-06",
+      "requirement": "Use read-only preview on a mobile viewport",
+      "expected": "No editing toolbars, hotkeys or hidden mutable editor state instantiated; preview semantics match desktop",
+      "observation_planes": [
+        "butex_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_mobile_workflow.test.tsx",
+        "butex:test/responsive_foundations.test.ts"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-01",
+      "requirement": "Compare stateless worker stdin and HTTP for all public document operations",
+      "expected": "Normalization, commands, outline, references/index, diff, export and math diagnostics yield semantically equivalent success/error results",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-02",
+      "requirement": "Test exact HTTP path, method, bearer token, request-size and invalid JSON handling",
+      "expected": "Canonical routes work; obsolete active routes reject; wrong/missing auth fails; 400/401/404/413/422 behavior and sanitized errors remain intentional",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-03",
+      "requirement": "Verify worker/backend retry, unreachable service and timeout mapping",
+      "expected": "Backend responds with documented 502/503/504 or bounded typed failure, no silent success/fallback or duplicated command",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-04",
+      "requirement": "Verify worker structural success response validation",
+      "expected": "Malformed success `document`, `outline`, `references`, `reference_index`, `diff`, `export` and math projection are rejected, not persisted as trusted content",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-05",
+      "requirement": "Verify `X-Trace-Id` and request correlation across Al-Bayan, BuTeX and Burhan",
+      "expected": "Same validated trace ID attached where observable, missing downstream stages clearly marked; no tokens or document bodies in logs",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-06",
+      "requirement": "Check worker `/health` service identity and exact candidate binary build",
+      "expected": "Unsuffixed identity and actual pinned candidate package/worker hash, no mismatch between deployment and imported frontend tarball",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-07",
+      "requirement": "Exercise documented maximum payload and output limits",
+      "expected": "Oversize and malformed input fail gracefully without process crash; bounded diff/validation lists and memory behavior obey documented contracts",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-08",
+      "requirement": "Run worker command/error fixtures concurrently against isolated development fixture target",
+      "expected": "Independent stateless requests do not cross-contaminate documents, IDs, issue lists or trace IDs; no shared mutable document state",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-09",
+      "requirement": "Check preserved asset references across worker export and backend storage integration",
+      "expected": "Exact deduplicated asset IDs, safe storage lookup, no fabricated missing assets or accidental asset deletion",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:WRK-10",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "WRK-10",
+      "requirement": "Exercise CLI help, stdin failure recovery and package entrypoint import",
+      "expected": "Canonical executable and built tarball run without repository-relative source paths; malformed stdin exits/reports structured error as contract requires",
+      "observation_planes": [
+        "butex_ci",
+        "worker_http",
+        "developer_mcp"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_cli.test.ts",
+        "butex:test/document2_worker_export.test.ts",
+        "albayan:backend/tests/test_butex_worker_client.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-01",
+      "requirement": "Exercise debounced autosave idle and continuous-edit maximum",
+      "expected": "Coalesced saves are bounded; edits in flight are retained rather than overwritten; latest canonical server document adopted",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-02",
+      "requirement": "Exercise transient autosave failures and validation error",
+      "expected": "Expected 2/5/15-second retry schedule (as current baseline), no retry on permanent validation failure, clear user-visible status",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-03",
+      "requirement": "Exercise stale revision edit conflicts and refresh",
+      "expected": "Conflicting write leaves authoritative pointer unchanged; client loads latest server base and does not silently discard unsaved local work",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-04",
+      "requirement": "Exercise hash-based no-op save, typed command no-op and idempotency receipt",
+      "expected": "No unexpected revision increments, deterministic command receipt/replay behavior",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-05",
+      "requirement": "Replay a command id with modified payload",
+      "expected": "Typed conflict/error returned and original immutable revision unchanged",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-06",
+      "requirement": "Restore prior draft revisions and simulate storage/database failures",
+      "expected": "Restore adds appropriate new revision; previous snapshot untouched; failure cannot move current pointer or silently commit partial state",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-07",
+      "requirement": "Exercise retention, history ordering and source revision provenance",
+      "expected": "History newest-first, lazy detail/summary-first preview, source IDs preserved, referenced assets protected during retention and restores",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-08",
+      "requirement": "Verify normal MCP authorization, authorship restrictions and revision binding",
+      "expected": "No cross-user or out-of-scope article modification; agent cannot override document authorship; revision conflicts still enforced",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-09",
+      "requirement": "Exercise MCP discovery of final canonical typed schema and all supported command variants",
+      "expected": "Real normal MCP client sees unsuffixed names with correct input/output validation; Developer MCP tests alone cannot satisfy this",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-10",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-10",
+      "requirement": "Run disposable normal MCP → API → saved revision → history restore → browser reopen loop",
+      "expected": "Correct immutable revisions, content, captions, references, math and image assets survive across independent surfaces",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-11",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-11",
+      "requirement": "Exercise unit registry/used-unit inventory/reverse conversion in retained math documents",
+      "expected": "Authoritative unit conventions, overrides and affected-token-only updates work; no unit/variable confusion or unauthorized revision update",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:REV-12",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "REV-12",
+      "requirement": "Verify frontend frozen preview used by read/review surfaces",
+      "expected": "Saved revision preview, manuscript detail and reviewer-facing read-only surfaces remain noneditable and show correct historical content",
+      "observation_planes": [
+        "backend_ci",
+        "normal_mcp",
+        "frontend_ci",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "albayan:backend/tests/test_draft_revisions.py",
+        "albayan:frontend/src/lib/draft-autosave.test.ts",
+        "albayan:mcp_server/tests/test_draft_tools.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-01",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-01",
+      "requirement": "Run preserved standalone BuTeX equation editor and MathJax test suites, beyond document tests",
+      "expected": "All maintained AST/parser, clipboard, caret order, RTL, accent/operator/delimiter, SVG mirror and numeric formatting tests remain meaningful and green",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-02",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-02",
+      "requirement": "Check MathObject versus RawMathObject persistence and positional nulls",
+      "expected": "Mixed editable/raw math retains original array/token associations, labels and noneditable status; no silent parser coercion",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-03",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-03",
+      "requirement": "Check Arabic/English display and editor-session mathematical transformations",
+      "expected": "Al-Bayan/Burhan projection and actual BuTeX headless adapter agree semantically with no unsupported syntax guessed",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-04",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-04",
+      "requirement": "Check source provenance of mathematical conversions and diagnostics",
+      "expected": "Intermediate parse errors and unsupported constructs have typed stage ownership hints, not fabricated browser success",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-05",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-05",
+      "requirement": "Check SVG MathJax inline/display islands under RTL and LTR preview",
+      "expected": "No incorrect mirror/reading-order changes, duplicate MathJax registration or browser-only rendering omission",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-06",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-06",
+      "requirement": "Compile representative two-column, figure, table, citations, Hijri metadata and Arabic/math document",
+      "expected": "Real XeLaTeX output succeeds in development, captions/labels/RTL and document chrome coherent; PDF source provenance recorded",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-07",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-07",
+      "requirement": "Check compiler export-safe textual validation and supported font coverage",
+      "expected": "Unsupported emoji/nonrenderable text explicitly warns/blocks as before; ordinary Arabic, Latin and digits remain allowed",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-08",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-08",
+      "requirement": "Exercise compile failure and validation/security boundaries",
+      "expected": "Invalid drafts cannot bypass guarded export/compile; compiler error/log is bounded and revision-bound",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    },
+    {
+      "case_id": "addendumA:MTH-09",
+      "source_spec": "docs/proposals/document-migration-frozen-acceptance-addendum-a.md",
+      "local_id": "MTH-09",
+      "requirement": "Compare exported semantic content with actual compiled PDF and read-only browser preview",
+      "expected": "Same section order, equations, figure/table identities, citations and Arabic title; explicitly document expected typography differences",
+      "observation_planes": [
+        "developer_mcp",
+        "butex_ci",
+        "development_burhan",
+        "playwright_dev_browser"
+      ],
+      "source_test_candidates": [
+        "butex:test/document2_math_diagnostic.test.ts",
+        "butex:test/document2_math_projection.test.ts",
+        "albayan:backend/tests/test_equation_diagnostics.py"
+      ],
+      "coverage_verified": false,
+      "observed_status": "not_run",
+      "evidence": []
+    }
+  ]
+}

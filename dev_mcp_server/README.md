@@ -150,6 +150,20 @@ If a conclusion genuinely requires browser behavior, set `require_browser=true`,
 
 Full Phase 4 protocol: [Development investigation workflows](../docs/development/investigation-workflows.md).
 
+
+## Document migration diagnostics (Round 1 implementation branch)
+
+The migration test harness is restricted to **synthetic, stateless, authenticated DEV_MODE operations**, and does not change article state. These additions do not rename the application or deploy to `develop` automatically.
+
+- `dev_document_contract_snapshot` asks the real BuTeX worker for its authenticated operation-to-route map and reported build/environment metadata. A reported `RAILWAY_GIT_COMMIT_SHA` or `npm_package_version` is advisory, **not independently verified provenance**. Require a pinned GitLab CI commit/tarball digest before baseline acceptance.
+- `dev_document_inspect(operation, payload, trace_id?)` accepts one fixed allowlisted operation with a maximum **128 KiB synthetic fixture**, forwarded through `POST /api/v1/dev/diagnostics/document` at the authenticated Al-Bayan backend. Operations are `diagnose_contract`, `normalize`, `outline`, `references`, `reference_index`, `export`, `diff`, `apply_command`, `diagnose_math_object` and `project_math_object_english`. No arbitrary POST, URL, database access, editor mutation or deployment is permitted.
+- `dev_document_compare(baseline, candidate)` compares two already captured **successful operations with the same name**. It reports exact canonical JSON discrepancies; generated ID variability must be reviewed semantically, **never silently ignored**. Build provenance must be attested outside this comparison.
+- `dev_regression_suites`, `dev_run_regression_suite` and `dev_investigation_report` discover/run the document suites alongside existing equation suites. The `document-final-stress` suite explicitly blocks execution until Round 7. Burhan model-tier comparison is not a software-revision comparison.
+- `dev_mcp_server/src/albayan_dev_mcp/fixtures/documents.json` contains starter worker fixtures. These are **not** a replacement for the frozen [v1](../docs/proposals/document-migration-frozen-acceptance-v1.md) (66 cases) and [Addendum A](../docs/proposals/document-migration-frozen-acceptance-addendum-a.md) (79 cases). Both exact SHA-256 values are enforced in offline CI tests in **both** repositories.
+- BuTeX emits an opt-in synthetic worker baseline artifact from its MR `package_test`: `artifacts/document-migration-baseline.json`, including fixture requests/responses, the CI source SHA, and package version. The worker's generated IDs contain a time/random component; compare semantic invariants and preservation of **preexisting** IDs, not freshly generated ID byte values between independent runs.
+
+**Round-1 completion requires more than offline CI:** collect a verified old-worker/pre-rename baseline from an attested build, correlate actual development diagnostic traces and worker/back-end deployment identities, and mark missing live evidence `blocked`. Persistent Railway `development` follows `develop`, not these unmerged PR/MR heads. Keep the implementation requests open for Rounds 1–7; do not publish npm, merge, redeploy production, or assume Developer MCP connectivity until actually observed.
+
 ## Recommended coding-agent workflow
 
 ```text

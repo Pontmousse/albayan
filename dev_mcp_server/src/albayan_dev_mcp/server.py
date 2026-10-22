@@ -5,6 +5,7 @@ from pydantic import AnyHttpUrl
 
 from albayan_dev_mcp.auth import DeveloperMetadataTokenVerifier
 from albayan_dev_mcp.settings import Settings
+from albayan_dev_mcp.tools.document import register_document_tools
 from albayan_dev_mcp.tools.equation import register_equation_tools
 from albayan_dev_mcp.tools.health import register_health_tool
 from albayan_dev_mcp.tools.http import register_http_tool
@@ -65,6 +66,11 @@ def create_server(
     )
     register_trace_tools(server, trace_source=runtime_trace_source)
     register_equation_tools(
+        server,
+        settings=runtime_settings,
+        trace_source=runtime_trace_source,
+    )
+    register_document_tools(
         server,
         settings=runtime_settings,
         trace_source=runtime_trace_source,

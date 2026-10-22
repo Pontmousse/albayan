@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 from app.schemas.unit_conventions import UnitConventions
+
+
+class DocumentDiagnosticRequest(BaseModel):
+    operation: Literal[
+        "diagnose_contract", "normalize", "outline", "references",
+        "reference_index", "export", "diff", "apply_command",
+        "diagnose_math_object", "project_math_object_english",
+    ]
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class EquationDiagnosticRequest(BaseModel):

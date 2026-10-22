@@ -41,6 +41,8 @@ on:
       - "backend/app/services/butex_worker_client.py"
       - "backend/app/services/draft_equation_service.py"
       - "backend/app/services/equation_diagnostic_service.py"
+      - "backend/app/services/document_diagnostic_service.py"
+      - "backend/tests/test_document_diagnostics.py"
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
       - "backend/app/services/math_authoring_capabilities.py"
@@ -118,6 +120,7 @@ jobs:
           backend/tests/test_butex_worker_client.py
           backend/tests/test_draft_equations.py
           backend/tests/test_equation_diagnostics.py
+          backend/tests/test_document_diagnostics.py
           backend/tests/test_math_authoring_capabilities.py
           backend/tests/test_ordered_index_math_contract.py
           backend/tests/test_tracing.py
