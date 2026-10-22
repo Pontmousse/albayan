@@ -52,3 +52,17 @@ The accumulating Round-1 branches now carry **BuTeX package version 7.4.3** (inc
 **Validation after reconnect:** `dev_capabilities` must advertise the new document tools/suites; `dev_health` must show backend, Burhan and worker reachable; `dev_document_contract_snapshot` must report the live route map and build metadata; `dev_document_inspect` must execute authenticated stateless synthetic fixtures against the real development worker; run focused named document suites, capture trace IDs and attach reports. Match the live worker's source revision and version against the tag/CI artifact, and explicitly record any unverified provenance. Connection and discovery alone are not sufficient for Round-1 completion.
 
 **Approval boundary:** no tags, npm publication, merges, Railway deployments or production changes are performed by the current branch updates. The user will choose when to merge/tag/reconnect. The complete frozen 145-case acceptance and stress test remains deferred to Round 7.
+
+## Development package publication and Al-Bayan dependency order (2026-10-22)
+
+The paired BuTeX MR now bumps `@drghaliasri/butex` from `7.4.3` to **`7.4.4`** in `package.json` and `package-lock.json`. This is a **diagnostic-only pre-migration package version**, not the final canonical-name release. Its worker contract action is built into the worker binary; frontend package installation alone does not update the separately deployed worker.
+
+**Release must be ordered:**
+
+1. Merge the BuTeX MR to **`develop` only**, after passing CI. Then create the exact `v7.4.4` tag **on that merged develop commit**, not on `main`. The existing GitLab `publish_npm` job runs on semantic-version tags and publishes `@drghaliasri/butex@7.4.4` publicly. Verify the tag points at the intended commit and npm publish actually succeeded.
+2. Once `7.4.4` is resolvable on npm, update **Al-Bayan's accumulating PR branch** `frontend/package.json` to **exact `7.4.4`** (not `^7.4.4`), and regenerate `frontend/package-lock.json` with `npm install --package-lock-only @drghaliasri/butex@7.4.4 --save-exact`. Commit both files. Do **not** fabricate a registry integrity hash, publish a dummy package, or leave the lock inconsistent.
+3. Verify frontend `npm ci`, build and tests, then merge Al-Bayan PR into **`develop` only**. Ensure the development frontend/backend and Developer MCP redeploy from that merged commit; the separately deployed BuTeX worker must be deployed from the exact tagged BuTeX commit, with its own authenticated `POST /v1/document2/diagnostics/contract` route.
+4. Reconnect/refresh the ChatGPT Developer MCP connector **after** the development Developer MCP service has redeployed; discover `dev_document_contract_snapshot`, `dev_document_inspect`, `dev_document_compare`, then execute baseline diagnostics against the verified development worker.
+5. Keep production `main` and its prior release unchanged. Because npm `7.4.4` is a **public** package release, creating the version tag triggers publication; obtain the intended authorization at that step. A main-branch install with a floating semver range could otherwise adopt `7.4.4` on a future lockfile refresh. Verify main's committed lockfile remains pinned to the old version.
+
+**Important:** The Al-Bayan dependency and lockfile update is intentionally **not committed before npm publication**. The current frontend lockfile resolves BuTeX `7.4.2`; a fabricated future `7.4.4` integrity value would break `npm ci`. This is an ordered follow-up commit on the *same PR*, not a second PR.
