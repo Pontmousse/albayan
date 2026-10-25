@@ -5,18 +5,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_active_document2_consumers_do_not_import_retired_package_entrypoints():
+def test_round5_canonical_consumers_do_not_import_retired_entries():
     editor = (ROOT / "frontend/src/app/maktabi/maqalati/[id]/tahrir/page.tsx").read_text()
     preview = (ROOT / "frontend/src/components/dashboard/document-frozen-preview.tsx").read_text()
     worker = (ROOT / "backend/app/services/butex_worker_client.py").read_text()
     mcp_schema = ROOT / "mcp_server/src/albayan_mcp/schemas/document2.py"
 
-    assert '@drghaliasri/butex/document2' in editor
-    assert '@drghaliasri/butex/react-document2' in editor
-    assert '@drghaliasri/butex/document2' in preview
-    assert '@drghaliasri/butex/react-document2-preview' in preview
-    for name in ('@drghaliasri/butex/document"', "@drghaliasri/butex/document'",
-                 '@drghaliasri/butex/react-document"', "@drghaliasri/butex/react-document'"):
+    assert '@drghaliasri/butex/document"' in editor
+    assert '@drghaliasri/butex/react-document"' in editor
+    assert '@drghaliasri/butex/document"' in preview
+    assert '@drghaliasri/butex/react-document-preview"' in preview
+    for name in ("@drghaliasri/butex/document2", "@drghaliasri/butex/react-document2"):
         assert name not in editor
         assert name not in preview
 
