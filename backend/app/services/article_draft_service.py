@@ -31,7 +31,7 @@ from app.models.enums import (
 )
 from app.models.user import User
 from app.schemas.article import ArticleUpdate, DocumentCommandPayload
-from app.schemas.document2 import BLOCK_INSERTION_OPERATIONS
+from app.schemas.document import BLOCK_INSERTION_OPERATIONS
 from app.services import (
     burhan_client,
     butex_worker_client,
@@ -281,7 +281,7 @@ def restore_revision(
         restored_from_id=target.id,
         restored_from_revision_number=target.revision_number,
         force_revision=True,
-        # Restore the article settings with the historical Document2 snapshot.
+        # Restore the article settings with the historical Document snapshot.
         expected_unit_conventions=unit_conventions_service.get_unit_conventions(article),
         updated_unit_conventions=target.unit_conventions or {},
     )

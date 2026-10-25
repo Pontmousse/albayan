@@ -4,7 +4,7 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 from albayan_mcp.api_client import BinaryApiResponse
-from albayan_mcp.schemas.document2 import DocumentCommand
+from albayan_mcp.schemas.document import DocumentCommand
 from albayan_mcp.tools.drafts import register_draft_tools
 from pydantic import TypeAdapter
 from tests.test_profile_tools import FakeServer

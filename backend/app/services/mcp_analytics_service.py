@@ -12,7 +12,7 @@ from fastapi import HTTPException
 from sqlalchemy import and_, case, delete, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.document2_registry import DOCUMENT2_COMMAND_GROUPS
+from app.document_registry import DOCUMENT_COMMAND_GROUPS
 from app.models.mcp_call_log import McpCallLog
 from app.models.user import User
 from app.schemas.mcp_analytics import (
@@ -201,7 +201,7 @@ def analytics(
     }
     known_commands: set[str] = set()
     command_groups: list[McpCommandGroupUsage] = []
-    for group_key, group_commands in DOCUMENT2_COMMAND_GROUPS:
+    for group_key, group_commands in DOCUMENT_COMMAND_GROUPS:
         known_commands.update(group_commands)
         commands = []
         for command_name in group_commands:

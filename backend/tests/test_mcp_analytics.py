@@ -12,15 +12,15 @@ from pydantic import TypeAdapter, ValidationError
 
 from app.core.actor import Actor
 from app.core.clerk import AuthContext
-from app.document2_registry import (
-    DOCUMENT2_COMMAND_GROUP_BY_NAME,
-    DOCUMENT2_COMMAND_GROUPS,
+from app.document_registry import (
+    DOCUMENT_COMMAND_GROUP_BY_NAME,
+    DOCUMENT_COMMAND_GROUPS,
 )
 from app.models.base import Base
 from app.models.mcp_call_log import McpCallLog
 from app.models.user import User
 from app.routers import admin_mcp, mcp_logs
-from app.schemas.document2 import DocumentCommand
+from app.schemas.document import DocumentCommand
 from app.schemas.mcp_analytics import McpCallLogCreate
 from app.services import mcp_analytics_service
 
@@ -105,8 +105,8 @@ class McpRegistryAndModelTests(unittest.TestCase):
         operations = set(schema["discriminator"]["mapping"])
 
         self.assertEqual(len(operations), 29)
-        self.assertEqual(set(DOCUMENT2_COMMAND_GROUP_BY_NAME), operations)
-        grouped = [name for _, commands in DOCUMENT2_COMMAND_GROUPS for name in commands]
+        self.assertEqual(set(DOCUMENT_COMMAND_GROUP_BY_NAME), operations)
+        grouped = [name for _, commands in DOCUMENT_COMMAND_GROUPS for name in commands]
         self.assertEqual(len(grouped), len(set(grouped)))
 
     def test_model_metadata_has_constraints_and_requested_indexes(self) -> None:
@@ -232,7 +232,7 @@ class McpAnalyticsServiceTests(unittest.TestCase):
             if group.key != "other"
             for command in group.commands
         }
-        self.assertEqual(known, set(DOCUMENT2_COMMAND_GROUP_BY_NAME))
+        self.assertEqual(known, set(DOCUMENT_COMMAND_GROUP_BY_NAME))
         other = next(group for group in result.command_groups if group.key == "other")
         self.assertEqual(other.commands[0].command_name, "future_command")
 

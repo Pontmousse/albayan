@@ -1,9 +1,9 @@
-"""Display taxonomy for the authoritative Document2 command union."""
+"""Display taxonomy for the authoritative Document command union."""
 
 from __future__ import annotations
 
 
-DOCUMENT2_COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+DOCUMENT_COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "block_editing",
         (
@@ -65,8 +65,8 @@ DOCUMENT2_COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
 )
 
-DOCUMENT2_COMMAND_GROUP_BY_NAME = {
+DOCUMENT_COMMAND_GROUP_BY_NAME = {
     command_name: group_key
-    for group_key, command_names in DOCUMENT2_COMMAND_GROUPS
+    for group_key, command_names in DOCUMENT_COMMAND_GROUPS
     for command_name in command_names
 }

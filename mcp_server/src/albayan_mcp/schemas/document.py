@@ -1,4 +1,4 @@
-"""Independent MCP mirror of the FastAPI Document2 command contract."""
+"""Independent MCP mirror of the FastAPI Document command contract."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ NonBlankString = Annotated[str, AfterValidator(_non_blank)]
 NonNegativeIndex = Annotated[int, Field(ge=0)]
 
 
-class Document2ContractModel(BaseModel):
+class DocumentContractModel(BaseModel):
     """Strict command model matching the FastAPI/BuTeX wire contract."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -31,11 +31,11 @@ class Document2ContractModel(BaseModel):
         return self
 
 
-class DocumentBlockMetadata(Document2ContractModel):
+class DocumentBlockMetadata(DocumentContractModel):
     source: Literal["agent", "user"] | None = None
 
 
-class DocumentAnchor(Document2ContractModel):
+class DocumentAnchor(DocumentContractModel):
     before_block_id: NonBlankString | None = None
     after_block_id: NonBlankString | None = None
     end: Literal[True] | None = None
@@ -48,7 +48,7 @@ class DocumentAnchor(Document2ContractModel):
         return self
 
 
-class DocumentInlineAnchor(Document2ContractModel):
+class DocumentInlineAnchor(DocumentContractModel):
     before_token_id: NonBlankString | None = None
     after_token_id: NonBlankString | None = None
     start: Literal[True] | None = None
@@ -62,7 +62,7 @@ class DocumentInlineAnchor(Document2ContractModel):
         return self
 
 
-class DocumentListItemAnchor(Document2ContractModel):
+class DocumentListItemAnchor(DocumentContractModel):
     before_item_id: NonBlankString | None = None
     after_item_id: NonBlankString | None = None
     end: Literal[True] | None = None
@@ -75,7 +75,7 @@ class DocumentListItemAnchor(Document2ContractModel):
         return self
 
 
-class DocumentReferenceAnchor(Document2ContractModel):
+class DocumentReferenceAnchor(DocumentContractModel):
     before_reference_key: NonBlankString | None = None
     after_reference_key: NonBlankString | None = None
     end: Literal[True] | None = None
@@ -88,13 +88,13 @@ class DocumentReferenceAnchor(Document2ContractModel):
         return self
 
 
-class DocumentTextStyle(Document2ContractModel):
+class DocumentTextStyle(DocumentContractModel):
     bold: Literal[True] | None = None
     italic: Literal[True] | None = None
     underline: Literal[True] | None = None
 
 
-class DocumentMathNodeJson(Document2ContractModel):
+class DocumentMathNodeJson(DocumentContractModel):
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"superscript", "subscript"})
 
     node_type: str
@@ -113,7 +113,7 @@ class DocumentMathNodeJson(Document2ContractModel):
     lines: list[DocumentMathChainJson] | None = None
 
 
-class DocumentMathChainJson(Document2ContractModel):
+class DocumentMathChainJson(DocumentContractModel):
     node_type: Literal["ChainClass"]
     chain: list[DocumentMathNodeJson]
 
@@ -121,7 +121,7 @@ class DocumentMathChainJson(Document2ContractModel):
 DocumentParseMode = Literal["english", "arabic"]
 
 
-class DocumentMathObjectJson(Document2ContractModel):
+class DocumentMathObjectJson(DocumentContractModel):
     node_type: Literal["MathObject"]
     math_mode: str
     lines: list[DocumentMathChainJson]
@@ -132,13 +132,13 @@ class DocumentMathObjectJson(Document2ContractModel):
     label: str | None = None
 
 
-class DocumentTextInlineToken(Document2ContractModel):
+class DocumentTextInlineToken(DocumentContractModel):
     kind: Literal["text"]
     text: str
     style: DocumentTextStyle | None = None
 
 
-class DocumentMathInlineToken(Document2ContractModel):
+class DocumentMathInlineToken(DocumentContractModel):
     kind: Literal["math"]
     source: NonBlankString
     math_object: DocumentMathObjectJson
@@ -157,12 +157,12 @@ DocumentReferenceKeys = Annotated[
 ]
 
 
-class DocumentCitationInlineToken(Document2ContractModel):
+class DocumentCitationInlineToken(DocumentContractModel):
     kind: Literal["cite"]
     keys: DocumentReferenceKeys
 
 
-class DocumentReferenceInlineToken(Document2ContractModel):
+class DocumentReferenceInlineToken(DocumentContractModel):
     kind: Literal["ref"]
     keys: DocumentReferenceKeys
     ref_command: Literal["ref", "eqref"]
@@ -178,7 +178,7 @@ DocumentInlineTokenInput = Annotated[
 DocumentTextKind = Literal["section", "subsection", "subsubsection", "paragraph"]
 
 
-class InsertTextBlockCommand(Document2ContractModel):
+class InsertTextBlockCommand(DocumentContractModel):
     op: Literal["insert_text_block"]
     kind: DocumentTextKind
     text: str
@@ -186,24 +186,24 @@ class InsertTextBlockCommand(Document2ContractModel):
     metadata: DocumentBlockMetadata | None = None
 
 
-class ReplaceTextBlockCommand(Document2ContractModel):
+class ReplaceTextBlockCommand(DocumentContractModel):
     op: Literal["replace_text_block"]
     block_id: NonBlankString
     text: str
 
 
-class RemoveBlockCommand(Document2ContractModel):
+class RemoveBlockCommand(DocumentContractModel):
     op: Literal["remove_block"]
     block_id: NonBlankString
 
 
-class MoveBlockCommand(Document2ContractModel):
+class MoveBlockCommand(DocumentContractModel):
     op: Literal["move_block"]
     block_id: NonBlankString
     anchor: DocumentAnchor
 
 
-class InsertFigureCommand(Document2ContractModel):
+class InsertFigureCommand(DocumentContractModel):
     op: Literal["insert_figure"]
     asset_id: NonBlankString
     value: str | None = None
@@ -213,7 +213,7 @@ class InsertFigureCommand(Document2ContractModel):
     metadata: DocumentBlockMetadata | None = None
 
 
-class UpdateFigureCommand(Document2ContractModel):
+class UpdateFigureCommand(DocumentContractModel):
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"asset_id"})
 
     op: Literal["update_figure"]
@@ -228,7 +228,7 @@ class UpdateFigureCommand(Document2ContractModel):
         return self
 
 
-class UpdateFloatMetaCommand(Document2ContractModel):
+class UpdateFloatMetaCommand(DocumentContractModel):
     op: Literal["update_float_meta"]
     block_id: NonBlankString
     centered: bool | None = None
@@ -245,7 +245,7 @@ class UpdateFloatMetaCommand(Document2ContractModel):
         return self
 
 
-class InsertBibliographyCommand(Document2ContractModel):
+class InsertBibliographyCommand(DocumentContractModel):
     op: Literal["insert_bibliography"]
     anchor: DocumentAnchor
     metadata: DocumentBlockMetadata | None = None
@@ -267,7 +267,7 @@ HijriMonthId = Literal[
 ]
 
 
-class DocumentHijriDatePatch(Document2ContractModel):
+class DocumentHijriDatePatch(DocumentContractModel):
     day: Annotated[int, Field(ge=1, le=30)] | None = None
     month: HijriMonthId | None = None
     year: Annotated[int, Field(ge=1400, le=1500)] | None = None
@@ -279,7 +279,7 @@ class DocumentHijriDatePatch(Document2ContractModel):
         return self
 
 
-class UpdateDocumentMetaCommand(Document2ContractModel):
+class UpdateDocumentMetaCommand(DocumentContractModel):
     op: Literal["update_document_meta"]
     title: str | None = None
     authors: str | None = None
@@ -296,7 +296,7 @@ class UpdateDocumentMetaCommand(Document2ContractModel):
 ReferenceFieldSeparator = Literal[",", "،"]
 
 
-class InsertReferenceCommand(Document2ContractModel):
+class InsertReferenceCommand(DocumentContractModel):
     op: Literal["insert_reference"]
     key: NonBlankString
     authors: str | None = None
@@ -308,7 +308,7 @@ class InsertReferenceCommand(Document2ContractModel):
     anchor: DocumentReferenceAnchor
 
 
-class UpdateReferenceCommand(Document2ContractModel):
+class UpdateReferenceCommand(DocumentContractModel):
     op: Literal["update_reference"]
     reference_key: NonBlankString
     key: str | None = None
@@ -327,38 +327,38 @@ class UpdateReferenceCommand(Document2ContractModel):
         return self
 
 
-class RemoveReferenceCommand(Document2ContractModel):
+class RemoveReferenceCommand(DocumentContractModel):
     op: Literal["remove_reference"]
     reference_key: NonBlankString
 
 
-class MoveReferenceCommand(Document2ContractModel):
+class MoveReferenceCommand(DocumentContractModel):
     op: Literal["move_reference"]
     reference_key: NonBlankString
     anchor: DocumentReferenceAnchor
 
 
-class InsertInlineTokenCommand(Document2ContractModel):
+class InsertInlineTokenCommand(DocumentContractModel):
     op: Literal["insert_inline_token"]
     field_id: NonBlankString
     token: DocumentInlineTokenInput
     anchor: DocumentInlineAnchor
 
 
-class ReplaceInlineTokenCommand(Document2ContractModel):
+class ReplaceInlineTokenCommand(DocumentContractModel):
     op: Literal["replace_inline_token"]
     field_id: NonBlankString
     token_id: NonBlankString
     token: DocumentInlineTokenInput
 
 
-class RemoveInlineTokenCommand(Document2ContractModel):
+class RemoveInlineTokenCommand(DocumentContractModel):
     op: Literal["remove_inline_token"]
     field_id: NonBlankString
     token_id: NonBlankString
 
 
-class InsertListCommand(Document2ContractModel):
+class InsertListCommand(DocumentContractModel):
     op: Literal["insert_list"]
     ordered: bool
     items: Annotated[list[str], Field(min_length=1)]
@@ -366,34 +366,34 @@ class InsertListCommand(Document2ContractModel):
     metadata: DocumentBlockMetadata | None = None
 
 
-class InsertListItemCommand(Document2ContractModel):
+class InsertListItemCommand(DocumentContractModel):
     op: Literal["insert_list_item"]
     list_id: NonBlankString
     text: str
     anchor: DocumentListItemAnchor
 
 
-class ReplaceListItemCommand(Document2ContractModel):
+class ReplaceListItemCommand(DocumentContractModel):
     op: Literal["replace_list_item"]
     list_id: NonBlankString
     item_id: NonBlankString
     text: str
 
 
-class RemoveListItemCommand(Document2ContractModel):
+class RemoveListItemCommand(DocumentContractModel):
     op: Literal["remove_list_item"]
     list_id: NonBlankString
     item_id: NonBlankString
 
 
-class MoveListItemCommand(Document2ContractModel):
+class MoveListItemCommand(DocumentContractModel):
     op: Literal["move_list_item"]
     list_id: NonBlankString
     item_id: NonBlankString
     anchor: DocumentListItemAnchor
 
 
-class InsertTableCommand(Document2ContractModel):
+class InsertTableCommand(DocumentContractModel):
     op: Literal["insert_table"]
     rows: Annotated[list[list[str]], Field(min_length=1)]
     columns: NonBlankString
@@ -410,7 +410,7 @@ class InsertTableCommand(Document2ContractModel):
         return self
 
 
-class ReplaceTableCellCommand(Document2ContractModel):
+class ReplaceTableCellCommand(DocumentContractModel):
     op: Literal["replace_table_cell"]
     table_id: NonBlankString
     row_index: NonNegativeIndex
@@ -418,27 +418,27 @@ class ReplaceTableCellCommand(Document2ContractModel):
     text: str
 
 
-class InsertTableRowCommand(Document2ContractModel):
+class InsertTableRowCommand(DocumentContractModel):
     op: Literal["insert_table_row"]
     table_id: NonBlankString
     index: NonNegativeIndex
     values: list[str]
 
 
-class RemoveTableRowCommand(Document2ContractModel):
+class RemoveTableRowCommand(DocumentContractModel):
     op: Literal["remove_table_row"]
     table_id: NonBlankString
     index: NonNegativeIndex
 
 
-class MoveTableRowCommand(Document2ContractModel):
+class MoveTableRowCommand(DocumentContractModel):
     op: Literal["move_table_row"]
     table_id: NonBlankString
     from_index: NonNegativeIndex
     to_index: NonNegativeIndex
 
 
-class InsertTableColumnCommand(Document2ContractModel):
+class InsertTableColumnCommand(DocumentContractModel):
     op: Literal["insert_table_column"]
     table_id: NonBlankString
     index: NonNegativeIndex
@@ -446,14 +446,14 @@ class InsertTableColumnCommand(Document2ContractModel):
     columns: NonBlankString
 
 
-class RemoveTableColumnCommand(Document2ContractModel):
+class RemoveTableColumnCommand(DocumentContractModel):
     op: Literal["remove_table_column"]
     table_id: NonBlankString
     index: NonNegativeIndex
     columns: NonBlankString
 
 
-class MoveTableColumnCommand(Document2ContractModel):
+class MoveTableColumnCommand(DocumentContractModel):
     op: Literal["move_table_column"]
     table_id: NonBlankString
     from_index: NonNegativeIndex
