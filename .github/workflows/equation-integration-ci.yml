@@ -44,6 +44,7 @@ on:
       - "backend/app/services/document_diagnostic_service.py"
       - "backend/tests/test_document_diagnostics.py"
       - "backend/tests/test_draft_revisions.py"
+      - "backend/tests/test_round3_butex_consumer_contract.py"
       - "backend/app/services/equation_mapping_service.py"
       - "backend/app/services/equation_projection_service.py"
       - "backend/app/services/math_authoring_capabilities.py"
@@ -126,7 +127,10 @@ jobs:
           backend/tests/test_ordered_index_math_contract.py
           backend/tests/test_tracing.py
       - name: Immutable draft revision and structured math persistence tests
-        run: PYTHONPATH=backend pytest -q backend/tests/test_draft_revisions.py
+        run: >-
+          PYTHONPATH=backend pytest -q
+          backend/tests/test_draft_revisions.py
+          backend/tests/test_round3_butex_consumer_contract.py
       - name: MCP equation and compact block tests
         run: >-
           PYTHONPATH=mcp_server/src:mcp_server pytest -q
