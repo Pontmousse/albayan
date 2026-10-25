@@ -1,11 +1,11 @@
-"""Round 3 guard: Al-Bayan must not depend on the retired first-generation BuTeX editor."""
+"""Round 6 guard: consumers must reference the canonical document package and worker contract."""
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_round5_canonical_consumers_do_not_import_retired_entries():
+def test_canonical_document_consumers_do_not_import_retired_entries():
     editor = (ROOT / "frontend/src/app/maktabi/maqalati/[id]/tahrir/page.tsx").read_text()
     preview = (ROOT / "frontend/src/components/dashboard/document-frozen-preview.tsx").read_text()
     worker = (ROOT / "backend/app/services/butex_worker_client.py").read_text()
@@ -15,7 +15,7 @@ def test_round5_canonical_consumers_do_not_import_retired_entries():
     assert '@drghaliasri/butex/react-document"' in editor
     assert '@drghaliasri/butex/document"' in preview
     assert '@drghaliasri/butex/react-document-preview"' in preview
-    for name in ("@drghaliasri/butex/document", "@drghaliasri/butex/react-document"):
+    for name in ("@drghaliasri/butex/document2", "@drghaliasri/butex/react-document2", "@drghaliasri/butex/react-document2-preview"):
         assert name not in editor
         assert name not in preview
 
