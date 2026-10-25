@@ -61,6 +61,8 @@ on:
       - "dev_mcp_server/src/albayan_dev_mcp/investigation.py"
       - "dev_mcp_server/src/albayan_dev_mcp/equation.py"
       - "backend/tests/test_document_command_schemas.py"
+      - "backend/tests/test_round6_document_contract.py"
+      - "backend/tests/test_document_migration_spec_integrity.py"
       - "backend/tests/test_draft_equations.py"
       - "backend/tests/test_equation_diagnostics.py"
       - "backend/tests/test_equation_mapping_api.py"
@@ -128,6 +130,8 @@ jobs:
           backend/tests/test_burhan_api_key.py
           backend/tests/test_burhan_math_commands.py
           backend/tests/test_butex_math_projection_client.py
+          backend/tests/test_round6_document_contract.py
+          backend/tests/test_document_migration_spec_integrity.py
           backend/tests/test_document_command_schemas.py
           backend/tests/test_butex_worker_client.py
           backend/tests/test_butex_diff_client.py
