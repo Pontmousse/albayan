@@ -40,7 +40,7 @@ BuTeX browser editor / MathJax render and edit Arabic mathematics
 
 **Burhan.** The [Burhan repository](https://gitlab.com/drghaliasri/burhan3.0/-/tree/develop) owns parsing/conversion and its supported syntax. A general mathematical expression that ordinary LaTeX can represent is **not automatically guaranteed** to work through Burhan and BuTeX; use capability discovery and regression evidence rather than assumptions.
 
-**BuTeX.** The [BuTeX repository](https://gitlab.com/drghaliasri/butex/-/tree/develop) owns the Document AST/worker, the structured equation editor and MathJax registration/rendering. Al-Bayan consumes its current `document` / `react-document` interfaces; the canonical `document` and `react-document` interfaces implemented on unmerged Round 6 review branches, pending owner-approved merge/deployment.
+**BuTeX.** The [BuTeX repository](https://gitlab.com/drghaliasri/butex/-/tree/develop) owns the Document AST/worker, the structured equation editor and MathJax registration/rendering. Al-Bayan's unmerged Round 6 review branch consumes the canonical `document` and `react-document` interfaces; deployment and release require separate approval.
 
 ## Reverse/diagnostic reads
 
