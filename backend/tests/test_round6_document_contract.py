@@ -23,7 +23,7 @@ EXPECTED_COMMAND_OPS = frozenset({
 def test_public_typed_document_command_union_preserves_exact_operations():
     backend = (ROOT / "backend/app/schemas/document.py").read_text()
     mcp = (ROOT / "mcp_server/src/albayan_mcp/schemas/document.py").read_text()
-    pattern = r'op:\\s*Literal\\[\"([^\"]+)\"\\]'
+    pattern = r'op:\s*Literal\["([^"]+)"\]'
     for source in [backend, mcp]:
         assert set(re.findall(pattern, source)) == EXPECTED_COMMAND_OPS
         assert "Document2ContractModel" not in source
