@@ -21,14 +21,14 @@ def test_active_document2_consumers_do_not_import_retired_package_entrypoints():
         assert name not in preview
 
     for endpoint in (
-        "/v1/document2/normalize",
-        "/v1/document2/outline",
-        "/v1/document2/references",
-        "/v1/document2/reference-index",
-        "/v1/document2/export",
-        "/v1/document2/diff",
-        "/v1/document2/commands",
-        "/v1/document2/math-object/english",
+        "/v1/document/normalize",
+        "/v1/document/outline",
+        "/v1/document/references",
+        "/v1/document/reference-index",
+        "/v1/document/export",
+        "/v1/document/diff",
+        "/v1/document/commands",
+        "/v1/document/math-object/english",
     ):
         assert endpoint in worker
     assert mcp_schema.is_file()
