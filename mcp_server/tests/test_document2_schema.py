@@ -175,7 +175,7 @@ class Document2McpSchemaTests(unittest.TestCase):
         ).lower()
 
         for forbidden in (
-            "/v1/document2/",
+            "/v1/document/",
             "butex_worker_token",
             "butex_worker_url",
             "sqlalchemy",
