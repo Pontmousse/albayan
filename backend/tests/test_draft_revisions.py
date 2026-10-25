@@ -489,6 +489,6 @@ def test_round2_preserves_structured_math_wire_json_in_immutable_revision(db_and
     )
     assert objects[revision.storage_key] == document
     assert article_draft_service.read_document(revision) == document
-    assert revision.document_hash == article_draft_service.request_hash(document)
+    assert revision.document_hash == article_draft_service.compile_service.hash_document(document)
     assert "document2" not in document
     assert block["math_objects"][0] == math_object
