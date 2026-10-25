@@ -1,4 +1,4 @@
-import { fromDocumentJson2, type Document2Node } from "@drghaliasri/butex/document2";
+import { fromDocumentJson, type DocumentNode } from "@drghaliasri/butex/document";
 
 function hasEmptyImageBlock(blocks: unknown): boolean {
   if (!Array.isArray(blocks)) return false;
@@ -43,8 +43,8 @@ export function isButexDocumentValid(documentJson: unknown): boolean {
     const record = documentJson as Record<string, unknown>;
     const node =
       record.nodeType === "DocumentObject"
-        ? (documentJson as Document2Node)
-        : fromDocumentJson2(documentJson);
+        ? (documentJson as DocumentNode)
+        : fromDocumentJson(documentJson);
 
     return node.diagnostics.length === 0 && !hasEmptyImageBlock(node.blocks);
   } catch {

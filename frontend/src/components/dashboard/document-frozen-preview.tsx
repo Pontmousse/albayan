@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import type { Document2Json, Document2Node } from "@drghaliasri/butex/document2";
+import type { DocumentJson, DocumentNode } from "@drghaliasri/butex/document";
 import { SkeletonBlock } from "@/components/dashboard/skeleton";
 import {
   useButexImageResolver,
@@ -13,7 +13,7 @@ import { ALBAYAN_BUTEX_THEME_CLASS } from "@/lib/butex-theme";
 
 const ButexDocumentPreview = dynamic(
   () =>
-    import("@drghaliasri/butex/react-document2-preview").then(
+    import("@drghaliasri/butex/react-document-preview").then(
       (mod) => mod.ButexDocumentPreview,
     ),
   { ssr: false },
@@ -21,7 +21,7 @@ const ButexDocumentPreview = dynamic(
 
 type GetToken = () => Promise<string | null>;
 
-/** Lightweight, read-only BuTeX Document2 preview for frozen revisions. */
+/** Lightweight, read-only BuTeX Document preview for frozen revisions. */
 export function DocumentFrozenPreview({
   documentJson,
   articleId,
@@ -94,7 +94,7 @@ export function DocumentFrozenPreview({
     <div className="overflow-x-auto rounded-xl border border-[var(--journal-border)] bg-white p-3 sm:p-5">
       <ButexDocumentPreview
         className={ALBAYAN_BUTEX_THEME_CLASS}
-        document={documentJson as Document2Json | Document2Node}
+        document={documentJson as DocumentJson | DocumentNode}
         documentDirection="rtl"
         uiLocale="ar"
         mathOutput="svg"
