@@ -10,10 +10,10 @@
 | [Frontend](frontend.md) | Next.js structure, article editor, and API integration |
 | [Backend](backend.md) | FastAPI routers, authentication, data and external services |
 | [Database and storage](database.md) | Authoritative models and immutable document storage |
-| [Document2 and images](document-assets.md) | BuTeX integration, figures/assets and document validity |
+| [Document and images](document-assets.md) | BuTeX integration, figures/assets and document validity |
 | [Other platform services](platform-services.md) | Notifications, issues, invitations, email and donations |
 | [Article authoring](authoring.md) | Immutable draft revisions, commands, previews, submission and review |
-| [Equation pipeline](equations.md) | Canonical LaTeX → Burhan → Document2 → BuTeX |
+| [Equation pipeline](equations.md) | Canonical LaTeX → Burhan → Document → BuTeX |
 | [MCP surfaces](mcp.md) | User-facing authoring MCP versus developer-only diagnostics |
 
 ## Rules for reading this documentation
@@ -26,7 +26,7 @@
 
 ## Preserved proposals (not shipped)
 
-- [BuTeX Document2 legacy naming cleanup](../proposals/butex-document2-naming.md): proposed renaming/removal of old editor surfaces; do not present as completed work.
+- [BuTeX Document legacy naming cleanup](../proposals/butex-document-naming.md): historical proposal; implemented in unmerged migration review branches, not yet deployed or released.
 - [Book authoring in Al-Bayan](../proposals/book-authoring.md) and [BuTeX book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md): proposed book/unit model and editor, not present-day routes or models.
 
 ## Primary source entrypoints

@@ -20,7 +20,7 @@ Arabic/RTL browser (Next.js)          AI client
          |            |           |
          v            v           v
     PostgreSQL    S3-compatible   private BuTeX
-    models/IDs    objects         Document2 worker
+    models/IDs    objects         Document worker
                                     normalize/commands/
                                     outline/export
                        |
@@ -40,14 +40,14 @@ The diagram shows logical dependencies, not guaranteed deployment topology or se
 | [`backend/`](../../backend/) | FastAPI routes, permissions, state transitions, SQLAlchemy and storage | Only authoritative business/persistence tier |
 | [`mcp_server/`](../../mcp_server/) | User-facing typed tools over backend HTTP | Thin adapter; no direct DB/S3/worker access |
 | [`dev_mcp_server/`](../../dev_mcp_server/) | Restricted development-only diagnostics | Separate authenticated development surface, not an authoring API |
-| [BuTeX](https://gitlab.com/drghaliasri/butex/-/tree/develop) | Document2 AST/commands/worker; browser editor and MathJax rendering | Stateless document operations; no article/user ownership |
+| [BuTeX](https://gitlab.com/drghaliasri/butex/-/tree/develop) | Document AST/commands/worker; browser editor and MathJax rendering | Stateless document operations; no article/user ownership |
 | [Burhan](https://gitlab.com/drghaliasri/burhan3.0/-/tree/develop) | Parse/convert canonical equations into Arabic mathematical structure | No article persistence or document authorization |
 | Compiler service | XeLaTeX rendering for one exact draft/export | Invoked through FastAPI; not directly by MCP |
 
 ## Main flows
 
-1. **Human authoring:** browser → FastAPI article/draft endpoints → normalized `Document2Json` → immutable revision.
-2. **Agent authoring:** MCP typed tool → FastAPI scope/ownership check → Document2 command (and Burhan for canonical math tokens) → immutable revision.
+1. **Human authoring:** browser → FastAPI article/draft endpoints → normalized `DocumentJson` → immutable revision.
+2. **Agent authoring:** MCP typed tool → FastAPI scope/ownership check → Document command (and Burhan for canonical math tokens) → immutable revision.
 3. **Preview:** FastAPI exports one saved revision through BuTeX, provides assets to a configured compiler, and stores PDF/log tied to that revision.
 4. **Formal submission:** human-authorized transition freezes a version derived from the validated current revision. Editorial/review decisions operate on formal versions, not mutable authoring sessions.
 
@@ -55,7 +55,7 @@ The diagram shows logical dependencies, not guaranteed deployment topology or se
 
 The book/unit architecture documented in [book authoring proposal](../proposals/book-authoring.md) is a **proposal**. There are no shipped book-specific persistence models, authoring routes, or MCP tools in this reviewed tree. The separate BuTeX naming-cleanup document is likewise a proposal, not a declaration that all legacy entrypoints are removed.
 
-For precise ownership see [Database and storage](database.md), [Document2/assets](document-assets.md) and [Platform services](platform-services.md).
+For precise ownership see [Database and storage](database.md), [Document/assets](document-assets.md) and [Platform services](platform-services.md).
 
 ## Source map
 

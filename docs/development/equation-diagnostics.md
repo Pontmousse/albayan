@@ -11,7 +11,7 @@ canonical English/interoperability LaTeX
   -> Al-Bayan dev diagnostic endpoint
   -> Burhan /convert
   -> Al-Bayan editor-shaped MathObject projection
-  -> real Document2 worker commands
+  -> real Document worker commands
   -> BuTeX fromMathObjectJson + mathObjectToEditorSession
   -> optional Burhan /convert-to-english
 ```
@@ -38,9 +38,9 @@ The Dev MCP never proxies Playwright and never treats a missing browser observat
 Every stage reports `available`, `ok`, and `authoritative` separately.
 
 - `canonical_input`: exact input plus the delimiter form selected by the real backend conversion path.
-- `burhan_conversion`: Burhan request metadata, English structured representation, Arabic structured representation, Arabic LaTeX, mappings, warnings, resolved model, and request duration. This data comes from the same `/convert` request used to build the Document2 math token.
+- `burhan_conversion`: Burhan request metadata, English structured representation, Arabic structured representation, Arabic LaTeX, mappings, warnings, resolved model, and request duration. This data comes from the same `/convert` request used to build the Document math token.
 - `albayan_projection`: the real strict Al-Bayan `DocumentMathObjectJson` projection and resulting math token.
-- `document2_command`: an in-memory empty document is normalized, a paragraph is inserted, then the real `insert_inline_token` command is applied through the configured Document2/BuTeX worker. No article, database, or object-storage state is persisted.
+- `document_command`: an in-memory empty document is normalized, a paragraph is inserted, then the real `insert_inline_token` command is applied through the configured Document/BuTeX worker. No article, database, or object-storage state is persisted.
 - `headless_butex_validation`: the BuTeX worker calls the existing `fromMathObjectJson()` and `mathObjectToEditorSession()` implementation. It does not contain a second parser or a diagnostic-only editor model.
 - `reverse_conversion`: the stored editor-shaped MathObject and the observed mappings are sent to the real Burhan `/convert-to-english` endpoint. When the selected tier is `heuristic`, this mirrors the production canonical projection path (`project_math_object_to_canonical_latex`); other tiers remain available for model-tier comparison only. A successful HTTP response here is not enough to certify round-trip safety.
 - `round_trip_equivalence`: authoritative semantic check. Re-parses the original canonical input and the reverse LaTeX through deterministic Burhan forward conversion (`CANONICAL_INTEROP_TIER = heuristic`) and compares normalized English MathObject/AST identity. Formatting-only differences such as `x_1` vs `x_{1}` must not fail; identity changes such as `x \\leq y` → `x \\geq y` or `x + X` → `x + x` must fail even when every HTTP stage returned 200.
@@ -53,7 +53,7 @@ An unavailable stage is not fabricated. The report includes `reason` and `human_
 Phase 3 adds one thin, token-protected worker endpoint:
 
 ```text
-POST /v1/document2/diagnostics/math-object
+POST /v1/document/diagnostics/math-object
 ```
 
 It returns a worker envelope containing `math_diagnostic`. The nested result is either an editable result with English/Arabic editor-session renderings or a structured support failure such as:
@@ -103,7 +103,7 @@ Diagnostics are read-only with respect to Al-Bayan product state. They may call 
 
 ## Trace linkage
 
-The Dev MCP sends the Phase 2 `X-Trace-Id` to the backend. The backend preserves it and propagates it to Burhan and the BuTeX/Document2 worker. The headless worker log entry also includes the incoming trace ID. A centralized trace source can be attached later without changing the equation tool contracts.
+The Dev MCP sends the Phase 2 `X-Trace-Id` to the backend. The backend preserves it and propagates it to Burhan and the BuTeX/Document worker. The headless worker log entry also includes the incoming trace ID. A centralized trace source can be attached later without changing the equation tool contracts.
 
 ## Feature-branch workflow
 
