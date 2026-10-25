@@ -25,7 +25,11 @@ try {
   const prefix = `/jobs/${lock.gitlab_job_id}/artifacts/artifacts/`;
   const archive = await download(prefix + "butex-candidate.tgz");
   const checksumFile = (await download(prefix + "butex-candidate.sha256")).toString("utf8");
-  const publishedHash = /^([0-9a-f]{64})\\s+artifacts\\/butex-candidate\\.tgz\\s*$/.exec(checksumFile.trim())?.[1];
+  const checksumParts = checksumFile.trim().split("  ");
+  if (checksumParts.length !== 2 || checksumParts[1] !== "artifacts/butex-candidate.tgz") {
+    throw new Error("BuTeX CI checksum manifest format is invalid.");
+  }
+  const publishedHash = checksumParts[0];
   const actualHash = createHash("sha256").update(archive).digest("hex");
   if (publishedHash !== lock.tarball_sha256 || actualHash !== lock.tarball_sha256) {
     throw new Error("BuTeX tarball SHA-256 mismatches GitLab CI artifact or pinned lock; refusing install.");
