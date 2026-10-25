@@ -27,7 +27,7 @@ _STAGE_OWNERS = {
     "canonical_input": "caller",
     "burhan_conversion": "burhan",
     "albayan_projection": "albayan-backend",
-    "document2_command": "butex-document2",
+    "document_command": "butex-document",
     "headless_butex_validation": "butex",
     "reverse_conversion": "burhan",
     "browser_validation": "frontend-browser",
@@ -114,10 +114,10 @@ _SUITES: dict[str, SuiteSpec] = {
         live=True,
         ci_policy="opt-in-live",
     ),
-    "document2-roundtrip": SuiteSpec(
-        name="document2-roundtrip",
+    "document-roundtrip": SuiteSpec(
+        name="document-roundtrip",
         domain="equation",
-        description="Equation fixtures chosen to exercise Document2 insertion, BuTeX reopen and reverse conversion.",
+        description="Equation fixtures chosen to exercise Document insertion, BuTeX reopen and reverse conversion.",
         mode="fixtures",
         fixture_ids=(
             "basic-add",

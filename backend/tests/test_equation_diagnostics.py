@@ -165,7 +165,7 @@ def test_inspect_equation_reports_each_real_pipeline_stage(monkeypatch) -> None:
         "node_type": "MathObject"
     }
     assert report["stages"]["albayan_projection"]["data"]["editor_math_object"] == _math_object()
-    assert report["stages"]["document2_command"]["ok"] is True
+    assert report["stages"]["document_command"]["ok"] is True
     assert report["stages"]["headless_butex_validation"]["data"]["editable"] is True
     reverse_data = report["stages"]["reverse_conversion"]["data"]
     assert reverse_data["canonical_latex"] == "x"
@@ -204,7 +204,7 @@ def test_burhan_unavailable_blocks_downstream_without_fabricating(monkeypatch) -
     assert report["stages"]["burhan_conversion"]["available"] is False
     for name in (
         "albayan_projection",
-        "document2_command",
+        "document_command",
         "headless_butex_validation",
         "reverse_conversion",
         "round_trip_equivalence",

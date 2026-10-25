@@ -33,7 +33,7 @@ def register_equation_tools(
         name="dev_equation_inspect",
         title="Inspect one equation pipeline run",
         description=(
-            "Run canonical English LaTeX through the real Al-Bayan/Burhan/Document2/BuTeX "
+            "Run canonical English LaTeX through the real Al-Bayan/Burhan/Document/BuTeX "
             "diagnostic pipeline without persisting article state. Returns authoritative stages, "
             "trace linkage, explicit unavailable stages, and a separate browser-validation gap. "
             "cheap/medium tiers may consume the configured Burhan model provider budget."

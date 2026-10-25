@@ -111,7 +111,7 @@ class BuTeXRealWorkerIntegrationTests(unittest.TestCase):
             except HTTPException as exc:
                 if exc.status_code == 404:
                     self.skipTest(
-                        "Installed BuTeX worker predates the Document2 export operation"
+                        "Installed BuTeX worker predates the Document export operation"
                     )
                 raise
 

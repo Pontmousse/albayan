@@ -18,7 +18,7 @@ _STAGE_NAMES = (
     "canonical_input",
     "burhan_conversion",
     "albayan_projection",
-    "document2_command",
+    "document_command",
     "headless_butex_validation",
     "reverse_conversion",
     "browser_validation",
@@ -103,7 +103,7 @@ def test_suite_registry_exposes_named_suites_and_ci_policy() -> None:
         "equations-adjacency",
         "equations-common-scientific",
         "burhan-tier-comparison",
-        "document2-roundtrip",
+        "document-roundtrip",
     } <= names
     assert all(suite["ci_policy"] in {"offline-contract", "opt-in-live"} for suite in suites)
     comparison = next(suite for suite in suites if suite["name"] == "burhan-tier-comparison")
@@ -164,7 +164,7 @@ async def test_unavailable_required_stage_is_partial_with_human_action() -> None
     client = FakeEquationClient(unavailable_stage="headless_butex_validation")
     runner = InvestigationRunner(Settings(_env_file=None), diagnostic_client=client)
     result = await runner.run_suite(
-        suite_name="document2-roundtrip",
+        suite_name="document-roundtrip",
         max_fixtures=1,
     )
     assert result["status"] == "partial"
