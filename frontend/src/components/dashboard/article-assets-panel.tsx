@@ -2,7 +2,7 @@
 
 import { Check, ImageOff, Link2, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
+import type { ImageAssetRef } from "@drghaliasri/butex/react-document";
 import { ArticleAssetDeleteDialog } from "@/components/dashboard/article-asset-delete-dialog";
 import { useNumerals } from "@/components/numeral-provider";
 import { useOpenTransition } from "@/hooks/use-open-transition";

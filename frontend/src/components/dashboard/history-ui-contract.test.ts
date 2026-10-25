@@ -30,9 +30,9 @@ describe("draft history UI contract", () => {
   it("uses the dedicated lightweight BuTeX preview entry point", () => {
     const source = readLocal("./document-frozen-preview.tsx");
 
-    expect(source).toContain("@drghaliasri/butex/react-document2-preview");
+    expect(source).toContain("@drghaliasri/butex/react-document-preview");
     expect(source).toContain("ButexDocumentPreview");
-    expect(source).not.toContain("ButexDocumentEditor2");
+    expect(source).not.toContain("ButexDocumentEditor");
     expect(source).not.toContain("previewOnly");
   });
 });

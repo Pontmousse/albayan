@@ -1,6 +1,6 @@
 import { ApiError } from "./api";
 import type { DraftRevision } from "./api/articles";
-import type { Document2Json } from "@drghaliasri/butex/document2";
+import type { DocumentJson } from "@drghaliasri/butex/document";
 
 export type AutosaveState =
   | { kind: "saved"; dirty: false }
@@ -11,7 +11,7 @@ export type AutosaveState =
 
 type Options = {
   initial: DraftRevision;
-  save: (document: Document2Json, baseRevision: number) => Promise<DraftRevision>;
+  save: (document: DocumentJson, baseRevision: number) => Promise<DraftRevision>;
   reload: () => Promise<DraftRevision>;
   onState: (state: AutosaveState) => void;
   onConflict: (latest: DraftRevision) => void;
@@ -32,7 +32,7 @@ export class DraftAutosaveController {
   private baseRevision: number;
   private cleanSnapshot: string;
   private latestSnapshot: string;
-  private latestDocument: Document2Json;
+  private latestDocument: DocumentJson;
   private inFlight: Promise<boolean> | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private maximumTimer: ReturnType<typeof setTimeout> | null = null;
@@ -55,7 +55,7 @@ export class DraftAutosaveController {
     options.onState({ kind: "saved", dirty: false });
   }
 
-  update(document: Document2Json): void {
+  update(document: DocumentJson): void {
     if (this.disposed) return;
     this.latestDocument = document;
     this.latestSnapshot = JSON.stringify(document);

@@ -1,5 +1,5 @@
 import { apiErrorMessage, apiFetch, ApiError } from "@/lib/api";
-import type { Document2Json } from "@drghaliasri/butex/document2";
+import type { DocumentJson } from "@drghaliasri/butex/document";
 
 export type ArticleStatus =
   | "draft"
@@ -71,7 +71,7 @@ export type DraftRevision = {
   created_at: string;
   restored_from_id: string | null;
   restored_from_revision_number: number | null;
-  document: Document2Json;
+  document: DocumentJson;
 };
 
 export type DraftRevisionHistoryItem = {
@@ -89,7 +89,7 @@ export type DraftRevisionHistoryItem = {
 };
 
 export type DraftRevisionHistoryDetail = DraftRevisionHistoryItem & {
-  document: Document2Json;
+  document: DocumentJson;
 };
 
 export type DraftCompileStatus = {
@@ -140,7 +140,7 @@ export function getArticleDraft(getToken: GetToken, id: string) {
 export function putArticleDraft(
   getToken: GetToken,
   id: string,
-  document: Document2Json,
+  document: DocumentJson,
   baseRevision: number,
 ) {
   return apiFetch<DraftRevision>(`/api/v1/articles/${id}/draft`, getToken, {
@@ -323,7 +323,7 @@ export function getVersionDocument(
   articleId: string,
   versionId: string,
 ) {
-  return apiFetch<{ document: Document2Json }>(
+  return apiFetch<{ document: DocumentJson }>(
     `/api/v1/articles/${articleId}/versions/${versionId}/document`,
     getToken,
   );
