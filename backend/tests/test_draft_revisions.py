@@ -446,3 +446,49 @@ def test_removed_legacy_routes_are_absent():
         "/api/v1/articles/{article_id}/draft/revisions/{revision_id}/restore"
         in paths
     )
+
+
+def test_round2_preserves_structured_math_wire_json_in_immutable_revision(db_and_storage):
+    db, user, objects = db_and_storage
+    article = article_service.create_article(db, user.id, "معادلات", None)
+    current = article_draft_service.get_draft(db, article.id, actor(user))
+    math_object = {
+        "node_type": "MathObject",
+        "math_mode": "$",
+        "lines": [{
+            "node_type": "ChainClass",
+            "chain": [{"node_type": "CharObject", "expr": "س"}],
+        }],
+        "closing": "$",
+        "source_side": "arabic",
+        "source_owner": "imported-structured",
+        "label_enabled": False,
+    }
+    block = {
+        "id": "block-1",
+        "command": "\\paragraph",
+        "value": "السرعة $س$",
+        "inline_ids": {
+            "field_id": "field-1",
+            "tokens": [{"id": "math-1", "kind": "math", "start": 7, "end": 10}],
+        },
+        "math_objects": [math_object],
+        "metadata": {"source": "agent"},
+    }
+    document = {**current["document"], "blocks": [block]}
+
+    saved = article_draft_service.put_draft(
+        db, article.id, actor(user), current["revision_number"], document
+    )
+    db.refresh(article)
+    revision = article_draft_service.get_current_revision(db, article)
+
+    assert saved["document"] == document
+    assert revision.storage_key == (
+        f"articles/{article.id}/draft/revisions/{revision.id}/document.json"
+    )
+    assert objects[revision.storage_key] == document
+    assert article_draft_service.read_document(revision) == document
+    assert revision.document_hash == article_draft_service.request_hash(document)
+    assert "document2" not in document
+    assert block["math_objects"][0] == math_object
