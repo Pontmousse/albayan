@@ -13,7 +13,7 @@ describe("draft history UI contract", () => {
     expect(source).toContain("عرض المراجعة كاملة");
     expect(source).toContain("previewOpen && previewDocument");
     expect(source).toContain("selected.is_current && currentDocument && !latestChangesUnsaved");
-    expect(source).toContain("sm:max-w-[96rem]");
+    expect(source).toContain("md:max-w-[96rem]");
 
     for (const kind of [
       "added",
