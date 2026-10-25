@@ -46,7 +46,7 @@ def test_projects_math_object_through_private_worker_endpoint() -> None:
 
     assert result == projected
     args, kwargs = client.__enter__.return_value.post.call_args
-    assert args[0] == "/v1/document2/math-object/english"
+    assert args[0] == "/v1/document/math-object/english"
     assert kwargs["json"] == {"math_object": source}
     assert kwargs["headers"]["Authorization"] == "Bearer secret"
 
