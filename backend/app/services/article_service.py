@@ -102,7 +102,7 @@ def create_article(
         article_draft_service.empty_document(title, abstract)
     )
     canonical_title, canonical_abstract = article_draft_service.document_metadata(document)
-    # Empty Document2 must still pass the same export validation as later saves.
+    # Empty Document must still pass the same export validation as later saves.
     _, asset_ids = butex_worker_client.export_document(document)
     if asset_ids:
         raise HTTPException(status_code=422, detail="المسودة الأولية غير صالحة.")

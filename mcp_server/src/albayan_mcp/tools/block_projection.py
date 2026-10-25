@@ -1,4 +1,4 @@
-"""Compact MCP-only projection for canonical Document2 block reads."""
+"""Compact MCP-only projection for canonical Document block reads."""
 
 from __future__ import annotations
 

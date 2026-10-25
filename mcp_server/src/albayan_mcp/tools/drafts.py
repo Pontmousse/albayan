@@ -33,7 +33,7 @@ McpDocumentCommand = Annotated[
     DocumentCommand,
     Field(
         description=(
-            "One targeted Document2 operation selected by its op discriminator. "
+            "One targeted Document operation selected by its op discriminator. "
             "For math insert/replace, call get_math_authoring_capabilities first, restrict "
             "generated canonical LaTeX to round_trip_safe, then prefer "
             "{kind:'math', latex, display, label}; do not construct recursive MathObject JSON."
@@ -181,7 +181,7 @@ def register_draft_tools(server: MCPServer) -> None:
         name="get_draft_blocks",
         title="Article draft blocks",
         description=(
-            "Read compact Document2 prose/structure plus stable block, field, token, list, and "
+            "Read compact Document prose/structure plus stable block, field, token, list, and "
             "table identities for precise edits. Recursive equation MathObject payloads are "
             "omitted; use get_draft_equations for equation details. Never manufacture IDs."
         ),
@@ -194,7 +194,7 @@ def register_draft_tools(server: MCPServer) -> None:
         name="get_draft_references",
         title="Article draft bibliography references",
         description=(
-            "Read the current canonical Document2 bibliography catalog through FastAPI. "
+            "Read the current canonical Document bibliography catalog through FastAPI. "
             "This is a pure read: it needs no command_id or base_revision and creates no revision."
         ),
     )
@@ -225,7 +225,7 @@ def register_draft_tools(server: MCPServer) -> None:
         name="apply_draft_command",
         title="Apply one draft command",
         description=(
-            "Create an immutable draft revision with one typed Document2 command. Pass the "
+            "Create an immutable draft revision with one typed Document command. Pass the "
             "latest revision_number and a fresh command_id. Before generating new math, call "
             "get_math_authoring_capabilities and restrict canonical LaTeX to round_trip_safe. "
             "For math insert/replace, send that ordinary canonical LaTeX in the compact math "

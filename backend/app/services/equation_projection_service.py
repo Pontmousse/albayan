@@ -1,4 +1,4 @@
-"""Compact read-only projection of Document2 math tokens for AI/MCP consumers."""
+"""Compact read-only projection of Document math tokens for AI/MCP consumers."""
 
 from __future__ import annotations
 

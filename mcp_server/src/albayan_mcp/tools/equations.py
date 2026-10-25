@@ -70,7 +70,7 @@ def register_equation_tools(server: MCPServer) -> None:
         description=(
             "Call this pure-read tool before generating new equation LaTeX. It returns the "
             "canonical ordinary English-LaTeX whitelist that the current Albayan -> Burhan -> "
-            "Document2 path can author safely, plus syntax that Burhan can parse/build but that "
+            "Document path can author safely, plus syntax that Burhan can parse/build but that "
             "is not reliable for editor round-trip. Restrict newly generated math to "
             "round_trip_safe. Read preferred_submission.semantic_conventions for the agreed "
             "\\top, \\mathbb, \\mathrm{d}, \\mathtt and \\mathsf meanings. Their tested "
