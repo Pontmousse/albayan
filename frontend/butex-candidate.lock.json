@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "gitlab_project": "drghaliasri/butex",
+  "gitlab_project_id": 81868173,
+  "gitlab_commit": "135e00f3258709ce7804fc587df9ce1928f18d02",
+  "gitlab_pipeline_id": 2986892415,
+  "gitlab_job_id": 17450490101,
+  "package_name": "@drghaliasri/butex",
+  "package_version": "7.4.3",
+  "tarball_sha256": "c26adda8a4b2cf3fed9a3482c6566ed5823cc1b69997d21d05139e7df2dbac1d"
+}
