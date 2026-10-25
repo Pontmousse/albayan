@@ -24,7 +24,7 @@ WORKER_CLI = (
     / "@drghaliasri"
     / "butex"
     / "dist"
-    / "document2-cli.js"
+    / "document-cli.js"
 )
 NODE = shutil.which("node")
 
