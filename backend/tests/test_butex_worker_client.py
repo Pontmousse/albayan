@@ -39,7 +39,7 @@ class BuTeXWorkerClientTests(unittest.TestCase):
 
         self.assertEqual(result, ("\\documentclass{article}", ["assets/a.png"]))
         args, kwargs = client.__enter__.return_value.post.call_args
-        self.assertEqual(args[0], "/v1/document2/export")
+        self.assertEqual(args[0], "/v1/document/export")
         self.assertEqual(kwargs["json"], {"document": {"blocks": []}})
 
     def test_reads_reference_catalog_from_worker(self) -> None:
@@ -69,7 +69,7 @@ class BuTeXWorkerClientTests(unittest.TestCase):
 
         self.assertEqual(result, references)
         args, kwargs = client.__enter__.return_value.post.call_args
-        self.assertEqual(args[0], "/v1/document2/references")
+        self.assertEqual(args[0], "/v1/document/references")
         self.assertEqual(kwargs["json"], {"document": document})
 
     def test_reads_reference_index_from_worker(self) -> None:
@@ -128,7 +128,7 @@ class BuTeXWorkerClientTests(unittest.TestCase):
 
         self.assertEqual(result, reference_index)
         args, kwargs = client.__enter__.return_value.post.call_args
-        self.assertEqual(args[0], "/v1/document2/reference-index")
+        self.assertEqual(args[0], "/v1/document/reference-index")
         self.assertEqual(kwargs["json"], {"document": document})
 
     def test_rejects_malformed_reference_index_success(self) -> None:
@@ -237,7 +237,7 @@ class BuTeXWorkerClientTests(unittest.TestCase):
         self.assertEqual(document, {"node_type": "DocumentObject", "blocks": []})
         client.__enter__.return_value.post.assert_called_once()
         args, kwargs = client.__enter__.return_value.post.call_args
-        self.assertEqual(args[0], "/v1/document2/commands")
+        self.assertEqual(args[0], "/v1/document/commands")
         self.assertEqual(kwargs["headers"]["Authorization"], "Bearer secret")
         self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
         self.assertEqual(kwargs["headers"]["X-Request-ID"], "albayan-backend")
