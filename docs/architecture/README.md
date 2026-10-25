@@ -26,7 +26,7 @@
 
 ## Preserved proposals (not shipped)
 
-- [BuTeX Document legacy naming cleanup](../proposals/butex-document-naming.md): historical proposal; implemented in unmerged migration review branches, not yet deployed or released.
+- [BuTeX Document legacy naming cleanup](../development/document-migration-round-6-handoff.md): historical proposal; implemented in unmerged migration review branches, not yet deployed or released.
 - [Book authoring in Al-Bayan](../proposals/book-authoring.md) and [BuTeX book plan](https://gitlab.com/drghaliasri/butex/-/blob/develop/docs/book-editor-plan.md): proposed book/unit model and editor, not present-day routes or models.
 
 ## Primary source entrypoints
