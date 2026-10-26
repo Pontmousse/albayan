@@ -38,13 +38,13 @@ describe("focused article editor chrome", () => {
       'digitForm={numeralSystem === "latn" ? "western" : "arabicIndic"}',
     );
     expect(globals).toContain(
-      ".albayan-butex-theme .butex-document2-widget__digit-form-menu",
+      ".albayan-butex-theme .butex-document-widget__digit-form-menu",
     );
     expect(globals).toContain(
       ".albayan-butex-theme .butex-widget .digit-form-menu",
     );
     expect(globals).toContain(
-      ".butex-document2-widget__command-grid--digits",
+      ".butex-document-widget__command-grid--digits",
     );
   });
 

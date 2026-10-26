@@ -96,7 +96,7 @@ canonical LaTeX
   -> Al-Bayan dev diagnostic endpoint
   -> Burhan /convert
   -> Al-Bayan editor-shaped MathObject projection
-  -> Document2 worker command path
+  -> Document worker command path
   -> BuTeX headless MathObject/editor adapter
   -> optional Burhan /convert-to-english
 ```
@@ -124,7 +124,7 @@ Discovers named suites and their CI policy. Initial suites are:
 - `equations-smoke`;
 - `equations-adjacency`;
 - `equations-common-scientific`;
-- `document2-roundtrip`;
+- `document-roundtrip`;
 - `burhan-tier-comparison`.
 
 Mandatory CI validates the suite registry, report behavior, redaction and orchestration **offline**. Live development-service execution is opt-in. Nondeterministic LLM-backed results are diagnostic evidence and are not mandatory merge gates.
@@ -186,7 +186,7 @@ Correlation uses:
 X-Trace-Id: <safe correlation identifier>
 ```
 
-The Dev MCP generates or accepts a safe trace ID, Al-Bayan preserves/echoes it, and Al-Bayan propagates it across Burhan and Document2/BuTeX boundaries where those clients are used. Trace IDs are observability metadata only and never authorize access.
+The Dev MCP generates or accepts a safe trace ID, Al-Bayan preserves/echoes it, and Al-Bayan propagates it across Burhan and Document/BuTeX boundaries where those clients are used. Trace IDs are observability metadata only and never authorize access.
 
 Known gaps are reported rather than invented. The process-local default trace source is not durable audit storage and cannot by itself aggregate every service process.
 

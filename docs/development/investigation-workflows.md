@@ -38,14 +38,14 @@ Lists the registered suites and CI policy. The initial registry contains:
 | `equations-smoke` | Small representative pipeline smoke set | No |
 | `equations-adjacency` | `dx`, `df`, `kx`, coefficient/matrix adjacency regressions | No |
 | `equations-common-scientific` | Common operators, derivatives, typography and environments | No |
-| `document2-roundtrip` | Document2 insertion, BuTeX reopen and reverse conversion probes | No |
+| `document-roundtrip` | Document insertion, BuTeX reopen and reverse conversion probes | No |
 | `burhan-tier-comparison` | Heuristic/cheap/medium comparison on a bounded subset | No; nondeterministic/provider-backed |
 
 Suite registration/schema tests are offline and mandatory. Live development-service execution is explicitly opt-in. LLM-backed output is diagnostic evidence, not a brittle mandatory merge oracle.
 
 ### `dev_run_regression_suite`
 
-Runs a named suite through existing Phase 3 diagnostics. It does not duplicate Burhan parsing, Al-Bayan projection, Document2 logic, or BuTeX editor import.
+Runs a named suite through existing Phase 3 diagnostics. It does not duplicate Burhan parsing, Al-Bayan projection, Document logic, or BuTeX editor import.
 
 A run returns:
 

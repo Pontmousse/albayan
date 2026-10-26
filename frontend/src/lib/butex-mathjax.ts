@@ -26,12 +26,12 @@ export function ensureButexMathJax(): Promise<void> {
   if (bootPromise) return bootPromise;
 
   bootPromise = (async () => {
-    const [butex, reactDocument2] = await Promise.all([
+    const [butex, reactDocument] = await Promise.all([
       import("@drghaliasri/butex"),
-      import("@drghaliasri/butex/react-document2"),
+      import("@drghaliasri/butex/react-document"),
     ]);
 
-    reactDocument2.injectBuTeXDocument2Styles(document);
+    reactDocument.injectBuTeXDocumentStyles(document);
 
     const win = window as unknown as {
       MathJax?: { startup?: { promise?: Promise<unknown> } };

@@ -1,4 +1,4 @@
-import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
+import type { ImageAssetRef } from "@drghaliasri/butex/react-document";
 import type { ArticleAssetSummary } from "./api/articles";
 
 const IMAGE_TYPE_LABELS: Record<string, string> = {

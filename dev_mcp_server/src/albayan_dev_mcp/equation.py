@@ -17,7 +17,7 @@ _STAGE_NAMES = (
     "canonical_input",
     "burhan_conversion",
     "albayan_projection",
-    "document2_command",
+    "document_command",
     "headless_butex_validation",
     "reverse_conversion",
     "browser_validation",

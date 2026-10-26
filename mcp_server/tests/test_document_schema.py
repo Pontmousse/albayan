@@ -9,7 +9,7 @@ from typing import get_type_hints
 from mcp.server.mcpserver import MCPServer
 from pydantic import TypeAdapter
 
-from albayan_mcp.schemas.document2 import DocumentCommand, DocumentMathObjectJson
+from albayan_mcp.schemas.document import DocumentCommand, DocumentMathObjectJson
 from albayan_mcp.tools.drafts import register_draft_tools
 from tests.test_profile_tools import FakeServer
 
@@ -59,7 +59,7 @@ def _without_documentation(value):
     return value
 
 
-class Document2McpSchemaTests(unittest.TestCase):
+class DocumentMcpSchemaTests(unittest.TestCase):
     def test_command_schema_is_discriminated_and_has_all_29_variants(self) -> None:
         schema = TypeAdapter(DocumentCommand).json_schema()
 
@@ -155,7 +155,7 @@ class Document2McpSchemaTests(unittest.TestCase):
         backend_path = str(repository / "backend")
         sys.path.insert(0, backend_path)
         try:
-            from app.schemas.document2 import DocumentCommand as BackendDocumentCommand
+            from app.schemas.document import DocumentCommand as BackendDocumentCommand
 
             backend_schema = TypeAdapter(BackendDocumentCommand).json_schema()
         finally:
@@ -175,7 +175,7 @@ class Document2McpSchemaTests(unittest.TestCase):
         ).lower()
 
         for forbidden in (
-            "/v1/document2/",
+            "/v1/document/",
             "butex_worker_token",
             "butex_worker_url",
             "sqlalchemy",

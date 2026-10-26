@@ -21,7 +21,7 @@ Burhan /convert: parse and convert supported canonical LaTeX
 FastAPI: validate/project returned Arabic structured MathObject
        |
        v
-BuTeX Document2 worker: apply inline-token command to Document2Json
+BuTeX Document worker: apply inline-token command to DocumentJson
        |
        v
 Immutable ArticleDraftRevision document.json
@@ -40,7 +40,7 @@ BuTeX browser editor / MathJax render and edit Arabic mathematics
 
 **Burhan.** The [Burhan repository](https://gitlab.com/drghaliasri/burhan3.0/-/tree/develop) owns parsing/conversion and its supported syntax. A general mathematical expression that ordinary LaTeX can represent is **not automatically guaranteed** to work through Burhan and BuTeX; use capability discovery and regression evidence rather than assumptions.
 
-**BuTeX.** The [BuTeX repository](https://gitlab.com/drghaliasri/butex/-/tree/develop) owns the Document2 AST/worker, the structured equation editor and MathJax registration/rendering. Al-Bayan consumes its current `document2` / `react-document2` interfaces; the [naming cleanup is proposed](../proposals/butex-document2-naming.md), not applied.
+**BuTeX.** The [BuTeX repository](https://gitlab.com/drghaliasri/butex/-/tree/develop) owns the Document AST/worker, the structured equation editor and MathJax registration/rendering. Al-Bayan's unmerged Round 6 review branch consumes the canonical `document` and `react-document` interfaces; deployment and release require separate approval.
 
 ## Reverse/diagnostic reads
 
@@ -52,6 +52,6 @@ The [Developer MCP](mcp.md) and separate browser testing can inspect individual 
 
 - [Math capability implementation](../../backend/app/services/math_authoring_capabilities.py)
 - [Math capabilities endpoint](../../backend/app/routers/math_authoring.py)
-- [Current math/Document2 verification procedure](../development/math-verification.md) — normal MCP, Dev MCP, browser and compile evidence
+- [Current math/Document verification procedure](../development/math-verification.md) — normal MCP, Dev MCP, browser and compile evidence
 - [BuTeX worker client](../../backend/app/services/butex_worker_client.py)
 - [Burhan client](../../backend/app/services/burhan_client.py)

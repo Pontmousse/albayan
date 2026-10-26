@@ -198,7 +198,7 @@ VALID_COMMANDS = [
 ]
 
 
-class Document2CommandSchemaTests(unittest.TestCase):
+class DocumentCommandSchemaTests(unittest.TestCase):
     def _payload(self, command: dict) -> DocumentCommandPayload:
         return DocumentCommandPayload(
             command_id=uuid.uuid4(),

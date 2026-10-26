@@ -4,7 +4,7 @@ Burhan deliberately preserves unknown command tokens, so parser acceptance alone
 not a useful authoring contract. This snapshot is the conservative intersection of:
 
 * Burhan canonical-English parsing/conversion at BURHAN_COMMIT;
-* Albayan's strict Document2 MathObject bridge; and
+* Albayan's strict Document MathObject bridge; and
 * BuTeX editor re-import support at BUTEX_COMMIT.
 
 When either upstream changes, review the source files listed in ``SOURCE_SNAPSHOT``,
@@ -65,10 +65,10 @@ SOURCE_SNAPSHOT: dict[str, Any] = {
             "src/editor/rawOperatorPresentation.ts",
             "src/editor/display/delimiter.ts",
             "src/editor/display/boxed.ts",
-            "src/document2/mathBridge.ts",
-            "src/document2/mathObject.ts",
+            "src/document/mathBridge.ts",
+            "src/shared/math-document/mathObject.ts",
             "src/ast/arabic_ast.ts",
-            "src/document2-cli/execute.ts",
+            "src/document-cli/execute.ts",
             "test/standard_commands.test.ts",
             "test/vertical_delimiter_import.test.ts",
             "test/boxed_command.test.ts",
@@ -315,7 +315,7 @@ CAPABILITIES: dict[str, Any] = {
     "representation": "canonical_english_latex",
     "instruction": (
         "Before authoring new equations, use only round_trip_safe syntax below. "
-        "Send ordinary canonical LaTeX through the compact Document2 math token. "
+        "Send ordinary canonical LaTeX through the compact Document math token. "
         "Never emit Burhan/BuTeX Arabic-side or output-only macros. Any command not "
         "advertised in round_trip_safe is outside the AI authoring contract, even if "
         "Burhan's permissive parser happens to tokenize it. "

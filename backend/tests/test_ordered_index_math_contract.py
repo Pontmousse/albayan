@@ -1,4 +1,4 @@
-"""Document2 math tokens retain ordered-index wrappers without schema extensions."""
+"""Document math tokens retain ordered-index wrappers without schema extensions."""
 
 import pytest
 
@@ -53,7 +53,7 @@ def explicit_indices(*atoms):
         ),
     ],
 )
-def test_marked_indices_survive_existing_document2_wire_schema(base, script, expected_count):
+def test_marked_indices_survive_existing_document_wire_schema(base, script, expected_count):
     base["superscript"] = chain(script)
     tree = {
         "node_type": "MathObject",

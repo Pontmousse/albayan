@@ -213,7 +213,7 @@ def test_contract_pins_reviewed_upstream_revisions_and_reject_examples() -> None
 def test_every_advertised_form_is_accepted_by_live_albayan_burhan_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Exercise the exact client used before Document2 insertion for every whitelist entry."""
+    """Exercise the exact client used before Document insertion for every whitelist entry."""
 
     monkeypatch.setattr(burhan_client.settings, "burhan_url", os.environ["BURHAN_URL"])
     # Contract verification must use the same deterministic policy as production

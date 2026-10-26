@@ -17,7 +17,7 @@ def diagnose_math_object(math_object: Mapping[str, Any]) -> dict[str, Any]:
     not reproduce any equation parsing/editor rules.
     """
     payload = butex_worker_client._post(  # noqa: SLF001 - same trusted worker boundary
-        "/v1/document2/diagnostics/math-object",
+        "/v1/document/diagnostics/math-object",
         {"math_object": dict(math_object)},
     )
     if not isinstance(payload, dict) or payload.get("ok") is not True:

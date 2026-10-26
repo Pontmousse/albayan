@@ -86,10 +86,10 @@ def _missing_downstream(reason: str, human_action: str) -> dict[str, Any]:
 def _extract_field_id(document: dict[str, Any]) -> str:
     blocks = document.get("blocks")
     if not isinstance(blocks, list) or not blocks or not isinstance(blocks[0], dict):
-        raise HTTPException(status_code=502, detail="Document2 worker did not create a paragraph block.")
+        raise HTTPException(status_code=502, detail="Document worker did not create a paragraph block.")
     inline_ids = blocks[0].get("inline_ids")
     if not isinstance(inline_ids, dict) or not isinstance(inline_ids.get("field_id"), str):
-        raise HTTPException(status_code=502, detail="Document2 worker did not expose a paragraph field id.")
+        raise HTTPException(status_code=502, detail="Document worker did not expose a paragraph field id.")
     return inline_ids["field_id"]
 
 
@@ -102,7 +102,7 @@ def inspect_equation(
 ) -> dict[str, Any]:
     """Run one equation through every deterministic stage currently observable.
 
-    This function writes no article/database state. The temporary Document2
+    This function writes no article/database state. The temporary Document
     value exists only in memory and is sent to the stateless BuTeX worker.
     """
     report: dict[str, Any] = {
@@ -144,7 +144,7 @@ def inspect_equation(
         action = human_action or "Resolve the Burhan conversion failure before inspecting downstream stages."
         for name in (
             "albayan_projection",
-            "document2_command",
+            "document_command",
             "headless_butex_validation",
             "reverse_conversion",
             "round_trip_equivalence",
@@ -194,7 +194,7 @@ def inspect_equation(
         },
     )
 
-    document2_ok = False
+    document_ok = False
     try:
         document = butex_worker_client.normalize_document(
             {"node_type": "DocumentObject", "blocks": []}
@@ -217,7 +217,7 @@ def inspect_equation(
             "anchor": {"end": True},
         }
         result_document = butex_worker_client.apply_document_command(document, command)
-        stages["document2_command"] = _stage(
+        stages["document_command"] = _stage(
             available=True,
             ok=True,
             authoritative=True,
@@ -226,15 +226,15 @@ def inspect_equation(
                 "result_document": result_document,
             },
         )
-        document2_ok = True
+        document_ok = True
     except HTTPException as exc:
         unavailable, human_action = _unavailable_from_http(exc)
-        stages["document2_command"] = _stage(
+        stages["document_command"] = _stage(
             available=not unavailable,
             ok=None if unavailable else False,
             authoritative=True,
             error=_bounded_error(exc),
-            reason="document2_worker_unavailable" if unavailable else "document2_command_failed",
+            reason="document_worker_unavailable" if unavailable else "document_command_failed",
             human_action=human_action,
         )
 
@@ -398,7 +398,7 @@ def inspect_equation(
         human_action="Use Playwright MCP for real browser/editor/render validation; Dev MCP does not proxy browser control.",
     )
 
-    report["ok"] = document2_ok and headless_ok and reverse_ok and equivalence_ok
+    report["ok"] = document_ok and headless_ok and reverse_ok and equivalence_ok
     report["partial"] = any(
         stage.get("available") is False
         for name, stage in stages.items()

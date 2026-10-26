@@ -22,7 +22,7 @@ from app.services.burhan_client import (
 logger = logging.getLogger(__name__)
 
 _TIMEOUT_SECONDS = 45.0
-_DOCUMENT2_ROOT_METADATA = {
+_DOCUMENT_ROOT_METADATA = {
     "source_side",
     "source_owner",
     "label_enabled",
@@ -73,7 +73,7 @@ def convert_math_object_to_english(
     variable_mapping: Mapping[str, str],
     model_tier: str | None = None,
 ) -> tuple[str, list[str]]:
-    """Project one canonical Document2 MathObject to normal English LaTeX."""
+    """Project one canonical Document MathObject to normal English LaTeX."""
     base = settings.burhan_url.rstrip("/")
     if not base:
         raise _error(503, "burhan_unavailable", "خدمة تحويل المعادلات غير مهيأة.")
@@ -81,7 +81,7 @@ def convert_math_object_to_english(
     tree = deepcopy(dict(math_object))
     if tree.get("node_type") != "MathObject":
         raise _error(422, "invalid_math_object", "بنية المعادلة المخزنة غير صالحة.")
-    for key in _DOCUMENT2_ROOT_METADATA:
+    for key in _DOCUMENT_ROOT_METADATA:
         tree.pop(key, None)
 
     payload = {
@@ -135,7 +135,7 @@ def project_math_object_to_canonical_latex(
     *,
     variable_mapping: Mapping[str, str],
 ) -> tuple[str, list[str]]:
-    """Deterministic Document2 → canonical English LaTeX projection."""
+    """Deterministic Document → canonical English LaTeX projection."""
     return convert_math_object_to_english(
         math_object,
         variable_mapping=variable_mapping,

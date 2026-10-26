@@ -17,7 +17,7 @@ describe("development MCP connectors", () => {
   );
 
   it.each(["true", "1", "yes"])(
-    "offers both connectors with copy controls and icon downloads when dev mode is %s",
+    "offers all configured connectors with copy controls and icon downloads when dev mode is %s",
     (value) => {
       vi.stubEnv("NEXT_PUBLIC_DEV_MODE", value);
       const html = renderToStaticMarkup(<DevMcpServerCarousel />);
@@ -28,9 +28,9 @@ describe("development MCP connectors", () => {
         expect(html).toContain(`href="${server.iconPath}"`);
         expect(html).toContain(`download="${server.filename}"`);
       }
-      expect(html.match(/aria-label="نسخ اسم الاتصال"/g)).toHaveLength(2);
-      expect(html.match(/aria-label="نسخ وصف الاتصال"/g)).toHaveLength(2);
-      expect(html.match(/aria-label="نسخ عنوان خادم MCP"/g)).toHaveLength(2);
+      expect(html.match(/aria-label="نسخ اسم الاتصال"/g)).toHaveLength(DEV_MCP_SERVERS.length);
+      expect(html.match(/aria-label="نسخ وصف الاتصال"/g)).toHaveLength(DEV_MCP_SERVERS.length);
+      expect(html.match(/aria-label="نسخ عنوان خادم MCP"/g)).toHaveLength(DEV_MCP_SERVERS.length);
       expect(html).toContain('dir="rtl"');
       expect(html).toContain('aria-label="الموصل التالي"');
       expect(html).toContain('aria-label="الموصل السابق"');

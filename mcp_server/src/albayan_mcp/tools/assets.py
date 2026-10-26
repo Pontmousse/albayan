@@ -99,7 +99,7 @@ def register_asset_tools(server: MCPServer) -> None:
         title="List article image assets",
         description=(
             "List supported images belonging to the article's current version. Use the "
-            "returned stable asset_id values for retrieval or typed Document2 figure "
+            "returned stable asset_id values for retrieval or typed Document figure "
             "commands; never invent storage paths."
         ),
         annotations=read_annotations,

@@ -15,7 +15,7 @@ from fastapi import HTTPException
 
 from app.core.config import settings
 from app.core.tracing import emit_trace_event, trace_headers
-from app.schemas.document2 import DocumentMathObjectJson
+from app.schemas.document import DocumentMathObjectJson
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def _validated_mappings(value: Any) -> dict[str, str]:
 
 
 def _drop_burhan_internal_math_metadata(value: Any) -> None:
-    """Remove Burhan-only annotations that are not part of the Document2 wire AST."""
+    """Remove Burhan-only annotations that are not part of the Document wire AST."""
     if isinstance(value, dict):
         value.pop("arabic_unit", None)
         for child in value.values():
@@ -167,7 +167,7 @@ def _arabic_math_object(
     if tree.get("node_type") != "MathObject":
         raise _error(502, "invalid_burhan_response", "استجابة خدمة تحويل المعادلات غير صالحة.")
 
-    # Burhan's BaseNode includes root script placeholders; Document2 MathObject does not.
+    # Burhan's BaseNode includes root script placeholders; Document MathObject does not.
     tree.pop("superscript", None)
     tree.pop("subscript", None)
     _drop_burhan_internal_math_metadata(tree)
@@ -241,7 +241,7 @@ def convert_latex_to_math_token(
     model_tier: str | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Convert canonical English LaTeX into a structured Arabic Document2 math token."""
+    """Convert canonical English LaTeX into a structured Arabic Document math token."""
     base = settings.burhan_url.rstrip("/")
     if not base:
         raise _UNCONFIGURED
@@ -401,7 +401,7 @@ def convert_canonical_latex_to_math_object(
     unit_conventions: Mapping[str, Any] | None = None,
     diagnostics: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Deterministic canonical → Document2 conversion for interoperability paths."""
+    """Deterministic canonical → Document conversion for interoperability paths."""
     return convert_latex_to_math_token(
         latex,
         display=display,

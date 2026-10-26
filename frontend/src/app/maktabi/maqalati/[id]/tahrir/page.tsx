@@ -4,8 +4,8 @@ import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Document2Json } from "@drghaliasri/butex/document2";
-import type { ImageAssetRef } from "@drghaliasri/butex/react-document2";
+import type { DocumentJson } from "@drghaliasri/butex/document";
+import type { ImageAssetRef } from "@drghaliasri/butex/react-document";
 import {
   ArticleAssetsPanel,
   type ArticleAssetsPanelMode,
@@ -43,10 +43,10 @@ import { userFacingErrorMessage } from "@/lib/user-facing-errors";
 
 type EditorPhase = "loading" | "ready" | "blocked";
 
-const ButexDocumentEditor2 = dynamic(
+const ButexDocumentEditor = dynamic(
   () =>
-    import("@drghaliasri/butex/react-document2").then(
-      (mod) => mod.ButexDocumentEditor2,
+    import("@drghaliasri/butex/react-document").then(
+      (mod) => mod.ButexDocumentEditor,
     ),
   { ssr: false },
 );
@@ -61,7 +61,7 @@ export default function TahrirPage() {
   const [phase, setPhase] = useState<EditorPhase>("loading");
   const [article, setArticle] = useState<ArticleDetail | null>(null);
   const [initialDocument, setInitialDocument] = useState<
-    Document2Json | undefined
+    DocumentJson | undefined
   >(undefined);
   const [error, setError] = useState<string | null>(null);
   const [assetListError, setAssetListError] = useState<string | null>(null);
@@ -87,9 +87,9 @@ export default function TahrirPage() {
   const [unitsOpen, setUnitsOpen] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   /** لقطة JSON قانونية مطابقة لما يُرسل إلى API — للوحة DEV فقط. */
-  const [liveDocument, setLiveDocument] = useState<Document2Json | null>(null);
+  const [liveDocument, setLiveDocument] = useState<DocumentJson | null>(null);
 
-  const latestDocumentJson = useRef<Document2Json | null>(null);
+  const latestDocumentJson = useRef<DocumentJson | null>(null);
   const autosaveController = useRef<DraftAutosaveController | null>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -102,7 +102,7 @@ export default function TahrirPage() {
   const { resolveImageUrl, prefetchFromDocument, ensureAsset } =
     useButexImageResolver(articleId, getToken);
 
-  const syncVisibleMetadata = useCallback((doc: Document2Json) => {
+  const syncVisibleMetadata = useCallback((doc: DocumentJson) => {
     const meta = doc.meta;
     if (!meta || typeof meta.title !== "string") return;
     setArticle((current) => current ? {
@@ -377,7 +377,7 @@ export default function TahrirPage() {
   }, [router]);
 
   const handleDocumentJsonChange = useCallback(
-    (doc: Document2Json) => {
+    (doc: DocumentJson) => {
       latestDocumentJson.current = doc;
       syncVisibleMetadata(doc);
       setDocumentValid(isButexDocumentValid(doc));
@@ -591,7 +591,7 @@ export default function TahrirPage() {
         ) : null}
 
         {phase === "ready" ? (
-          <ButexDocumentEditor2
+          <ButexDocumentEditor
             key={editorKey}
             className={ALBAYAN_BUTEX_THEME_CLASS}
             initialDocument={initialDocument}

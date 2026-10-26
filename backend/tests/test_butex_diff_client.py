@@ -48,7 +48,7 @@ def test_diff_documents_uses_document2_diff_contract() -> None:
     assert result["version"] == 1
     assert result["changed"] is True
     args, kwargs = client.__enter__.return_value.post.call_args
-    assert args[0] == "/v1/document2/diff"
+    assert args[0] == "/v1/document/diff"
     assert kwargs["json"] == {"before": before, "after": after}
 
 

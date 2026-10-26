@@ -214,7 +214,7 @@ class ArticleDraftRevision(Base):
     referenced_asset_ids: Mapped[list[str] | None] = mapped_column(
         JSON, nullable=True
     )
-    # Immutable article-specific state used when this Document2 revision was made.
+    # Immutable article-specific state used when this Document revision was made.
     unit_conventions: Mapped[dict] = mapped_column(
         JSON,
         default=lambda: {"overrides": {}, "custom_units": {}},

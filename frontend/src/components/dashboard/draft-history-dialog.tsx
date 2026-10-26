@@ -1,6 +1,6 @@
 "use client";
 
-import type { Document2Json } from "@drghaliasri/butex/document2";
+import type { DocumentJson } from "@drghaliasri/butex/document";
 import {
   ArrowLeftRight,
   ChevronRight,
@@ -188,7 +188,7 @@ export function DraftHistoryDialog({
   onClose: () => void;
   onRestore: (revision: DraftRevisionHistoryItem) => Promise<void>;
   latestChangesUnsaved?: boolean;
-  currentDocument?: Document2Json | null;
+  currentDocument?: DocumentJson | null;
 }) {
   const { formatDateTime, formatDigits } = useNumerals();
   const [revisions, setRevisions] = useState<DraftRevisionHistoryItem[]>([]);
@@ -197,7 +197,7 @@ export function DraftHistoryDialog({
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [summaryUnavailable, setSummaryUnavailable] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewDocument, setPreviewDocument] = useState<Document2Json | null>(null);
+  const [previewDocument, setPreviewDocument] = useState<DocumentJson | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [loadingList, setLoadingList] = useState(false);

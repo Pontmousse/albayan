@@ -109,7 +109,7 @@ def register_article_tools(server: MCPServer) -> None:
         title="Get draft article details",
         description=(
             "Read typed article and version metadata for an article owned by the authenticated "
-            "user. Use the Document2 draft inspection tools for block contents and stable IDs."
+            "user. Use the Document draft inspection tools for block contents and stable IDs."
         ),
     )
     async def get_article(article_id: ArticleId) -> ArticleDetailResult:
@@ -122,7 +122,7 @@ def register_article_tools(server: MCPServer) -> None:
         description=(
             "Update the title and/or abstract of an owned draft. Provide at least one field; an "
             "empty abstract clears it. FastAPI synchronizes the authoritative Article row and "
-            "the canonical Document2 draft as a new immutable revision. Re-inspect the draft "
+            "the canonical Document draft as a new immutable revision. Re-inspect the draft "
             "before the next structured edit. This tool cannot edit authors or submit an article."
         ),
     )

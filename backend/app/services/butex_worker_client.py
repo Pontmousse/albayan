@@ -283,38 +283,38 @@ def _post(path: str, payload: dict[str, Any]) -> Any:
 
 def normalize_document(document: dict[str, Any]) -> dict[str, Any]:
     return _require_success_document(
-        _post("/v1/document2/normalize", {"document": document})
+        _post("/v1/document/normalize", {"document": document})
     )
 
 
 def outline_document(document: dict[str, Any]) -> list[dict[str, Any]]:
     return _require_success_outline(
-        _post("/v1/document2/outline", {"document": document})
+        _post("/v1/document/outline", {"document": document})
     )
 
 
 def reference_document(document: dict[str, Any]) -> list[dict[str, Any]]:
     return _require_success_references(
-        _post("/v1/document2/references", {"document": document})
+        _post("/v1/document/references", {"document": document})
     )
 
 
 def reference_index_document(document: dict[str, Any]) -> dict[str, Any]:
     return _require_success_reference_index(
-        _post("/v1/document2/reference-index", {"document": document})
+        _post("/v1/document/reference-index", {"document": document})
     )
 
 
 def export_document(document: dict[str, Any]) -> tuple[str, list[str]]:
     return _require_success_export(
-        _post("/v1/document2/export", {"document": document})
+        _post("/v1/document/export", {"document": document})
     )
 
 
 def project_math_object_to_english(math_object: dict[str, Any]) -> dict[str, Any]:
     return _require_success_english_math_object(
         _post(
-            "/v1/document2/math-object/english",
+            "/v1/document/math-object/english",
             {"math_object": math_object},
         )
     )
@@ -324,7 +324,7 @@ def diff_documents(
     before: dict[str, Any], after: dict[str, Any]
 ) -> dict[str, Any]:
     return _require_success_diff(
-        _post("/v1/document2/diff", {"before": before, "after": after})
+        _post("/v1/document/diff", {"before": before, "after": after})
     )
 
 
@@ -334,7 +334,7 @@ def apply_document_command(
 ) -> dict[str, Any]:
     return _require_success_document(
         _post(
-            "/v1/document2/commands",
+            "/v1/document/commands",
             {"document": document, "command": command},
         )
     )

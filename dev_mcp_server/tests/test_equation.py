@@ -37,7 +37,7 @@ def _report(trace_id: str = "trace-equation") -> dict:
                 "ok": True,
                 "data": {"editor_math_object": {"node_type": "MathObject"}},
             },
-            "document2_command": {"available": True, "ok": True, "data": {}},
+            "document_command": {"available": True, "ok": True, "data": {}},
             "headless_butex_validation": {
                 "available": True,
                 "ok": True,

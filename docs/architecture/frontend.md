@@ -13,12 +13,12 @@ The browser application under [`frontend/`](../../frontend/) uses Next.js App Ro
 
 ## Article editor
 
-The current editor imports **`Document2Json`** from `@drghaliasri/butex/document2` and dynamically mounts **`ButexDocumentEditor2`** from `@drghaliasri/butex/react-document2`. These are the *actual current names*, even though [a cleanup/rename is proposed](../proposals/butex-document2-naming.md).
+The current editor imports **`DocumentJson`** from `@drghaliasri/butex/document` and dynamically mounts **`ButexDocumentEditor`** from `@drghaliasri/butex/react-document`. These are the *actual current names*, even though [a cleanup/rename is proposed](../proposals/butex-document-naming.md).
 
 The editing page coordinates:
 
 1. Loading the article and latest authoritative draft revision via authenticated API calls.
-2. A local BuTeX Document2 editor and document-validity checks.
+2. A local BuTeX Document editor and document-validity checks.
 3. Autosave through [`src/lib/draft-autosave.ts`](../../frontend/src/lib/draft-autosave.ts), with revision-aware conflict handling.
 4. Supporting panels for images/assets, equation mappings, unit conventions, revision history and submission.
 5. BuTeX/MathJax setup and preview rendering through browser-side integration helpers.
@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-For backend/worker ownership and revision semantics, see [Backend](backend.md), [Article authoring](authoring.md), and [Document2/images](document-assets.md).
+For backend/worker ownership and revision semantics, see [Backend](backend.md), [Article authoring](authoring.md), and [Document/images](document-assets.md).
 
 ## Primary source
 

@@ -37,7 +37,7 @@ def put_unit_conventions(
     normalized = unit_conventions_service.validated_unit_conventions(payload.model_dump())
     # Registry discovery is remote I/O; do it before acquiring the row lock.
     unit_conventions_service.validate_registry_membership(normalized)
-    # Serialize edits with Document2 creation. A concurrent conversion detects
+    # Serialize edits with Document creation. A concurrent conversion detects
     # conventions changed under its feet rather than saving a mismatched AST.
     article = db.scalar(
         select(Article)

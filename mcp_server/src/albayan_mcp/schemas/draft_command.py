@@ -4,8 +4,8 @@ from typing import Annotated, ClassVar, Literal
 
 from pydantic import Field, model_validator
 
-from albayan_mcp.schemas.document2 import (
-    Document2ContractModel,
+from albayan_mcp.schemas.document import (
+    DocumentContractModel,
     DocumentCitationInlineToken,
     DocumentInlineAnchor,
     DocumentMathInlineToken,
@@ -42,7 +42,7 @@ from albayan_mcp.schemas.document2 import (
 )
 
 
-class DocumentMathAuthoringInlineToken(Document2ContractModel):
+class DocumentMathAuthoringInlineToken(DocumentContractModel):
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"label"})
 
     kind: Literal["math"]
@@ -66,14 +66,14 @@ DocumentDraftInlineTokenInput = (
 )
 
 
-class InsertInlineTokenCommand(Document2ContractModel):
+class InsertInlineTokenCommand(DocumentContractModel):
     op: Literal["insert_inline_token"]
     field_id: NonBlankString
     token: DocumentDraftInlineTokenInput
     anchor: DocumentInlineAnchor
 
 
-class ReplaceInlineTokenCommand(Document2ContractModel):
+class ReplaceInlineTokenCommand(DocumentContractModel):
     op: Literal["replace_inline_token"]
     field_id: NonBlankString
     token_id: NonBlankString
