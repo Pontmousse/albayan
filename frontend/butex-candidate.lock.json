@@ -2,10 +2,10 @@
   "schema_version": 1,
   "gitlab_project": "drghaliasri/butex",
   "gitlab_project_id": 81868173,
-  "gitlab_commit": "a1fb1dd22e0e9f7422d8c4bf0a8b61af97efab52",
-  "gitlab_pipeline_id": 2987067919,
-  "gitlab_job_id": 17451490053,
+  "gitlab_commit": "19de884494bed44e4633e12a9415ae7033586c02",
+  "gitlab_pipeline_id": 2991751754,
+  "gitlab_job_id": 17484639839,
   "package_name": "@drghaliasri/butex",
-  "package_version": "7.4.3",
-  "tarball_sha256": "775bbae4287ee7dac29c5e72a155102e5c0f01cd5afaa7f6fadf0ec9e3630050"
+  "package_version": "8.0.0",
+  "tarball_sha256": "495c76686c17282273c88a72a8af3a7be58e4670a1fd1a92dcbd0bf47c71dc19"
 }
