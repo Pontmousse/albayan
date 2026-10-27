@@ -35,6 +35,16 @@ def test_math_authoring_contract_is_deterministic_schema_valid_and_isolated() ->
     assert second["representation"] == "canonical_english_latex"
 
 
+def test_canonical_thin_spacing_is_a_real_dedicated_authoring_command() -> None:
+    # Requires the matching BuTeX spacing command/editor MR !71; coordinate
+    # deployment before advertising this capability through normal MCP.
+    contract = get_math_authoring_capabilities()
+    spacing = contract["round_trip_safe"]["commands"]["spacing"]
+    assert r"\\," in spacing
+    assert spacing.index(r"\\,") < spacing.index(r"\\:")
+    assert (r"x\\,y", False, r"\\,") in burhan_verification_cases()
+
+
 def test_every_advertised_command_has_exactly_one_burhan_verification_case() -> None:
     advertised = advertised_round_trip_commands()
     assert len(advertised) == len(set(advertised))
