@@ -36,14 +36,14 @@ def test_diagnostic_contract_reuses_private_worker_auth_and_route(monkeypatch):
         observed.append((path, payload))
         return {
             "ok": True,
-            "contract": {"service": "butex-document2", "routes": {"normalize": "/v1/document2/normalize"}},
+            "contract": {"service": "butex-document", "routes": {"normalize": "/v1/document/normalize"}},
         }
 
     monkeypatch.setattr(document_diagnostic_service.butex_worker_client, "_post", fake_post)
     report = document_diagnostic_service.inspect_document("diagnose_contract", {})
     assert report["ok"] is True
-    assert report["data"]["routes"]["normalize"] == "/v1/document2/normalize"
-    assert observed == [("/v1/document2/diagnostics/contract", {})]
+    assert report["data"]["routes"]["normalize"] == "/v1/document/normalize"
+    assert observed == [("/v1/document/diagnostics/contract", {})]
 
 
 def test_expected_validation_error_is_observed_failure_not_success(monkeypatch):
