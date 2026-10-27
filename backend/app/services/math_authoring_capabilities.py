@@ -173,7 +173,7 @@ ACCENTS = [
     r"\overleftarrow", r"\overrightarrow", r"\overleftrightarrow",
 ]
 
-SPACING = [r"\!", r"\:", r"\;", r"\quad", r"\qquad"]
+SPACING = [r"\!", r"\,", r"\:", r"\;", r"\quad", r"\qquad"]
 
 # Scoped semantic forms validated through the persisted normal MCP path and the
 # development browser on 2026-10-06. These are intentionally narrower than
