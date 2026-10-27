@@ -42,7 +42,7 @@ def inspect_document(operation: str, payload: dict[str, Any]) -> dict[str, Any]:
     try:
         if operation == "diagnose_contract":
             response = butex_worker_client._post(
-                "/v1/document2/diagnostics/contract", {}
+                "/v1/document/diagnostics/contract", {}
             )
             if not isinstance(response, dict) or response.get("ok") is not True:
                 raise HTTPException(status_code=502, detail="Invalid worker contract diagnostic")
