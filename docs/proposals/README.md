@@ -9,6 +9,10 @@ These are deliberately **not implemented** in the current `develop` baseline. Th
 
 Both original proposals and this execution plan must be rechecked against current source before implementation. Neither may be presented in the [current architecture pages](../architecture/README.md) as already shipped.
 
+## Exploratory feasibility (not an approved implementation proposal)
+
+- [**Collaborative authoring after autosave conflict safety**](collaborative-authoring-feasibility.md) — source-based assessment of Level 2 structural three-way merging and Level 3 live collaboration (3A revision awareness; 3B true simultaneous editing), including component ownership, database implications, risks and validation gates. **No Level 2/3 implementation is included in PR #249.**
+
 Other past design notes belong in [the historical archive](../archive/README.md) unless deliberately revived and reviewed as a new active proposal.
 
 **Phase 0 APPROVED AND COMPLETE (2026-10-21):** the synchronized execution plans in both repositories enforce **mechanical naming/obsolete-editor removal only; absolutely no intentional UI/UX, business-logic, database, persistence, math, output, security, or user-facing behavior changes and no unnecessary application-code comments**. Both immutable cross-repo acceptance oracles are frozen: [v1 (66 cases)](document-migration-frozen-acceptance-v1.md), SHA-256 `6457a3d1abe43ba4cde16bd9b287d097978671db5ba3657c28099b1c6e26ca8e`; [Addendum A (79 cases)](document-migration-frozen-acceptance-addendum-a.md), SHA-256 `dd96dae156fd2d026ca75ca390bb8c63104bdb938ecea7b6b0359dfbe905591e`. Total **145 mandatory cases**, preserved existing test coverage, and original Round-7 stress procedure. Only documentation/freeze is complete: **no migration implementation, diagnostic harness, final suite execution, npm release or deployment has taken place**. After these planning requests merge, use one accumulating implementation PR and one accumulating implementation MR for Rounds 1–7; no compatibility shims.
