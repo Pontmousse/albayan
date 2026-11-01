@@ -88,11 +88,74 @@ def _worker_error(response: httpx.Response) -> HTTPException:
     return _invalid_response()
 
 
+def _valid_reference(row: Any) -> bool:
+    return (
+        isinstance(row, dict)
+        and isinstance(row.get("key"), str)
+        and bool(row["key"].strip())
+        and all(
+            key not in row or isinstance(row[key], str)
+            for key in ("authors", "title", "year", "venue", "url")
+        )
+        and row.get("field_separator", "،") in (",", "،")
+    )
+
+
+def _valid_math_object(value: Any) -> bool:
+    if not isinstance(value, dict) or value.get("node_type") != "MathObject":
+        return False
+    lines = value.get("lines")
+    return (
+        isinstance(value.get("math_mode"), str)
+        and isinstance(value.get("closing"), str)
+        and isinstance(lines, list)
+        and all(
+            isinstance(line, dict)
+            and line.get("node_type") == "ChainClass"
+            and isinstance(line.get("chain"), list)
+            and all(
+                isinstance(node, dict) and isinstance(node.get("node_type"), str)
+                for node in line["chain"]
+            )
+            for line in lines
+        )
+    )
+
+
+def _valid_document_block(block: Any) -> bool:
+    if not isinstance(block, dict) or not isinstance(block.get("command"), str):
+        return False
+    for key in ("math_objects", "caption_math_objects"):
+        if key in block and (
+            not isinstance(block[key], list)
+            or not all(
+                item is None
+                or (isinstance(item, dict) and item.get("node_type") == "RawMathObject")
+                or _valid_math_object(item)
+                for item in block[key]
+            )
+        ):
+            return False
+    return True
+
+
 def _require_success_document(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise _invalid_response()
     document = payload.get("document")
-    if not isinstance(document, dict):
+    if (
+        not isinstance(document, dict)
+        or document.get("node_type") != "DocumentObject"
+        or not isinstance(document.get("blocks"), list)
+        or not all(_valid_document_block(block) for block in document["blocks"])
+        or (
+            "references" in document
+            and (
+                not isinstance(document["references"], list)
+                or not all(_valid_reference(row) for row in document["references"])
+            )
+        )
+    ):
         raise _invalid_response()
     return document
 
@@ -102,7 +165,13 @@ def _require_success_outline(payload: Any) -> list[dict[str, Any]]:
         raise _invalid_response()
     outline = payload.get("outline")
     if not isinstance(outline, list) or not all(
-        isinstance(row, dict) for row in outline
+        isinstance(row, dict)
+        and all(
+            isinstance(row.get(key), str)
+            for key in ("id", "kind", "command", "excerpt")
+        )
+        and bool(row["id"].strip())
+        for row in outline
     ):
         raise _invalid_response()
     return outline
@@ -113,7 +182,7 @@ def _require_success_references(payload: Any) -> list[dict[str, Any]]:
         raise _invalid_response()
     references = payload.get("references")
     if not isinstance(references, list) or not all(
-        isinstance(reference, dict) for reference in references
+        _valid_reference(reference) for reference in references
     ):
         raise _invalid_response()
     return references
@@ -129,6 +198,30 @@ def _require_success_reference_index(payload: Any) -> dict[str, Any]:
         rows = reference_index.get(key)
         if not isinstance(rows, list) or not all(isinstance(row, dict) for row in rows):
             raise _invalid_response()
+        for row in rows:
+            if key == "labels":
+                if not (
+                    all(isinstance(row.get(k), str) for k in ("key", "kind", "caption"))
+                    and type(row.get("number")) is int
+                ):
+                    raise _invalid_response()
+            elif not (
+                row.get("kind") == ("cite" if key == "citations" else "ref")
+                and all(
+                    isinstance(row.get(k), str)
+                    for k in ("block_id", "field_id", "token_id")
+                )
+                and all(
+                    isinstance(row.get(k), list)
+                    and all(isinstance(v, str) for v in row[k])
+                    for k in ("keys", "unresolved_keys")
+                )
+                and (
+                    key != "cross_references"
+                    or row.get("ref_command") in ("ref", "eqref")
+                )
+            ):
+                raise _invalid_response()
     unresolved = reference_index.get("unresolved")
     if not isinstance(unresolved, dict):
         raise _invalid_response()
@@ -160,7 +253,7 @@ def _require_success_english_math_object(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict) or payload.get("ok") is not True:
         raise _invalid_response()
     math_object = payload.get("english_math_object")
-    if not isinstance(math_object, dict) or math_object.get("node_type") != "MathObject":
+    if not _valid_math_object(math_object):
         raise _invalid_response()
     return math_object
 
