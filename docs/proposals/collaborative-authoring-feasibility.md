@@ -81,7 +81,73 @@ This is **not** just adding WebSockets:
 
 Full CRDT adoption should **not** be committed to before a focused BuTeX editor proof of concept validates undo/selection behavior, canonical round trips and compilation consistency.
 
-## 6. Delivery order and acceptance gates
+## 6. Multi-writer concurrency and a unified write pipeline
+
+**Target scenario:** four coauthors actively edit one article, each potentially running one or several agents (e.g., a prose agent, a bibliography agent, and a math agent). The architecture must support **N concurrent writers**, not just one browser versus one MCP caller. An author may also open several tabs. The concurrency semantics should be **independent of who or what submits an edit**; permissions and provenance must still distinguish humans, delegated agents, and trusted service operations.
+
+### 6.1. N writers do not require a combinatorial N-way merge
+
+The article needs **one canonical, ordered sequence of committed revisions**, even if many candidate edits are in flight. For example, suppose four authors and eight agents all start from revision 100. The database currently permits only the first successful candidate to create revision 101; other candidates based on 100 receive 409 unless retried. A future reconciler should validate each remaining candidate against the *latest committed document* and, if independent, commit it as revision 102, 103, etc. The order is serialization order, **not** evidence that writers were editing sequentially.
+
+- Apply the same three-way principle repeatedly: **writer's base + writer's intended changes + current authoritative draft**. There is no need to compare all pairs of authors/agents or construct a giant twelve-way merge.
+- The server revalidates targets, ancestors, ordering anchors, references, assets, metadata, math mappings, and unit conventions after every rebase. **Disjoint IDs are useful but not sufficient** to prove independence.
+- Operations against the same element, delete-versus-edit, conflicting moves/anchors, renaming a reference while another writer uses it, or changing equation conventions may still require a precise conflict. No automatic semantic winner, priority based solely on "human"/"agent", or silent last-writer-wins.
+- A busy article may produce many accepted short revisions, but two genuinely simultaneous writers of the **same text span** require Level 3B (or a manual resolution), not just Level 2. Level 3A makes independent committed changes visible promptly but does not synchronize every keystroke.
+
+**Assessment:** Level 2 is feasible for four authors plus their agents *when edits are structurally independent*; writer count mainly increases contention, revision churn, permissions/audit requirements, and the probability of overlapping edits, rather than changing the fundamental merge algorithm.
+
+### 6.2. Centralize the write *authority*, not necessarily every editor interaction
+
+**Partly implemented already:** browser `PUT /draft` (whole `DocumentJson`) and MCP `POST /draft/commands` (one typed command) both reach `article_draft_service.create_revision`, which normalizes through BuTeX and enforces the final revision check. The current **input formats and conflict/recovery policies differ**, however. Simply calling the same save function is not yet a unified collaboration protocol.
+
+**Proposed logical write path** (a design direction, **not** a shipped endpoint):
+
+```text
+Human browser(s)     Human-owned MCP agent(s)     Trusted service jobs
+        \                     |                         /
+         \  authorized editing intent (operation / patch / snapshot)
+          \                   |                       /
+           Al-Bayan single authoritative draft-write service
+             authenticate + authorize actual actor and delegation
+             identify request + base revision + affected semantics
+             canonicalize/validate through BuTeX; Burhan for math input
+             reconcile or report precise conflicts against latest draft
+             atomic article-level compare-and-swap + immutable revision
+             record provenance; optionally notify active subscribers
+                              |
+                     canonical Document2 draft
+```
+
+Recommended **one contract in principle**, with multiple compatible input forms rather than forcing every client to produce the same low-level event:
+
+- **Scoped intents preferred:** a BuTeX Document2 command or an equivalent identity-aware patch for one block, field, table cell, reference or semantic operation. MCP already supplies typed commands. These give the best merge opportunities.
+- **Browser transition:** BuTeX currently emits complete JSON for autosave; keep that supported initially, but interpret it against its known base as a conservative three-way change. Later, expose incremental document transactions/patches from BuTeX for browser edits **when they preserve composition, caret, undo/redo, Arabic text and equation behavior**. Do not immediately translate each keystroke into a persistent revision.
+- **Whole-document replacement retained as an explicit fallback/import operation**, not treated as equivalent to a targeted edit. It needs strict base checks or safe three-way reconciliation; never replace remote changes because a client presents a newer revision number.
+- **Common server guarantees:** caller-independent CAS, idempotency, validation, revision creation, conflict shape, authorization, safe submission/freeze boundaries, audit and post-commit notifications. Adapters for HTTP/normal MCP should stay thin; no second revision engine in MCP or the browser.
+- **Idempotency detail:** currently typed MCP commands have `command_id` receipts, while browser PUT does not use the same receipt path. The current command request hash **includes `base_revision`**; a client must not silently reuse an ID with a mutated base/payload after a 409. A future unified operation identity/rebase policy must specify safe retries without duplicate application.
+
+A unified *logical* write service does **not** require a single global process/queue or giant mutex across all articles. Keep per-article serialization using the existing database locking boundary; consider batching, scheduling, or backpressure per busy article only if measurements justify it.
+
+### 6.3. Multi-author access, delegated agents, and reliable attribution
+
+The existing `ArticleAuthor` table supports multiple users linked to one article, and draft access currently checks that link. **This does not establish that the product has a complete collaborator invitation, editing-role, or ownership-transfer workflow.** Academic authorship/credit is not necessarily identical to edit authorization: investigate explicit owner, coauthor-editor, read-only, invited contributor, and submission authority separately before promising four-user collaboration.
+
+Current `Actor` differentiates human vs agent, associates agent credentials with a user, and enforces scopes; an agent acts **on behalf of an authorized user**, not as a separate unrestricted article owner. The service currently stores `created_by` (user UUID) and `actor_type` in each revision, but not the `Actor.token_id` or a distinct agent/session identity on the revision. Several agents belonging to one author can therefore be indistinguishable in draft-history provenance. A future design should preserve server-derived **user, delegation/agent identity when available, originating client/session, operation ID, reason, and exact affected content**—without trusting unverified client labels. OAuth agent identity may require a different trusted identifier from local API-token identity. Humans and agents share conflict rules **but not privileges**: retain agent scope checks, restrictions on author metadata/history restore, and human-only submission/approval policies.
+
+**Migration implications:** the basic multi-writer CAS/merge prototype may need **no DB migration**; existing `ArticleAuthor` and immutable revisions are usable. A full invited-collaborator permission model, durable agent-level provenance, or reliable event outbox will **likely require additive schema changes**. Do not conflate a coauthor's academic authorship position with edit permissions.
+
+### 6.4. Multi-writer scaling risks and explicit acceptance cases
+
+- **Global per-article revision contention:** more clients reading revision N means more stale submissions. Retry only boundedly with fresh validation and a conflict exit; avoid tight retry loops/starvation. The per-article serial commit order remains essential even if reconciliation runs in parallel.
+- **Revision retention and undo:** current retention is **100 snapshots per article**. Many autosaves/agents can exhaust that history rapidly, stranding stale bases and weakening practical undo/recovery. Evaluate coalescing, checkpoint frequency, and retention policy before encouraging high-frequency collaborative writes.
+- **Object-storage cost and orphans:** `create_revision` currently normalizes and writes a candidate S3 object **before** acquiring its final DB row lock; losing the CAS race can leave a candidate object without a committed revision. An orphan cleanup script exists (`backend/app/jobs/cleanup_draft_orphans.py`), but its **scheduled operation was not verified**. Assess write amplification, cleanup guarantees and retention under contention before scaling.
+- **Cross-element invariants:** citation/reference keys, labels, image assets, table structure, document metadata, unit conventions, equation mappings and structured math may couple ostensibly separate edits. Normalize/validate the *combined* result rather than trusting merely disjoint block IDs.
+- **Trust and lifecycle:** an agent's write must not gain extra authority by passing through a common service. Submission and compilation pin an exact immutable revision and must remain consistent with new writes, live sessions, and freezes.
+- **Validation fixture:** simulate **4 authors + 8 distinct agent clients**, starting with the same base; mix independent paragraph/reference/math changes and deliberate collisions. Verify accepted changes are all present exactly once, each revision has correct ordering/attribution, conflicts never drop unsaved work, unauthorized agents cannot edit, retransmission is idempotent, stale/expired bases fail safely, and the compiled result matches the final canonical document. Include failures during S3 writes, transaction races, reconnect, and repeated rapid autosave.
+
+**Recommended sequencing:** first prove N-writer safety using the existing immutable revision/CAS service and the Level 2 three-way merge prototype; then expose live updates in Level 3A; only explore Level 3B's same-field concurrent typing after BuTeX can apply remote operations without corrupting local cursor, history or equation state. Keep **all** of this future work outside Level 1 PR #249.
+
+## 7. Delivery order and acceptance gates
 
 1. **Ship Level 1 separately:** regression-test 409 recovery, verify in the authenticated DEV browser (including two tabs and MCP/browser contention), then merge PR #249. No merge functionality or migration in the Level 1 code path.
 2. **Level 2 prototype:** prove `B/L/R` deterministic merges for independent blocks and correct rejection for collisions. Test mixed human PUT and MCP commands, math/citations/tables, legacy IDs, stale bases, revision retention and server races. Validate normalization, source attribution, revision history and compile output.
@@ -91,7 +157,7 @@ Full CRDT adoption should **not** be committed to before a focused BuTeX editor 
 
 **Non-goals for this document:** designing new API schemas, approving migrations, implementing CRDT, modifying Burhan, changing production infrastructure, or proposing that AI automatically resolves true semantic conflicts.
 
-## 7. Recommendation
+## 8. Recommendation
 
 Prioritize **Level 2 plus Level 3A**, especially for **human–MCP agent collaboration**. This captures most of the near-term benefit (independent edits in one article without interruption) while preserving the existing Document2, immutable revision, authorization and compilation boundaries. Reassess full Level 3B only after measuring real usage and proving a safe editor synchronization model.
 
