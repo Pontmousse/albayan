@@ -76,6 +76,7 @@ export default function TahrirPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [conflictNotice, setConflictNotice] = useState<string | null>(null);
+  const [autosaveConflict, setAutosaveConflict] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
   const [documentValid, setDocumentValid] = useState(true);
@@ -131,6 +132,7 @@ export default function TahrirPage() {
       reload: () => getArticleDraft(getToken, articleId),
       onState: (state) => {
         setDirty(state.dirty);
+        setAutosaveConflict(state.kind === "conflict");
         setSaveFailed(state.kind === "failed");
         if (state.kind === "saving") setSaveMessage("جارٍ الحفظ التلقائي…");
         else if (state.kind === "saved") setSaveMessage("تم الحفظ تلقائياً.");
@@ -140,7 +142,6 @@ export default function TahrirPage() {
           setConflictNotice(state.message);
         } else setSaveMessage(null);
       },
-      onConflict: applyRevisionToEditor,
       onCanonical: applyRevisionToEditor,
     });
   }, [applyRevisionToEditor, articleId, getToken]);
@@ -439,6 +440,20 @@ export default function TahrirPage() {
     router.push(`/maktabi/maqalati/${articleId}`);
   }
 
+  function handleKeepLocalConflict() {
+    if (!window.confirm("سيُحفظ محتوى المحرر فوق أحدث نسخة على الخادم، وقد تُستبدل تعديلات المصدر الآخر. هل تريد المتابعة؟")) return;
+    if (autosaveController.current?.resolveConflict(true)) setConflictNotice(null);
+  }
+
+  function handleAcceptRemoteConflict() {
+    if (!window.confirm("ستُفقد التعديلات المحلية غير المحفوظة. هل تريد اعتماد أحدث نسخة من الخادم؟")) return;
+    const latest = autosaveController.current?.resolveConflict(false);
+    if (latest) {
+      applyRevisionToEditor(latest);
+      setConflictNotice(null);
+    }
+  }
+
   function handleOpenHistory() {
     setError(null);
     setHistoryOpen(true);
@@ -520,23 +535,44 @@ export default function TahrirPage() {
           >
             <p className="min-w-0 flex-1">{conflictNotice}</p>
             <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setConflictNotice(null);
-                  setHistoryOpen(true);
-                }}
-                className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
-              >
-                عرض سجل النسخ
-              </button>
-              <button
-                type="button"
-                onClick={() => setConflictNotice(null)}
-                className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
-              >
-                حسناً
-              </button>
+              {autosaveConflict ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleKeepLocalConflict}
+                    className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+                  >
+                    حفظ تعديلاتي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAcceptRemoteConflict}
+                    className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+                  >
+                    اعتماد نسخة الخادم
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConflictNotice(null);
+                      setHistoryOpen(true);
+                    }}
+                    className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+                  >
+                    عرض سجل النسخ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConflictNotice(null)}
+                    className="rounded-md border border-amber-400 bg-white px-3 py-1 text-xs font-semibold"
+                  >
+                    حسناً
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : null}
