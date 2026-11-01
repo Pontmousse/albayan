@@ -303,6 +303,68 @@ class BuTeXWorkerClientTests(unittest.TestCase):
 
         self.assertEqual(raised.exception.status_code, 502)
 
+    def test_rejects_malformed_http_200_worker_payloads(self) -> None:
+        document = {"node_type": "DocumentObject", "blocks": []}
+        index = {
+            "citations": [{}],
+            "cross_references": [],
+            "labels": [],
+            "unresolved": {"citation_keys": [], "cross_reference_keys": []},
+        }
+        cases = [
+            ("normalize", "normalize_document", (document,),
+             {"ok": True, "document": {"arbitrary": "invalid"}}),
+            ("command", "apply_document_command", (document, {"op": "remove_block", "block_id": "b"}),
+             {"ok": True, "document": {"arbitrary": "invalid"}}),
+            ("blocks", "normalize_document", (document,),
+             {"ok": True, "document": {"node_type": "DocumentObject", "blocks": [{}]}}),
+            ("outline", "outline_document", (document,),
+             {"ok": True, "outline": [{}]}),
+            ("references", "reference_document", (document,),
+             {"ok": True, "references": [{"title": "missing key"}]}),
+            ("reference_index", "reference_index_document", (document,),
+             {"ok": True, "reference_index": index}),
+            ("math", "project_math_object_to_english", ({"node_type": "MathObject"},),
+             {"ok": True, "english_math_object": {
+                 "node_type": "MathObject", "math_mode": "$", "closing": "$",
+                 "lines": [{"node_type": "ChainClass", "chain": [{}]}],
+             }}),
+            ("diff", "diff_documents", (document, document),
+             {"ok": True, "diff": {
+                 "version": 1, "changed": True, "truncated": False,
+                 "chunks": [{"kind": "added", "text": 5}],
+             }}),
+            ("export", "export_document", (document,),
+             {"ok": True, "latex": "tex", "asset_ids": [5]}),
+        ]
+        for name, method, args, payload in cases:
+            response = httpx.Response(200, json=payload)
+            with self.subTest(name=name), patch.object(
+                butex_worker_client.settings, "butex_worker_url", "http://butex"
+            ), patch.object(
+                butex_worker_client.settings, "butex_worker_token", "secret"
+            ), patch.object(
+                butex_worker_client.httpx, "Client", return_value=_client_for(response)
+            ), self.assertRaises(HTTPException) as raised:
+                getattr(butex_worker_client, method)(*args)
+
+            self.assertEqual(raised.exception.status_code, 502)
+            self.assertEqual(raised.exception.detail, "استجابة عامل BuTeX غير صالحة.")
+
+    def test_accepts_typed_outline_row(self) -> None:
+        outline = [
+            {"id": "b1", "kind": "paragraph", "command": "\\paragraph", "excerpt": "نص"}
+        ]
+        response = httpx.Response(200, json={"ok": True, "outline": outline})
+        with patch.object(
+            butex_worker_client.settings, "butex_worker_url", "http://butex"
+        ), patch.object(
+            butex_worker_client.settings, "butex_worker_token", "secret"
+        ), patch.object(
+            butex_worker_client.httpx, "Client", return_value=_client_for(response)
+        ):
+            self.assertEqual(butex_worker_client.outline_document({}), outline)
+
 
 if __name__ == "__main__":
     unittest.main()
