@@ -171,6 +171,10 @@ def _require_success_outline(payload: Any) -> list[dict[str, Any]]:
             for key in ("id", "kind", "command", "excerpt")
         )
         and bool(row["id"].strip())
+        and row["kind"] in (
+            "section", "subsection", "subsubsection", "paragraph",
+            "list", "table", "figure", "bibliography", "raw",
+        )
         for row in outline
     ):
         raise _invalid_response()
