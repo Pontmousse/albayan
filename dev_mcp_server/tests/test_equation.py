@@ -68,7 +68,7 @@ def test_fixture_corpus_contains_required_adjacency_regressions() -> None:
     sources = {fixture["source"] for fixture in fixtures}
 
     assert len(fixtures) >= 35
-    assert {"dx", "df", "kx", "k x", "Ax", "xA", "abc", "\\frac{df}{dx}"} <= sources
+    assert {"dx", "df", "kx", "k x", "Ax", "xA", "abc", "\\frac{d f}{d x}"} <= sources
     assert {"adjacent-dx", "adjacent-df", "adjacent-kx", "df-over-dx"} <= ids
     assert fixture_by_id("cases")["display"] is True
 

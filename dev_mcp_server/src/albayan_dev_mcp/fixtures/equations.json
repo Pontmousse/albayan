@@ -35,6 +35,6 @@
     {"id":"adjacent-xA","source":"xA","display":false,"tags":["adjacency","matrix"],"support_class":"adjacency","known_failure":null},
     {"id":"adjacent-abc","source":"abc","display":false,"tags":["adjacency","regression"],"support_class":"adjacency","known_failure":null},
     {"id":"coefficient-dot-x","source":"c\\dot{x}","display":false,"tags":["adjacency","accent","derivative"],"support_class":"adjacency","known_failure":null},
-    {"id":"df-over-dx","source":"\\frac{df}{dx}","display":true,"tags":["adjacency","fraction","derivative","regression"],"support_class":"adjacency","known_failure":null}
+    {"id":"df-over-dx","source":"\\frac{d f}{d x}","display":true,"tags":["adjacency","fraction","derivative","regression"],"support_class":"adjacency","known_failure":null}
   ]
 }
