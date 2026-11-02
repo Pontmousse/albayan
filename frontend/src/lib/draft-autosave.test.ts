@@ -83,8 +83,60 @@ describe("DraftAutosaveController", () => {
     controller.update(document("local"));
     await vi.advanceTimersByTimeAsync(1_500);
     expect(onConflict).toHaveBeenCalledWith(revision(2, "agent"));
-    expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "conflict" }));
+    expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "conflict", dirty: true }));
+    expect(controller.isUnsafeToLeave()).toBe(true);
+    expect(await controller.flush()).toBe(false);
+  });
+
+  it("retains local edits until explicitly retried against the new revision", async () => {
+    vi.useFakeTimers();
+    const save = vi.fn()
+      .mockRejectedValueOnce(new ApiError("conflict", 409))
+      .mockResolvedValueOnce(revision(3, "newest local"));
+    const controller = new DraftAutosaveController({
+      initial: revision(1, "original"),
+      save,
+      reload: vi.fn().mockResolvedValue(revision(2, "remote")),
+      onState: vi.fn(),
+      onConflict: vi.fn(),
+    });
+
+    controller.update(document("local"));
+    await vi.advanceTimersByTimeAsync(1_500);
+    controller.update(document("newest local"));
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(controller.isUnsafeToLeave()).toBe(true);
+    expect(await controller.flush()).toBe(false);
+
+    expect(controller.resolveConflict(true)).toEqual(revision(2, "remote"));
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(save).toHaveBeenNthCalledWith(2, document("newest local"), 2);
     expect(controller.isUnsafeToLeave()).toBe(false);
+  });
+
+  it("only discards local edits after explicitly accepting the server version", async () => {
+    vi.useFakeTimers();
+    const save = vi.fn().mockRejectedValueOnce(new ApiError("conflict", 409))
+      .mockResolvedValueOnce(revision(3, "next"));
+    const onState = vi.fn();
+    const controller = new DraftAutosaveController({
+      initial: revision(1, "original"),
+      save,
+      reload: vi.fn().mockResolvedValue(revision(2, "remote")),
+      onState,
+      onConflict: vi.fn(),
+    });
+
+    controller.update(document("local"));
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(controller.resolveConflict(false)).toEqual(revision(2, "remote"));
+    expect(controller.isUnsafeToLeave()).toBe(false);
+    expect(onState).toHaveBeenLastCalledWith({ kind: "saved", dirty: false });
+
+    controller.update(document("next"));
+    await vi.advanceTimersByTimeAsync(1_500);
+    expect(save).toHaveBeenNthCalledWith(2, document("next"), 2);
   });
 
   it("adopts the canonical server document after normalization", async () => {

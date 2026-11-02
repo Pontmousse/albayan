@@ -7,14 +7,14 @@ export type AutosaveState =
   | { kind: "pending"; dirty: true }
   | { kind: "saving"; dirty: true }
   | { kind: "failed"; dirty: true; message: string }
-  | { kind: "conflict"; dirty: false; message: string };
+  | { kind: "conflict"; dirty: true; message: string };
 
 type Options = {
   initial: DraftRevision;
   save: (document: DocumentJson, baseRevision: number) => Promise<DraftRevision>;
   reload: () => Promise<DraftRevision>;
   onState: (state: AutosaveState) => void;
-  onConflict: (latest: DraftRevision) => void;
+  onConflict?: (latest: DraftRevision) => void;
   onCanonical?: (latest: DraftRevision) => void;
   idleMs?: number;
   maximumMs?: number;
@@ -22,7 +22,7 @@ type Options = {
 };
 
 const CONFLICT_NOTICE =
-  "وصلت تعديلات أحدث من مصدر آخر؛ حُمّلت أحدث مسودة وحُذفت التغييرات المحلية غير المحفوظة.";
+  "وصلت تعديلات أحدث من مصدر آخر. بقيت تعديلاتك المحلية في المحرر؛ اختر حفظها فوق أحدث نسخة أو اعتماد نسخة الخادم.";
 
 export class DraftAutosaveController {
   private readonly options: Required<
@@ -33,6 +33,7 @@ export class DraftAutosaveController {
   private cleanSnapshot: string;
   private latestSnapshot: string;
   private latestDocument: DocumentJson;
+  private conflictRevision: DraftRevision | null = null;
   private inFlight: Promise<boolean> | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private maximumTimer: ReturnType<typeof setTimeout> | null = null;
@@ -59,6 +60,10 @@ export class DraftAutosaveController {
     if (this.disposed) return;
     this.latestDocument = document;
     this.latestSnapshot = JSON.stringify(document);
+    if (this.conflictRevision) {
+      this.options.onState({ kind: "conflict", dirty: true, message: CONFLICT_NOTICE });
+      return;
+    }
     if (!this.inFlight && this.latestSnapshot === this.cleanSnapshot) {
       this.cancelScheduled();
       this.failed = false;
@@ -81,6 +86,7 @@ export class DraftAutosaveController {
   isUnsafeToLeave(): boolean {
     return (
       this.inFlight !== null ||
+      this.conflictRevision !== null ||
       this.failed ||
       this.latestSnapshot !== this.cleanSnapshot
     );
@@ -90,9 +96,24 @@ export class DraftAutosaveController {
     return this.baseRevision;
   }
 
+  resolveConflict(keepLocal: boolean): DraftRevision | null {
+    const latest = this.conflictRevision;
+    if (!latest || this.disposed) return null;
+    this.conflictRevision = null;
+    if (keepLocal) {
+      this.update(this.latestDocument);
+    } else {
+      this.latestDocument = latest.document;
+      this.latestSnapshot = this.cleanSnapshot;
+      this.options.onState({ kind: "saved", dirty: false });
+    }
+    return latest;
+  }
+
   async flush(): Promise<boolean> {
     this.cancelScheduled();
     if (this.inFlight) await this.inFlight;
+    if (this.conflictRevision) return false;
     if (this.latestSnapshot === this.cleanSnapshot && !this.failed) return true;
     this.retryIndex = 0;
     return this.saveNewest(false);
@@ -121,15 +142,14 @@ export class DraftAutosaveController {
     try {
       const latest = await this.options.reload();
       this.baseRevision = latest.revision_number;
-      this.latestDocument = latest.document;
-      this.latestSnapshot = JSON.stringify(latest.document);
-      this.cleanSnapshot = this.latestSnapshot;
+      this.cleanSnapshot = JSON.stringify(latest.document);
+      this.conflictRevision = latest;
       this.failed = false;
       this.retryIndex = 0;
-      this.options.onConflict(latest);
+      this.options.onConflict?.(latest);
       this.options.onState({
         kind: "conflict",
-        dirty: false,
+        dirty: true,
         message: CONFLICT_NOTICE,
       });
       return false;
@@ -146,6 +166,7 @@ export class DraftAutosaveController {
 
   private saveNewest(scheduleRetry = true): Promise<boolean> {
     if (this.inFlight) return this.inFlight;
+    if (this.conflictRevision) return Promise.resolve(false);
     this.cancelScheduled();
     const document = this.latestDocument;
     const snapshot = this.latestSnapshot;
@@ -195,7 +216,7 @@ export class DraftAutosaveController {
       })
       .finally(() => {
         this.inFlight = null;
-        if (!this.failed && this.latestSnapshot !== this.cleanSnapshot) {
+        if (!this.failed && !this.conflictRevision && this.latestSnapshot !== this.cleanSnapshot) {
           queueMicrotask(() => void this.saveNewest());
         }
       });
