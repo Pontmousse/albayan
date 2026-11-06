@@ -209,7 +209,17 @@ def _arabic_char_values(value: Any) -> list[str]:
                 # Arabic payloads under a node that already carries reliable
                 # source identity are not global mapping problems. Still walk
                 # scripts and other siblings so attached variables keep coverage.
-                if has_local_identity and key == "mandatory_args":
+                # Named operators, literal prose and atomic names all use
+                # the article's plain translation dictionary, not reverse
+                # variable inference. An author-edited label has no source_latex.
+                atomic = node.get("node_type") == "CommandObject" and node.get("name") in {
+                    r"\mathtt", r"\operatorname", r"\text",
+                }
+                legacy_variable = atomic and node.get("name") == r"\text" and (
+                    isinstance(source_latex, str) and bool(source_latex)
+                    and not source_latex.startswith(r"\text{")
+                )
+                if key == "mandatory_args" and (has_local_identity or (atomic and not legacy_variable)):
                     continue
                 if isinstance(child, (dict, list)):
                     walk(child)
@@ -225,6 +235,36 @@ def _mapping_aliases(value: str) -> set[str]:
     """Return a mapping value plus Arabic payloads nested inside TeX wrappers."""
 
     return {value, *_ARABIC_RE.findall(value)}
+
+
+def _unresolved_atomic_warnings(math_object: Mapping[str, Any]) -> list[str]:
+    """Expose unresolved plain translation fallback through equation readback."""
+    warnings: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, list):
+            for item in node:
+                walk(item)
+            return
+        if not isinstance(node, dict):
+            return
+        name = node.get("name")
+        source = node.get("source_latex")
+        if name in (r"\mathtt", r"\operatorname", r"\text") and isinstance(source, str):
+            prefix = name + "{"
+            arguments = node.get("mandatory_args") or []
+            if source.startswith(prefix) and source.endswith("}") and len(arguments) == 1:
+                atoms = arguments[0].get("chain", [])
+                if len(atoms) == 1 and atoms[0].get("node_type") == "CharObject":
+                    raw = source[len(prefix):-1]
+                    if raw and atoms[0].get("expr") == raw and not _ARABIC_RE.search(raw):
+                        warnings.append(f"unresolved_atomic_translation:{raw}")
+        for value in node.values():
+            if isinstance(value, (dict, list)):
+                walk(value)
+
+    walk(math_object)
+    return list(dict.fromkeys(warnings))
 
 
 def _mapping_warnings(
@@ -284,6 +324,9 @@ def project_document_equations(
             continue
 
         warnings = _mapping_warnings(raw_object, reverse_mapping, ambiguous_values)
+        for warning in _unresolved_atomic_warnings(raw_object):
+            if warning not in warnings:
+                warnings.append(warning)
         english_object = butex_worker_client.project_math_object_to_english(raw_object)
         latex, conversion_warnings = (
             burhan_reverse_client.project_math_object_to_canonical_latex(

@@ -404,6 +404,22 @@ CAPABILITIES: dict[str, Any] = {
         },
     },
     "accepted_but_not_round_trip_safe": {
+        # Plan C is deliberately gated pending Burhan !39, BuTeX !79 and
+        # real persisted browser/compiler verification. Not advertised safe yet.
+        "atomic_translation_plan": {
+            "mapping_store": "existing_equation_mappings_plain_keys",
+            "command_qualified_keys": False,
+            "lookup_precedence": "exact_argument_mapping_then_prompt_then_preserve_and_warn",
+            "prompt_routes": {
+                r"\mathtt": "existing_variable_prompt",
+                r"\operatorname": "new_operator_prompt",
+                r"\text": "new_whole_phrase_prompt",
+            },
+            "preserve_original_wrapper": True,
+            "author_edit_overrides_source": True,
+            "unknown_in_heuristic_tier": "preserve_original_with_unresolved_warning",
+            "round_trip_safe": False,
+        },
         "commands": PARSE_BUILD_ONLY_COMMANDS,
         "internal_environments": PARSE_BUILD_ONLY_ENVIRONMENTS,
         "top_level_environments": TOP_LEVEL_ENVIRONMENTS,
